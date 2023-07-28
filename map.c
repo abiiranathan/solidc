@@ -122,6 +122,7 @@ char** map_keys(map* m) {
     }
     return keys;
 }
+
 void map_set_hash(map* m, unsigned long (*hash)(void*)) {
     m->hash = hash;
 }
@@ -190,13 +191,10 @@ void mapStrings() {
         printf("Key: %s, Value: %s\n", (char*)e.key, (char*)e.value);
     }
     map_iterator_destroy(iter);
-
     map_destroy(m);
 }
 
 int main() {
-    // mapStrings();
-
     // Create an integer map
     map* m    = map_create();
     int one   = 1;

@@ -17,8 +17,10 @@
 
 // Networking and IO
 #include "arena.h"
+#include "flag.h"
 #include "input.h"
 #include "net.h"
+#include "pubsub.h"
 #include "threadpool.h"
 
 #endif /* __SOLIDC_H__ */

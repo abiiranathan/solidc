@@ -19,6 +19,8 @@ set(SOLIDC_SOURCES
     arena.c
     net.c
     threadpool.c
+    pubsub.c
+    flag.c
 )
 
 # Define the library target
