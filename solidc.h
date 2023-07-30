@@ -12,6 +12,7 @@
 #include "priority_queue.h"
 #include "set.h"  // Header-only
 #include "sort.h"
+#include "stack.h"  // Header-only
 #include "str.h"
 #include "vec.h"  // Header-only
 

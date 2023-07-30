@@ -10,6 +10,7 @@ C programming language.
 - Linked List
 - Map
 - Priority Queue
+- Stack
 - Set
 - Sorting
 - Custom String and all string operations
