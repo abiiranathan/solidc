@@ -1,9 +1,14 @@
+// Directives to allow use of fseeko64 and ftello64
+#ifndef _LARGEFILE64_SOURCE
+#define _LARGEFILE64_SOURCE
+#endif
+
+#ifndef _FILE_OFFSET_BITS
+#define _FILE_OFFSET_BITS 64
+#endif
+
 #ifndef __OS_H__
 #define __OS_H__
-
-// Directives to allow use of fseeko64 and ftello64
-#define _LARGEFILE64_SOURCE
-#define _FILE_OFFSET_BITS 64
 
 #include <errno.h>
 #include <fcntl.h>
@@ -27,7 +32,6 @@ typedef struct File File;
  */
 File* file_open(const char* filename, const char* mode);
 
-#ifdef OS_SUPPORT_LOCKING
 /**
  * @brief Attempt to obtain an advisory lock on the file.
  * If the lock is obtained, subsequent attempts to lock the file
@@ -41,8 +45,6 @@ File* file_open(const char* filename, const char* mode);
  * This function will fail with EAGAIN if the file is already locked by another process.
  * This function will block until the lock is obtained.
  *
- * @note This function will only work if the user defines the directive "OS_SUPPORT_LOCKING"
- * before including this header file. Otherwise, this function will be a no-op.
  */
 int file_lock(File* file, off_t offset, off_t length);
 
@@ -57,11 +59,8 @@ int file_lock(File* file, off_t offset, off_t length);
  * @return Returns 0 if the lock was released successfully, or -1 if an error occurred.
  * Check errno for the specific error that occurred.
  *
- * @note This function will only work if the user defines the directive "OS_SUPPORT_LOCKING"
- * before including this header file. Otherwise, this function will be a no-op.
  */
 int file_unlock(File* file, off_t offset, off_t length);
-#endif
 
 // Get pointer to the underlying standard FILE object.
 FILE* file_get_ptr(File* file);
@@ -125,19 +124,23 @@ int file_truncate(File* file, off_t offset);
  * @param file
  * @param buffer
  * @param bufsize
- * @return Returns 0 if read was successful or 1 if an error occured.
+ * @return Returns -1 for error or number of bytes read.
  */
 int file_read(File* file, char* buffer, long bufsize);
+
+// Read content of the file all at once.
+// Returns allocated file bytes or NULL. Must be freed after use.
+// This is inefficient(and may fail) and will waste memory for very large files.
+char* file_readall(File* file);
 
 /**
  * @brief Write nbytes of data to file.
  *
  * @param file
  * @param data
- * @param nbytes
- * @return 0 if write was successful or 1 if it failed.
+ * @return number of bytes written if write was successful or -1 if it failed.
  */
-int file_write(File* file, char* data, long nbytes);
+size_t file_write(File* file, char* data);
 
 /**
  * @brief Returns the file size in bytes.
@@ -149,7 +152,13 @@ int file_write(File* file, char* data, long nbytes);
  */
 long file_size(File* file);
 
+// Set file cursor to the beginning of file.
+void file_rewind(File* file);
+
 // Get file size for a large file.
 __off64_t file_size_large(File* file);
+
+// Delete the file. Returns 0 if successful.
+int file_remove(File* file);
 
 #endif /* __OS_H__ */

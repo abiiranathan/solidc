@@ -1,5 +1,7 @@
 #include "os.h"
 
+#include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 
 typedef struct File {
@@ -7,14 +9,12 @@ typedef struct File {
     FILE* fp;
     char* name;
     struct stat stats;
-#ifdef OS_SUPPORT_LOCKING
+
     int is_locked;
-#endif
 } File;
 
 File* file_open(const char* filename, const char* mode) {
     File* file = (File*)malloc(sizeof(File));
-    char* msg  = NULL;
 
     if (!file) {
         perror("Error creating file");
@@ -23,25 +23,24 @@ File* file_open(const char* filename, const char* mode) {
 
     file->fp = fopen(filename, mode);
     if (file->fp == NULL) {
-        perror("Error opening file");
+        free(file);
         return NULL;
     }
 
-    file->name = (char*)filename;
-    file->fd   = fileno(file->fp);
+    file->name = strdup(filename);
+    file->fd = fileno(file->fp);
 
     if (fstat(file->fd, &file->stats) == -1) {
         perror("Error getting file stats");
         fclose(file->fp);
+        free(file->name);
+        free(file);
         return NULL;
     }
 
 #ifdef OS_SUPPORT_LOCKING
     file->is_locked = 0;
 #endif
-
-error:
-
     return file;
 }
 
@@ -68,6 +67,7 @@ void file_free(File* file) {
     }
 
     close(file->fd);
+    free(file->name);
     free(file);
     file = NULL;
 }
@@ -76,12 +76,19 @@ long file_copy(File* src, File* dst) {
     char buffer[BUFSIZ];
     long bytes_written = 0;
     size_t n;
-    while ((n = read(src->fd, buffer, sizeof(char) * BUFSIZ)) != 0) {
-        long n = write(dst->fd, buffer, sizeof(char) * n);
-        if (n > 0) {
-            bytes_written += n;
+    while ((n = fread(buffer, sizeof(char), sizeof(buffer), src->fp)) > 0) {
+        long nwritten = fwrite(buffer, sizeof(char), n, dst->fp);
+        if (nwritten > 0) {
+            bytes_written += nwritten;
         }
     }
+
+    // Ensure data is written to the destination file
+    fflush(dst->fp);
+
+    // Reset files
+    fseek(src->fp, 0L, SEEK_SET);
+    fseek(dst->fp, 0L, SEEK_SET);
     return bytes_written;
 }
 
@@ -131,35 +138,65 @@ int file_truncate(File* file, off_t offset) {
     }
 
     if (fstat(file->fd, &file->stats) == -1) {
-        perror("Error getting file stats");
+        perror("Error updating file stats");
         return -1;
     }
     return 0;
 }
 
 int file_read(File* file, char* buffer, long bufsize) {
-    char buf[BUFSIZ];
-    ssize_t nread;
-    while ((nread = fread(buf, sizeof(buf), sizeof(char), file->fp)) > 0)
-        ;
+    int bytes_read = 0;
+    while (bytes_read < bufsize) {
+        int num_bytes = fread(buffer + bytes_read, 1, bufsize - bytes_read, file->fp);
+        if (num_bytes == -1) {
+            perror("fread");
+            return -1;
+        }
 
-    if (nread < 0) {
-        perror("error reading from file");
-        return 1;
+        if (num_bytes == 0) {
+            break;
+        }
+        bytes_read += num_bytes;
     }
-
-    memcpy(buffer, buf, bufsize);
-    return 0;
+    return bytes_read;
 }
 
-int file_write(File* file, char* data, long nbytes) {
-    int written = fwrite(data, sizeof(char), nbytes, file->fp);
+int file_remove(File* file) {
+    return remove(file->name);
+}
+
+void file_rewind(File* file) {
+    rewind(file->fp);
+}
+
+char* file_readall(File* file) {
+    // Get the file size.
+    long size = file_size(file);
+
+    // Allocate memory to store the file contents.
+    char* buffer = (char*)malloc(size + 1);
+    if (buffer == NULL) {
+        perror("malloc");
+        return NULL;
+    }
+
+    // Read the file contents into the buffer.
+    fread(buffer, 1, size, file->fp);
+
+    // Add a null terminator to the end of the buffer.
+    buffer[size] = '\0';
+
+    // Return the buffer.
+    return buffer;
+}
+
+size_t file_write(File* file, char* data) {
+    size_t written = fwrite(data, sizeof(char), strlen(data), file->fp);
     if (written < 0) {
         perror("unable to write to file");
         return -1;
     }
-    fflush(file->fp);
-    return 0;
+    return written;
 }
 
 ssize_t file_size(File* file) {
@@ -194,19 +231,18 @@ int file_stats(File* file, struct stat* stats) {
     return 0;
 }
 
-#ifdef OS_SUPPORT_LOCKING
 int file_lock(File* file, off_t offset, off_t length) {
     if (file->is_locked) {
-        return -1;  // File is already locked
+        printf("file is already locked\n");
+        return -1;
     }
-    struct flock lock;
-    lock.l_type   = F_WRLCK;
-    lock.l_whence = SEEK_SET;
-    lock.l_start  = offset;
-    lock.l_len    = length;
+
+    struct flock lock = {.l_type = F_WRLCK, .l_whence = SEEK_SET, .l_start = offset, .l_len = length};
 
     if (fcntl(file->fd, F_SETLK, &lock) == -1) {
-        return -1;  // Failed to lock file
+        printf("Failed to lock file: ");
+        perror("fcntl");
+        return -1;
     }
     file->is_locked = 1;
     return 0;
@@ -214,17 +250,16 @@ int file_lock(File* file, off_t offset, off_t length) {
 
 int file_unlock(File* file, off_t offset, off_t length) {
     if (!file->is_locked) {
-        return -1;  // File is not locked
+        printf("File is not locked\n");
+        return -1;
     }
-    struct flock lock;
-    lock.l_type   = F_UNLCK;
-    lock.l_whence = SEEK_SET;
-    lock.l_start  = offset;
-    lock.l_len    = length;
-    if (fcntl(file->fd, F_SETLK, &lock) == -1) {
-        return -1;  // Failed to unlock file
+
+    struct flock lock = {.l_type = F_UNLCK, .l_whence = SEEK_SET, .l_start = offset, .l_len = length};
+    if (fcntl(file->fd, F_SETLKW, &lock) == -1) {
+        printf("Failed to unlock file: ");
+        perror("fcntl");
+        return -1;
     }
     file->is_locked = 0;
     return 0;
 }
-#endif
