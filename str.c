@@ -19,7 +19,7 @@ Str* str_new(const char* str) {
         return NULL;
     }
 
-    size_t len   = strlen(str);
+    size_t len = strlen(str);
     string->data = malloc((len + 1) * sizeof(char));
     if (string->data == NULL) {
         free(string);
@@ -49,7 +49,7 @@ bool str_ensure_capacity(Str* str, size_t capacity) {
         return false;
     }
 
-    str->data     = new_data;
+    str->data = new_data;
     str->capacity = capacity;
     return true;
 }
@@ -103,8 +103,8 @@ void str_concat(Str* str1, const char* str2) {
         return;
     }
 
-    size_t len1       = str1->length;
-    size_t len2       = strlen(str2);
+    size_t len1 = str1->length;
+    size_t len2 = strlen(str2);
     size_t new_length = len1 + len2;
 
     // Check for size_t overflow
@@ -115,7 +115,7 @@ void str_concat(Str* str1, const char* str2) {
 
     if (str_ensure_capacity(str1, new_length)) {
         memcpy(str1->data + len1, str2, len2);
-        str1->length           = new_length;
+        str1->length = new_length;
         str1->data[new_length] = '\0';
     }
 }
@@ -187,12 +187,11 @@ void str_replace(Str* str, const char* old, const char* newstr) {
 
         // Check is string already has enough capacity.
         if (new_length > str->capacity) {
-            char* new_data =
-                realloc(str->data, (new_length + 1) * sizeof(char));
+            char* new_data = realloc(str->data, (new_length + 1) * sizeof(char));
             if (new_data == NULL) {
                 return;
             }
-            str->data     = new_data;
+            str->data = new_data;
             str->capacity = new_length;
         }
         memmove(str->data + index + new_len, str->data + index + old_len,
@@ -247,16 +246,14 @@ void str_to_lower(Str* str) {
     }
 }
 
-void str_split(const Str* str, const char* delimiter, char** substrings,
-               int* num_substrings) {
-    if (str == NULL || delimiter == NULL || substrings == NULL ||
-        num_substrings == NULL) {
+void str_split(const Str* str, const char* delimiter, char** substrings, int* num_substrings) {
+    if (str == NULL || delimiter == NULL || substrings == NULL || num_substrings == NULL) {
         return;
     }
 
-    *num_substrings      = 0;
-    char* data           = str->data;
-    size_t data_len      = str->length;
+    *num_substrings = 0;
+    char* data = str->data;
+    size_t data_len = str->length;
     size_t delimiter_len = strlen(delimiter);
 
     // If Empty delimiter, split into individual characters
@@ -269,15 +266,17 @@ void str_split(const Str* str, const char* delimiter, char** substrings,
     }
 
     char* start = data;
-    char* end   = strstr(data, delimiter);
+    char* end;
 
-    while (end != NULL) {
+    while ((end = strstr(start, delimiter)) != NULL) {
         substrings[*num_substrings] = start;
         (*num_substrings)++;
 
-        // Move the pointers to the next substring
+        // Null-terminate the current substring
+        *end = '\0';
+
+        // Move the start pointer beyond the delimiter
         start = end + delimiter_len;
-        end   = strstr(start, delimiter);
     }
 
     // Handle the last substring after the last delimiter
@@ -319,10 +318,9 @@ void str_to_camel_case(Str* str) {
         return;
     }
 
-    char* data     = str->data;
+    char* data = str->data;
     int dest_index = 0;
-    int capitalize =
-        1;  // Flag to indicate whether the next character should be capitalized
+    int capitalize = 1;  // Flag to indicate whether the next character should be capitalized
 
     // Process the string and convert to camel case
     while (data[dest_index] != '\0') {
@@ -355,7 +353,7 @@ void str_to_title_case(Str* str) {
         return;
     }
 
-    char* data    = str->data;
+    char* data = str->data;
     size_t length = str->length;
 
     if (length > 0) {
@@ -373,7 +371,7 @@ void str_to_title_case(Str* str) {
 
 void str_to_snake_case(Str* str) {
     size_t length = str->length;
-    char* data    = str->data;
+    char* data = str->data;
 
     // Convert first character to lowercase
     data[0] = tolower(data[0]);
@@ -390,8 +388,7 @@ void str_to_snake_case(Str* str) {
         // Check if current character is uppercase
         if (isupper(data[i])) {
             // Insert underscore before uppercase character
-            memmove(&data[i + 1 - space_count], &data[i - space_count],
-                    length - i + space_count);
+            memmove(&data[i + 1 - space_count], &data[i - space_count], length - i + space_count);
             data[i - space_count] = '_';
             length++;
 
@@ -415,7 +412,7 @@ void str_insert(Str* s, const char* str, size_t index) {
         index = s->length;
     }
 
-    size_t len        = strlen(str);
+    size_t len = strlen(str);
     size_t new_length = s->length + len;
 
     // Check for size_t overflow
@@ -428,7 +425,7 @@ void str_insert(Str* s, const char* str, size_t index) {
         if (new_data == NULL) {
             return;
         }
-        s->data     = new_data;
+        s->data = new_data;
         s->capacity = new_length;
     }
 
@@ -446,16 +443,14 @@ void str_remove(Str* s, size_t index, size_t count) {
     }
 
     if (str_ensure_capacity(s, s->length - count)) {
-        memmove(s->data + index, s->data + index + count,
-                s->length - index - count);
+        memmove(s->data + index, s->data + index + count, s->length - index - count);
 
         s->data[s->length - count] = '\0';
         s->length -= count;
     };
 }
 
-void str_join(const char** substrings, int count, char delimiter, char* buffer,
-              size_t bufsize) {
+void str_join(const char** substrings, int count, char delimiter, char* buffer, size_t bufsize) {
 
     size_t substr_len = 0;
     for (int i = 0; i < count; i++) {
@@ -485,8 +480,7 @@ void str_join(const char** substrings, int count, char delimiter, char* buffer,
     *current = '\0';  // Terminate the joined string
 }
 
-void str_substring(const Str* s, size_t start, size_t end, char* substring,
-                   size_t bufsize) {
+void str_substring(const Str* s, size_t start, size_t end, char* substring, size_t bufsize) {
 
     // Bounds check on s.
     if (start > s->length || end > s->length) {
@@ -510,12 +504,12 @@ void str_reverse(Str* s) {
         return;
     }
 
-    char* data    = s->data;
+    char* data = s->data;
     size_t length = s->length;
 
     for (int i = 0; i < length / 2; i++) {
-        char temp            = data[i];
-        data[i]              = data[length - i - 1];
+        char temp = data[i];
+        data[i] = data[length - i - 1];
         data[length - i - 1] = temp;
     }
 }
@@ -543,8 +537,7 @@ int str_endswith(const Str* s, const char* suffix) {
         return 0;
     }
 
-    return strncmp(s->data + s->length - suffix_length, suffix,
-                   suffix_length) == 0;
+    return strncmp(s->data + s->length - suffix_length, suffix, suffix_length) == 0;
 }
 
 char* regex_sub_match(const char* str, const char* regex, int capture_group) {
@@ -570,8 +563,8 @@ char* regex_sub_match(const char* str, const char* regex, int capture_group) {
         return NULL;
     }
 
-    int start      = matches[capture_group].rm_so;
-    int end        = matches[capture_group].rm_eo;
+    int start = matches[capture_group].rm_so;
+    int end = matches[capture_group].rm_eo;
     int sub_length = end - start;
 
     char* sub_match = malloc((sub_length + 1) * sizeof(char));
@@ -593,8 +586,7 @@ char* regex_sub_match(const char* str, const char* regex, int capture_group) {
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
 
-char* regex_sub_match_pcre(const char* str, const char* regex,
-                           int capture_group) {
+char* regex_sub_match_pcre(const char* str, const char* regex, int capture_group) {
     pcre2_code* compiled_regex;
     pcre2_match_data* match_data;
     PCRE2_SPTR subject = (PCRE2_SPTR)str;
@@ -602,8 +594,8 @@ char* regex_sub_match_pcre(const char* str, const char* regex,
     int error_code;
     PCRE2_SIZE error_offset;
 
-    compiled_regex = pcre2_compile(pattern, PCRE2_ZERO_TERMINATED, 0,
-                                   &error_code, &error_offset, NULL);
+    compiled_regex =
+        pcre2_compile(pattern, PCRE2_ZERO_TERMINATED, 0, &error_code, &error_offset, NULL);
     if (compiled_regex == NULL) {
         printf("PCRE2 regex compilation failed\n");
         return NULL;
@@ -616,8 +608,7 @@ char* regex_sub_match_pcre(const char* str, const char* regex,
         return NULL;
     }
 
-    int result = pcre2_match(compiled_regex, subject, strlen(str), 0, 0,
-                             match_data, NULL);
+    int result = pcre2_match(compiled_regex, subject, strlen(str), 0, 0, match_data, NULL);
 
     if (result < 0) {
         printf("PCRE2 regex matching failed\n");
@@ -635,8 +626,8 @@ char* regex_sub_match_pcre(const char* str, const char* regex,
 
     PCRE2_SIZE* offsets = pcre2_get_ovector_pointer(match_data);
 
-    PCRE2_SIZE start      = offsets[capture_group * 2];
-    PCRE2_SIZE end        = offsets[capture_group * 2 + 1];
+    PCRE2_SIZE start = offsets[capture_group * 2];
+    PCRE2_SIZE end = offsets[capture_group * 2 + 1];
     PCRE2_SIZE sub_length = end - start;
 
     char* sub_match = malloc((sub_length + 1) * sizeof(char));
@@ -655,8 +646,8 @@ char* regex_sub_match_pcre(const char* str, const char* regex,
     return sub_match;
 }
 
-char** regex_sub_matches_pcre(const char* str, const char* regex,
-                              int num_capture_groups, int* num_matches) {
+char** regex_sub_matches_pcre(const char* str, const char* regex, int num_capture_groups,
+                              int* num_matches) {
 
     pcre2_code* compiled_regex;
     pcre2_match_data* match_data;
@@ -665,8 +656,8 @@ char** regex_sub_matches_pcre(const char* str, const char* regex,
     int error_code;
     PCRE2_SIZE error_offset;
 
-    compiled_regex = pcre2_compile(pattern, PCRE2_ZERO_TERMINATED, 0,
-                                   &error_code, &error_offset, NULL);
+    compiled_regex =
+        pcre2_compile(pattern, PCRE2_ZERO_TERMINATED, 0, &error_code, &error_offset, NULL);
     if (compiled_regex == NULL) {
         printf("PCRE2 regex compilation failed\n");
         return NULL;
@@ -679,8 +670,7 @@ char** regex_sub_matches_pcre(const char* str, const char* regex,
         return NULL;
     }
 
-    int result = pcre2_match(compiled_regex, subject, strlen(str), 0, 0,
-                             match_data, NULL);
+    int result = pcre2_match(compiled_regex, subject, strlen(str), 0, 0, match_data, NULL);
 
     if (result < 0) {
         printf("PCRE2 regex matching failed\n");
@@ -690,10 +680,9 @@ char** regex_sub_matches_pcre(const char* str, const char* regex,
     }
 
     int match_count = result / num_capture_groups;
-    *num_matches    = match_count;
+    *num_matches = match_count;
 
-    char** sub_matches =
-        malloc(match_count * num_capture_groups * sizeof(char*));
+    char** sub_matches = malloc(match_count * num_capture_groups * sizeof(char*));
     if (sub_matches == NULL) {
         printf("Memory allocation failed\n");
         pcre2_match_data_free(match_data);
@@ -706,11 +695,10 @@ char** regex_sub_matches_pcre(const char* str, const char* regex,
     for (int i = 0; i < match_count; i++) {
         for (int j = 0; j < num_capture_groups; j++) {
             PCRE2_SIZE start = offsets[(i * num_capture_groups + j) * 2];
-            PCRE2_SIZE end   = offsets[(i * num_capture_groups + j) * 2 + 1];
+            PCRE2_SIZE end = offsets[(i * num_capture_groups + j) * 2 + 1];
             PCRE2_SIZE sub_length = end - start;
 
-            sub_matches[i * num_capture_groups + j] =
-                malloc((sub_length + 1) * sizeof(char));
+            sub_matches[i * num_capture_groups + j] = malloc((sub_length + 1) * sizeof(char));
             if (sub_matches[i * num_capture_groups + j] == NULL) {
                 printf("Memory allocation failed\n");
                 pcre2_match_data_free(match_data);
@@ -722,8 +710,7 @@ char** regex_sub_matches_pcre(const char* str, const char* regex,
                 return NULL;
             }
 
-            strncpy(sub_matches[i * num_capture_groups + j], str + start,
-                    sub_length);
+            strncpy(sub_matches[i * num_capture_groups + j], str + start, sub_length);
             sub_matches[i * num_capture_groups + j][sub_length] = '\0';
         }
     }
