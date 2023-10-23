@@ -146,6 +146,9 @@ void str_to_lower(Str* str);
  */
 char** str_split(const Str* str, const char* delimiter, int* num_substrings);
 
+// Free memory allocated by str_split.
+void str_free_substrings(char** substrings, int num_substrings);
+
 /**
  * Checks if a Str object matches a regular expression.
  *

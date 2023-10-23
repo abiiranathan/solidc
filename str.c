@@ -246,42 +246,6 @@ void str_to_lower(Str* str) {
     }
 }
 
-// char** str_split(const Str* str, const char* delimiter, int* num_substrings) {
-//     *num_substrings = 0;
-//     char* data = str->data;
-//     size_t data_len = str->length;
-//     size_t delimiter_len = strlen(delimiter);
-
-//     // If Empty delimiter, split into individual characters
-//     if (delimiter_len == 0) {
-//         for (size_t i = 0; i < data_len; i++) {
-//             substrings[*num_substrings] = &data[i];
-//             (*num_substrings)++;
-//         }
-//         return;
-//     }
-
-//     char* start = data;
-//     char* end;
-
-//     while ((end = strstr(start, delimiter)) != NULL) {
-//         substrings[*num_substrings] = start;
-//         (*num_substrings)++;
-
-//         // Null-terminate the current substring
-//         *end = '\0';
-
-//         // Move the start pointer beyond the delimiter
-//         start = end + delimiter_len;
-//     }
-
-//     // Handle the last substring after the last delimiter
-//     size_t last_substring_len = data_len - (start - data);
-//     if (last_substring_len > 0) {
-//         substrings[*num_substrings] = start;
-//         (*num_substrings)++;
-//     }
-// }
 
 char** str_split(const Str* str, const char* delimiter, int* num_substrings) {
     *num_substrings = 0;
@@ -332,6 +296,17 @@ char** str_split(const Str* str, const char* delimiter, int* num_substrings) {
     // Trim the substrings array to its actual size
     substrings = (char**)realloc(substrings, (*num_substrings) * sizeof(char*));
     return substrings;
+}
+
+void str_free_substrings(char** substrings, int num_substrings){
+    if(!substrings) {
+        return;
+    }
+
+    for (int i=0; i<num_substrings; i++) {
+        free(substrings[i]);
+    }
+    free(substrings);
 }
 
 bool str_match(const Str* str, const char* regex) {
