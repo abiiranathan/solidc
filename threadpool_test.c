@@ -46,13 +46,13 @@ void concurrentSumExample() {
 
     PartialSumData partial_sum_data[NUM_THREADS];
     int tasks_per_thread = NUM_TASKS / NUM_THREADS;
-    int extra_tasks      = NUM_TASKS % NUM_THREADS;
+    int extra_tasks = NUM_TASKS % NUM_THREADS;
 
     int task_index = 0;
     for (int i = 0; i < NUM_THREADS; i++) {
         int num_tasks = tasks_per_thread + (i < extra_tasks ? 1 : 0);
 
-        partial_sum_data[i].tasks     = &tasks[task_index];
+        partial_sum_data[i].tasks = &tasks[task_index];
         partial_sum_data[i].num_tasks = num_tasks;
 
         task_index += num_tasks;
@@ -78,7 +78,7 @@ void simpleExample() {
 
     for (int i = 0; i < 10; i++) {
         int* arg = (int*)malloc(sizeof(int));
-        *arg     = i;
+        *arg = i;
         tasks[i] = arg;
         threadpool_add_task(pool, print_task, arg);
     }
@@ -99,7 +99,7 @@ typedef struct {
 
 void fetch_page(void* arg) {
     PageData* data = (PageData*)arg;
-    CURL* curl     = curl_easy_init();
+    CURL* curl = curl_easy_init();
     if (curl) {
         CURLcode res;
 
@@ -110,8 +110,7 @@ void fetch_page(void* arg) {
         res = curl_easy_perform(curl);
 
         if (res != CURLE_OK) {
-            fprintf(stderr, "Failed to fetch %s: %s\n", data->url,
-                    curl_easy_strerror(res));
+            fprintf(stderr, "Failed to fetch %s: %s\n", data->url, curl_easy_strerror(res));
         }
 
         curl_easy_cleanup(curl);

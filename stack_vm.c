@@ -51,8 +51,9 @@ float evaluate_expression(const char* expression) {
 
             if (endptr != expression) {
                 stack_push_float(&operand_stack, value);
-                expression = endptr;     // Move the expression pointer to the next token
-                expect_operand = false;  // We got an operand, now expect an operator or closing parenthesis
+                expression = endptr;  // Move the expression pointer to the next token
+                expect_operand =
+                    false;  // We got an operand, now expect an operator or closing parenthesis
             } else {
                 // Invalid operand
                 printf("Invalid operand\n");
@@ -66,14 +67,16 @@ float evaluate_expression(const char* expression) {
 
             if (endptr != expression) {
                 stack_push_float(&operand_stack, -value);
-                expression = endptr;     // Move the expression pointer to the next token
-                expect_operand = false;  // We got an operand, now expect an operator or closing parenthesis
+                expression = endptr;  // Move the expression pointer to the next token
+                expect_operand =
+                    false;  // We got an operand, now expect an operator or closing parenthesis
             } else {
                 printf("Invalid operand\n");
                 return 0.0f;
             }
         } else if (is_operator(*expression)) {
-            while (!stack_isEmpty_char(&operator_stack) && is_operator(stack_peek_char(&operator_stack)) &&
+            while (!stack_isEmpty_char(&operator_stack) &&
+                   is_operator(stack_peek_char(&operator_stack)) &&
                    stack_peek_char(&operator_stack) != '(') {
                 char current_operator = stack_pop_char(&operator_stack);
 
@@ -103,7 +106,8 @@ float evaluate_expression(const char* expression) {
             expression++;
             expect_operand = true;  // After an opening parenthesis, expect an operand
         } else if (*expression == ')') {
-            while (!stack_isEmpty_char(&operator_stack) && stack_peek_char(&operator_stack) != '(') {
+            while (!stack_isEmpty_char(&operator_stack) &&
+                   stack_peek_char(&operator_stack) != '(') {
                 char current_operator = stack_pop_char(&operator_stack);
 
                 if (stack_isEmpty_float(&operand_stack)) {

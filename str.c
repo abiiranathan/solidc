@@ -246,34 +246,69 @@ void str_to_lower(Str* str) {
     }
 }
 
-void str_split(const Str* str, const char* delimiter, char** substrings, int* num_substrings) {
-    if (str == NULL || delimiter == NULL || substrings == NULL || num_substrings == NULL) {
-        return;
-    }
+// char** str_split(const Str* str, const char* delimiter, int* num_substrings) {
+//     *num_substrings = 0;
+//     char* data = str->data;
+//     size_t data_len = str->length;
+//     size_t delimiter_len = strlen(delimiter);
 
+//     // If Empty delimiter, split into individual characters
+//     if (delimiter_len == 0) {
+//         for (size_t i = 0; i < data_len; i++) {
+//             substrings[*num_substrings] = &data[i];
+//             (*num_substrings)++;
+//         }
+//         return;
+//     }
+
+//     char* start = data;
+//     char* end;
+
+//     while ((end = strstr(start, delimiter)) != NULL) {
+//         substrings[*num_substrings] = start;
+//         (*num_substrings)++;
+
+//         // Null-terminate the current substring
+//         *end = '\0';
+
+//         // Move the start pointer beyond the delimiter
+//         start = end + delimiter_len;
+//     }
+
+//     // Handle the last substring after the last delimiter
+//     size_t last_substring_len = data_len - (start - data);
+//     if (last_substring_len > 0) {
+//         substrings[*num_substrings] = start;
+//         (*num_substrings)++;
+//     }
+// }
+
+char** str_split(const Str* str, const char* delimiter, int* num_substrings) {
     *num_substrings = 0;
     char* data = str->data;
     size_t data_len = str->length;
     size_t delimiter_len = strlen(delimiter);
 
-    // If Empty delimiter, split into individual characters
-    if (delimiter_len == 0) {
-        for (size_t i = 0; i < data_len; i++) {
-            substrings[*num_substrings] = &data[i];
-            (*num_substrings)++;
-        }
-        return;
-    }
+    // Create an initial capacity for substrings
+    int capacity = 10;
+    char** substrings = (char**)malloc(capacity * sizeof(char*));
 
     char* start = data;
     char* end;
 
     while ((end = strstr(start, delimiter)) != NULL) {
-        substrings[*num_substrings] = start;
-        (*num_substrings)++;
+        // If we exceed the current capacity, resize the substrings array
+        if (*num_substrings >= capacity) {
+            capacity *= 2;
+            substrings = (char**)realloc(substrings, capacity * sizeof(char*));
+        }
 
-        // Null-terminate the current substring
-        *end = '\0';
+        size_t substring_len = end - start;
+        substrings[*num_substrings] = (char*)malloc(substring_len + 1);
+        strncpy(substrings[*num_substrings], start, substring_len);
+        substrings[*num_substrings][substring_len] = '\0';
+
+        (*num_substrings)++;
 
         // Move the start pointer beyond the delimiter
         start = end + delimiter_len;
@@ -282,9 +317,21 @@ void str_split(const Str* str, const char* delimiter, char** substrings, int* nu
     // Handle the last substring after the last delimiter
     size_t last_substring_len = data_len - (start - data);
     if (last_substring_len > 0) {
-        substrings[*num_substrings] = start;
+        // Ensure enough capacity for the last substring
+        if (*num_substrings >= capacity) {
+            capacity += 1;  // Increment capacity
+            substrings = (char**)realloc(substrings, capacity * sizeof(char*));
+        }
+
+        substrings[*num_substrings] = (char*)malloc(last_substring_len + 1);
+        strcpy(substrings[*num_substrings], start);
+
         (*num_substrings)++;
     }
+
+    // Trim the substrings array to its actual size
+    substrings = (char**)realloc(substrings, (*num_substrings) * sizeof(char*));
+    return substrings;
 }
 
 bool str_match(const Str* str, const char* regex) {

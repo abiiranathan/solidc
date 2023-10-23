@@ -17,7 +17,7 @@ int connectToServer(const char* serverIP, int port) {
 
     struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port   = htons(port);
+    serverAddr.sin_port = htons(port);
 
     if (inet_pton(AF_INET, serverIP, &(serverAddr.sin_addr)) <= 0) {
         perror("Invalid server IP address");
@@ -25,8 +25,7 @@ int connectToServer(const char* serverIP, int port) {
         return -1;
     }
 
-    if (connect(sockfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) ==
-        -1) {
+    if (connect(sockfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1) {
         perror("Connection failed");
         close(sockfd);
         return -1;
@@ -69,12 +68,11 @@ int startServer(int port, int backlog) {
     }
 
     struct sockaddr_in serverAddr;
-    serverAddr.sin_family      = AF_INET;
+    serverAddr.sin_family = AF_INET;
     serverAddr.sin_addr.s_addr = INADDR_ANY;
-    serverAddr.sin_port        = htons(port);
+    serverAddr.sin_port = htons(port);
 
-    if (bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) ==
-        -1) {
+    if (bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1) {
         perror("Bind failed");
         close(serverSocket);
         return -1;
@@ -94,8 +92,7 @@ int acceptClient(int serverSocket) {
     struct sockaddr_in clientAddr;
     socklen_t clientAddrLen = sizeof(clientAddr);
 
-    int clientSocket =
-        accept(serverSocket, (struct sockaddr*)&clientAddr, &clientAddrLen);
+    int clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientAddrLen);
     if (clientSocket == -1) {
         perror("Accept failed");
         return -1;

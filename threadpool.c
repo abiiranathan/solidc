@@ -87,10 +87,10 @@ ThreadPool* threadpool_create(int num_threads) {
     pthread_cond_init(&pool->task_available, NULL);
     pthread_cond_init(&pool->all_tasks_completed, NULL);
 
-    pool->task_queue          = NULL;
-    pool->num_threads         = num_threads;
+    pool->task_queue = NULL;
+    pool->num_threads = num_threads;
     pool->num_working_threads = 0;
-    pool->shutdown            = false;
+    pool->shutdown = false;
 
     // Create worker threads
     for (int i = 0; i < num_threads; i++) {
@@ -138,8 +138,8 @@ int threadpool_add_task(ThreadPool* pool, void (*task)(void*), void* arg) {
     }
 
     new_task->function = task;
-    new_task->arg      = arg;
-    new_task->next     = NULL;
+    new_task->arg = arg;
+    new_task->next = NULL;
 
     pthread_mutex_lock(&pool->lock);
 

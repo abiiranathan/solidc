@@ -1,5 +1,5 @@
-#ifndef __STR_H__
-#define __STR_H__
+#ifndef STR_H
+#define STR_H
 
 #include <ctype.h>
 #include <regex.h>
@@ -110,8 +110,7 @@ int str_find(const Str* str, const char* substring);
  * @param old_substring The substring to replace.
  * @param new_substring The new substring to insert.
  */
-void str_replace(Str* str, const char* old_substring,
-                 const char* new_substring);
+void str_replace(Str* str, const char* old_substring, const char* new_substring);
 
 /**
  * Replaces all occurrences of a substring in a Str object with a new substring.
@@ -121,8 +120,7 @@ void str_replace(Str* str, const char* old_substring,
  * @param new_substring The new substring to insert.
  * @return void
  */
-void str_replace_all(Str* str, const char* old_substring,
-                     const char* new_substring);
+void str_replace_all(Str* str, const char* old_substring, const char* new_substring);
 
 /**
  * Converts a Str object to uppercase.
@@ -146,8 +144,7 @@ void str_to_lower(Str* str);
  * @param substrings An array to store the resulting substrings.
  * @param num_substrings A pointer to an integer to store the number of substrings.
  */
-void str_split(const Str* str, const char* delimiter, char** substrings,
-               int* num_substrings);
+char** str_split(const Str* str, const char* delimiter, int* num_substrings);
 
 /**
  * Checks if a Str object matches a regular expression.
@@ -206,8 +203,7 @@ void str_remove(Str* s, size_t index, size_t count);
  * @param buffer Buffer to hold joined string.
  * @param bufsize Buffer size.
  */
-void str_join(const char** substrings, int count, char delimiter, char* buffer,
-              size_t bufsize);
+void str_join(const char** substrings, int count, char delimiter, char* buffer, size_t bufsize);
 
 /**
  * Extracts a substring from a Str object. If the buffer is not large, enough
@@ -218,8 +214,7 @@ void str_join(const char** substrings, int count, char delimiter, char* buffer,
  * @param end The ending index of the substring.
  * @param substring The substring buffer.
  */
-void str_substring(const Str* s, size_t start, size_t end, char* substring,
-                   size_t bufsize);
+void str_substring(const Str* s, size_t start, size_t end, char* substring, size_t bufsize);
 
 /**
  * Reverses the characters in a Str object.
@@ -249,10 +244,9 @@ int str_endswith(const Str* s, const char* suffix);
 char* regex_sub_match(const char* str, const char* regex, int capture_group);
 
 #ifdef USE_PCRE_REGEX
-char* regex_sub_match_pcre(const char* str, const char* regex,
-                           int capture_group);
-char** regex_sub_matches_pcre(const char* str, const char* regex,
-                              int num_capture_groups, int* num_matches);
+char* regex_sub_match_pcre(const char* str, const char* regex, int capture_group);
+char** regex_sub_matches_pcre(const char* str, const char* regex, int num_capture_groups,
+                              int* num_matches);
 #endif
 
-#endif /* __STR_H__ */
+#endif /* STR_H */

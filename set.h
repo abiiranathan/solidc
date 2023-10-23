@@ -91,13 +91,9 @@
     }                                                                                                                                               \
                                                                                                                                                     \
     /* Returns number of elements in the set. */                                                                                                    \
-    size_t set_size_##T(Set_##T* set) {                                                                                                             \
-        return set->size;                                                                                                                           \
-    }                                                                                                                                               \
+    size_t set_size_##T(Set_##T* set) { return set->size; }                                                                                         \
     /* returns true if size is 0. */                                                                                                                \
-    bool set_isempty_##T(Set_##T* set) {                                                                                                            \
-        return set->size == 0;                                                                                                                      \
-    }                                                                                                                                               \
+    bool set_isempty_##T(Set_##T* set) { return set->size == 0; }                                                                                   \
     /* Clear the set. */                                                                                                                            \
     void set_clear_##T(Set_##T* set) {                                                                                                              \
         for (size_t i = 0; i < set->size; i++) {                                                                                                    \
@@ -118,7 +114,8 @@
     }                                                                                                                                               \
     /* Computes the intersection of two sets A and B, and returns a new set containing elements that are in both A and B. */                        \
     Set_##T* set_intersection_##T(Set_##T* setA, Set_##T* setB) {                                                                                   \
-        Set_##T* intersectionSet = set_create_##T(setA->size < setB->size ? setA->size : setB->size);                                               \
+        Set_##T* intersectionSet =                                                                                                                  \
+            set_create_##T(setA->size < setB->size ? setA->size : setB->size);                                                                      \
         for (size_t i = 0; i < setA->size; i++) {                                                                                                   \
             if (set_contains_##T(setB, setA->data[i])) {                                                                                            \
                 set_add_##T(intersectionSet, setA->data[i]);                                                                                        \

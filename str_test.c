@@ -12,8 +12,8 @@ void test_str_new() {
 }
 
 void test_str_compare() {
-    Str* str1   = str_new("Hello");
-    int result  = str_compare(str1, "World");
+    Str* str1 = str_new("Hello");
+    int result = str_compare(str1, "World");
     int result2 = str_compare(str1, "Hello");
 
     printf("Comparison result: %d\n", result);
@@ -25,7 +25,7 @@ void test_str_compare() {
 
 void test_str_copy() {
     Str *str, *copy;
-    str  = str_new("Hello");
+    str = str_new("Hello");
     copy = str_copy(str);
 
     printf("Copied string: %s\n", str_data(copy));
@@ -49,7 +49,7 @@ void test_str_concat() {
 }
 
 void test_str_length() {
-    Str* str      = str_new("Hello");
+    Str* str = str_new("Hello");
     size_t length = str_length(str);
     assert(length == 5);
     str_free(str);
@@ -92,7 +92,7 @@ void test_str_is_empty() {
 }
 
 void test_str_find() {
-    Str* str  = str_new("Hello, World!");
+    Str* str = str_new("Hello, World!");
     int index = str_find(str, "World");
     printf("Substring 'World' found at index: %d\n", index);
     assert(index == 7);
@@ -133,15 +133,23 @@ void test_str_split() {
     Str* str = str_new("Hello,World,OpenAI");
 
     const char* delimiter = ",";
-    char* substrings[8];
     int num_substrings = 0;
 
-    str_split(str, delimiter, substrings, &num_substrings);
+    char** substrings = str_split(str, delimiter, &num_substrings);
     printf("Number of substrings: %d\n", num_substrings);
 
     for (int i = 0; i < num_substrings; i++) {
         printf("Split Substring %d -> : %s\n", i, substrings[i]);
     }
+
+    // Free substrings
+    if (substrings) {
+        for (int i = 0; i < num_substrings; i++) {
+            free(substrings[i]);
+        }
+        free(substrings);
+    }
+
     str_free(str);
 }
 
@@ -197,7 +205,7 @@ void test_str_insert() {
     Str* str = str_new("Hello!");
     assert(str);
     const char* insert_str = " World";
-    size_t index           = 5;
+    size_t index = 5;
 
     str_insert(str, insert_str, index);
     printf("Inserted string: %s\n", str_data(str));
@@ -222,8 +230,8 @@ void test_str_remove() {
 
 void test_str_join() {
     const char* substrings[3] = {"Hello", "World", "OpenAI"};
-    int count                 = 3;
-    char delimiter            = '-';
+    int count = 3;
+    char delimiter = '-';
 
     char buf[20];
     str_join(substrings, count, delimiter, buf, sizeof(buf));
@@ -238,7 +246,7 @@ void test_str_join() {
 
     // Test with empty delimiter
     const char* chars[3] = {"A", "B", "C"};
-    int count2           = 3;
+    int count2 = 3;
     char buf3[4];
     str_join(chars, count2, '\0', buf3, sizeof(buf3));
     assert(strcmp(buf3, "ABC") == 0);
@@ -248,7 +256,7 @@ void test_str_substring() {
     Str* str = str_new("Hello, World!");
 
     size_t start = 7;
-    size_t end   = 12;
+    size_t end = 12;
 
     char substr1[6];
     char substr2[4];
@@ -306,18 +314,18 @@ void test_str_endswith() {
 
 // sudo apt-get install libpcre3-dev
 void test_regex_sub_match() {
-    const char* str1   = "Hello, World!";
+    const char* str1 = "Hello, World!";
     const char* regex1 = "Hello, (\\w+)!";
     int capture_group1 = 1;
-    char* sub_match1   = regex_sub_match(str1, regex1, capture_group1);
+    char* sub_match1 = regex_sub_match(str1, regex1, capture_group1);
     assert(sub_match1 != NULL);
     assert(strcmp(sub_match1, "World") == 0);
     free(sub_match1);
 
-    const char* str2   = "Hello, OpenAI!";
+    const char* str2 = "Hello, OpenAI!";
     const char* regex2 = "Hello, (\\w+)!";
     int capture_group2 = 1;
-    char* sub_match2   = regex_sub_match(str2, regex2, capture_group2);
+    char* sub_match2 = regex_sub_match(str2, regex2, capture_group2);
     assert(sub_match2 != NULL);
     assert(strcmp(sub_match2, "OpenAI") == 0);
     free(sub_match2);
@@ -325,11 +333,11 @@ void test_regex_sub_match() {
 #ifdef USE_PCRE_REGEX
     printf("Testing PCRE Regex syntax\n");
 
-    const char* str3   = "Hello, 123!";
+    const char* str3 = "Hello, 123!";
     const char* regex3 = "Hello, (\\d+)!";
 
     int capture_group3 = 1;
-    char* sub_match3   = regex_sub_match_pcre(str3, regex3, capture_group3);
+    char* sub_match3 = regex_sub_match_pcre(str3, regex3, capture_group3);
     assert(sub_match3 != NULL);
     assert(strcmp(sub_match3, "123") == 0);
     free(sub_match3);
@@ -338,14 +346,13 @@ void test_regex_sub_match() {
 
 void test_regex_sub_matches_pcre() {
 #ifdef USE_PCRE_REGEX
-    const char* str   = "Hello, World! How are you?";
+    const char* str = "Hello, World! How are you?";
     const char* regex = "([a-zA-Z]+), ([a-zA-Z]+)! (\\w+) (\\w+) ([a-zA-Z\?]+)";
 
     int num_capture_groups = 6;
     int num_matches;
 
-    char** sub_matches =
-        regex_sub_matches_pcre(str, regex, num_capture_groups, &num_matches);
+    char** sub_matches = regex_sub_matches_pcre(str, regex, num_capture_groups, &num_matches);
     if (sub_matches == NULL) {
         printf("No matches found\n");
         return;
@@ -355,8 +362,7 @@ void test_regex_sub_matches_pcre() {
     for (int i = 0; i < num_matches; i++) {
         printf("Match %d:\n", i + 1);
         for (int j = 0; j < num_capture_groups; j++) {
-            printf("  Group %d: %s\n", j + 1,
-                   sub_matches[i * num_capture_groups + j]);
+            printf("  Group %d: %s\n", j + 1, sub_matches[i * num_capture_groups + j]);
             free(sub_matches[i * num_capture_groups + j]);
         }
         printf("\n");

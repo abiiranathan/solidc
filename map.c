@@ -22,11 +22,11 @@ unsigned long djb2_hash(void* key) {
 }
 
 map* map_create() {
-    map* m      = malloc(sizeof(map));
-    m->entries  = malloc(sizeof(entry) * INITIAL_MAP_SIZE);
-    m->size     = 0;
+    map* m = malloc(sizeof(map));
+    m->entries = malloc(sizeof(entry) * INITIAL_MAP_SIZE);
+    m->size = 0;
     m->capacity = INITIAL_MAP_SIZE;
-    m->hash     = djb2_hash;
+    m->hash = djb2_hash;
     return m;
 }
 
@@ -38,7 +38,7 @@ void map_destroy(map* m) {
 void map_resize(map* m, size_t new_capacity) {
     entry* new_entries = malloc(sizeof(entry) * new_capacity);
     for (size_t i = 0; i < new_capacity; i++) {
-        new_entries[i].key   = NULL;
+        new_entries[i].key = NULL;
         new_entries[i].value = NULL;
     }
 
@@ -54,7 +54,7 @@ void map_resize(map* m, size_t new_capacity) {
     }
 
     free(m->entries);
-    m->entries  = new_entries;
+    m->entries = new_entries;
     m->capacity = new_capacity;
 }
 
@@ -72,7 +72,7 @@ void map_set(map* m, void* key, void* value) {
         index = (index + 1) % m->capacity;
     }
 
-    m->entries[index].key   = key;
+    m->entries[index].key = key;
     m->entries[index].value = value;
     m->size++;
 }
@@ -92,7 +92,7 @@ void map_remove(map* m, void* key) {
     size_t index = m->hash(key) % m->capacity;
     while (m->entries[index].key != NULL) {
         if (m->entries[index].key == key) {
-            m->entries[index].key   = NULL;
+            m->entries[index].key = NULL;
             m->entries[index].value = NULL;
             m->size--;
             return;
@@ -111,7 +111,7 @@ size_t map_capacity(map* m) {
 // Assumes keys are char*
 // Must free the keys after.
 char** map_keys(map* m) {
-    char** keys      = malloc(sizeof(char*) * m->size);
+    char** keys = malloc(sizeof(char*) * m->size);
     size_t key_index = 0;
 
     for (size_t i = 0; i < m->capacity; i++) {
@@ -129,9 +129,9 @@ void map_set_hash(map* m, unsigned long (*hash)(void*)) {
 
 map_iterator* map_iterator_create(map* m) {
     map_iterator* iter = malloc(sizeof(map_iterator));
-    iter->m            = m;
-    iter->bucket       = 0;
-    iter->index        = 0;
+    iter->m = m;
+    iter->bucket = 0;
+    iter->index = 0;
     return iter;
 }
 
@@ -154,7 +154,7 @@ entry map_iterator_next(map_iterator* iter) {
 
     while (iter->bucket < iter->m->capacity) {
         if (iter->m->entries[iter->bucket].key != NULL) {
-            e.key   = iter->m->entries[iter->bucket].key;
+            e.key = iter->m->entries[iter->bucket].key;
             e.value = iter->m->entries[iter->bucket].value;
             iter->bucket++;
             return e;
@@ -174,7 +174,7 @@ void mapStrings() {
 
     // Get values by keys
     char* name = map_get(m, "name");
-    char* age  = map_get(m, "age");
+    char* age = map_get(m, "age");
     char* city = map_get(m, "city");
 
     printf("Name: %s\n", name);
@@ -196,9 +196,9 @@ void mapStrings() {
 
 int main() {
     // Create an integer map
-    map* m    = map_create();
-    int one   = 1;
-    int two   = 2;
+    map* m = map_create();
+    int one = 1;
+    int two = 2;
     int three = 3;
 
     map_set(m, &one, &one);

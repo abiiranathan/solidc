@@ -99,8 +99,8 @@ int main() {
 
     // Print the values in the vector
     for (int i = 0; i < vp->size; i++) {
-        printf("Name: %s, Age: %d, Salary: %.2f\n", vp->data[i].name,
-               vp->data[i].age, vp->data[i].salary);
+        printf("Name: %s, Age: %d, Salary: %.2f\n", vp->data[i].name, vp->data[i].age,
+               vp->data[i].salary);
     }
 
     printf("Got: %s\n", p_ret.name);

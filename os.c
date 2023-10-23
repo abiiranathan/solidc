@@ -237,7 +237,10 @@ int file_lock(File* file, off_t offset, off_t length) {
         return -1;
     }
 
-    struct flock lock = {.l_type = F_WRLCK, .l_whence = SEEK_SET, .l_start = offset, .l_len = length};
+    struct flock lock = {.l_type = F_WRLCK,
+                         .l_whence = SEEK_SET,
+                         .l_start = offset,
+                         .l_len = length};
 
     if (fcntl(file->fd, F_SETLK, &lock) == -1) {
         printf("Failed to lock file: ");
@@ -254,7 +257,10 @@ int file_unlock(File* file, off_t offset, off_t length) {
         return -1;
     }
 
-    struct flock lock = {.l_type = F_UNLCK, .l_whence = SEEK_SET, .l_start = offset, .l_len = length};
+    struct flock lock = {.l_type = F_UNLCK,
+                         .l_whence = SEEK_SET,
+                         .l_start = offset,
+                         .l_len = length};
     if (fcntl(file->fd, F_SETLKW, &lock) == -1) {
         printf("Failed to unlock file: ");
         perror("fcntl");

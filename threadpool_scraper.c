@@ -18,9 +18,8 @@ typedef struct {
     size_t content_length;
 } PageData;
 
-size_t write_callback(void* contents, size_t size, size_t nmemb,
-                      void* user_data) {
-    PageData* data    = (PageData*)user_data;
+size_t write_callback(void* contents, size_t size, size_t nmemb, void* user_data) {
+    PageData* data = (PageData*)user_data;
     size_t total_size = size * nmemb;
 
     // Copy the fetched content to the PageData buffer
@@ -38,7 +37,7 @@ size_t write_callback(void* contents, size_t size, size_t nmemb,
 
 void fetch_page(void* arg) {
     PageData* data = (PageData*)arg;
-    CURL* curl     = curl_easy_init();
+    CURL* curl = curl_easy_init();
     if (curl) {
         CURLcode res;
 
@@ -50,8 +49,7 @@ void fetch_page(void* arg) {
         res = curl_easy_perform(curl);
 
         if (res != CURLE_OK) {
-            fprintf(stderr, "Failed to fetch %s: %s\n", data->url,
-                    curl_easy_strerror(res));
+            fprintf(stderr, "Failed to fetch %s: %s\n", data->url, curl_easy_strerror(res));
         }
 
         curl_easy_cleanup(curl);
@@ -61,7 +59,7 @@ void fetch_page(void* arg) {
 }
 
 int main() {
-    ThreadPool* pool             = threadpool_create(NUM_THREADS);
+    ThreadPool* pool = threadpool_create(NUM_THREADS);
     PageData page_data[NUM_URLS] = {{"https://example.com", "", 0},
                                     {"https://www.google.com", "", 0},
                                     {"https://www.github.com", "", 0},
@@ -75,9 +73,8 @@ int main() {
     threadpool_wait(pool);
 
     for (int i = 0; i < NUM_URLS; i++) {
-        printf("URL: %s\nContent Length: %zu\n\nContent: %s\n\n\n",
-               page_data[i].url, page_data[i].content_length,
-               page_data[i].content);
+        printf("URL: %s\nContent Length: %zu\n\nContent: %s\n\n\n", page_data[i].url,
+               page_data[i].content_length, page_data[i].content);
     }
 
     threadpool_destroy(pool);

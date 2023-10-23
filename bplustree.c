@@ -21,8 +21,7 @@ void freeNode(BPTreeNode* node);
 BPTreeNode* findLeafNode(BPTreeNode* node, int key);
 void splitLeafNode(BPTreeNode** root, BPTreeNode* node, void* data);
 void insertKeyInLeaf(BPTreeNode* node, int key, void* data);
-void insertKeyInParent(BPTreeNode** root, BPTreeNode* node, int key,
-                       BPTreeNode* child, int* data);
+void insertKeyInParent(BPTreeNode** root, BPTreeNode* node, int key, BPTreeNode* child, int* data);
 void splitInternalNode(BPTreeNode** root, BPTreeNode* node, void* data);
 void mergeLeafNodes(BPTreeNode** root, BPTreeNode* node1, BPTreeNode* node2);
 
@@ -35,13 +34,13 @@ BPTreeNode* createNode() {
     }
 
     newNode->num_keys = 0;
-    newNode->parent   = NULL;
-    newNode->is_leaf  = 0;
+    newNode->parent = NULL;
+    newNode->is_leaf = 0;
 
     // Initialize keys and associated data
     for (int i = 0; i < MAX_KEYS; i++) {
-        newNode->keys[i]     = 0;
-        newNode->data[i]     = NULL;
+        newNode->keys[i] = 0;
+        newNode->data[i] = NULL;
         newNode->children[i] = NULL;
     }
 
@@ -72,7 +71,7 @@ void bt_free(BPTreeNode* root) {
 void bt_insert(BPTreeNode** root, int key, void* data) {
     if (*root == NULL) {
         // Create root node if the tree is empty
-        *root            = createNode();
+        *root = createNode();
         (*root)->keys[0] = key;
         (*root)->data[0] = data;
         (*root)->num_keys++;
@@ -113,24 +112,24 @@ BPTreeNode* findLeafNode(BPTreeNode* node, int key) {
 void splitLeafNode(BPTreeNode** root, BPTreeNode* node, void* data) {
     // Create a new sibling node
     BPTreeNode* sibling = createNode();
-    sibling->is_leaf    = 1;
-    sibling->parent     = node->parent;
+    sibling->is_leaf = 1;
+    sibling->parent = node->parent;
 
     // Copy the upper half of keys to the sibling node
     int i;
     int splitIndex = (node->num_keys + 1) / 2;  // Find the split index
     for (i = splitIndex; i < node->num_keys; i++) {
-        sibling->keys[i - splitIndex]     = node->keys[i];
-        sibling->data[i - splitIndex]     = node->data[i];
+        sibling->keys[i - splitIndex] = node->keys[i];
+        sibling->data[i - splitIndex] = node->data[i];
         sibling->children[i - splitIndex] = node->children[i];
-        node->keys[i]     = 0;     // Clear the keys in the original node
-        node->data[i]     = NULL;  // Clear the keys in the original node
+        node->keys[i] = 0;         // Clear the keys in the original node
+        node->data[i] = NULL;      // Clear the keys in the original node
         node->children[i] = NULL;  // Clear the children in the original node
     }
 
-    sibling->num_keys                 = node->num_keys - splitIndex;
+    sibling->num_keys = node->num_keys - splitIndex;
     sibling->children[i - splitIndex] = node->children[i];
-    node->num_keys                    = splitIndex;
+    node->num_keys = splitIndex;
 
     // Insert the new key into the parent node
     insertKeyInParent(root, node, sibling->keys[0], sibling, data);
@@ -151,31 +150,30 @@ void insertKeyInLeaf(BPTreeNode* node, int key, void* data) {
 
 // Function to insert a key into the parent node
 // Function to insert a key and associated data into the parent node
-void insertKeyInParent(BPTreeNode** root, BPTreeNode* node, int key,
-                       BPTreeNode* child, int* data) {
+void insertKeyInParent(BPTreeNode** root, BPTreeNode* node, int key, BPTreeNode* child, int* data) {
     BPTreeNode* parent = node->parent;
 
     if (parent == NULL) {
         // Create a new root node if the current node is the root
-        BPTreeNode* newRoot  = createNode();
-        newRoot->keys[0]     = key;
-        newRoot->data[0]     = data;
+        BPTreeNode* newRoot = createNode();
+        newRoot->keys[0] = key;
+        newRoot->data[0] = data;
         newRoot->children[0] = node;
         newRoot->children[1] = child;
         newRoot->num_keys++;
-        node->parent  = newRoot;
+        node->parent = newRoot;
         child->parent = newRoot;
-        *root         = newRoot;
+        *root = newRoot;
     } else {
         // Insert the key and associated data into the parent node
         int i;
         for (i = parent->num_keys; i > 0 && key < parent->keys[i - 1]; i--) {
-            parent->keys[i]         = parent->keys[i - 1];
-            parent->data[i]         = parent->data[i - 1];
+            parent->keys[i] = parent->keys[i - 1];
+            parent->data[i] = parent->data[i - 1];
             parent->children[i + 1] = parent->children[i];
         }
-        parent->keys[i]         = key;
-        parent->data[i]         = data;
+        parent->keys[i] = key;
+        parent->data[i] = data;
         parent->children[i + 1] = child;
         parent->num_keys++;
 
@@ -190,25 +188,24 @@ void insertKeyInParent(BPTreeNode** root, BPTreeNode* node, int key,
 void splitInternalNode(BPTreeNode** root, BPTreeNode* node, void* data) {
     // Create a new sibling node
     BPTreeNode* sibling = createNode();
-    sibling->parent     = node->parent;
+    sibling->parent = node->parent;
 
     // Copy the upper half of keys and children to the sibling node
     int i;
     int splitIndex = (node->num_keys + 1) / 2;  // Find the split index
     for (i = splitIndex; i < node->num_keys; i++) {
-        sibling->keys[i - splitIndex]     = node->keys[i];
-        sibling->data[i - splitIndex]     = node->data[i];
+        sibling->keys[i - splitIndex] = node->keys[i];
+        sibling->data[i - splitIndex] = node->data[i];
         sibling->children[i - splitIndex] = node->children[i];
-        node->keys[i]     = 0;     // Clear the keys in the original node
-        node->data[i]     = NULL;  // Clear the data in the original node
+        node->keys[i] = 0;         // Clear the keys in the original node
+        node->data[i] = NULL;      // Clear the data in the original node
         node->children[i] = NULL;  // Clear the children in the original node
     }
     sibling->children[i - splitIndex] = node->children[i];
-    node->num_keys                    = splitIndex;
+    node->num_keys = splitIndex;
 
     // Insert the new key into the parent node
-    insertKeyInParent(root, node->parent, node->keys[splitIndex - 1], sibling,
-                      data);
+    insertKeyInParent(root, node->parent, node->keys[splitIndex - 1], sibling, data);
 }
 
 // Function to search for a key in the B+ tree
@@ -293,8 +290,8 @@ void mergeLeafNodes(BPTreeNode** root, BPTreeNode* node1, BPTreeNode* node2) {
     }
 
     // Move the rightmost key from node2 to node1
-    int key                      = node2->keys[0];
-    void* data                   = node2->data[0];
+    int key = node2->keys[0];
+    void* data = node2->data[0];
     node1->keys[node1->num_keys] = key;
     node1->data[node1->num_keys] = data;
     node1->num_keys++;
@@ -309,8 +306,8 @@ void mergeLeafNodes(BPTreeNode** root, BPTreeNode* node1, BPTreeNode* node2) {
     // If the right sibling of node2 is not NULL, then borrow a key from it
     if (node2->children[0]) {
         // Borrow the leftmost key from the right sibling
-        key                          = node2->children[0]->keys[0];
-        data                         = node2->children[0]->data[0];
+        key = node2->children[0]->keys[0];
+        data = node2->children[0]->data[0];
         node2->keys[node2->num_keys] = key;
         node2->data[node2->num_keys] = data;
         node2->num_keys++;

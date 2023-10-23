@@ -18,10 +18,9 @@ typedef struct PriorityQueue {
 // Function to create a new priority queue
 PriorityQueue* queue_create(int capacity) {
     PriorityQueue* queue = (PriorityQueue*)malloc(sizeof(PriorityQueue));
-    queue->nodes =
-        (PriorityQueueNode*)malloc(capacity * sizeof(PriorityQueueNode));
+    queue->nodes = (PriorityQueueNode*)malloc(capacity * sizeof(PriorityQueueNode));
     queue->capacity = capacity;
-    queue->size     = 0;
+    queue->size = 0;
     return queue;
 }
 
@@ -34,23 +33,21 @@ void queue_destroy(PriorityQueue* queue) {
 // Function to swap two priority queue nodes
 void swap(PriorityQueueNode* a, PriorityQueueNode* b) {
     PriorityQueueNode temp = *a;
-    *a                     = *b;
-    *b                     = temp;
+    *a = *b;
+    *b = temp;
 }
 
 // Function to heapify the priority queue (downward operation)
 void heapify(PriorityQueue* queue, int index) {
     int smallest = index;
-    int left     = 2 * index + 1;
-    int right    = 2 * index + 2;
+    int left = 2 * index + 1;
+    int right = 2 * index + 2;
 
-    if (left < queue->size &&
-        queue->nodes[left].priority < queue->nodes[smallest].priority) {
+    if (left < queue->size && queue->nodes[left].priority < queue->nodes[smallest].priority) {
         smallest = left;
     }
 
-    if (right < queue->size &&
-        queue->nodes[right].priority < queue->nodes[smallest].priority) {
+    if (right < queue->size && queue->nodes[right].priority < queue->nodes[smallest].priority) {
         smallest = right;
     }
 
@@ -65,8 +62,8 @@ void queue_push(PriorityQueue* queue, void* data, int priority) {
     if (queue->size == queue->capacity) {
         // Increase the capacity of the priority queue if it is full
         queue->capacity *= 2;
-        queue->nodes = (PriorityQueueNode*)realloc(
-            queue->nodes, queue->capacity * sizeof(PriorityQueueNode));
+        queue->nodes =
+            (PriorityQueueNode*)realloc(queue->nodes, queue->capacity * sizeof(PriorityQueueNode));
 
         if (queue->nodes == NULL) {
             queue->capacity /= 2;  //reverse capacity assignment
@@ -76,7 +73,7 @@ void queue_push(PriorityQueue* queue, void* data, int priority) {
     }
 
     PriorityQueueNode node;
-    node.data     = data;
+    node.data = data;
     node.priority = priority;
 
     int i = queue->size;
@@ -85,7 +82,7 @@ void queue_push(PriorityQueue* queue, void* data, int priority) {
     // Find the correct position for the new element
     while (i > 0 && node.priority < queue->nodes[(i - 1) / 2].priority) {
         queue->nodes[i] = queue->nodes[(i - 1) / 2];
-        i               = (i - 1) / 2;
+        i = (i - 1) / 2;
     }
 
     queue->nodes[i] = node;

@@ -7,8 +7,8 @@ int main() {
     BPTreeNode* root = NULL;
 
     // Arrays for keys and associated data
-    int keys[]       = {10, 20, 5, 15, 25, 30, 35, 40, 45, 50};
-    int data[]       = {100, 200, 300, 400, 500, 600, 700, 800, 900, 1000};
+    int keys[] = {10, 20, 5, 15, 25, 30, 35, 40, 45, 50};
+    int data[] = {100, 200, 300, 400, 500, 600, 700, 800, 900, 1000};
     int num_elements = sizeof(keys) / sizeof(keys[0]);
 
     // Insert keys with associated data into the B+ tree
@@ -23,7 +23,7 @@ int main() {
     // Search for keys and retrieve associated data from the B+ tree
     printf("Searching for keys and associated data:\n");
     for (int i = 0; i < num_elements; i++) {
-        int key     = keys[i];
+        int key = keys[i];
         int* result = (int*)bt_search(root, key);
         if (result != NULL) {
             printf("Key %d: %d\n", key, *result);

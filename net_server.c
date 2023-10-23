@@ -27,7 +27,7 @@ void* handleClient(void* arg) {
 
     // Send response to client
     const char* response = "Hello from server!";
-    int bytesSent        = sendToClient(clientSocket, response);
+    int bytesSent = sendToClient(clientSocket, response);
     if (bytesSent == -1) {
         fprintf(stderr, "Failed to send data to client\n");
     } else {
@@ -59,10 +59,9 @@ int main() {
         // Create a new thread to handle the client connection
         pthread_t thread;
         int* socketPtr = (int*)malloc(sizeof(int));
-        *socketPtr     = clientSocket;
+        *socketPtr = clientSocket;
 
-        if (pthread_create(&thread, NULL, handleClient, (void*)socketPtr) !=
-            0) {
+        if (pthread_create(&thread, NULL, handleClient, (void*)socketPtr) != 0) {
             fprintf(stderr, "Failed to create thread for client connection\n");
             free(socketPtr);
             closeConnection(clientSocket);

@@ -18,7 +18,7 @@ int main() {
 
     // Send data to server
     const char* message = "Hello from client!";
-    int bytesSent       = sendData(sockfd, message);
+    int bytesSent = sendData(sockfd, message);
 
     if (bytesSent == -1) {
         fprintf(stderr, "Failed to send data to server\n");

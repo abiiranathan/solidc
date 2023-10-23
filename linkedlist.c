@@ -48,7 +48,7 @@ void freeList(Node** head) {
     Node* curr = *head;
     while (curr != NULL) {
         Node* temp = curr;
-        curr       = curr->next;
+        curr = curr->next;
         freeNode(temp);
     }
     *head = NULL;
@@ -58,7 +58,7 @@ void freeList(Node** head) {
 void prependNode(Node** head, void* data) {
     Node* newNode = createNode(data);
     newNode->next = *head;
-    *head         = newNode;
+    *head = newNode;
 }
 
 // Insert data at a specific position in the LinkedList
@@ -67,15 +67,15 @@ void insertNode(Node** head, void* data, int position) {
         prependNode(head, data);
     } else {
         Node* newNode = createNode(data);
-        Node* temp    = *head;
-        int count     = 0;
+        Node* temp = *head;
+        int count = 0;
         while (temp != NULL && count < position - 1) {
             temp = temp->next;
             count++;
         }
         if (temp != NULL) {
             newNode->next = temp->next;
-            temp->next    = newNode;
+            temp->next = newNode;
         } else {
             freeNode(newNode);
             fprintf(stderr, "Invalid position for node insertion!\n");
@@ -103,7 +103,7 @@ void removeNode(Node** head, void* data) {
 
 // Get the length (number of nodes) in the LinkedList
 int getLength(Node* head) {
-    int count  = 0;
+    int count = 0;
     Node* temp = head;
     while (temp != NULL) {
         count++;
@@ -116,7 +116,7 @@ int getLength(Node* head) {
 void* getDataAtPosition(Node* head, int position) {
     if (position >= 0) {
         Node* temp = head;
-        int count  = 0;
+        int count = 0;
         while (temp != NULL && count < position) {
             temp = temp->next;
             count++;

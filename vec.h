@@ -18,8 +18,8 @@
         *vec = malloc(sizeof(Vec_##T));                                                                    \
         if (*vec == NULL)                                                                                  \
             return;                                                                                        \
-        (*vec)->data     = NULL;                                                                           \
-        (*vec)->size     = 0;                                                                              \
+        (*vec)->data = NULL;                                                                               \
+        (*vec)->size = 0;                                                                                  \
         (*vec)->capacity = 0;                                                                              \
     }                                                                                                      \
     /* Resizes the vector to the new size. If reallocation fails, *vec data will be null(returns false) */ \
@@ -41,8 +41,8 @@
     void vec_push_back_##T(Vec_##T* vec, T value) {                                                        \
         if (vec->size == vec->capacity) {                                                                  \
             size_t new_capacity = vec->capacity == 0 ? 1 : vec->capacity * 2;                              \
-            vec->data           = realloc(vec->data, new_capacity * sizeof(T));                            \
-            vec->capacity       = new_capacity;                                                            \
+            vec->data = realloc(vec->data, new_capacity * sizeof(T));                                      \
+            vec->capacity = new_capacity;                                                                  \
         }                                                                                                  \
         vec->data[vec->size++] = value;                                                                    \
     }                                                                                                      \
@@ -74,8 +74,8 @@
         }                                                                                                  \
         if (vec->size == vec->capacity) {                                                                  \
             size_t new_capacity = vec->capacity == 0 ? 1 : vec->capacity * 2;                              \
-            vec->data           = realloc(vec->data, new_capacity * sizeof(T));                            \
-            vec->capacity       = new_capacity;                                                            \
+            vec->data = realloc(vec->data, new_capacity * sizeof(T));                                      \
+            vec->capacity = new_capacity;                                                                  \
         }                                                                                                  \
         for (size_t i = vec->size; i > index; i--) {                                                       \
             vec->data[i] = vec->data[i - 1];                                                               \
@@ -106,13 +106,12 @@
     void vec_clear_##T(Vec_##T* vec) {                                                                     \
         vec->size = 0;                                                                                     \
         if (vec->capacity > 0) {                                                                           \
-            vec->data     = realloc(vec->data, 0);                                                         \
+            vec->data = realloc(vec->data, 0);                                                             \
             vec->capacity = 0;                                                                             \
         }                                                                                                  \
     }                                                                                                      \
     /* sort vector using qsort    */                                                                       \
-    void vec_sort_##T(Vec_##T* vec,                                                                        \
-                      int (*comparator)(const void*, const void*)) {                                       \
+    void vec_sort_##T(Vec_##T* vec, int (*comparator)(const void*, const void*)) {                         \
         qsort(vec->data, vec->size, sizeof(T), comparator);                                                \
     }
 
