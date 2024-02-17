@@ -1,0 +1,8 @@
+*.out
+str
+trie
+main
+build
+.cache
+test
+trie_test
