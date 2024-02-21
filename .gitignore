@@ -6,3 +6,8 @@ build
 .cache
 test
 trie_test
+*_test
+*.exe
+testdir
+vec
+temp*

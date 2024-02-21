@@ -13,8 +13,8 @@ str: $(SRC)
 	$(CXX) $(DEFINES) $(CXXFALGS) $(SRC) -o str_test $(LXXFLAGS)
 	./str_test
 
-trie: trie_test.cpp trie.c
-	$(CXX) $(DEFINES) $(CXXFALGS) trie_test.cpp trie.c -o trie_test $(LXXFLAGS)
+trie: trie_test.cpp
+	$(CXX) $(DEFINES) $(CXXFALGS) trie_test.cpp -o trie_test $(LXXFLAGS)
 	./trie_test
 	
 clean:
