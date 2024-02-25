@@ -6,6 +6,9 @@ Solidc is a robust collection of general purpose header-only C libraries and dat
 
 Solidc is designed to be a lightweight, easy-to-use, and efficient library for C developers. It includes a variety of features:
 
+All the functions are implemented in a way that they are safe and easy to use
+and are fully tested with google test.
+
 Available Headers:
 
 - [solidc.h](solidc.h) - The main header file that includes all the other headers.
@@ -20,6 +23,7 @@ Available Headers:
 - [str.h](str.h) - A string library with a variety of string manipulation functions(al most all functions are implemented in a way that they are safe to use).
 - [trie.h](trie.h) - A trie implementation for strings.
 - [vec.h](vec.h) - A dynamic array(vector) implementation.
+- [set.h](set.h) - Defines `SET_DEFINE` macro to define a type-safe set.
 
 If you want to include all the headers, you can include the main header file:
 
@@ -39,6 +43,10 @@ Otherwise, you can include the individual headers as needed.
 
 #define VEC_IMPL
 #include <solidc/vec.h>
+
+// No need to define SET_IMPL for the set headers
+// since it's macro-based.
+#include <solidc/set.h>
 
 #define MAP_IMPL
 #include <solidc/map.h>
@@ -91,12 +99,32 @@ Build your project and link with the math library(-lm).
 ## Testing
 
 All functions are tested with google test.
+Install google test with the following command:
+
+Ubuntu:
+
+```bash
+sudo apt-get install libgtest-dev
+```
+
+Arch Linux:
+
+```bash
+sudo pacman -S gtest
+```
 
 Run the tests with the following command:
 
 ```bash
-make
+make test
 ```
+
+## Docs
+
+The quick and probably most easy way to get started
+is to read the test files at [tests](./tests/); since all the functions are tested.
+
+I will be providing docs in the due course.
 
 ## License
 

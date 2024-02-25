@@ -28,10 +28,12 @@ extern "C" {
 #include "map.h"
 #include "ordered_map.h"
 #include "os.h"
+#include "set.h"
 #include "slist.h"
 #include "socket.h"
 #include "str.h"
 #include "trie.h"
+#include "vec.h"
 #if defined(__cplusplus)
 }
 #endif

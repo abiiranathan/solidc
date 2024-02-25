@@ -29,6 +29,7 @@ set(HEADERS
     str.h
     trie.h
     vec.h
+    set.h
 )
 
 install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/solidc)
@@ -39,22 +40,25 @@ if(BUILD_TESTING)
     target_link_libraries(str_test gtest pcre2-8)
 
     add_executable(trie_test tests/trie_test.cpp)
-    target_link_libraries(trie_test gtest m pthread)
+    target_link_libraries(trie_test gtest m)
 
     add_executable(map_test tests/map_test.cpp)
-    target_link_libraries(map_test gtest pthread)
+    target_link_libraries(map_test gtest)
 
     add_executable(ordered_map_test tests/ordered_map_test.cpp)
-    target_link_libraries(ordered_map_test gtest pthread)
+    target_link_libraries(ordered_map_test gtest)
 
     add_executable(vec_test tests/vec_test.cpp)
-    target_link_libraries(vec_test gtest pthread)
+    target_link_libraries(vec_test gtest)
 
     add_executable(list_test tests/list_test.cpp)
-    target_link_libraries(list_test gtest pthread)
+    target_link_libraries(list_test gtest)
 
     add_executable(slist_test tests/slist_test.cpp)
-    target_link_libraries(slist_test gtest pthread)
+    target_link_libraries(slist_test gtest)
+
+    add_executable(set_test tests/set_test.cpp)
+    target_link_libraries(set_test gtest)
 
     include(GoogleTest)
     
@@ -65,4 +69,5 @@ if(BUILD_TESTING)
     gtest_discover_tests(vec_test)
     gtest_discover_tests(list_test)
     gtest_discover_tests(slist_test)
+    gtest_discover_tests(set_test)
 endif()
