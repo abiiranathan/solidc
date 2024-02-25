@@ -1,6 +1,9 @@
 #ifndef D45CFCB0_A7C9_4816_B36D_BBC0724921FA
 #define D45CFCB0_A7C9_4816_B36D_BBC0724921FA
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 // Generic vector type in C
 #include <stdbool.h>
 #include <stddef.h>
@@ -46,7 +49,7 @@ void vec_shrink(vec_t* vec);
 void vec_clear(vec_t* vec);
 
 // Swap two vectors
-void vec_swap(vec_t* vec1, vec_t* vec2);
+void vec_swap(vec_t** vec1, vec_t** vec2);
 
 // Copy the vector
 vec_t* vec_copy(vec_t* vec);
@@ -54,16 +57,31 @@ vec_t* vec_copy(vec_t* vec);
 // vec_contains
 bool vec_contains(vec_t* vec, void* elem);
 
-// vec_find_index
-size_t vec_find_index(vec_t* vec, void* elem);
+// Returns the index of elem in vec or -1 of not found.
+int vec_find_index(vec_t* vec, void* elem);
+
+void vec_reverse(vec_t* vec);
+
+#define vec_foreach(vec, index_var)                                                                \
+    for (size_t index_var = 0; index_var < vec_size(vec); index_var++)
+
+#define vec_foreach_ptr(vec, index_var, elem_var)                                                  \
+    for (size_t index_var = 0; index_var < vec_size(vec); index_var++)                             \
+        for (int cont = 1; cont; cont = 0)                                                         \
+            for (void* elem_var = (char*)vec->data + (index_var * vec->elem_size); cont; cont = 0)
+
+#if defined(__cplusplus)
+}
+#endif
 
 // Implementation
-#ifdef VEC_IMPLEMENTATION
+#ifdef VEC_IMPL
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 vec_t* vec_new(size_t elem_size, size_t capacity) {
-    vec_t* vec = malloc(sizeof(vec_t));
+    vec_t* vec = (vec_t*)malloc(sizeof(vec_t));
     if (vec == NULL) {
         perror("vec_new() failed");
         exit(EXIT_FAILURE);
@@ -115,7 +133,7 @@ void vec_pop(vec_t* vec) {
 
 void* vec_get(vec_t* vec, size_t index) {
     if (index < vec->size) {
-        return vec->data + (index * vec->elem_size);
+        return (char*)vec->data + (index * vec->elem_size);
     }
     return NULL;
 }
@@ -123,7 +141,7 @@ void* vec_get(vec_t* vec, size_t index) {
 // Set the element at the given index
 void vec_set(vec_t* vec, size_t index, void* elem) {
     if (index < vec->size) {
-        memcpy(vec->data + (index * vec->elem_size), elem, vec->elem_size);
+        memcpy((char*)vec->data + (index * vec->elem_size), elem, vec->elem_size);
     }
 }
 
@@ -149,11 +167,11 @@ void vec_reserve(vec_t* vec, size_t capacity) {
 
 void vec_shrink(vec_t* vec) {
     if (vec->size < vec->capacity) {
-        vec->data     = realloc(vec->data, vec->size * vec->elem_size);
+        vec->data     = realloc(vec->data, (vec->size + 1) * vec->elem_size);
         vec->capacity = vec->size;
 
         if (vec->data == NULL) {
-            perror("vec_shrink() failed");
+            perror("realloc");
             exit(EXIT_FAILURE);
         }
     }
@@ -164,30 +182,10 @@ void vec_clear(vec_t* vec) {
     vec_shrink(vec);
 }
 
-void vec_swap(vec_t* vec1, vec_t* vec2) {
-    vec_t temp = *vec1;
-    *vec1      = *vec2;
-    *vec2      = temp;
-
-    // Swap the data pointers
-    void* data = vec1->data;
-    vec1->data = vec2->data;
-    vec2->data = data;
-
-    // Swap the capacity
-    size_t capacity = vec1->capacity;
-    vec1->capacity  = vec2->capacity;
-    vec2->capacity  = capacity;
-
-    // Swap the size
-    size_t size = vec1->size;
-    vec1->size  = vec2->size;
-    vec2->size  = size;
-
-    // Swap the element size
-    size_t elem_size = vec1->elem_size;
-    vec1->elem_size  = vec2->elem_size;
-    vec2->elem_size  = elem_size;
+void vec_swap(vec_t** vec1, vec_t** vec2) {
+    vec_t* temp = *vec1;
+    *vec1       = *vec2;
+    *vec2       = temp;
 }
 
 vec_t* vec_copy(vec_t* vec) {
@@ -209,13 +207,33 @@ bool vec_contains(vec_t* vec, void* elem) {
     return false;
 }
 
-size_t vec_find_index(vec_t* vec, void* elem) {
-    for (size_t i = 0; i < vec->size; i++) {
+int vec_find_index(vec_t* vec, void* elem) {
+    for (size_t i = 0; i < vec->size; ++i) {
         if (memcmp(vec_get(vec, i), elem, vec->elem_size) == 0) {
-            return i;
+            return (unsigned int)i;
         }
     }
     return -1;
+}
+
+void vec_reverse(vec_t* vec) {
+    size_t i   = 0;
+    size_t j   = vec->size - 1;
+    void* temp = malloc(vec->elem_size);
+    if (temp == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+
+    while (i < j) {
+        memcpy(temp, (char*)vec->data + (i * vec->elem_size), vec->elem_size);
+        memcpy((char*)vec->data + (i * vec->elem_size), (char*)vec->data + (j * vec->elem_size),
+               vec->elem_size);
+        memcpy((char*)vec->data + (j * vec->elem_size), temp, vec->elem_size);
+        i++;
+        j--;
+    }
+    free(temp);
 }
 
 #endif

@@ -1,5 +1,9 @@
 #ifndef F3A813AA_9A33_453A_8622_F656C6A089F1
 #define F3A813AA_9A33_453A_8622_F656C6A089F1
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 #include <stdio.h>
 
 // Node in the doubly linked list storing the data
@@ -41,7 +45,8 @@ void list_pop_front(list_t* list);
 void* list_get(list_t* list, size_t index);
 
 // Returns the index of the first occurrence of the element in the list
-size_t list_index_of(list_t* list, void* elem);
+// Returns -1 if the element is not found
+int list_index_of(list_t* list, void* elem);
 
 // Insert an element at the given index
 void list_insert(list_t* list, size_t index, void* elem);
@@ -65,7 +70,17 @@ void list_clear(list_t* list);
 list_node_t* list_node_new(size_t elem_size, void* data);
 void list_node_free(list_node_t* node);
 
-#ifdef LIST_IMPLEMENTATION
+// Iteration
+#define list_foreach(list, node_data)                                                              \
+    for (list_node_t* node = list->head; node != NULL; node = node->next)                          \
+        for (int cont = 1; cont; cont = 0)                                                         \
+            for (void* node_data = node->data; cont; cont = 0)
+
+#if defined(__cplusplus)
+}
+#endif
+
+#ifdef LIST_IMPL
 #include <stdlib.h>
 #include <string.h>
 
@@ -82,7 +97,7 @@ list_t* list_new(size_t elem_size) {
 }
 
 void list_remove(list_t* list, void* elem) {
-    size_t index = list_index_of(list, elem);
+    int index = list_index_of(list, elem);
     if (index == -1) {
         return;
     }
@@ -91,6 +106,10 @@ void list_remove(list_t* list, void* elem) {
     for (size_t i = 0; i < index; i++) {
         current = current->next;
     }
+
+    if (!current)
+        return;
+
     if (current->prev) {
         current->prev->next = current->next;
     } else {
@@ -183,15 +202,18 @@ void* list_get(list_t* list, size_t index) {
     for (size_t i = 0; i < index; i++) {
         current = current->next;
     }
+
+    if (!current)
+        return NULL;
     return current->data;
 }
 
-size_t list_index_of(list_t* list, void* elem) {
+int list_index_of(list_t* list, void* elem) {
     if (!list)
         return -1;
 
     list_node_t* current = list->head;
-    size_t index         = 0;
+    int index            = 0;
     while (current) {
         if (memcmp(current->data, elem, list->elem_size) == 0) {
             return index;
@@ -204,8 +226,9 @@ size_t list_index_of(list_t* list, void* elem) {
 
 // // Insert element after the given element
 void list_insert_after(list_t* list, void* elem, void* after) {
-    size_t index = list_index_of(list, after);
+    int index = list_index_of(list, after);
     if (index == -1) {
+        printf("Element not found\n");
         return;
     }
     list_insert(list, index + 1, elem);
@@ -213,8 +236,9 @@ void list_insert_after(list_t* list, void* elem, void* after) {
 
 // // Insert element before the given element
 void list_insert_before(list_t* list, void* elem, void* before) {
-    size_t index = list_index_of(list, before);
+    int index = list_index_of(list, before);
     if (index == -1) {
+        printf("Element not found\n");
         return;
     }
     list_insert(list, index, elem);
@@ -222,19 +246,33 @@ void list_insert_before(list_t* list, void* elem, void* before) {
 
 // Set the element at the given index
 void list_insert(list_t* list, size_t index, void* elem) {
-    if (!list || index >= list->size)
+    if (!list || index > list->size) {
+        printf("Index %zu out of bounds\n", index);
         return;
+    }
+
     list_node_t* new_node = list_node_new(list->elem_size, elem);
     if (!new_node)
         return;
+
     list_node_t* current = list->head;
     for (size_t i = 0; i < index; i++) {
+        if (!current->next) {
+            break;
+        }
         current = current->next;
     }
 
+    // If current is NULL, then the list is empty
+    if (!current) {
+        list_push_back(list, elem);
+        return;
+    }
+
     new_node->next = current;
-    new_node->prev = current->prev;
+    new_node->prev = NULL;
     if (current->prev) {
+        new_node->prev      = current->prev;
         current->prev->next = new_node;
     } else {
         list->head = new_node;
@@ -293,6 +331,6 @@ void list_node_free(list_node_t* node) {
     node = NULL;
 }
 
-#endif  // LIST_IMPLEMENTATION
+#endif  // LIST_IMPL
 
 #endif /* F3A813AA_9A33_453A_8622_F656C6A089F1 */

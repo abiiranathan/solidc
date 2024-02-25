@@ -1,4 +1,4 @@
-#define SOCKET_IMPLEMENTATION
+#define SOCKET_IMPL
 #include "socket.h"
 
 static void init_afinet_addr(struct sockaddr_in* addr, int port) {

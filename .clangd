@@ -6,4 +6,4 @@ Index:
   StandardLibrary: No
 
 Diagnostics:
-  Suppress: ["init_conversion_failed"]
+  Suppress: ["init_conversion_failed", "unused-includes"]

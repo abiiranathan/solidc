@@ -1,6 +1,6 @@
-#define TRIE_IMPLEMENTATION  // Required to include the implementation
+#define TRIE_IMPL  // Required to include the implementation
 
-#include "trie.h"
+#include "../trie.h"
 #include <gtest/gtest.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,7 +65,7 @@ TEST(TrieTest, Autocomplete) {
     insert_word(root, "foo");
     insert_word(root, "bar");
 
-    char results[10][MAX_WORD_SIZE] = {0};
+    char results[10][MAX_WORD_SIZE] = {};
     size_t arr_size                 = sizeof(results) / sizeof(results[0]);
     size_t match_count              = trie_autocomplete(root, "hel", results, arr_size);
 

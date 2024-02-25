@@ -1,7 +1,13 @@
-#ifndef FILEIO_H
-#define FILEIO_H
+#ifndef OS_H
+#define OS_H
 
-#define _GNU_SOURCE  // Required for secure_getenv on Linux
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+#if !defined(_GNU_SOURCE)
+#define _GNU_SOURCE
+#endif
 
 #include <errno.h>
 #include <stdbool.h>
@@ -30,6 +36,8 @@
 #include <unistd.h>
 #endif
 
+// ========== Type definitions =========================
+
 // File handle
 typedef struct {
     FILE* file;      // file pointer
@@ -44,8 +52,69 @@ typedef struct {
 #endif
 } File;
 
+// PIPE related function declarations
+typedef enum { PIPE_END_READ = 1, PIPE_END_WRITE = 2, PIPE_END_BOTH = 3 } PipeEnd;
+
+typedef struct {
+#ifdef _WIN32
+    HANDLE hReadPipe;
+    HANDLE hWritePipe;
+#else
+    int fd[2];
+#endif
+} PIPE;
+
+// IMPLEMENT A THREAD POOL
+typedef struct ThreadPool {
+#ifdef _WIN32
+    CRITICAL_SECTION lock;
+    CONDITION_VARIABLE task_available;
+    CONDITION_VARIABLE all_tasks_completed;
+#else
+    pthread_mutex_t lock;
+    pthread_cond_t task_available;
+    pthread_cond_t all_tasks_completed;
+#endif
+    struct Task* task_queue;
+    int num_threads;
+    int num_working_threads;
+    bool shutdown;
+} ThreadPool;
+
+typedef struct Task {
+    void (*function)(void*);
+    void* arg;
+    struct Task* next;
+} Task;
+
+// Thread and process related function declarations
+#ifdef _WIN32
+// Alias to win32 HANDLE
+typedef HANDLE Thread;
+#else
+// Alias to posix pthread
+typedef pthread_t Thread;
+#endif
+
+typedef struct {
+    void* arg;     // Argument to the start_routine
+    void* retval;  // Pointer to the return value
+} ThreadData;
+
+typedef struct Process {
+#ifdef _WIN32
+    DWORD pid;               // Process id is similar to pi.dwProcessId
+    STARTUPINFO si;          // Start up info
+    PROCESS_INFORMATION pi;  // Process information
+#else
+    long pid;  // Process ID(long to match DWORD on Windows)
+#endif
+} Process;
+
+// ======= END OF TYPE DEFINITIONS =======================
+
 // ============ File related functions ============
-File* file_open(const char* filename, const char* mode);
+File* file_open(const char* filename, const char* mode) __attribute__((warn_unused_result));
 void file_close(File* file);
 ssize_t file_size(FILE* file);
 size_t file_write(File* file, const void* buffer, size_t size, size_t count);
@@ -72,46 +141,124 @@ ssize_t file_aread(File* file, void* buffer, size_t size, off_t offset);
 void* file_readall(File* file, ssize_t* size);
 bool file_lock(File* file);
 bool file_unlock(File* file);
+bool is_file(const char* path);
 
 // =========== END File related functions ===========
 
 //  ===== Directory related function declarations =====
+// Directory handle
+typedef struct {
+    char* path;  // directory path
+#ifdef _WIN32
+    HANDLE handle;
+    WIN32_FIND_DATAA find_data;  // found in windows.h
+#else
+    DIR* dir;  // directory pointer found in dirent.h
+#endif
+} Directory;
+
+// Open a directory
+Directory* dir_open(const char* path) __attribute__((warn_unused_result));
+
+// Close a directory
+void dir_close(Directory* dir);
+
+// Read the next entry in the directory.
+char* dir_next(Directory* dir) __attribute__((warn_unused_result));
+
+// Create a directory. Returns 0 if successful, -1 otherwise
+int dir_create(const char* path);
+
+// Remove a directory. Returns 0 if successful, -1 otherwise
+int dir_remove(const char* path);
+
+// Rename a directory. Returns 0 if successful, -1 otherwise
+int dir_rename(const char* oldpath, const char* newpath);
+
+// Change the current working directory
+int dir_chdir(const char* path);
+
+// List files in a directory, returns a pointer to a list of file names or NULL on error
+// The caller is responsible for freeing the memory.
+// The number of files is stored in the count parameter.
+// Note: This algorithm walks the directory tree recursively
+// and may be slow for large directories.
+char** dir_list(const char* path, size_t* count) __attribute__((warn_unused_result));
+
+// Returns true if the path is a directory
+bool is_dir(const char* path);
 
 // Create a directory recursively
 bool makedirs(const char* path);
-char* get_tempdir();
-char* make_tempfile();
-char* make_tempdir();
-int dir_create(const char* path);
-int dir_remove(const char* path);
-int dir_rename(const char* oldpath, const char* newpath);
-int dir_chdir(const char* path);
-char** dir_list(const char* path, size_t* count);
-bool is_dir(const char* path);
-bool is_file(const char* path);
+
+// Get path to platform's TEMP directory.
+char* get_tempdir() __attribute__((warn_unused_result));
+
+// Create a temporary file.
+char* make_tempfile() __attribute__((warn_unused_result));
+
+// Create a temporary directory
+char* make_tempdir() __attribute__((warn_unused_result));
+
+// Returns true if path is a symbolic link.
 bool is_symlink(const char* path);
+
+// Walk the directory path, for each entry call the callback
+// with path, name and user data pointer.
 int dir_walk(const char* path, int (*callback)(const char* path, const char* name, void* data),
              void* data);
-ssize_t dir_size(const char* path);
-char* get_cwd();
 
-// =========== END Directory related function declarations ===========
+// Find the size of the directory.
+// This is slow on large directories since it walks the directory.
+ssize_t dir_size(const char* path);
+
+// Returns the path to the current working directory.
+char* get_cwd() __attribute__((warn_unused_result));
 
 //  ===== Filepath related function declarations =====
 
+// get the file's basename.
 void filepath_basename(const char* path, char* basename, size_t size);
+
+// Get the directory name of a path
 void filepath_dirname(const char* path, char* dirname, size_t size);
+
+// Get the file extension
 void filepath_extension(const char* path, char* ext, size_t size);
+
+// Get the file name(basename) without the extension
 void filepath_nameonly(const char* path, char* name, size_t size);
-char* filepath_absolute(const char* path);
+
+// Get the absolute path of a file Returns a pointer to the absolute path
+// or NULL on error.
+// The caller is responsible for freeing the memory.
+char* filepath_absolute(const char* path) __attribute__((warn_unused_result));
+
+// Delete or unlink file or directory.
 int filepath_remove(const char* path);
+
+// Rename file or directory.
 int filepath_rename(const char* oldpath, const char* newpath);
-char* filepath_expanduser(const char* path);
-char* filepath_join(const char* path1, const char* path2);
+
+// Expand user home directory.
+char* filepath_expanduser(const char* path) __attribute__((warn_unused_result));
+
+// Join path1 and path2 using standard os specific separator.
+char* filepath_join(const char* path1, const char* path2) __attribute__((warn_unused_result));
+
+// Split a file path into directory and basename.
+// The dir and name parameters must be pre-allocated buffers or
+// pointers to pre-allocated buffers.
+// dir_size and name_size are the size of the dir and name
+// buffers.
 void filepath_split(const char* path, char* dir, char* name, size_t dir_size, size_t name_size);
 
-// =========== END Filepath related function declarations ===========
+#if defined(__cplusplus)
+}
+#endif
 
+// IMPLEMENTATION
+#ifdef OS_IMPL
 // Open a file
 File* file_open(const char* filename, const char* mode) {
     FILE* fp = fopen(filename, mode);
@@ -653,17 +800,6 @@ void filepath_split(const char* path, char* dir, char* name, size_t dir_size, si
 
 //  ===== Directory related functions =====
 
-// Directory handle
-typedef struct {
-    char* path;  // directory path
-#ifdef _WIN32
-    HANDLE handle;
-    WIN32_FIND_DATAA find_data;  // found in windows.h
-#else
-    DIR* dir;  // directory pointer found in dirent.h
-#endif
-} Directory;
-
 // Open a directory
 Directory* dir_open(const char* path) {
     Directory* dir = (Directory*)malloc(sizeof(Directory));
@@ -960,7 +1096,9 @@ bool makedirs(const char* path) {
 #endif
 }
 
-// Get the temporary directory
+// Returns the PATH for temporary files and directories
+// in a platform specific manner.
+// The caller is responsible for freeing the memory returned.
 char* get_tempdir() {
 #ifdef _WIN32
     char* tmp = getenv("TEMP");
@@ -1021,30 +1159,6 @@ char* make_tempdir() {
 }
 
 // =========== END Directory related functions ===========
-
-// Thread and process related function declarations
-#ifdef _WIN32
-typedef HANDLE Thread;
-// Generic thread based on the platform
-#else
-// Generic thread based on the platform
-typedef pthread_t Thread;
-#endif
-
-typedef struct {
-    void* arg;     // Argument to the start_routine
-    void* retval;  // Pointer to the return value
-} ThreadData;
-
-typedef struct Process {
-#ifdef _WIN32
-    DWORD pid;               // Process id is similar to pi.dwProcessId
-    STARTUPINFO si;          // Start up info
-    PROCESS_INFORMATION pi;  // Process information
-#else
-    long pid;  // Process ID(long to match DWORD on Windows)
-#endif
-} Process;
 
 // Create a new process
 int process_create(Process* proc, const char* command, const char* const argv[],
@@ -1349,18 +1463,6 @@ char* get_groupname() {
 
 // =========== END Thread and process related functions ===========
 
-// PIPE related function declarations
-typedef enum { PIPE_END_READ = 1, PIPE_END_WRITE = 2, PIPE_END_BOTH = 3 } PipeEnd;
-
-typedef struct {
-#ifdef _WIN32
-    HANDLE hReadPipe;
-    HANDLE hWritePipe;
-#else
-    int fd[2];
-#endif
-} PIPE;
-
 // Pipe declarations
 int pipe_open(PIPE* pPipe);
 void pipe_close(PIPE* pPipe, PipeEnd endToClose);
@@ -1421,29 +1523,6 @@ ssize_t pipe_write(PIPE* pPipe, const void* buffer, size_t size) {
 #endif
 
 // =========== END PIPE related functions ===========
-
-// IMPLEMENT A THREAD POOL
-typedef struct ThreadPool {
-#ifdef _WIN32
-    CRITICAL_SECTION lock;
-    CONDITION_VARIABLE task_available;
-    CONDITION_VARIABLE all_tasks_completed;
-#else
-    pthread_mutex_t lock;
-    pthread_cond_t task_available;
-    pthread_cond_t all_tasks_completed;
-#endif
-    struct Task* task_queue;
-    int num_threads;
-    int num_working_threads;
-    bool shutdown;
-} ThreadPool;
-
-typedef struct Task {
-    void (*function)(void*);
-    void* arg;
-    struct Task* next;
-} Task;
 
 ThreadPool* threadpool_create(int num_threads);
 void threadpool_destroy(ThreadPool* pool);
@@ -1715,5 +1794,6 @@ void threadpool_wait(ThreadPool* pool) {
     pthread_mutex_unlock(&pool->lock);
 #endif
 }
+#endif  // OS_IMPL
 
-#endif  // FILEIO_H
+#endif  // OS_H

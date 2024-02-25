@@ -1,6 +1,6 @@
 // Define this before including str.h to implement the functions.
 // since str.h is a header only library.
-#define STR_IMPLEMENTATION
+#define STR_IMPL
 
 // Adds support for advanced regex features using PCRE.
 // Don't forget to link with -lpcre2-8
@@ -10,7 +10,7 @@
 // PCRE)
 // - regex_capture (for capturing multiple groups from a string using PCRE)
 
-#include "str.h"
+#include "../str.h"
 #include <gtest/gtest.h>
 
 TEST(StringTest, TestStringCopy) {

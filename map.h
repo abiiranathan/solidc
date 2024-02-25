@@ -37,6 +37,11 @@ typedef struct {
     size_t index;
 } map_iterator;
 
+#define map_foreach(map, entry_var)                                                                \
+    for (size_t i = 0; i < map->size; i++)                                                         \
+        for (int cont = 1; cont; cont = 0)                                                         \
+            for (entry* entry_var = &map->entries[i]; cont; cont = 0)
+
 // Create a new map iterator
 map_iterator* map_iterator_create(map* m);
 
@@ -101,9 +106,13 @@ unsigned long djb2_hash(const void* key);
 // http://www.cse.yorku.ca/~oz/hash.html
 unsigned long sdbm_hash(const void* key);
 
-// define MAP_IMPLEMENTATION before including this file to
+#if defined(__cplusplus)
+}
+#endif
+
+// define MAP_IMPL before including this file to
 // generate the implementation
-#ifdef MAP_IMPLEMENTATION
+#ifdef MAP_IMPL
 
 // http://www.cse.yorku.ca/~oz/hash.html
 unsigned long djb2_hash(const void* key) {
@@ -336,10 +345,6 @@ void map_free_keys(void** keys) {
     }
 }
 
-#endif /** MAP_IMPLEMENTATION */
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
+#endif /** MAP_IMPL */
 
 #endif /* A02E572A_DD85_4D77_AC81_41037EDE290A */

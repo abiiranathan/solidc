@@ -1,34 +1,68 @@
 cmake_minimum_required(VERSION 3.5)
-project(falcon LANGUAGES CXX C VERSION 0.1.0)
+project(solidc 
+    VERSION 0.1.0 
+    DESCRIPTION "Robust collection of general purpose header-only C libraries and data structures"
+    LANGUAGES CXX C
+)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
 include(GNUInstallDirs)
+include(CTest)
 
 # Header only library
-add_library(falcon INTERFACE)
-target_include_directories(falcon INTERFACE
+add_library(solidc INTERFACE)
+target_include_directories(solidc INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-add_executable(str_test str_test.cpp)
-target_link_libraries(str_test gtest pcre2-8)
+set(HEADERS
+    os.h
+    list.h
+    log.h
+    map.h
+    ordered_map.h
+    slist.h
+    socket.h
+    str.h
+    trie.h
+    vec.h
+)
 
-add_executable(trie_test trie_test.cpp)
-target_link_libraries(trie_test gtest m pthread)
+install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/solidc)
 
-add_executable(map_test map_test.cpp)
-target_link_libraries(map_test gtest pthread)
+if(BUILD_TESTING)
+    # Test executables
+    add_executable(str_test tests/str_test.cpp)
+    target_link_libraries(str_test gtest pcre2-8)
 
-install(FILES str.h DESTINATION falcon)
-install(FILES trie.h DESTINATION falcon)
-install(FILES log.h DESTINATION falcon)
-install(FILES map.h DESTINATION falcon)
+    add_executable(trie_test tests/trie_test.cpp)
+    target_link_libraries(trie_test gtest m pthread)
 
-# Testing
-enable_testing()
-add_test(NAME str_test COMMAND str_test)
-add_test(NAME trie_test COMMAND trie_test)
+    add_executable(map_test tests/map_test.cpp)
+    target_link_libraries(map_test gtest pthread)
 
+    add_executable(ordered_map_test tests/ordered_map_test.cpp)
+    target_link_libraries(ordered_map_test gtest pthread)
+
+    add_executable(vec_test tests/vec_test.cpp)
+    target_link_libraries(vec_test gtest pthread)
+
+    add_executable(list_test tests/list_test.cpp)
+    target_link_libraries(list_test gtest pthread)
+
+    add_executable(slist_test tests/slist_test.cpp)
+    target_link_libraries(slist_test gtest pthread)
+
+    include(GoogleTest)
+    
+    gtest_discover_tests(str_test)
+    gtest_discover_tests(trie_test)
+    gtest_discover_tests(map_test)
+    gtest_discover_tests(ordered_map_test)
+    gtest_discover_tests(vec_test)
+    gtest_discover_tests(list_test)
+    gtest_discover_tests(slist_test)
+endif()

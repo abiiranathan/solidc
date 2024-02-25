@@ -1,21 +1,8 @@
-CC = gcc
-CXX = g++
+build:
+	cmake --build build -j8
 
-# Google Test requires C++17 and above
-CXXFALGS = -Wall -Werror -Wextra -pedantic -std=c++17
-LXXFLAGS = -lgtest -lpthread -lpcre2-8 -lm
-DEFINES = -DUSE_PCRE_REGEX
-SRC=str_test.cpp
+test: build
+	GTEST_COLOR=1 ctest --test-dir build --output-on-failure -j8
 
-all: str trie
-
-str: $(SRC)
-	$(CXX) $(DEFINES) $(CXXFALGS) $(SRC) -o str_test $(LXXFLAGS)
-	./str_test
-
-trie: trie_test.cpp
-	$(CXX) $(DEFINES) $(CXXFALGS) trie_test.cpp -o trie_test $(LXXFLAGS)
-	./trie_test
-	
-clean:
-	rm -f str_test trie_test
+install:
+	sudo cmake --install build --prefix=/usr/include

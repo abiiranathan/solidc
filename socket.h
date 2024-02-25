@@ -1,6 +1,9 @@
-
 #ifndef SOCKET_H
 #define SOCKET_H
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -9,15 +12,14 @@
 #include <string.h>
 
 #ifdef _WIN32
-#ifdef WIN32_LEAN_AND_MEAN
-#undef WIN32_LEAN_AND_MEAN
-#endif
 #include <mswsock.h>
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#pragma comment(lib, "ws2_32.lib")  // Link with the Winsock library
+#pragma comment(lib, "ws2_32.lib")
+
 #else
+
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -97,8 +99,11 @@ int socket_family(Socket* sock);
 int socket_type(Socket* sock);
 
 // ================== Socket related functions ==================
+#if defined(__cplusplus)
+}
+#endif
 
-#ifndef SOCKET_IMPLEMENTATION
+#ifdef SOCKET_IMPL
 #include <errno.h>
 
 // Create a socket
@@ -522,5 +527,5 @@ struct sockaddr_in6* socket_ipv6_address(const char* ip, int port) {
 
 // ================== END Socket address related functions ==================
 
-#endif  // SOCKET_IMPLEMENTATION
+#endif  // SOCKET_IMPL
 #endif  // SOCKET_H

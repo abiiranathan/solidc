@@ -1,4 +1,4 @@
-#include "fileio.h"
+#include "os.h"
 
 void* logMessage(void* ptr) {
     ThreadData* data = (ThreadData*)ptr;
@@ -185,4 +185,4 @@ void printNumAndSleep(void* ptr) {
 }
 
 // Test windows features with mingw compiler
-// Run: x86_64-w64-mingw32-gcc fileio_test.c -o fileio_test.exe
+// Run: x86_64-w64-mingw32-gcc OS_test.c -o OS_test.exe

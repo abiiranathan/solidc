@@ -12,8 +12,6 @@ extern "C" {
 #include <stdbool.h>
 #include <stddef.h>
 
-#define STR_IMPLEMENTATION
-
 // string_copy returns a new copy of the string str.
 // str may be a heap-allocated string or a string literal.
 char* string_copy(const char* str) __attribute__((warn_unused_result));
@@ -249,6 +247,30 @@ double cosine_similarity_vec(const int* v1, const int* v2, size_t n);
 // string_foreach_rev is a reverse string foreach loop macro.
 #define string_foreach_rev(str, c) for (char* c = str + strlen(str) - 1; c >= str; c--)
 
+// A simple implementation of the Soundex algorithm(a phonetic algorithm).
+// The Soundex algorithm is used to index words by their sound when pronounced
+// in English. The goal is for homophones to be encoded to the same
+// representation so that they can be matched despite minor differences in
+// spelling. The Soundex code for a word consists of a letter followed by three
+// numerical digits: the letter is the first letter of the word, and the digits
+// encode the remaining consonants. The Soundex algorithm is not suitable for
+// all surnames, and is not reliable for surnames of non-English origin. The
+// Soundex algorithm is not case sensitive, so it is common to convert the input
+// to uppercase before applying the Soundex algorithm.
+//
+// Implementation based on the description in the Wikipedia article:
+// https://en.wikipedia.org/wiki/Soundex
+// The time complexity is O(n), where n is the length of the string.
+/*
+B, F, P, V -> 1
+C, G, J, K, Q, S, X, Z -> 2
+D, T -> 3
+L -> 4
+M, N -> 5
+R -> 6
+*/
+char* string_soundex(const char* str);
+
 #ifdef USE_PCRE_REGEX
 
 // regex_sub_match_pcre returns the substring of str that matches the capture
@@ -274,8 +296,12 @@ char** regex_capture(const char* str, const char* regex, int num_capture_groups,
 #include <pcre2.h>
 #endif
 
+#ifdef __cplusplus
+}
+#endif
+
 // Define this macro in only one file to include the implementation.
-#ifdef STR_IMPLEMENTATION
+#ifdef STR_IMPL
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1477,28 +1503,6 @@ double string_cosine_similarity(const char* s1, const char* s2) {
     return cosine_similarity_vec(v1, v2, NUM_LETTERS);
 }
 
-// A simple implementation of the Soundex algorithm(a phonetic algorithm).
-// The Soundex algorithm is used to index words by their sound when pronounced
-// in English. The goal is for homophones to be encoded to the same
-// representation so that they can be matched despite minor differences in
-// spelling. The Soundex code for a word consists of a letter followed by three
-// numerical digits: the letter is the first letter of the word, and the digits
-// encode the remaining consonants. The Soundex algorithm is not suitable for
-// all surnames, and is not reliable for surnames of non-English origin. The
-// Soundex algorithm is not case sensitive, so it is common to convert the input
-// to uppercase before applying the Soundex algorithm.
-//
-// Implementation based on the description in the Wikipedia article:
-// https://en.wikipedia.org/wiki/Soundex
-// The time complexity is O(n), where n is the length of the string.
-/*
-B, F, P, V -> 1
-C, G, J, K, Q, S, X, Z -> 2
-D, T -> 3
-L -> 4
-M, N -> 5
-R -> 6
-*/
 char* string_soundex(const char* str) {
     size_t len = strlen(str);
     if (len == 0) {
@@ -1573,10 +1577,6 @@ char* string_soundex(const char* str) {
     return soundex;
 }
 
-#endif /* STR_IMPLEMENTATION */
-
-#ifdef __cplusplus
-}
-#endif
+#endif /* STR_IMPL */
 
 #endif /* DC9DF236_E1D3_4B30_ABD2_0833ADB3BB55 */

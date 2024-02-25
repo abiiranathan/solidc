@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#define MAP_IMPLEMENTATION
-#include "map.h"
+#define MAP_IMPL
+#include "../map.h"
 
 class MapTest : public ::testing::Test {
    protected:
