@@ -28,6 +28,7 @@ set(HEADERS
     slist.h
     socket.h
     str.h
+    str_builder.h
     trie.h
     vec.h
     set.h
@@ -64,6 +65,9 @@ if(BUILD_TESTING)
     add_executable(os_test tests/os_test.cpp)
     target_link_libraries(os_test gtest)
 
+    add_executable(str_builder tests/str_builder_test.cpp)
+    target_link_libraries(str_builder gtest)
+
     include(GoogleTest)
     
     gtest_discover_tests(str_test)
@@ -75,4 +79,5 @@ if(BUILD_TESTING)
     gtest_discover_tests(slist_test)
     gtest_discover_tests(set_test)
     gtest_discover_tests(os_test)
+    gtest_discover_tests(str_builder)
 endif()

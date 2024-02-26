@@ -546,7 +546,5 @@ struct sockaddr_in6* socket_ipv6_address(const char* ip, int port) {
     return addr;
 }
 
-// ================== END Socket address related functions ==================
-
 #endif  // SOCKET_IMPL
 #endif  // SOCKET_H

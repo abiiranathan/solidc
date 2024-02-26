@@ -21,6 +21,7 @@ Available Headers:
 - [ordered_map.h](ordered_map.h) - An ordered map implementation.
 - [socket.h](socket.h) - A simple socket library.
 - [str.h](str.h) - A string library with a variety of string manipulation functions(al most all functions are implemented in a way that they are safe to use).
+- [str_builder.h](str_builder.h) - An efficient string builder implementation.
 - [trie.h](trie.h) - A trie implementation for strings.
 - [vec.h](vec.h) - A dynamic array(vector) implementation.
 - [set.h](set.h) - Defines `SET_DEFINE` macro to define a type-safe set.
