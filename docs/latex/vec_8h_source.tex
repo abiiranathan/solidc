@@ -1,0 +1,246 @@
+\doxysection{vec.\+h}
+\hypertarget{vec_8h_source}{}\label{vec_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ D45CFCB0\_A7C9\_4816\_B36D\_BBC0724921FA}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ D45CFCB0\_A7C9\_4816\_B36D\_BBC0724921FA}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#if\ defined(\_\_cplusplus)}}
+\DoxyCodeLine{00005\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \{}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ Generic\ vector\ type\ in\ C}}
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#include\ <stdbool.h>}}
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{00010\ }
+\DoxyCodeLine{00011\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\{}
+\DoxyCodeLine{00012\ \ \ \ \ \textcolor{keywordtype}{void}*\ data;}
+\DoxyCodeLine{00013\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ size;}
+\DoxyCodeLine{00014\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ capacity;}
+\DoxyCodeLine{00015\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ elem\_size;}
+\DoxyCodeLine{00016\ \}\ \mbox{\hyperlink{structvec__t}{vec\_t}};}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ Create\ a\ new\ vector}}
+\DoxyCodeLine{00019\ \mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec\_new(\textcolor{keywordtype}{size\_t}\ elem\_size,\ \textcolor{keywordtype}{size\_t}\ capacity);}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ Free\ the\ vector}}
+\DoxyCodeLine{00022\ \textcolor{keywordtype}{void}\ vec\_free(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec);}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ Push\ an\ element\ to\ the\ end\ of\ the\ vector}}
+\DoxyCodeLine{00025\ \textcolor{keywordtype}{void}\ vec\_push(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec,\ \textcolor{keywordtype}{void}*\ elem);}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ Pop\ an\ element\ from\ the\ end\ of\ the\ vector}}
+\DoxyCodeLine{00028\ \textcolor{keywordtype}{void}\ vec\_pop(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec);}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ Get\ the\ element\ at\ the\ given\ index}}
+\DoxyCodeLine{00031\ \textcolor{keywordtype}{void}*\ vec\_get(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec,\ \textcolor{keywordtype}{size\_t}\ index);}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ Set\ the\ element\ at\ the\ given\ index}}
+\DoxyCodeLine{00034\ \textcolor{keywordtype}{void}\ vec\_set(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec,\ \textcolor{keywordtype}{size\_t}\ index,\ \textcolor{keywordtype}{void}*\ elem);}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ Get\ the\ size\ of\ the\ vector}}
+\DoxyCodeLine{00037\ \textcolor{keywordtype}{size\_t}\ vec\_size(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec);}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ Get\ the\ capacity\ of\ the\ vector}}
+\DoxyCodeLine{00040\ \textcolor{keywordtype}{size\_t}\ vec\_capacity(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec);}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ Reserve\ space\ for\ the\ vector}}
+\DoxyCodeLine{00043\ \textcolor{keywordtype}{void}\ vec\_reserve(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec,\ \textcolor{keywordtype}{size\_t}\ capacity);}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ Shrink\ the\ vector\ to\ fit\ the\ size}}
+\DoxyCodeLine{00046\ \textcolor{keywordtype}{void}\ vec\_shrink(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec);}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ Clear\ the\ vector}}
+\DoxyCodeLine{00049\ \textcolor{keywordtype}{void}\ vec\_clear(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec);}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ Swap\ two\ vectors}}
+\DoxyCodeLine{00052\ \textcolor{keywordtype}{void}\ vec\_swap(\mbox{\hyperlink{structvec__t}{vec\_t}}**\ vec1,\ \mbox{\hyperlink{structvec__t}{vec\_t}}**\ vec2);}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ Copy\ the\ vector}}
+\DoxyCodeLine{00055\ \mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec\_copy(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec);}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ vec\_contains}}
+\DoxyCodeLine{00058\ \textcolor{keywordtype}{bool}\ vec\_contains(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec,\ \textcolor{keywordtype}{void}*\ elem);}
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ Returns\ the\ index\ of\ elem\ in\ vec\ or\ -\/1\ of\ not\ found.}}
+\DoxyCodeLine{00061\ \textcolor{keywordtype}{int}\ vec\_find\_index(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec,\ \textcolor{keywordtype}{void}*\ elem);}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ \textcolor{keywordtype}{void}\ vec\_reverse(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec);}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00065\ \textcolor{preprocessor}{\#define\ vec\_foreach(vec,\ index\_var)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00066\ \textcolor{preprocessor}{\ \ \ \ for\ (size\_t\ index\_var\ =\ 0;\ index\_var\ <\ vec\_size(vec);\ index\_var++)}}
+\DoxyCodeLine{00067\ }
+\DoxyCodeLine{00068\ \textcolor{preprocessor}{\#define\ vec\_foreach\_ptr(vec,\ index\_var,\ elem\_var)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00069\ \textcolor{preprocessor}{\ \ \ \ for\ (size\_t\ index\_var\ =\ 0;\ index\_var\ <\ vec\_size(vec);\ index\_var++)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00070\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ for\ (int\ cont\ =\ 1;\ cont;\ cont\ =\ 0)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00071\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ for\ (void*\ elem\_var\ =\ (char*)vec-\/>data\ +\ (index\_var\ *\ vec-\/>elem\_size);\ cont;\ cont\ =\ 0)}}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00073\ \textcolor{preprocessor}{\#if\ defined(\_\_cplusplus)}}
+\DoxyCodeLine{00074\ \}}
+\DoxyCodeLine{00075\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ Implementation}}
+\DoxyCodeLine{00078\ \textcolor{preprocessor}{\#ifdef\ VEC\_IMPL}}
+\DoxyCodeLine{00079\ \textcolor{preprocessor}{\#include\ <stdio.h>}}
+\DoxyCodeLine{00080\ \textcolor{preprocessor}{\#include\ <stdlib.h>}}
+\DoxyCodeLine{00081\ \textcolor{preprocessor}{\#include\ <string.h>}}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ \mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec\_new(\textcolor{keywordtype}{size\_t}\ elem\_size,\ \textcolor{keywordtype}{size\_t}\ capacity)\ \{}
+\DoxyCodeLine{00084\ \ \ \ \ \mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec\ =\ (\mbox{\hyperlink{structvec__t}{vec\_t}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structvec__t}{vec\_t}}));}
+\DoxyCodeLine{00085\ \ \ \ \ \textcolor{keywordflow}{if}\ (vec\ ==\ NULL)\ \{}
+\DoxyCodeLine{00086\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}vec\_new()\ failed"{}});}
+\DoxyCodeLine{00087\ \ \ \ \ \ \ \ \ exit(EXIT\_FAILURE);}
+\DoxyCodeLine{00088\ \ \ \ \ \}}
+\DoxyCodeLine{00089\ }
+\DoxyCodeLine{00090\ \ \ \ \ vec-\/>data\ \ \ \ \ \ =\ NULL;}
+\DoxyCodeLine{00091\ \ \ \ \ vec-\/>size\ \ \ \ \ \ =\ 0;}
+\DoxyCodeLine{00092\ \ \ \ \ vec-\/>capacity\ \ =\ 0;}
+\DoxyCodeLine{00093\ \ \ \ \ vec-\/>elem\_size\ =\ elem\_size;}
+\DoxyCodeLine{00094\ }
+\DoxyCodeLine{00095\ \ \ \ \ \textcolor{keywordflow}{if}\ (capacity\ >\ 0)\ \{}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ \ \ vec\_reserve(vec,\ capacity);}
+\DoxyCodeLine{00097\ \ \ \ \ \}}
+\DoxyCodeLine{00098\ \ \ \ \ \textcolor{keywordflow}{return}\ vec;}
+\DoxyCodeLine{00099\ \}}
+\DoxyCodeLine{00100\ }
+\DoxyCodeLine{00101\ \textcolor{keywordtype}{void}\ vec\_free(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec)\ \{}
+\DoxyCodeLine{00102\ \ \ \ \ \textcolor{keywordflow}{if}\ (!vec)}
+\DoxyCodeLine{00103\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \ \ \ \ free(vec-\/>data);}
+\DoxyCodeLine{00106\ \ \ \ \ vec-\/>data\ =\ NULL;}
+\DoxyCodeLine{00107\ }
+\DoxyCodeLine{00108\ \ \ \ \ free(vec);}
+\DoxyCodeLine{00109\ \ \ \ \ vec\ =\ NULL;}
+\DoxyCodeLine{00110\ \}}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00112\ \textcolor{keywordtype}{void}\ vec\_push(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec,\ \textcolor{keywordtype}{void}*\ elem)\ \{}
+\DoxyCodeLine{00113\ \ \ \ \ \textcolor{keywordflow}{if}\ (vec-\/>size\ ==\ vec-\/>capacity)\ \{}
+\DoxyCodeLine{00114\ \ \ \ \ \ \ \ \ vec\_reserve(vec,\ vec-\/>capacity\ ==\ 0\ ?\ 1\ :\ vec-\/>capacity\ *\ 2);}
+\DoxyCodeLine{00115\ \ \ \ \ \}}
+\DoxyCodeLine{00116\ }
+\DoxyCodeLine{00117\ \ \ \ \ memcpy((\textcolor{keywordtype}{char}*)vec-\/>data\ +\ vec-\/>size\ *\ vec-\/>elem\_size,\ elem,\ vec-\/>elem\_size);}
+\DoxyCodeLine{00118\ \ \ \ \ vec-\/>size++;}
+\DoxyCodeLine{00119\ \}}
+\DoxyCodeLine{00120\ }
+\DoxyCodeLine{00121\ \textcolor{keywordtype}{void}\ vec\_pop(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec)\ \{}
+\DoxyCodeLine{00122\ \ \ \ \ \textcolor{comment}{//\ Pop\ the\ last\ element}}
+\DoxyCodeLine{00123\ \ \ \ \ \textcolor{keywordflow}{if}\ (vec-\/>size\ <=\ 0)\ \{}
+\DoxyCodeLine{00124\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00125\ \ \ \ \ \}}
+\DoxyCodeLine{00126\ \ \ \ \ vec-\/>size-\/-\/;}
+\DoxyCodeLine{00127\ }
+\DoxyCodeLine{00128\ \ \ \ \ \textcolor{comment}{//\ Shrink\ the\ vector\ if\ the\ size\ is\ less\ than\ half\ the\ capacity}}
+\DoxyCodeLine{00129\ \ \ \ \ \textcolor{keywordflow}{if}\ (vec-\/>size\ <=\ vec-\/>capacity\ /\ 2)\ \{}
+\DoxyCodeLine{00130\ \ \ \ \ \ \ \ \ vec\_shrink(vec);}
+\DoxyCodeLine{00131\ \ \ \ \ \}}
+\DoxyCodeLine{00132\ \}}
+\DoxyCodeLine{00133\ }
+\DoxyCodeLine{00134\ \textcolor{keywordtype}{void}*\ vec\_get(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec,\ \textcolor{keywordtype}{size\_t}\ index)\ \{}
+\DoxyCodeLine{00135\ \ \ \ \ \textcolor{keywordflow}{if}\ (index\ <\ vec-\/>size)\ \{}
+\DoxyCodeLine{00136\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ (\textcolor{keywordtype}{char}*)vec-\/>data\ +\ (index\ *\ vec-\/>elem\_size);}
+\DoxyCodeLine{00137\ \ \ \ \ \}}
+\DoxyCodeLine{00138\ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00139\ \}}
+\DoxyCodeLine{00140\ }
+\DoxyCodeLine{00141\ \textcolor{comment}{//\ Set\ the\ element\ at\ the\ given\ index}}
+\DoxyCodeLine{00142\ \textcolor{keywordtype}{void}\ vec\_set(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec,\ \textcolor{keywordtype}{size\_t}\ index,\ \textcolor{keywordtype}{void}*\ elem)\ \{}
+\DoxyCodeLine{00143\ \ \ \ \ \textcolor{keywordflow}{if}\ (index\ <\ vec-\/>size)\ \{}
+\DoxyCodeLine{00144\ \ \ \ \ \ \ \ \ memcpy((\textcolor{keywordtype}{char}*)vec-\/>data\ +\ (index\ *\ vec-\/>elem\_size),\ elem,\ vec-\/>elem\_size);}
+\DoxyCodeLine{00145\ \ \ \ \ \}}
+\DoxyCodeLine{00146\ \}}
+\DoxyCodeLine{00147\ }
+\DoxyCodeLine{00148\ \textcolor{keywordtype}{size\_t}\ vec\_size(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec)\ \{}
+\DoxyCodeLine{00149\ \ \ \ \ \textcolor{keywordflow}{return}\ vec-\/>size;}
+\DoxyCodeLine{00150\ \}}
+\DoxyCodeLine{00151\ }
+\DoxyCodeLine{00152\ \textcolor{keywordtype}{size\_t}\ vec\_capacity(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec)\ \{}
+\DoxyCodeLine{00153\ \ \ \ \ \textcolor{keywordflow}{return}\ vec-\/>capacity;}
+\DoxyCodeLine{00154\ \}}
+\DoxyCodeLine{00155\ }
+\DoxyCodeLine{00156\ \textcolor{keywordtype}{void}\ vec\_reserve(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec,\ \textcolor{keywordtype}{size\_t}\ capacity)\ \{}
+\DoxyCodeLine{00157\ \ \ \ \ \textcolor{keywordflow}{if}\ (capacity\ >\ vec-\/>capacity)\ \{}
+\DoxyCodeLine{00158\ \ \ \ \ \ \ \ \ vec-\/>data\ \ \ \ \ =\ realloc(vec-\/>data,\ capacity\ *\ vec-\/>elem\_size);}
+\DoxyCodeLine{00159\ \ \ \ \ \ \ \ \ vec-\/>capacity\ =\ capacity;}
+\DoxyCodeLine{00160\ }
+\DoxyCodeLine{00161\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (vec-\/>data\ ==\ NULL)\ \{}
+\DoxyCodeLine{00162\ \ \ \ \ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}vec\_reserve()\ failed"{}});}
+\DoxyCodeLine{00163\ \ \ \ \ \ \ \ \ \ \ \ \ exit(EXIT\_FAILURE);}
+\DoxyCodeLine{00164\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00165\ \ \ \ \ \}}
+\DoxyCodeLine{00166\ \}}
+\DoxyCodeLine{00167\ }
+\DoxyCodeLine{00168\ \textcolor{keywordtype}{void}\ vec\_shrink(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec)\ \{}
+\DoxyCodeLine{00169\ \ \ \ \ \textcolor{keywordflow}{if}\ (vec-\/>size\ <\ vec-\/>capacity)\ \{}
+\DoxyCodeLine{00170\ \ \ \ \ \ \ \ \ vec-\/>data\ \ \ \ \ =\ realloc(vec-\/>data,\ (vec-\/>size\ +\ 1)\ *\ vec-\/>elem\_size);}
+\DoxyCodeLine{00171\ \ \ \ \ \ \ \ \ vec-\/>capacity\ =\ vec-\/>size;}
+\DoxyCodeLine{00172\ }
+\DoxyCodeLine{00173\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (vec-\/>data\ ==\ NULL)\ \{}
+\DoxyCodeLine{00174\ \ \ \ \ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}realloc"{}});}
+\DoxyCodeLine{00175\ \ \ \ \ \ \ \ \ \ \ \ \ exit(EXIT\_FAILURE);}
+\DoxyCodeLine{00176\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00177\ \ \ \ \ \}}
+\DoxyCodeLine{00178\ \}}
+\DoxyCodeLine{00179\ }
+\DoxyCodeLine{00180\ \textcolor{keywordtype}{void}\ vec\_clear(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec)\ \{}
+\DoxyCodeLine{00181\ \ \ \ \ vec-\/>size\ =\ 0;}
+\DoxyCodeLine{00182\ \ \ \ \ vec\_shrink(vec);}
+\DoxyCodeLine{00183\ \}}
+\DoxyCodeLine{00184\ }
+\DoxyCodeLine{00185\ \textcolor{keywordtype}{void}\ vec\_swap(\mbox{\hyperlink{structvec__t}{vec\_t}}**\ vec1,\ \mbox{\hyperlink{structvec__t}{vec\_t}}**\ vec2)\ \{}
+\DoxyCodeLine{00186\ \ \ \ \ \mbox{\hyperlink{structvec__t}{vec\_t}}*\ temp\ =\ *vec1;}
+\DoxyCodeLine{00187\ \ \ \ \ *vec1\ \ \ \ \ \ \ =\ *vec2;}
+\DoxyCodeLine{00188\ \ \ \ \ *vec2\ \ \ \ \ \ \ =\ temp;}
+\DoxyCodeLine{00189\ \}}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ \mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec\_copy(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec)\ \{}
+\DoxyCodeLine{00192\ \ \ \ \ \mbox{\hyperlink{structvec__t}{vec\_t}}*\ copy\ =\ vec\_new(vec-\/>elem\_size,\ vec-\/>capacity);}
+\DoxyCodeLine{00193\ \ \ \ \ \textcolor{keywordflow}{if}\ (copy\ !=\ NULL)\ \{}
+\DoxyCodeLine{00194\ \ \ \ \ \ \ \ \ vec\_reserve(copy,\ vec-\/>capacity);}
+\DoxyCodeLine{00195\ \ \ \ \ \ \ \ \ memcpy(copy-\/>data,\ vec-\/>data,\ vec-\/>size\ *\ vec-\/>elem\_size);}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ \ \ copy-\/>size\ =\ vec-\/>size;}
+\DoxyCodeLine{00197\ \ \ \ \ \}}
+\DoxyCodeLine{00198\ \ \ \ \ \textcolor{keywordflow}{return}\ copy;}
+\DoxyCodeLine{00199\ \}}
+\DoxyCodeLine{00200\ }
+\DoxyCodeLine{00201\ \textcolor{keywordtype}{bool}\ vec\_contains(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec,\ \textcolor{keywordtype}{void}*\ elem)\ \{}
+\DoxyCodeLine{00202\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ vec-\/>size;\ i++)\ \{}
+\DoxyCodeLine{00203\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (memcmp(vec\_get(vec,\ i),\ elem,\ vec-\/>elem\_size)\ ==\ 0)\ \{}
+\DoxyCodeLine{00204\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00205\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00206\ \ \ \ \ \}}
+\DoxyCodeLine{00207\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00208\ \}}
+\DoxyCodeLine{00209\ }
+\DoxyCodeLine{00210\ \textcolor{keywordtype}{int}\ vec\_find\_index(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec,\ \textcolor{keywordtype}{void}*\ elem)\ \{}
+\DoxyCodeLine{00211\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ vec-\/>size;\ ++i)\ \{}
+\DoxyCodeLine{00212\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (memcmp(vec\_get(vec,\ i),\ elem,\ vec-\/>elem\_size)\ ==\ 0)\ \{}
+\DoxyCodeLine{00213\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ (\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int})i;}
+\DoxyCodeLine{00214\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00215\ \ \ \ \ \}}
+\DoxyCodeLine{00216\ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{00217\ \}}
+\DoxyCodeLine{00218\ }
+\DoxyCodeLine{00219\ \textcolor{keywordtype}{void}\ vec\_reverse(\mbox{\hyperlink{structvec__t}{vec\_t}}*\ vec)\ \{}
+\DoxyCodeLine{00220\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ i\ \ \ =\ 0;}
+\DoxyCodeLine{00221\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ j\ \ \ =\ vec-\/>size\ -\/\ 1;}
+\DoxyCodeLine{00222\ \ \ \ \ \textcolor{keywordtype}{void}*\ temp\ =\ malloc(vec-\/>elem\_size);}
+\DoxyCodeLine{00223\ \ \ \ \ \textcolor{keywordflow}{if}\ (temp\ ==\ NULL)\ \{}
+\DoxyCodeLine{00224\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}malloc"{}});}
+\DoxyCodeLine{00225\ \ \ \ \ \ \ \ \ exit(EXIT\_FAILURE);}
+\DoxyCodeLine{00226\ \ \ \ \ \}}
+\DoxyCodeLine{00227\ }
+\DoxyCodeLine{00228\ \ \ \ \ \textcolor{keywordflow}{while}\ (i\ <\ j)\ \{}
+\DoxyCodeLine{00229\ \ \ \ \ \ \ \ \ memcpy(temp,\ (\textcolor{keywordtype}{char}*)vec-\/>data\ +\ (i\ *\ vec-\/>elem\_size),\ vec-\/>elem\_size);}
+\DoxyCodeLine{00230\ \ \ \ \ \ \ \ \ memcpy((\textcolor{keywordtype}{char}*)vec-\/>data\ +\ (i\ *\ vec-\/>elem\_size),\ (\textcolor{keywordtype}{char}*)vec-\/>data\ +\ (j\ *\ vec-\/>elem\_size),}
+\DoxyCodeLine{00231\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ vec-\/>elem\_size);}
+\DoxyCodeLine{00232\ \ \ \ \ \ \ \ \ memcpy((\textcolor{keywordtype}{char}*)vec-\/>data\ +\ (j\ *\ vec-\/>elem\_size),\ temp,\ vec-\/>elem\_size);}
+\DoxyCodeLine{00233\ \ \ \ \ \ \ \ \ i++;}
+\DoxyCodeLine{00234\ \ \ \ \ \ \ \ \ j-\/-\/;}
+\DoxyCodeLine{00235\ \ \ \ \ \}}
+\DoxyCodeLine{00236\ \ \ \ \ free(temp);}
+\DoxyCodeLine{00237\ \}}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00239\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00240\ }
+\DoxyCodeLine{00241\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{/*\ D45CFCB0\_A7C9\_4816\_B36D\_BBC0724921FA\ */}\textcolor{preprocessor}{}}
+
+\end{DoxyCode}

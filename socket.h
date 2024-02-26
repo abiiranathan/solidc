@@ -41,24 +41,11 @@ typedef struct {
 } Socket;
 
 #ifdef _WIN32
-static void printLastErrorMessage(const char* prefix) {
-    LPSTR errorText = NULL;
-    FormatMessageA(
-        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
-        NULL, WSAGetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errorText, 0,
-        NULL);
-    if (errorText != NULL) {
-        fprintf(stderr, "%s failed with error %d: %s\n", prefix, WSAGetLastError(), errorText);
-        LocalFree(errorText);
-    } else {
-        fprintf(stderr, "%s failed with unknown error %d\n", prefix, WSAGetLastError());
-    }
-}
+static void printLastErrorMessage(const char* prefix);
 void initialize_winsock();
 void cleanup_winsock();
 #endif
 
-// Socket related function declarations
 // Create a socket
 Socket* socket_create(int domain, int type, int protocol);
 // Close a socket
@@ -98,13 +85,28 @@ int socket_family(Socket* sock);
 // Get the socket type
 int socket_type(Socket* sock);
 
-// ================== Socket related functions ==================
 #if defined(__cplusplus)
 }
 #endif
 
 #ifdef SOCKET_IMPL
 #include <errno.h>
+
+#ifdef _WIN32
+static void printLastErrorMessage(const char* prefix) {
+    LPSTR errorText = NULL;
+    FormatMessageA(
+        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL, WSAGetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errorText, 0,
+        NULL);
+    if (errorText != NULL) {
+        fprintf(stderr, "%s failed with error %d: %s\n", prefix, WSAGetLastError(), errorText);
+        LocalFree(errorText);
+    } else {
+        fprintf(stderr, "%s failed with unknown error %d\n", prefix, WSAGetLastError());
+    }
+}
+#endif
 
 // Create a socket
 Socket* socket_create(int domain, int type, int protocol) {
@@ -115,7 +117,6 @@ Socket* socket_create(int domain, int type, int protocol) {
     }
     sock->handle = -1;
 #ifdef _WIN32
-    // Windows
     sock->handle = socket(domain, type, protocol);
     if (sock->handle == INVALID_SOCKET) {
         free(sock);
@@ -199,18 +200,16 @@ Socket* socket_accept(Socket* sock, struct sockaddr* addr, socklen_t* addrlen) {
     client->handle = accept(sock->handle, addr, addrlen);
     if (client->handle == INVALID_SOCKET) {
         free(client);
-        return NULL;
-    } else {
         printLastErrorMessage("accept");
+        return NULL;
     }
 #else
     // Unix
     client->handle = accept(sock->handle, addr, addrlen);
     if (client->handle == -1) {
+        perror("accept");
         free(client);
         return NULL;
-    } else {
-        perror("accept");
     }
 #endif
     return client;
@@ -227,29 +226,51 @@ int socket_connect(Socket* sock, const struct sockaddr* addr, socklen_t addrlen)
     return ret;
 }
 
-// Read from a socket. Returns the number of bytes read, or -1 on error.
-ssize_t socket_read(Socket* sock, void* buffer, size_t size) {
-    ssize_t bytes = -1;
-#ifdef _WIN32
-    // Windows
-    bytes = recv(sock->handle, buffer, size, 0);
-#else
-    // Unix
-    bytes = read(sock->handle, buffer, size);
-#endif
+/*
+Read from a socket. Returns the number of bytes read, or -1 on error.
+buffer: Points to a buffer where the message should be stored.
+size: Specifies the length in bytes of the buffer pointed to by the buffer argument.
+
+flags:
+Specifies  the  type of message reception. Values of this argument are formed by logically OR'ing
+zero or more of the following values:
+
+    MSG_PEEK - Peeks at an incoming message. The data is treated as unread and the
+next recv() or similar function shall still return this data.
+
+    MSG_OOB  - Requests out-of-band data. The significance and semantics of
+out-of-band data  are  proto‐ col-specific.
+
+    MSG_WAITALL On SOCK_STREAM sockets this requests that the function block until the
+full amount of data can  be  returned.
+The  function may return the smaller amount of data if the
+socket is a message-based socket, if a signal is caught,
+if the connection is terminated, if
+MSG_PEEK was specified, or if an error is pending for the socket.
+ */
+ssize_t socket_read(Socket* sock, void* buffer, size_t size, int flags) {
+    ssize_t bytes;
+    bytes = recv(sock->handle, buffer, size, flags);
     return bytes;
 }
 
-// Write to a socket. Returns the number of bytes written, or -1 on error.
-ssize_t socket_write(Socket* sock, const void* buffer, size_t size) {
-    ssize_t bytes = -1;
-#ifdef _WIN32
-    // Windows
-    bytes = send(sock->handle, buffer, size, 0);
-#else
-    // Unix
-    bytes = write(sock->handle, buffer, size);
-#endif
+/* Write to a socket. Returns the number of bytes written, or -1 on error.
+
+buffer: Points to the buffer containing the message to send.
+length: Specifies the length of the message in bytes.
+flags:  Specifies the type of message transmission.
+Values of this argument are formed by logically  OR'ing zero or more of the following flags:
+
+MSG_EOR - Terminates a record (if supported by the protocol).
+MSG_OOB - Sends out-of-band data on sockets that support out-of-band
+communications. The signif‐ icance and semantics of out-of-band data are protocol-specific.
+MSG_NOSIGNAL  Requests not to send the SIGPIPE signal if an attempt to send is
+made on a stream-oriented socket that is no longer connected.
+The [EPIPE] error shall still be returned.
+*/
+ssize_t socket_write(Socket* sock, const void* buffer, size_t size, int flags) {
+    ssize_t bytes;
+    bytes = send(sock->handle, buffer, size, flags);
     return bytes;
 }
 

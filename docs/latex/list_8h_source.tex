@@ -1,0 +1,341 @@
+\doxysection{list.\+h}
+\hypertarget{list_8h_source}{}\label{list_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ F3A813AA\_9A33\_453A\_8622\_F656C6A089F1}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ F3A813AA\_9A33\_453A\_8622\_F656C6A089F1}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#if\ defined(\_\_cplusplus)}}
+\DoxyCodeLine{00005\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \{}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#include\ <stdio.h>}}
+\DoxyCodeLine{00008\ }
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Node\ in\ the\ doubly\ linked\ list\ storing\ the\ data}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ and\ pointers\ to\ the\ next\ and\ previous\ nodes}}
+\DoxyCodeLine{00011\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structlist__node}{list\_node}}\ \{}
+\DoxyCodeLine{00012\ \ \ \ \ \textcolor{keywordtype}{void}*\ data;}
+\DoxyCodeLine{00013\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structlist__node}{list\_node}}*\ next;}
+\DoxyCodeLine{00014\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structlist__node}{list\_node}}*\ prev;}
+\DoxyCodeLine{00015\ \}\ \mbox{\hyperlink{structlist__node}{list\_node\_t}};}
+\DoxyCodeLine{00016\ }
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ Doubly\ linked\ list\ type\ storing\ the\ head\ and\ tail\ nodes.}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ Also\ stores\ the\ size\ of\ the\ list\ and\ the\ size\ of\ the\ elements.}}
+\DoxyCodeLine{00019\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\{}
+\DoxyCodeLine{00020\ \ \ \ \ \mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ head;}
+\DoxyCodeLine{00021\ \ \ \ \ \mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ tail;}
+\DoxyCodeLine{00022\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ size;}
+\DoxyCodeLine{00023\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ elem\_size;}
+\DoxyCodeLine{00024\ \}\ \mbox{\hyperlink{structlist__t}{list\_t}};}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ Create\ a\ new\ list}}
+\DoxyCodeLine{00027\ \mbox{\hyperlink{structlist__t}{list\_t}}*\ list\_new(\textcolor{keywordtype}{size\_t}\ elem\_size);}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ Free\ the\ list}}
+\DoxyCodeLine{00030\ \textcolor{keywordtype}{void}\ list\_free(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list);}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ Push\ an\ element\ to\ the\ end\ of\ the\ list}}
+\DoxyCodeLine{00033\ \textcolor{keywordtype}{void}\ list\_push\_back(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem);}
+\DoxyCodeLine{00034\ }
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ Pop\ an\ element\ from\ the\ end\ of\ the\ list}}
+\DoxyCodeLine{00036\ \textcolor{keywordtype}{void}\ list\_pop\_back(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list);}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ Push\ an\ element\ to\ the\ front\ of\ the\ list}}
+\DoxyCodeLine{00039\ \textcolor{keywordtype}{void}\ list\_push\_front(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem);}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ Pop\ an\ element\ from\ the\ front\ of\ the\ list}}
+\DoxyCodeLine{00042\ \textcolor{keywordtype}{void}\ list\_pop\_front(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list);}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ Get\ the\ element\ at\ the\ given\ index}}
+\DoxyCodeLine{00045\ \textcolor{keywordtype}{void}*\ list\_get(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list,\ \textcolor{keywordtype}{size\_t}\ index);}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ Returns\ the\ index\ of\ the\ first\ occurrence\ of\ the\ element\ in\ the\ list}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ Returns\ -\/1\ if\ the\ element\ is\ not\ found}}
+\DoxyCodeLine{00049\ \textcolor{keywordtype}{int}\ list\_index\_of(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem);}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ Insert\ an\ element\ at\ the\ given\ index}}
+\DoxyCodeLine{00052\ \textcolor{keywordtype}{void}\ list\_insert(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list,\ \textcolor{keywordtype}{size\_t}\ index,\ \textcolor{keywordtype}{void}*\ elem);}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ //\ Insert\ element\ after\ the\ given\ element}}
+\DoxyCodeLine{00055\ \textcolor{keywordtype}{void}\ list\_insert\_after(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem,\ \textcolor{keywordtype}{void}*\ after);}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ //\ Insert\ element\ before\ the\ given\ element}}
+\DoxyCodeLine{00058\ \textcolor{keywordtype}{void}\ list\_insert\_before(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem,\ \textcolor{keywordtype}{void}*\ before);}
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ Get\ the\ size\ of\ the\ list}}
+\DoxyCodeLine{00061\ \textcolor{keywordtype}{size\_t}\ list\_size(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list);}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ Remove\ an\ element\ at\ the\ given\ index}}
+\DoxyCodeLine{00064\ \textcolor{keywordtype}{void}\ list\_remove(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem);}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ Clear\ the\ list}}
+\DoxyCodeLine{00067\ \textcolor{keywordtype}{void}\ list\_clear(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list);}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ Create\ a\ new\ node}}
+\DoxyCodeLine{00070\ \mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ list\_node\_new(\textcolor{keywordtype}{size\_t}\ elem\_size,\ \textcolor{keywordtype}{void}*\ data);}
+\DoxyCodeLine{00071\ \textcolor{keywordtype}{void}\ list\_node\_free(\mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ node);}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ Iteration}}
+\DoxyCodeLine{00074\ \textcolor{preprocessor}{\#define\ list\_foreach(list,\ node\_data)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00075\ \textcolor{preprocessor}{\ \ \ \ for\ (list\_node\_t*\ node\ =\ list-\/>head;\ node\ !=\ NULL;\ node\ =\ node-\/>next)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00076\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ for\ (int\ cont\ =\ 1;\ cont;\ cont\ =\ 0)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00077\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ for\ (void*\ node\_data\ =\ node-\/>data;\ cont;\ cont\ =\ 0)}}
+\DoxyCodeLine{00078\ }
+\DoxyCodeLine{00079\ \textcolor{preprocessor}{\#if\ defined(\_\_cplusplus)}}
+\DoxyCodeLine{00080\ \}}
+\DoxyCodeLine{00081\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ \textcolor{preprocessor}{\#ifdef\ LIST\_IMPL}}
+\DoxyCodeLine{00084\ \textcolor{preprocessor}{\#include\ <stdlib.h>}}
+\DoxyCodeLine{00085\ \textcolor{preprocessor}{\#include\ <string.h>}}
+\DoxyCodeLine{00086\ }
+\DoxyCodeLine{00087\ \textcolor{comment}{//\ Create\ a\ new\ list}}
+\DoxyCodeLine{00088\ \mbox{\hyperlink{structlist__t}{list\_t}}*\ list\_new(\textcolor{keywordtype}{size\_t}\ elem\_size)\ \{}
+\DoxyCodeLine{00089\ \ \ \ \ \mbox{\hyperlink{structlist__t}{list\_t}}*\ list\ =\ (\mbox{\hyperlink{structlist__t}{list\_t}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structlist__t}{list\_t}}));}
+\DoxyCodeLine{00090\ \ \ \ \ \textcolor{keywordflow}{if}\ (!list)}
+\DoxyCodeLine{00091\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00092\ \ \ \ \ list-\/>head\ \ \ \ \ \ =\ NULL;}
+\DoxyCodeLine{00093\ \ \ \ \ list-\/>tail\ \ \ \ \ \ =\ NULL;}
+\DoxyCodeLine{00094\ \ \ \ \ list-\/>size\ \ \ \ \ \ =\ 0;}
+\DoxyCodeLine{00095\ \ \ \ \ list-\/>elem\_size\ =\ elem\_size;}
+\DoxyCodeLine{00096\ \ \ \ \ \textcolor{keywordflow}{return}\ list;}
+\DoxyCodeLine{00097\ \}}
+\DoxyCodeLine{00098\ }
+\DoxyCodeLine{00099\ \textcolor{keywordtype}{void}\ list\_remove(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem)\ \{}
+\DoxyCodeLine{00100\ \ \ \ \ \textcolor{keywordtype}{int}\ index\ =\ list\_index\_of(list,\ elem);}
+\DoxyCodeLine{00101\ \ \ \ \ \textcolor{keywordflow}{if}\ (index\ ==\ -\/1)\ \{}
+\DoxyCodeLine{00102\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00103\ \ \ \ \ \}}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \ \ \ \ \mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ current\ =\ list-\/>head;}
+\DoxyCodeLine{00106\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ index;\ i++)\ \{}
+\DoxyCodeLine{00107\ \ \ \ \ \ \ \ \ current\ =\ current-\/>next;}
+\DoxyCodeLine{00108\ \ \ \ \ \}}
+\DoxyCodeLine{00109\ }
+\DoxyCodeLine{00110\ \ \ \ \ \textcolor{keywordflow}{if}\ (!current)}
+\DoxyCodeLine{00111\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00113\ \ \ \ \ \textcolor{keywordflow}{if}\ (current-\/>prev)\ \{}
+\DoxyCodeLine{00114\ \ \ \ \ \ \ \ \ current-\/>prev-\/>next\ =\ current-\/>next;}
+\DoxyCodeLine{00115\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00116\ \ \ \ \ \ \ \ \ list-\/>head\ =\ current-\/>next;}
+\DoxyCodeLine{00117\ \ \ \ \ \}}
+\DoxyCodeLine{00118\ \ \ \ \ \textcolor{keywordflow}{if}\ (current-\/>next)\ \{}
+\DoxyCodeLine{00119\ \ \ \ \ \ \ \ \ current-\/>next-\/>prev\ =\ current-\/>prev;}
+\DoxyCodeLine{00120\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00121\ \ \ \ \ \ \ \ \ list-\/>tail\ =\ current-\/>prev;}
+\DoxyCodeLine{00122\ \ \ \ \ \}}
+\DoxyCodeLine{00123\ \ \ \ \ list\_node\_free(current);}
+\DoxyCodeLine{00124\ \ \ \ \ list-\/>size-\/-\/;}
+\DoxyCodeLine{00125\ \}}
+\DoxyCodeLine{00126\ }
+\DoxyCodeLine{00127\ \textcolor{comment}{//\ Free\ the\ list}}
+\DoxyCodeLine{00128\ \textcolor{keywordtype}{void}\ list\_free(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list)\ \{}
+\DoxyCodeLine{00129\ \ \ \ \ \textcolor{keywordflow}{if}\ (!list)}
+\DoxyCodeLine{00130\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00131\ \ \ \ \ list\_clear(list);}
+\DoxyCodeLine{00132\ \ \ \ \ free(list);}
+\DoxyCodeLine{00133\ \}}
+\DoxyCodeLine{00134\ }
+\DoxyCodeLine{00135\ \textcolor{comment}{//\ Push\ an\ element\ to\ the\ end\ of\ the\ list}}
+\DoxyCodeLine{00136\ \textcolor{keywordtype}{void}\ list\_push\_back(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem)\ \{}
+\DoxyCodeLine{00137\ \ \ \ \ \mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ new\_node\ =\ list\_node\_new(list-\/>elem\_size,\ elem);}
+\DoxyCodeLine{00138\ \ \ \ \ \textcolor{keywordflow}{if}\ (!new\_node)}
+\DoxyCodeLine{00139\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00140\ \ \ \ \ \textcolor{keywordflow}{if}\ (list-\/>tail)\ \{}
+\DoxyCodeLine{00141\ \ \ \ \ \ \ \ \ new\_node-\/>prev\ \ \ =\ list-\/>tail;}
+\DoxyCodeLine{00142\ \ \ \ \ \ \ \ \ list-\/>tail-\/>next\ =\ new\_node;}
+\DoxyCodeLine{00143\ \ \ \ \ \ \ \ \ list-\/>tail\ \ \ \ \ \ \ =\ new\_node;}
+\DoxyCodeLine{00144\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00145\ \ \ \ \ \ \ \ \ list-\/>head\ =\ new\_node;}
+\DoxyCodeLine{00146\ \ \ \ \ \ \ \ \ list-\/>tail\ =\ new\_node;}
+\DoxyCodeLine{00147\ \ \ \ \ \}}
+\DoxyCodeLine{00148\ \ \ \ \ list-\/>size++;}
+\DoxyCodeLine{00149\ \}}
+\DoxyCodeLine{00150\ }
+\DoxyCodeLine{00151\ \textcolor{comment}{//\ Pop\ an\ element\ from\ the\ end\ of\ the\ list}}
+\DoxyCodeLine{00152\ \textcolor{keywordtype}{void}\ list\_pop\_back(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list)\ \{}
+\DoxyCodeLine{00153\ \ \ \ \ \textcolor{keywordflow}{if}\ (!list\ ||\ !list-\/>tail)}
+\DoxyCodeLine{00154\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00155\ \ \ \ \ \mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ to\_remove\ =\ list-\/>tail;}
+\DoxyCodeLine{00156\ \ \ \ \ list-\/>tail\ \ \ \ \ \ \ \ \ \ \ \ \ =\ to\_remove-\/>prev;}
+\DoxyCodeLine{00157\ \ \ \ \ \textcolor{keywordflow}{if}\ (list-\/>tail)\ \{}
+\DoxyCodeLine{00158\ \ \ \ \ \ \ \ \ list-\/>tail-\/>next\ =\ NULL;}
+\DoxyCodeLine{00159\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00160\ \ \ \ \ \ \ \ \ list-\/>head\ =\ NULL;}
+\DoxyCodeLine{00161\ \ \ \ \ \}}
+\DoxyCodeLine{00162\ \ \ \ \ list-\/>size-\/-\/;}
+\DoxyCodeLine{00163\ \ \ \ \ list\_node\_free(to\_remove);}
+\DoxyCodeLine{00164\ \}}
+\DoxyCodeLine{00165\ }
+\DoxyCodeLine{00166\ \textcolor{comment}{//\ Push\ an\ element\ to\ the\ front\ of\ the\ list}}
+\DoxyCodeLine{00167\ \textcolor{keywordtype}{void}\ list\_push\_front(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem)\ \{}
+\DoxyCodeLine{00168\ \ \ \ \ \mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ new\_node\ =\ list\_node\_new(list-\/>elem\_size,\ elem);}
+\DoxyCodeLine{00169\ \ \ \ \ \textcolor{keywordflow}{if}\ (!new\_node)}
+\DoxyCodeLine{00170\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00171\ \ \ \ \ \textcolor{keywordflow}{if}\ (list-\/>head)\ \{}
+\DoxyCodeLine{00172\ \ \ \ \ \ \ \ \ new\_node-\/>next\ \ \ =\ list-\/>head;}
+\DoxyCodeLine{00173\ \ \ \ \ \ \ \ \ list-\/>head-\/>prev\ =\ new\_node;}
+\DoxyCodeLine{00174\ \ \ \ \ \ \ \ \ list-\/>head\ \ \ \ \ \ \ =\ new\_node;}
+\DoxyCodeLine{00175\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00176\ \ \ \ \ \ \ \ \ list-\/>head\ =\ new\_node;}
+\DoxyCodeLine{00177\ \ \ \ \ \ \ \ \ list-\/>tail\ =\ new\_node;}
+\DoxyCodeLine{00178\ \ \ \ \ \}}
+\DoxyCodeLine{00179\ \ \ \ \ list-\/>size++;}
+\DoxyCodeLine{00180\ \}}
+\DoxyCodeLine{00181\ }
+\DoxyCodeLine{00182\ \textcolor{comment}{//\ Pop\ an\ element\ from\ the\ front\ of\ the\ list}}
+\DoxyCodeLine{00183\ \textcolor{keywordtype}{void}\ list\_pop\_front(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list)\ \{}
+\DoxyCodeLine{00184\ \ \ \ \ \textcolor{keywordflow}{if}\ (!list\ ||\ !list-\/>head)}
+\DoxyCodeLine{00185\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00186\ \ \ \ \ \mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ to\_remove\ =\ list-\/>head;}
+\DoxyCodeLine{00187\ \ \ \ \ list-\/>head\ \ \ \ \ \ \ \ \ \ \ \ \ =\ to\_remove-\/>next;}
+\DoxyCodeLine{00188\ \ \ \ \ \textcolor{keywordflow}{if}\ (list-\/>head)\ \{}
+\DoxyCodeLine{00189\ \ \ \ \ \ \ \ \ list-\/>head-\/>prev\ =\ NULL;}
+\DoxyCodeLine{00190\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00191\ \ \ \ \ \ \ \ \ list-\/>tail\ =\ NULL;}
+\DoxyCodeLine{00192\ \ \ \ \ \}}
+\DoxyCodeLine{00193\ \ \ \ \ list-\/>size-\/-\/;}
+\DoxyCodeLine{00194\ \ \ \ \ list\_node\_free(to\_remove);}
+\DoxyCodeLine{00195\ \}}
+\DoxyCodeLine{00196\ }
+\DoxyCodeLine{00197\ \textcolor{comment}{//\ Get\ the\ element\ at\ the\ given\ index}}
+\DoxyCodeLine{00198\ \textcolor{keywordtype}{void}*\ list\_get(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list,\ \textcolor{keywordtype}{size\_t}\ index)\ \{}
+\DoxyCodeLine{00199\ \ \ \ \ \textcolor{keywordflow}{if}\ (!list\ ||\ index\ >=\ list-\/>size)}
+\DoxyCodeLine{00200\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00201\ \ \ \ \ \mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ current\ =\ list-\/>head;}
+\DoxyCodeLine{00202\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ index;\ i++)\ \{}
+\DoxyCodeLine{00203\ \ \ \ \ \ \ \ \ current\ =\ current-\/>next;}
+\DoxyCodeLine{00204\ \ \ \ \ \}}
+\DoxyCodeLine{00205\ }
+\DoxyCodeLine{00206\ \ \ \ \ \textcolor{keywordflow}{if}\ (!current)}
+\DoxyCodeLine{00207\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00208\ \ \ \ \ \textcolor{keywordflow}{return}\ current-\/>data;}
+\DoxyCodeLine{00209\ \}}
+\DoxyCodeLine{00210\ }
+\DoxyCodeLine{00211\ \textcolor{keywordtype}{int}\ list\_index\_of(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem)\ \{}
+\DoxyCodeLine{00212\ \ \ \ \ \textcolor{keywordflow}{if}\ (!list)}
+\DoxyCodeLine{00213\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{00214\ }
+\DoxyCodeLine{00215\ \ \ \ \ \mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ current\ =\ list-\/>head;}
+\DoxyCodeLine{00216\ \ \ \ \ \textcolor{keywordtype}{int}\ index\ \ \ \ \ \ \ \ \ \ \ \ =\ 0;}
+\DoxyCodeLine{00217\ \ \ \ \ \textcolor{keywordflow}{while}\ (current)\ \{}
+\DoxyCodeLine{00218\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (memcmp(current-\/>data,\ elem,\ list-\/>elem\_size)\ ==\ 0)\ \{}
+\DoxyCodeLine{00219\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ index;}
+\DoxyCodeLine{00220\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00221\ \ \ \ \ \ \ \ \ current\ =\ current-\/>next;}
+\DoxyCodeLine{00222\ \ \ \ \ \ \ \ \ index++;}
+\DoxyCodeLine{00223\ \ \ \ \ \}}
+\DoxyCodeLine{00224\ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{00225\ \}}
+\DoxyCodeLine{00226\ }
+\DoxyCodeLine{00227\ \textcolor{comment}{//\ //\ Insert\ element\ after\ the\ given\ element}}
+\DoxyCodeLine{00228\ \textcolor{keywordtype}{void}\ list\_insert\_after(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem,\ \textcolor{keywordtype}{void}*\ after)\ \{}
+\DoxyCodeLine{00229\ \ \ \ \ \textcolor{keywordtype}{int}\ index\ =\ list\_index\_of(list,\ after);}
+\DoxyCodeLine{00230\ \ \ \ \ \textcolor{keywordflow}{if}\ (index\ ==\ -\/1)\ \{}
+\DoxyCodeLine{00231\ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}Element\ not\ found\(\backslash\)n"{}});}
+\DoxyCodeLine{00232\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00233\ \ \ \ \ \}}
+\DoxyCodeLine{00234\ \ \ \ \ list\_insert(list,\ index\ +\ 1,\ elem);}
+\DoxyCodeLine{00235\ \}}
+\DoxyCodeLine{00236\ }
+\DoxyCodeLine{00237\ \textcolor{comment}{//\ //\ Insert\ element\ before\ the\ given\ element}}
+\DoxyCodeLine{00238\ \textcolor{keywordtype}{void}\ list\_insert\_before(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem,\ \textcolor{keywordtype}{void}*\ before)\ \{}
+\DoxyCodeLine{00239\ \ \ \ \ \textcolor{keywordtype}{int}\ index\ =\ list\_index\_of(list,\ before);}
+\DoxyCodeLine{00240\ \ \ \ \ \textcolor{keywordflow}{if}\ (index\ ==\ -\/1)\ \{}
+\DoxyCodeLine{00241\ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}Element\ not\ found\(\backslash\)n"{}});}
+\DoxyCodeLine{00242\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00243\ \ \ \ \ \}}
+\DoxyCodeLine{00244\ \ \ \ \ list\_insert(list,\ index,\ elem);}
+\DoxyCodeLine{00245\ \}}
+\DoxyCodeLine{00246\ }
+\DoxyCodeLine{00247\ \textcolor{comment}{//\ Set\ the\ element\ at\ the\ given\ index}}
+\DoxyCodeLine{00248\ \textcolor{keywordtype}{void}\ list\_insert(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list,\ \textcolor{keywordtype}{size\_t}\ index,\ \textcolor{keywordtype}{void}*\ elem)\ \{}
+\DoxyCodeLine{00249\ \ \ \ \ \textcolor{keywordflow}{if}\ (!list\ ||\ index\ >\ list-\/>size)\ \{}
+\DoxyCodeLine{00250\ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}Index\ \%zu\ out\ of\ bounds\(\backslash\)n"{}},\ index);}
+\DoxyCodeLine{00251\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00252\ \ \ \ \ \}}
+\DoxyCodeLine{00253\ }
+\DoxyCodeLine{00254\ \ \ \ \ \mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ new\_node\ =\ list\_node\_new(list-\/>elem\_size,\ elem);}
+\DoxyCodeLine{00255\ \ \ \ \ \textcolor{keywordflow}{if}\ (!new\_node)}
+\DoxyCodeLine{00256\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00257\ }
+\DoxyCodeLine{00258\ \ \ \ \ \mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ current\ =\ list-\/>head;}
+\DoxyCodeLine{00259\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ index;\ i++)\ \{}
+\DoxyCodeLine{00260\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!current-\/>next)\ \{}
+\DoxyCodeLine{00261\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00262\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00263\ \ \ \ \ \ \ \ \ current\ =\ current-\/>next;}
+\DoxyCodeLine{00264\ \ \ \ \ \}}
+\DoxyCodeLine{00265\ }
+\DoxyCodeLine{00266\ \ \ \ \ \textcolor{comment}{//\ If\ current\ is\ NULL,\ then\ the\ list\ is\ empty}}
+\DoxyCodeLine{00267\ \ \ \ \ \textcolor{keywordflow}{if}\ (!current)\ \{}
+\DoxyCodeLine{00268\ \ \ \ \ \ \ \ \ list\_push\_back(list,\ elem);}
+\DoxyCodeLine{00269\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00270\ \ \ \ \ \}}
+\DoxyCodeLine{00271\ }
+\DoxyCodeLine{00272\ \ \ \ \ new\_node-\/>next\ =\ current;}
+\DoxyCodeLine{00273\ \ \ \ \ new\_node-\/>prev\ =\ NULL;}
+\DoxyCodeLine{00274\ \ \ \ \ \textcolor{keywordflow}{if}\ (current-\/>prev)\ \{}
+\DoxyCodeLine{00275\ \ \ \ \ \ \ \ \ new\_node-\/>prev\ \ \ \ \ \ =\ current-\/>prev;}
+\DoxyCodeLine{00276\ \ \ \ \ \ \ \ \ current-\/>prev-\/>next\ =\ new\_node;}
+\DoxyCodeLine{00277\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00278\ \ \ \ \ \ \ \ \ list-\/>head\ =\ new\_node;}
+\DoxyCodeLine{00279\ \ \ \ \ \}}
+\DoxyCodeLine{00280\ \ \ \ \ current-\/>prev\ =\ new\_node;}
+\DoxyCodeLine{00281\ \ \ \ \ list-\/>size++;}
+\DoxyCodeLine{00282\ \}}
+\DoxyCodeLine{00283\ }
+\DoxyCodeLine{00284\ \textcolor{comment}{//\ Get\ the\ size\ of\ the\ list}}
+\DoxyCodeLine{00285\ \textcolor{keywordtype}{size\_t}\ list\_size(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list)\ \{}
+\DoxyCodeLine{00286\ \ \ \ \ \textcolor{keywordflow}{if}\ (!list)}
+\DoxyCodeLine{00287\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00288\ \ \ \ \ \textcolor{keywordflow}{return}\ list-\/>size;}
+\DoxyCodeLine{00289\ \}}
+\DoxyCodeLine{00290\ }
+\DoxyCodeLine{00291\ \textcolor{comment}{//\ Clear\ the\ list}}
+\DoxyCodeLine{00292\ \textcolor{keywordtype}{void}\ list\_clear(\mbox{\hyperlink{structlist__t}{list\_t}}*\ list)\ \{}
+\DoxyCodeLine{00293\ \ \ \ \ \textcolor{keywordflow}{if}\ (!list)}
+\DoxyCodeLine{00294\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00295\ \ \ \ \ \mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ current\ =\ list-\/>head;}
+\DoxyCodeLine{00296\ \ \ \ \ \textcolor{keywordflow}{while}\ (current)\ \{}
+\DoxyCodeLine{00297\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ next\ =\ current-\/>next;}
+\DoxyCodeLine{00298\ \ \ \ \ \ \ \ \ list\_node\_free(current);}
+\DoxyCodeLine{00299\ \ \ \ \ \ \ \ \ current\ =\ next;}
+\DoxyCodeLine{00300\ \ \ \ \ \}}
+\DoxyCodeLine{00301\ \ \ \ \ list-\/>head\ =\ NULL;}
+\DoxyCodeLine{00302\ \ \ \ \ list-\/>tail\ =\ NULL;}
+\DoxyCodeLine{00303\ \ \ \ \ list-\/>size\ =\ 0;}
+\DoxyCodeLine{00304\ \}}
+\DoxyCodeLine{00305\ }
+\DoxyCodeLine{00306\ \textcolor{comment}{//\ Implementation}}
+\DoxyCodeLine{00307\ \mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ list\_node\_new(\textcolor{keywordtype}{size\_t}\ elem\_size,\ \textcolor{keywordtype}{void}*\ data)\ \{}
+\DoxyCodeLine{00308\ \ \ \ \ \mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ node\ =\ (\mbox{\hyperlink{structlist__node}{list\_node\_t}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structlist__node}{list\_node\_t}}));}
+\DoxyCodeLine{00309\ \ \ \ \ \textcolor{keywordflow}{if}\ (!node)}
+\DoxyCodeLine{00310\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00311\ \ \ \ \ node-\/>data\ =\ malloc(elem\_size);}
+\DoxyCodeLine{00312\ \ \ \ \ \textcolor{keywordflow}{if}\ (!node-\/>data)\ \{}
+\DoxyCodeLine{00313\ \ \ \ \ \ \ \ \ free(node);}
+\DoxyCodeLine{00314\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00315\ \ \ \ \ \}}
+\DoxyCodeLine{00316\ \ \ \ \ node-\/>next\ =\ NULL;}
+\DoxyCodeLine{00317\ \ \ \ \ node-\/>prev\ =\ NULL;}
+\DoxyCodeLine{00318\ \ \ \ \ memcpy(node-\/>data,\ data,\ elem\_size);}
+\DoxyCodeLine{00319\ \ \ \ \ \textcolor{keywordflow}{return}\ node;}
+\DoxyCodeLine{00320\ \}}
+\DoxyCodeLine{00321\ }
+\DoxyCodeLine{00322\ \textcolor{keywordtype}{void}\ list\_node\_free(\mbox{\hyperlink{structlist__node}{list\_node\_t}}*\ node)\ \{}
+\DoxyCodeLine{00323\ \ \ \ \ \textcolor{keywordflow}{if}\ (!node)}
+\DoxyCodeLine{00324\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00325\ }
+\DoxyCodeLine{00326\ \ \ \ \ \textcolor{keywordflow}{if}\ (node-\/>data)\ \{}
+\DoxyCodeLine{00327\ \ \ \ \ \ \ \ \ free(node-\/>data);}
+\DoxyCodeLine{00328\ \ \ \ \ \ \ \ \ node-\/>data\ =\ NULL;}
+\DoxyCodeLine{00329\ \ \ \ \ \}}
+\DoxyCodeLine{00330\ \ \ \ \ free(node);}
+\DoxyCodeLine{00331\ \ \ \ \ node\ =\ NULL;}
+\DoxyCodeLine{00332\ \}}
+\DoxyCodeLine{00333\ }
+\DoxyCodeLine{00334\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ LIST\_IMPL}}
+\DoxyCodeLine{00335\ }
+\DoxyCodeLine{00336\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{/*\ F3A813AA\_9A33\_453A\_8622\_F656C6A089F1\ */}\textcolor{preprocessor}{}}
+
+\end{DoxyCode}

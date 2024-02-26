@@ -1,0 +1,174 @@
+\doxysection{lock.\+h}
+\hypertarget{lock_8h_source}{}\label{lock_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ AB1DC3C5\_00AA\_4460\_BD6A\_65D8301B4779}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ AB1DC3C5\_00AA\_4460\_BD6A\_65D8301B4779}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Cross-\/platform\ function\ wrapper\ for\ syncronization\ primitives}}
+\DoxyCodeLine{00004\ }
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#include\ <windows.h>}}
+\DoxyCodeLine{00007\ }
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ Lock\ is\ a\ CRITICAL\_SECTION}}
+\DoxyCodeLine{00009\ \textcolor{keyword}{typedef}\ CRITICAL\_SECTION\ Lock;}
+\DoxyCodeLine{00010\ }
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ Condition\ is\ a\ CONDITION\_VARIABLE}}
+\DoxyCodeLine{00012\ \textcolor{keyword}{typedef}\ CONDITION\_VARIABLE\ Condition;}
+\DoxyCodeLine{00013\ }
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#include\ <pthread.h>}}
+\DoxyCodeLine{00016\ }
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ Lock\ is\ a\ pthread\_mutex\_t}}
+\DoxyCodeLine{00018\ \textcolor{keyword}{typedef}\ pthread\_mutex\_t\ Lock;}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ Condition\ is\ a\ pthread\_cond\_t}}
+\DoxyCodeLine{00021\ \textcolor{keyword}{typedef}\ pthread\_cond\_t\ Condition;}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ Initializes\ a\ lock}}
+\DoxyCodeLine{00025\ \textcolor{keywordtype}{void}\ lock\_init(Lock*\ lock);}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ Acquires\ a\ lock}}
+\DoxyCodeLine{00028\ \textcolor{keywordtype}{void}\ lock\_acquire(Lock*\ lock);}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ Releases\ a\ lock}}
+\DoxyCodeLine{00031\ \textcolor{keywordtype}{void}\ lock\_release(Lock*\ lock);}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ Frees\ a\ lock}}
+\DoxyCodeLine{00034\ \textcolor{keywordtype}{void}\ lock\_free(Lock*\ lock);}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ Tries\ to\ acquire\ a\ lock.}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ Returns\ 0\ if\ the\ lock\ was\ acquired,\ 1\ if\ it\ was\ not.}}
+\DoxyCodeLine{00038\ \textcolor{keywordtype}{int}\ lock\_try\_acquire(Lock*\ lock);}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ Waits\ for\ a\ condition\ to\ be\ signaled\ or\ a\ timeout\ to\ occur.}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ timeout\ is\ in\ milliseconds}}
+\DoxyCodeLine{00042\ \textcolor{keywordtype}{void}\ lock\_wait(Lock*\ lock,\ Condition*\ condition,\ \textcolor{keywordtype}{int}\ timeout);}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ Initializes\ a\ condition\ variable}}
+\DoxyCodeLine{00045\ \textcolor{keywordtype}{void}\ cond\_init(Condition*\ condition);}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ Signals\ a\ condition\ variable}}
+\DoxyCodeLine{00048\ \textcolor{keywordtype}{void}\ cond\_signal(Condition*\ condition);}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ Broadcasts\ a\ condition\ variable}}
+\DoxyCodeLine{00051\ \textcolor{keywordtype}{void}\ cond\_broadcast(Condition*\ condition);}
+\DoxyCodeLine{00052\ }
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ Waits\ for\ a\ condition\ to\ be\ signaled\ indefinitely}}
+\DoxyCodeLine{00054\ \textcolor{keywordtype}{void}\ cond\_wait(Condition*\ condition,\ Lock*\ lock);}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ Waits\ for\ a\ condition\ to\ be\ signaled\ or\ a\ timeout\ to\ occur.}}
+\DoxyCodeLine{00057\ \textcolor{keywordtype}{void}\ cond\_wait\_timeout(Condition*\ condition,\ Lock*\ lock,\ \textcolor{keywordtype}{int}\ timeout);}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ Frees\ a\ condition\ variable}}
+\DoxyCodeLine{00060\ \textcolor{keywordtype}{void}\ cond\_free(Condition*\ condition);}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \textcolor{preprocessor}{\#ifdef\ OS\_IMPL}}
+\DoxyCodeLine{00063\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00064\ \textcolor{keywordtype}{void}\ lock\_init(Lock*\ lock)\ \{}
+\DoxyCodeLine{00065\ \ \ \ \ InitializeCriticalSection(lock);}
+\DoxyCodeLine{00066\ \}}
+\DoxyCodeLine{00067\ }
+\DoxyCodeLine{00068\ \textcolor{keywordtype}{void}\ lock\_acquire(Lock*\ lock)\ \{}
+\DoxyCodeLine{00069\ \ \ \ \ EnterCriticalSection(lock);}
+\DoxyCodeLine{00070\ \}}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \textcolor{keywordtype}{void}\ lock\_release(Lock*\ lock)\ \{}
+\DoxyCodeLine{00073\ \ \ \ \ LeaveCriticalSection(lock);}
+\DoxyCodeLine{00074\ \}}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \textcolor{keywordtype}{void}\ lock\_free(Lock*\ lock)\ \{}
+\DoxyCodeLine{00077\ \ \ \ \ DeleteCriticalSection(lock);}
+\DoxyCodeLine{00078\ \}}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00080\ \textcolor{keywordtype}{int}\ lock\_try\_acquire(Lock*\ lock)\ \{}
+\DoxyCodeLine{00081\ \ \ \ \ \textcolor{keywordflow}{return}\ TryEnterCriticalSection(lock);}
+\DoxyCodeLine{00082\ \}}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00084\ \textcolor{keywordtype}{void}\ lock\_wait(Lock*\ lock,\ Condition*\ condition,\ \textcolor{keywordtype}{int}\ timeout)\ \{}
+\DoxyCodeLine{00085\ \ \ \ \ SleepConditionVariableCS(condition,\ lock,\ timeout);}
+\DoxyCodeLine{00086\ \}}
+\DoxyCodeLine{00087\ }
+\DoxyCodeLine{00088\ \textcolor{keywordtype}{void}\ cond\_init(Condition*\ condition)\ \{}
+\DoxyCodeLine{00089\ \ \ \ \ InitializeConditionVariable(condition);}
+\DoxyCodeLine{00090\ \}}
+\DoxyCodeLine{00091\ \textcolor{keywordtype}{void}\ cond\_signal(Condition*\ condition)\ \{}
+\DoxyCodeLine{00092\ \ \ \ \ WakeConditionVariable(condition);}
+\DoxyCodeLine{00093\ \}}
+\DoxyCodeLine{00094\ \textcolor{keywordtype}{void}\ cond\_broadcast(Condition*\ condition)\ \{}
+\DoxyCodeLine{00095\ \ \ \ \ WakeAllConditionVariable(condition);}
+\DoxyCodeLine{00096\ \}}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \textcolor{keywordtype}{void}\ cond\_wait(Condition*\ condition,\ Lock*\ lock)\ \{}
+\DoxyCodeLine{00099\ \ \ \ \ SleepConditionVariableCS(condition,\ lock,\ INFINITE);}
+\DoxyCodeLine{00100\ \}}
+\DoxyCodeLine{00101\ }
+\DoxyCodeLine{00102\ \textcolor{keywordtype}{void}\ cond\_wait\_timeout(Condition*\ condition,\ Lock*\ lock,\ \textcolor{keywordtype}{int}\ timeout)\ \{}
+\DoxyCodeLine{00103\ \ \ \ \ SleepConditionVariableCS(condition,\ lock,\ timeout);}
+\DoxyCodeLine{00104\ \}}
+\DoxyCodeLine{00105\ }
+\DoxyCodeLine{00106\ \textcolor{keywordtype}{void}\ cond\_free(Condition*\ condition)\ \{}
+\DoxyCodeLine{00107\ \ \ \ \ \textcolor{comment}{//\ No-\/op}}
+\DoxyCodeLine{00108\ \}}
+\DoxyCodeLine{00109\ }
+\DoxyCodeLine{00110\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00111\ \textcolor{keywordtype}{void}\ lock\_init(Lock*\ lock)\ \{}
+\DoxyCodeLine{00112\ \ \ \ \ pthread\_mutex\_init(lock,\ NULL);}
+\DoxyCodeLine{00113\ \}}
+\DoxyCodeLine{00114\ }
+\DoxyCodeLine{00115\ \textcolor{keywordtype}{void}\ lock\_acquire(Lock*\ lock)\ \{}
+\DoxyCodeLine{00116\ \ \ \ \ pthread\_mutex\_lock(lock);}
+\DoxyCodeLine{00117\ \}}
+\DoxyCodeLine{00118\ }
+\DoxyCodeLine{00119\ \textcolor{keywordtype}{void}\ lock\_release(Lock*\ lock)\ \{}
+\DoxyCodeLine{00120\ \ \ \ \ pthread\_mutex\_unlock(lock);}
+\DoxyCodeLine{00121\ \}}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00123\ \textcolor{keywordtype}{void}\ lock\_free(Lock*\ lock)\ \{}
+\DoxyCodeLine{00124\ \ \ \ \ pthread\_mutex\_destroy(lock);}
+\DoxyCodeLine{00125\ \}}
+\DoxyCodeLine{00126\ }
+\DoxyCodeLine{00127\ \textcolor{keywordtype}{int}\ lock\_try\_acquire(Lock*\ lock)\ \{}
+\DoxyCodeLine{00128\ \ \ \ \ \textcolor{keywordflow}{return}\ pthread\_mutex\_trylock(lock);}
+\DoxyCodeLine{00129\ \}}
+\DoxyCodeLine{00130\ }
+\DoxyCodeLine{00131\ \textcolor{keywordtype}{void}\ lock\_wait(Lock*\ lock,\ Condition*\ condition,\ \textcolor{keywordtype}{int}\ timeout)\ \{}
+\DoxyCodeLine{00132\ \ \ \ \ \textcolor{keyword}{struct\ }timespec\ ts;}
+\DoxyCodeLine{00133\ \ \ \ \ clock\_gettime(CLOCK\_REALTIME,\ \&ts);}
+\DoxyCodeLine{00134\ \ \ \ \ ts.tv\_sec\ +=\ timeout\ /\ 1000;}
+\DoxyCodeLine{00135\ \ \ \ \ ts.tv\_nsec\ +=\ (timeout\ \%\ 1000)\ *\ 1000000;}
+\DoxyCodeLine{00136\ \ \ \ \ pthread\_cond\_timedwait(condition,\ lock,\ \&ts);}
+\DoxyCodeLine{00137\ \}}
+\DoxyCodeLine{00138\ }
+\DoxyCodeLine{00139\ \textcolor{keywordtype}{void}\ cond\_init(Condition*\ condition)\ \{}
+\DoxyCodeLine{00140\ \ \ \ \ pthread\_cond\_init(condition,\ NULL);}
+\DoxyCodeLine{00141\ \}}
+\DoxyCodeLine{00142\ \textcolor{keywordtype}{void}\ cond\_signal(Condition*\ condition)\ \{}
+\DoxyCodeLine{00143\ \ \ \ \ pthread\_cond\_signal(condition);}
+\DoxyCodeLine{00144\ \}}
+\DoxyCodeLine{00145\ }
+\DoxyCodeLine{00146\ \textcolor{keywordtype}{void}\ cond\_broadcast(Condition*\ condition)\ \{}
+\DoxyCodeLine{00147\ \ \ \ \ pthread\_cond\_broadcast(condition);}
+\DoxyCodeLine{00148\ \}}
+\DoxyCodeLine{00149\ \textcolor{keywordtype}{void}\ cond\_wait(Condition*\ condition,\ Lock*\ lock)\ \{}
+\DoxyCodeLine{00150\ \ \ \ \ pthread\_cond\_wait(condition,\ lock);}
+\DoxyCodeLine{00151\ \}}
+\DoxyCodeLine{00152\ }
+\DoxyCodeLine{00153\ \textcolor{keywordtype}{void}\ cond\_wait\_timeout(Condition*\ condition,\ Lock*\ lock,\ \textcolor{keywordtype}{int}\ timeout)\ \{}
+\DoxyCodeLine{00154\ \ \ \ \ \textcolor{keyword}{struct\ }timespec\ ts;}
+\DoxyCodeLine{00155\ \ \ \ \ clock\_gettime(CLOCK\_REALTIME,\ \&ts);}
+\DoxyCodeLine{00156\ \ \ \ \ ts.tv\_sec\ +=\ timeout\ /\ 1000;}
+\DoxyCodeLine{00157\ \ \ \ \ ts.tv\_nsec\ +=\ (timeout\ \%\ 1000)\ *\ 1000000;}
+\DoxyCodeLine{00158\ \ \ \ \ pthread\_cond\_timedwait(condition,\ lock,\ \&ts);}
+\DoxyCodeLine{00159\ \}}
+\DoxyCodeLine{00160\ }
+\DoxyCodeLine{00161\ \textcolor{keywordtype}{void}\ cond\_free(Condition*\ condition)\ \{}
+\DoxyCodeLine{00162\ \ \ \ \ pthread\_cond\_destroy(condition);}
+\DoxyCodeLine{00163\ \}}
+\DoxyCodeLine{00164\ }
+\DoxyCodeLine{00165\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ \_WIN32}}
+\DoxyCodeLine{00166\ }
+\DoxyCodeLine{00167\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ OS\_IMPL}}
+\DoxyCodeLine{00168\ }
+\DoxyCodeLine{00169\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{/*\ AB1DC3C5\_00AA\_4460\_BD6A\_65D8301B4779\ */}\textcolor{preprocessor}{}}
+
+\end{DoxyCode}

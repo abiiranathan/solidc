@@ -1,0 +1,1807 @@
+\doxysection{os.\+h}
+\hypertarget{os_8h_source}{}\label{os_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ OS\_H}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ OS\_H}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#if\ defined(\_\_cplusplus)}}
+\DoxyCodeLine{00005\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \{}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00007\ }
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#if\ !defined(\_GNU\_SOURCE)}}
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#define\ \_GNU\_SOURCE}}
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00011\ }
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#include\ <errno.h>}}
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#include\ <stdbool.h>}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#include\ <stdio.h>}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ <stdlib.h>}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ <string.h>}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <io.h>}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ <windows.h>}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#ifndef\ \_WIN32\_WINNT}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#define\ \_WIN32\_WINNT\ 0x0400\ \ }\textcolor{comment}{//\ Required\ for\ syncapi}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ <dirent.h>}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ <fcntl.h>}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ <grp.h>}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ <pthread.h>}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ <pwd.h>}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ <sys/mman.h>}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ <sys/stat.h>}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ <sys/wait.h>}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ <unistd.h>}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#include\ "{}lock.h"{}}}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ ==========\ Type\ definitions\ =========================}}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ File\ handle}}
+\DoxyCodeLine{00044\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\{}
+\DoxyCodeLine{00045\ \ \ \ \ FILE*\ file;\ \ \ \ \ \ \textcolor{comment}{//\ file\ pointer}}
+\DoxyCodeLine{00046\ \ \ \ \ \textcolor{keywordtype}{int}\ fd;\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ file\ descriptor}}
+\DoxyCodeLine{00047\ \ \ \ \ \textcolor{keywordtype}{bool}\ is\_open;\ \ \ \ \textcolor{comment}{//\ is\ the\ file\ open?}}
+\DoxyCodeLine{00048\ \ \ \ \ \textcolor{keywordtype}{bool}\ is\_locked;\ \ \textcolor{comment}{//\ is\ the\ file\ locked?}}
+\DoxyCodeLine{00049\ \ \ \ \ ssize\_t\ size;\ \ \ \ \textcolor{comment}{//\ file\ size}}
+\DoxyCodeLine{00050\ \ \ \ \ \textcolor{keywordtype}{char}*\ filename;\ \ \textcolor{comment}{//\ file\ name}}
+\DoxyCodeLine{00051\ }
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00053\ \ \ \ \ HANDLE\ handle;\ \ \textcolor{comment}{//\ file\ handle}}
+\DoxyCodeLine{00054\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00055\ \}\ \mbox{\hyperlink{structFile}{File}};}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ ============\ File\ related\ functions\ ============}}
+\DoxyCodeLine{00058\ \mbox{\hyperlink{structFile}{File}}*\ file\_open(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ filename,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ mode)\ \_\_attribute\_\_((warn\_unused\_result));}
+\DoxyCodeLine{00059\ \textcolor{keywordtype}{void}\ file\_close(\mbox{\hyperlink{structFile}{File}}*\ file);}
+\DoxyCodeLine{00060\ ssize\_t\ file\_size(\mbox{\hyperlink{structFile}{File}}*\ file);}
+\DoxyCodeLine{00061\ \textcolor{keywordtype}{int}\ file\_seek(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keywordtype}{long}\ offset,\ \textcolor{keywordtype}{int}\ origin);}
+\DoxyCodeLine{00062\ \textcolor{keywordtype}{size\_t}\ file\_write(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size,\ \textcolor{keywordtype}{size\_t}\ count);}
+\DoxyCodeLine{00063\ \textcolor{keywordtype}{size\_t}\ file\_write\_string(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ str);}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ Write\ to\ a\ file\ asynchronously}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ Returns\ the\ number\ of\ bytes\ written\ or\ -\/1\ on\ error}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//\ Usage:}}
+\DoxyCodeLine{00068\ \textcolor{preprocessor}{\#if\ defined(\_WIN32)}}
+\DoxyCodeLine{00069\ DWORD\ file\_awrite(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size,\ off\_t\ offset);}
+\DoxyCodeLine{00070\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00071\ ssize\_t\ file\_awrite(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size,\ off\_t\ offset);}
+\DoxyCodeLine{00072\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00073\ }
+\DoxyCodeLine{00074\ \textcolor{keywordtype}{size\_t}\ file\_read(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size,\ \textcolor{keywordtype}{size\_t}\ count);}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \textcolor{preprocessor}{\#if\ defined(\_WIN32)}}
+\DoxyCodeLine{00077\ DWORD\ file\_aread(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size,\ off\_t\ offset);}
+\DoxyCodeLine{00078\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ Read\ from\ a\ file\ asynchronously}}
+\DoxyCodeLine{00080\ ssize\_t\ file\_aread(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size,\ off\_t\ offset);}
+\DoxyCodeLine{00081\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ \textcolor{keywordtype}{void}*\ file\_readall(\mbox{\hyperlink{structFile}{File}}*\ file,\ ssize\_t*\ size);}
+\DoxyCodeLine{00084\ \textcolor{keywordtype}{bool}\ file\_lock(\mbox{\hyperlink{structFile}{File}}*\ file);}
+\DoxyCodeLine{00085\ \textcolor{keywordtype}{bool}\ file\_unlock(\mbox{\hyperlink{structFile}{File}}*\ file);}
+\DoxyCodeLine{00086\ \textcolor{keywordtype}{int}\ file\_rename(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ newname);}
+\DoxyCodeLine{00087\ \textcolor{keywordtype}{int}\ file\_copy(\mbox{\hyperlink{structFile}{File}}*\ file,\ \mbox{\hyperlink{structFile}{File}}*\ dst);}
+\DoxyCodeLine{00088\ \textcolor{keywordtype}{void}*\ file\_mmap(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keywordtype}{size\_t}\ length);}
+\DoxyCodeLine{00089\ \textcolor{keywordtype}{int}\ file\_munmap(\textcolor{keywordtype}{void}*\ addr,\ \textcolor{keywordtype}{size\_t}\ length);}
+\DoxyCodeLine{00090\ \textcolor{keywordtype}{bool}\ is\_file(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path);}
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00092\ \textcolor{comment}{//\ Pipe\ declarations}}
+\DoxyCodeLine{00093\ \textcolor{comment}{//\ PIPE\ related\ function\ declarations}}
+\DoxyCodeLine{00094\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{enum}\ \{\ PIPE\_END\_READ\ =\ 1,\ PIPE\_END\_WRITE\ =\ 2,\ PIPE\_END\_BOTH\ =\ 3\ \}\ PipeEnd;}
+\DoxyCodeLine{00095\ }
+\DoxyCodeLine{00096\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\{}
+\DoxyCodeLine{00097\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00098\ \ \ \ \ HANDLE\ hReadPipe;}
+\DoxyCodeLine{00099\ \ \ \ \ HANDLE\ hWritePipe;}
+\DoxyCodeLine{00100\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00101\ \ \ \ \ \textcolor{keywordtype}{int}\ fd[2];}
+\DoxyCodeLine{00102\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00103\ \}\ \mbox{\hyperlink{structPIPE}{PIPE}};}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \textcolor{keywordtype}{int}\ pipe\_open(\mbox{\hyperlink{structPIPE}{PIPE}}*\ pPipe);}
+\DoxyCodeLine{00106\ \textcolor{keywordtype}{void}\ pipe\_close(\mbox{\hyperlink{structPIPE}{PIPE}}*\ pPipe,\ PipeEnd\ endToClose);}
+\DoxyCodeLine{00107\ ssize\_t\ pipe\_read(\mbox{\hyperlink{structPIPE}{PIPE}}*\ pPipe,\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size);}
+\DoxyCodeLine{00108\ ssize\_t\ pipe\_write(\mbox{\hyperlink{structPIPE}{PIPE}}*\ pPipe,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size);}
+\DoxyCodeLine{00109\ }
+\DoxyCodeLine{00110\ \textcolor{comment}{//\ ===========\ END\ File\ related\ functions\ ===========}}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00112\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structProcess}{Process}}\ \{}
+\DoxyCodeLine{00113\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00114\ \ \ \ \ DWORD\ pid;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Process\ id\ is\ similar\ to\ pi.dwProcessId}}
+\DoxyCodeLine{00115\ \ \ \ \ STARTUPINFO\ si;\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Start\ up\ info}}
+\DoxyCodeLine{00116\ \ \ \ \ PROCESS\_INFORMATION\ pi;\ \ \textcolor{comment}{//\ Process\ information}}
+\DoxyCodeLine{00117\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00118\ \ \ \ \ \textcolor{keywordtype}{long}\ pid;\ \ \textcolor{comment}{//\ Process\ ID(long\ to\ match\ DWORD\ on\ Windows)}}
+\DoxyCodeLine{00119\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00120\ \}\ \mbox{\hyperlink{structProcess}{Process}};}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00122\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00123\ \textcolor{comment}{//\ Alias\ to\ win32\ HANDLE}}
+\DoxyCodeLine{00124\ \textcolor{keyword}{typedef}\ HANDLE\ Thread;}
+\DoxyCodeLine{00125\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00126\ \textcolor{comment}{//\ Alias\ to\ posix\ pthread}}
+\DoxyCodeLine{00127\ \textcolor{keyword}{typedef}\ pthread\_t\ Thread;}
+\DoxyCodeLine{00128\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00129\ }
+\DoxyCodeLine{00130\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\{}
+\DoxyCodeLine{00131\ \ \ \ \ \textcolor{keywordtype}{void}*\ arg;\ \ \ \ \ \textcolor{comment}{//\ Argument\ to\ the\ start\_routine}}
+\DoxyCodeLine{00132\ \ \ \ \ \textcolor{keywordtype}{void}*\ retval;\ \ \textcolor{comment}{//\ Pointer\ to\ the\ return\ value}}
+\DoxyCodeLine{00133\ \}\ \mbox{\hyperlink{structThreadData}{ThreadData}};}
+\DoxyCodeLine{00134\ }
+\DoxyCodeLine{00135\ \textcolor{comment}{//\ Thread\ and\ processes}}
+\DoxyCodeLine{00136\ \textcolor{comment}{//\ Create\ a\ new\ process}}
+\DoxyCodeLine{00137\ \textcolor{keywordtype}{int}\ process\_create(\mbox{\hyperlink{structProcess}{Process}}*\ proc,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ command,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \textcolor{keyword}{const}\ argv[],}
+\DoxyCodeLine{00138\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \textcolor{keyword}{const}\ envp[]);}
+\DoxyCodeLine{00139\ \textcolor{comment}{//\ Wait\ for\ a\ process\ to\ exit}}
+\DoxyCodeLine{00140\ \textcolor{keywordtype}{int}\ process\_wait(\mbox{\hyperlink{structProcess}{Process}}*\ proc,\ \textcolor{keywordtype}{int}*\ status);}
+\DoxyCodeLine{00141\ \textcolor{comment}{//\ Kill\ a\ process}}
+\DoxyCodeLine{00142\ \textcolor{keywordtype}{int}\ process\_kill(\mbox{\hyperlink{structProcess}{Process}}*\ proc);}
+\DoxyCodeLine{00143\ }
+\DoxyCodeLine{00144\ \textcolor{comment}{//\ Create\ a\ new\ thread}}
+\DoxyCodeLine{00145\ \textcolor{keywordtype}{int}\ thread\_create(Thread*\ thread,\ \textcolor{keywordtype}{void}*\ (*start\_routine)(\textcolor{keywordtype}{void}*),\ \mbox{\hyperlink{structThreadData}{ThreadData}}*\ data);}
+\DoxyCodeLine{00146\ \textcolor{comment}{//\ Join\ a\ thread}}
+\DoxyCodeLine{00147\ \textcolor{keywordtype}{int}\ thread\_join(Thread\ tid,\ \textcolor{keywordtype}{void}**\ retval);}
+\DoxyCodeLine{00148\ }
+\DoxyCodeLine{00149\ \textcolor{comment}{//\ Get\ the\ current\ thread\ id}}
+\DoxyCodeLine{00150\ \textcolor{keywordtype}{int}\ thread\_self();}
+\DoxyCodeLine{00151\ }
+\DoxyCodeLine{00152\ \textcolor{keywordtype}{int}\ thread\_detach(Thread\ tid);}
+\DoxyCodeLine{00153\ \textcolor{comment}{//\ Sleep\ for\ a\ number\ of\ milliseconds}}
+\DoxyCodeLine{00154\ \textcolor{keywordtype}{void}\ sleep\_ms(\textcolor{keywordtype}{int}\ ms);}
+\DoxyCodeLine{00155\ \textcolor{comment}{//\ Get\ the\ current\ process\ id}}
+\DoxyCodeLine{00156\ \textcolor{keywordtype}{int}\ get\_pid();}
+\DoxyCodeLine{00157\ \textcolor{comment}{//\ Get\ the\ current\ thread\ id}}
+\DoxyCodeLine{00158\ \textcolor{keywordtype}{int}\ get\_tid();}
+\DoxyCodeLine{00159\ \textcolor{comment}{//\ Get\ the\ parent\ process\ id}}
+\DoxyCodeLine{00160\ \textcolor{keywordtype}{int}\ get\_ppid();}
+\DoxyCodeLine{00161\ \textcolor{comment}{//\ Get\ the\ number\ of\ CPU\ cores}}
+\DoxyCodeLine{00162\ \textcolor{keywordtype}{int}\ get\_ncpus();}
+\DoxyCodeLine{00163\ }
+\DoxyCodeLine{00164\ \textcolor{preprocessor}{\#ifdef\ \_WIN32\ \ }\textcolor{comment}{//\ No\ need\ for\ these\ functions\ on\ Windows}}
+\DoxyCodeLine{00165\ \textcolor{preprocessor}{\#else\ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{00166\ \textcolor{comment}{//\ Get\ the\ current\ user\ id}}
+\DoxyCodeLine{00167\ \textcolor{keywordtype}{int}\ get\_uid();}
+\DoxyCodeLine{00168\ \textcolor{comment}{//\ Get\ the\ current\ group\ id}}
+\DoxyCodeLine{00169\ \textcolor{keywordtype}{int}\ get\_gid();}
+\DoxyCodeLine{00170\ \textcolor{comment}{//\ Get\ the\ current\ user\ name}}
+\DoxyCodeLine{00171\ \textcolor{keywordtype}{char}*\ get\_username();}
+\DoxyCodeLine{00172\ \textcolor{comment}{//\ Get\ the\ current\ group\ name}}
+\DoxyCodeLine{00173\ \textcolor{keywordtype}{char}*\ get\_groupname();}
+\DoxyCodeLine{00174\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00175\ }
+\DoxyCodeLine{00176\ \textcolor{comment}{//\ IMPLEMENT\ A\ THREAD\ POOL}}
+\DoxyCodeLine{00177\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structThreadPool}{ThreadPool}}\ \{}
+\DoxyCodeLine{00178\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structTask}{Task}}*\ task\_queue;\ \ \textcolor{comment}{//\ Linked\ list\ queue\ of\ tasks}}
+\DoxyCodeLine{00179\ \ \ \ \ \textcolor{keywordtype}{int}\ num\_threads;\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Total\ Number\ of\ threads}}
+\DoxyCodeLine{00180\ \ \ \ \ \textcolor{keywordtype}{int}\ num\_working\_threads;\ \ \textcolor{comment}{//\ Number\ of\ threads\ working}}
+\DoxyCodeLine{00181\ \ \ \ \ Thread*\ threads;\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Array\ of\ threads}}
+\DoxyCodeLine{00182\ }
+\DoxyCodeLine{00183\ \ \ \ \ \textcolor{comment}{//\ Cross\ platform\ Lock\ and\ condition\ variables(lock.h)}}
+\DoxyCodeLine{00184\ \ \ \ \ Lock\ lock;}
+\DoxyCodeLine{00185\ \ \ \ \ Condition\ task\_available;}
+\DoxyCodeLine{00186\ \ \ \ \ Condition\ all\_tasks\_completed;}
+\DoxyCodeLine{00187\ }
+\DoxyCodeLine{00188\ \ \ \ \ \textcolor{comment}{//\ 1\ if\ the\ thread\ pool\ is\ shutting\ down,\ 0\ otherwise}}
+\DoxyCodeLine{00189\ \ \ \ \ \textcolor{keywordtype}{bool}\ shutdown;}
+\DoxyCodeLine{00190\ \}\ \mbox{\hyperlink{structThreadPool}{ThreadPool}};}
+\DoxyCodeLine{00191\ }
+\DoxyCodeLine{00192\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structTask}{Task}}\ \{}
+\DoxyCodeLine{00193\ \ \ \ \ void\ (*function)(\textcolor{keywordtype}{void}*);}
+\DoxyCodeLine{00194\ \ \ \ \ \textcolor{keywordtype}{void}*\ arg;}
+\DoxyCodeLine{00195\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structTask}{Task}}*\ next;}
+\DoxyCodeLine{00196\ \}\ \mbox{\hyperlink{structTask}{Task}};}
+\DoxyCodeLine{00197\ }
+\DoxyCodeLine{00198\ \mbox{\hyperlink{structThreadPool}{ThreadPool}}*\ threadpool\_create(\textcolor{keywordtype}{int}\ num\_threads);}
+\DoxyCodeLine{00199\ \textcolor{keywordtype}{void}\ threadpool\_destroy(\mbox{\hyperlink{structThreadPool}{ThreadPool}}*\ pool);}
+\DoxyCodeLine{00200\ \textcolor{keywordtype}{int}\ threadpool\_add\_task(\mbox{\hyperlink{structThreadPool}{ThreadPool}}*\ pool,\ \textcolor{keywordtype}{void}\ (*task)(\textcolor{keywordtype}{void}*),\ \textcolor{keywordtype}{void}*\ arg);}
+\DoxyCodeLine{00201\ \textcolor{keywordtype}{void}\ threadpool\_wait(\mbox{\hyperlink{structThreadPool}{ThreadPool}}*\ pool);}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ \textcolor{comment}{//\ \ =====\ Directory\ related\ function\ declarations\ =====}}
+\DoxyCodeLine{00204\ \textcolor{comment}{//\ Directory\ handle}}
+\DoxyCodeLine{00205\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\{}
+\DoxyCodeLine{00206\ \ \ \ \ \textcolor{keywordtype}{char}*\ path;\ \ \textcolor{comment}{//\ directory\ path}}
+\DoxyCodeLine{00207\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00208\ \ \ \ \ HANDLE\ handle;}
+\DoxyCodeLine{00209\ \ \ \ \ WIN32\_FIND\_DATAA\ find\_data;\ \ \textcolor{comment}{//\ found\ in\ windows.h}}
+\DoxyCodeLine{00210\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00211\ \ \ \ \ DIR*\ dir;\ \ \textcolor{comment}{//\ directory\ pointer\ found\ in\ dirent.h}}
+\DoxyCodeLine{00212\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00213\ \}\ \mbox{\hyperlink{structDirectory}{Directory}};}
+\DoxyCodeLine{00214\ }
+\DoxyCodeLine{00215\ \textcolor{comment}{//\ Open\ a\ directory}}
+\DoxyCodeLine{00216\ \mbox{\hyperlink{structDirectory}{Directory}}*\ dir\_open(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \_\_attribute\_\_((warn\_unused\_result));}
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00218\ \textcolor{comment}{//\ Close\ a\ directory}}
+\DoxyCodeLine{00219\ \textcolor{keywordtype}{void}\ dir\_close(\mbox{\hyperlink{structDirectory}{Directory}}*\ dir);}
+\DoxyCodeLine{00220\ }
+\DoxyCodeLine{00221\ \textcolor{comment}{//\ Read\ the\ next\ entry\ in\ the\ directory.}}
+\DoxyCodeLine{00222\ \textcolor{keywordtype}{char}*\ dir\_next(\mbox{\hyperlink{structDirectory}{Directory}}*\ dir)\ \_\_attribute\_\_((warn\_unused\_result));}
+\DoxyCodeLine{00223\ }
+\DoxyCodeLine{00224\ \textcolor{comment}{//\ Create\ a\ directory.\ Returns\ 0\ if\ successful,\ -\/1\ otherwise}}
+\DoxyCodeLine{00225\ \textcolor{keywordtype}{int}\ dir\_create(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path);}
+\DoxyCodeLine{00226\ }
+\DoxyCodeLine{00227\ \textcolor{comment}{//\ Remove\ a\ directory.\ Returns\ 0\ if\ successful,\ -\/1\ otherwise}}
+\DoxyCodeLine{00228\ \textcolor{keywordtype}{int}\ dir\_remove(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path);}
+\DoxyCodeLine{00229\ }
+\DoxyCodeLine{00230\ \textcolor{comment}{//\ Rename\ a\ directory.\ Returns\ 0\ if\ successful,\ -\/1\ otherwise}}
+\DoxyCodeLine{00231\ \textcolor{keywordtype}{int}\ dir\_rename(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ oldpath,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ newpath);}
+\DoxyCodeLine{00232\ }
+\DoxyCodeLine{00233\ \textcolor{comment}{//\ Change\ the\ current\ working\ directory}}
+\DoxyCodeLine{00234\ \textcolor{keywordtype}{int}\ dir\_chdir(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path);}
+\DoxyCodeLine{00235\ }
+\DoxyCodeLine{00236\ \textcolor{comment}{//\ List\ files\ in\ a\ directory,\ returns\ a\ pointer\ to\ a\ list\ of\ file\ names\ or\ NULL\ on\ error}}
+\DoxyCodeLine{00237\ \textcolor{comment}{//\ The\ caller\ is\ responsible\ for\ freeing\ the\ memory.}}
+\DoxyCodeLine{00238\ \textcolor{comment}{//\ The\ number\ of\ files\ is\ stored\ in\ the\ count\ parameter.}}
+\DoxyCodeLine{00239\ \textcolor{comment}{//\ Note:\ This\ algorithm\ walks\ the\ directory\ tree\ recursively}}
+\DoxyCodeLine{00240\ \textcolor{comment}{//\ and\ may\ be\ slow\ for\ large\ directories.}}
+\DoxyCodeLine{00241\ \textcolor{keywordtype}{char}**\ dir\_list(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keywordtype}{size\_t}*\ count)\ \_\_attribute\_\_((warn\_unused\_result));}
+\DoxyCodeLine{00242\ }
+\DoxyCodeLine{00243\ \textcolor{comment}{//\ Returns\ true\ if\ the\ path\ is\ a\ directory}}
+\DoxyCodeLine{00244\ \textcolor{keywordtype}{bool}\ is\_dir(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path);}
+\DoxyCodeLine{00245\ }
+\DoxyCodeLine{00246\ \textcolor{comment}{//\ Create\ a\ directory\ recursively}}
+\DoxyCodeLine{00247\ \textcolor{keywordtype}{bool}\ makedirs(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path);}
+\DoxyCodeLine{00248\ }
+\DoxyCodeLine{00249\ \textcolor{comment}{//\ Get\ path\ to\ platform's\ TEMP\ directory.}}
+\DoxyCodeLine{00250\ \textcolor{keywordtype}{char}*\ get\_tempdir()\ \_\_attribute\_\_((warn\_unused\_result));}
+\DoxyCodeLine{00251\ }
+\DoxyCodeLine{00252\ \textcolor{comment}{//\ Create\ a\ temporary\ file.}}
+\DoxyCodeLine{00253\ \textcolor{keywordtype}{char}*\ make\_tempfile()\ \_\_attribute\_\_((warn\_unused\_result));}
+\DoxyCodeLine{00254\ }
+\DoxyCodeLine{00255\ \textcolor{comment}{//\ Create\ a\ temporary\ directory}}
+\DoxyCodeLine{00256\ \textcolor{keywordtype}{char}*\ make\_tempdir()\ \_\_attribute\_\_((warn\_unused\_result));}
+\DoxyCodeLine{00257\ }
+\DoxyCodeLine{00258\ \textcolor{comment}{//\ Returns\ true\ if\ path\ is\ a\ symbolic\ link.}}
+\DoxyCodeLine{00259\ \textcolor{keywordtype}{bool}\ is\_symlink(const\ \textcolor{keywordtype}{char}*\ path);}
+\DoxyCodeLine{00260\ }
+\DoxyCodeLine{00261\ \textcolor{comment}{//\ Walk\ the\ directory\ path,\ for\ each\ entry\ call\ the\ callback}}
+\DoxyCodeLine{00262\ \textcolor{comment}{//\ with\ path,\ name\ and\ user\ data\ pointer.}}
+\DoxyCodeLine{00263\ \textcolor{keywordtype}{int}\ dir\_walk(const\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keywordtype}{int}\ (*callback)(const\ \textcolor{keywordtype}{char}*\ path,\ const\ \textcolor{keywordtype}{char}*\ name,\ \textcolor{keywordtype}{void}*\ data),}
+\DoxyCodeLine{00264\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ data);}
+\DoxyCodeLine{00265\ }
+\DoxyCodeLine{00266\ \textcolor{comment}{//\ Find\ the\ size\ of\ the\ directory.}}
+\DoxyCodeLine{00267\ \textcolor{comment}{//\ This\ is\ slow\ on\ large\ directories\ since\ it\ walks\ the\ directory.}}
+\DoxyCodeLine{00268\ ssize\_t\ dir\_size(const\ \textcolor{keywordtype}{char}*\ path);}
+\DoxyCodeLine{00269\ }
+\DoxyCodeLine{00270\ \textcolor{comment}{//\ Returns\ the\ path\ to\ the\ current\ working\ directory.}}
+\DoxyCodeLine{00271\ \textcolor{keywordtype}{char}*\ get\_cwd()\ \_\_attribute\_\_((warn\_unused\_result));}
+\DoxyCodeLine{00272\ }
+\DoxyCodeLine{00273\ \textcolor{comment}{//\ \ =====\ Filepath\ related\ function\ declarations\ =====}}
+\DoxyCodeLine{00274\ }
+\DoxyCodeLine{00275\ \textcolor{comment}{//\ get\ the\ file's\ basename.}}
+\DoxyCodeLine{00276\ \textcolor{keywordtype}{void}\ filepath\_basename(const\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keywordtype}{char}*\ basename,\ \textcolor{keywordtype}{size\_t}\ size);}
+\DoxyCodeLine{00277\ }
+\DoxyCodeLine{00278\ \textcolor{comment}{//\ Get\ the\ directory\ name\ of\ a\ path}}
+\DoxyCodeLine{00279\ \textcolor{keywordtype}{void}\ filepath\_dirname(const\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keywordtype}{char}*\ dirname,\ \textcolor{keywordtype}{size\_t}\ size);}
+\DoxyCodeLine{00280\ }
+\DoxyCodeLine{00281\ \textcolor{comment}{//\ Get\ the\ file\ extension}}
+\DoxyCodeLine{00282\ \textcolor{keywordtype}{void}\ filepath\_extension(const\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keywordtype}{char}*\ ext,\ \textcolor{keywordtype}{size\_t}\ size);}
+\DoxyCodeLine{00283\ }
+\DoxyCodeLine{00284\ \textcolor{comment}{//\ Get\ the\ file\ name(basename)\ without\ the\ extension}}
+\DoxyCodeLine{00285\ \textcolor{keywordtype}{void}\ filepath\_nameonly(const\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keywordtype}{char}*\ name,\ \textcolor{keywordtype}{size\_t}\ size);}
+\DoxyCodeLine{00286\ }
+\DoxyCodeLine{00287\ \textcolor{comment}{//\ Get\ the\ absolute\ path\ of\ a\ file\ Returns\ a\ pointer\ to\ the\ absolute\ path}}
+\DoxyCodeLine{00288\ \textcolor{comment}{//\ or\ NULL\ on\ error.}}
+\DoxyCodeLine{00289\ \textcolor{comment}{//\ The\ caller\ is\ responsible\ for\ freeing\ the\ memory.}}
+\DoxyCodeLine{00290\ \textcolor{keywordtype}{char}*\ filepath\_absolute(const\ \textcolor{keywordtype}{char}*\ path)\ \_\_attribute\_\_((warn\_unused\_result));}
+\DoxyCodeLine{00291\ }
+\DoxyCodeLine{00292\ \textcolor{comment}{//\ Delete\ or\ unlink\ file\ or\ directory.}}
+\DoxyCodeLine{00293\ \textcolor{keywordtype}{int}\ filepath\_remove(const\ \textcolor{keywordtype}{char}*\ path);}
+\DoxyCodeLine{00294\ }
+\DoxyCodeLine{00295\ \textcolor{comment}{//\ Rename\ file\ or\ directory.}}
+\DoxyCodeLine{00296\ \textcolor{keywordtype}{int}\ filepath\_rename(const\ \textcolor{keywordtype}{char}*\ oldpath,\ const\ \textcolor{keywordtype}{char}*\ newpath);}
+\DoxyCodeLine{00297\ }
+\DoxyCodeLine{00298\ \textcolor{comment}{//\ Expand\ user\ home\ directory.}}
+\DoxyCodeLine{00299\ \textcolor{keywordtype}{char}*\ filepath\_expanduser(const\ \textcolor{keywordtype}{char}*\ path)\ \_\_attribute\_\_((warn\_unused\_result));}
+\DoxyCodeLine{00300\ }
+\DoxyCodeLine{00301\ \textcolor{comment}{//\ Join\ path1\ and\ path2\ using\ standard\ os\ specific\ separator.}}
+\DoxyCodeLine{00302\ \textcolor{keywordtype}{char}*\ filepath\_join(const\ \textcolor{keywordtype}{char}*\ path1,\ const\ \textcolor{keywordtype}{char}*\ path2)\ \_\_attribute\_\_((warn\_unused\_result));}
+\DoxyCodeLine{00303\ }
+\DoxyCodeLine{00304\ \textcolor{comment}{//\ Split\ a\ file\ path\ into\ directory\ and\ basename.}}
+\DoxyCodeLine{00305\ \textcolor{comment}{//\ The\ dir\ and\ name\ parameters\ must\ be\ pre-\/allocated\ buffers\ or}}
+\DoxyCodeLine{00306\ \textcolor{comment}{//\ pointers\ to\ pre-\/allocated\ buffers.}}
+\DoxyCodeLine{00307\ \textcolor{comment}{//\ dir\_size\ and\ name\_size\ are\ the\ size\ of\ the\ dir\ and\ name}}
+\DoxyCodeLine{00308\ \textcolor{comment}{//\ buffers.}}
+\DoxyCodeLine{00309\ \textcolor{keywordtype}{void}\ filepath\_split(const\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keywordtype}{char}*\ dir,\ \textcolor{keywordtype}{char}*\ name,\ \textcolor{keywordtype}{size\_t}\ dir\_size,\ \textcolor{keywordtype}{size\_t}\ name\_size);}
+\DoxyCodeLine{00310\ }
+\DoxyCodeLine{00311\ \textcolor{preprocessor}{\#if\ defined(\_\_cplusplus)}}
+\DoxyCodeLine{00312\ \}}
+\DoxyCodeLine{00313\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00314\ }
+\DoxyCodeLine{00315\ \textcolor{comment}{//\ IMPLEMENTATION}}
+\DoxyCodeLine{00316\ \textcolor{preprocessor}{\#ifdef\ OS\_IMPL}}
+\DoxyCodeLine{00317\ }
+\DoxyCodeLine{00318\ \textcolor{comment}{//\ Open\ a\ file}}
+\DoxyCodeLine{00319\ \mbox{\hyperlink{structFile}{File}}*\ file\_open(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ filename,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ mode)\ \{}
+\DoxyCodeLine{00320\ \ \ \ \ FILE*\ fp\ =\ fopen(filename,\ mode);}
+\DoxyCodeLine{00321\ \ \ \ \ \textcolor{keywordflow}{if}\ (!fp)\ \{}
+\DoxyCodeLine{00322\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00323\ \ \ \ \ \}}
+\DoxyCodeLine{00324\ }
+\DoxyCodeLine{00325\ \ \ \ \ \mbox{\hyperlink{structFile}{File}}*\ file\ =\ (\mbox{\hyperlink{structFile}{File}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structFile}{File}}));}
+\DoxyCodeLine{00326\ \ \ \ \ \textcolor{keywordflow}{if}\ (!file)\ \{}
+\DoxyCodeLine{00327\ \ \ \ \ \ \ \ \ fclose(fp);}
+\DoxyCodeLine{00328\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00329\ \ \ \ \ \}}
+\DoxyCodeLine{00330\ }
+\DoxyCodeLine{00331\ \ \ \ \ file-\/>file\ \ \ \ \ \ =\ fp;}
+\DoxyCodeLine{00332\ \ \ \ \ file-\/>is\_open\ \ \ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00333\ \ \ \ \ file-\/>is\_locked\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00334\ \ \ \ \ file-\/>filename\ \ =\ strdup(filename);}
+\DoxyCodeLine{00335\ \ \ \ \ \textcolor{keywordflow}{if}\ (file-\/>filename\ ==\ NULL)\ \{}
+\DoxyCodeLine{00336\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}strdup()\ failed:\ unable\ to\ copy\ filename"{}});}
+\DoxyCodeLine{00337\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00338\ \ \ \ \ \}}
+\DoxyCodeLine{00339\ \ \ \ \ file-\/>fd\ \ \ =\ fileno(file-\/>file);}
+\DoxyCodeLine{00340\ \ \ \ \ file-\/>size\ =\ file\_size(file);}
+\DoxyCodeLine{00341\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00342\ \ \ \ \ file-\/>handle\ =\ (HANDLE)\_get\_osfhandle(file-\/>fd);}
+\DoxyCodeLine{00343\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00344\ \ \ \ \ \textcolor{keywordflow}{return}\ file;}
+\DoxyCodeLine{00345\ \}}
+\DoxyCodeLine{00346\ }
+\DoxyCodeLine{00347\ \textcolor{comment}{//\ Close\ a\ file\ and\ release\ resources}}
+\DoxyCodeLine{00348\ \textcolor{keywordtype}{void}\ file\_close(\mbox{\hyperlink{structFile}{File}}*\ file)\ \{}
+\DoxyCodeLine{00349\ \ \ \ \ \textcolor{keywordflow}{if}\ (file-\/>is\_open)\ \{}
+\DoxyCodeLine{00350\ \ \ \ \ \ \ \ \ fclose(file-\/>file);}
+\DoxyCodeLine{00351\ \ \ \ \ \ \ \ \ file-\/>is\_open\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00352\ \ \ \ \ \}}
+\DoxyCodeLine{00353\ }
+\DoxyCodeLine{00354\ \ \ \ \ \textcolor{keywordflow}{if}\ (file-\/>is\_locked)\ \{}
+\DoxyCodeLine{00355\ \ \ \ \ \ \ \ \ file\_unlock(file);}
+\DoxyCodeLine{00356\ \ \ \ \ \}}
+\DoxyCodeLine{00357\ }
+\DoxyCodeLine{00358\ \ \ \ \ \textcolor{keywordflow}{if}\ (file-\/>filename)\ \{}
+\DoxyCodeLine{00359\ \ \ \ \ \ \ \ \ free(file-\/>filename);}
+\DoxyCodeLine{00360\ \ \ \ \ \}}
+\DoxyCodeLine{00361\ \}}
+\DoxyCodeLine{00362\ }
+\DoxyCodeLine{00363\ \textcolor{comment}{//\ cross\ platform\ file\ size}}
+\DoxyCodeLine{00364\ ssize\_t\ file\_size(\mbox{\hyperlink{structFile}{File}}*\ file)\ \{}
+\DoxyCodeLine{00365\ \ \ \ \ ssize\_t\ size\ =\ -\/1;}
+\DoxyCodeLine{00366\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00367\ \ \ \ \ size\ =\ \_filelength(file-\/>fd);}
+\DoxyCodeLine{00368\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00369\ \ \ \ \ \textcolor{keyword}{struct\ }stat\ st;}
+\DoxyCodeLine{00370\ \ \ \ \ \textcolor{keywordflow}{if}\ (fstat(file-\/>fd,\ \&st)\ ==\ 0)\ \{}
+\DoxyCodeLine{00371\ \ \ \ \ \ \ \ \ size\ =\ st.st\_size;}
+\DoxyCodeLine{00372\ \ \ \ \ \}}
+\DoxyCodeLine{00373\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00374\ \ \ \ \ \textcolor{keywordflow}{return}\ size;}
+\DoxyCodeLine{00375\ \}}
+\DoxyCodeLine{00376\ }
+\DoxyCodeLine{00377\ \textcolor{comment}{//\ Read\ from\ a\ file\ into\ a\ buffer.}}
+\DoxyCodeLine{00378\ \textcolor{comment}{//\ @param\ file:\ The\ file\ to\ read\ from}}
+\DoxyCodeLine{00379\ \textcolor{comment}{//\ @param\ buffer:\ The\ buffer\ to\ read\ into}}
+\DoxyCodeLine{00380\ \textcolor{comment}{//\ @param\ size:\ The\ size\ of\ each\ element\ to\ read}}
+\DoxyCodeLine{00381\ \textcolor{comment}{//\ @param\ count:\ The\ number\ of\ elements\ to\ read}}
+\DoxyCodeLine{00382\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00383\ \textcolor{comment}{//\ char\ buffer[1024];}}
+\DoxyCodeLine{00384\ \textcolor{comment}{//\ file\_read(file,\ buffer,\ 1,\ 1024);}}
+\DoxyCodeLine{00385\ \textcolor{keywordtype}{size\_t}\ file\_read(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size,\ \textcolor{keywordtype}{size\_t}\ count)\ \{}
+\DoxyCodeLine{00386\ \ \ \ \ \textcolor{keywordflow}{if}\ (!file-\/>is\_open)\ \{}
+\DoxyCodeLine{00387\ \ \ \ \ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}File\ is\ not\ open\(\backslash\)n"{}});}
+\DoxyCodeLine{00388\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00389\ \ \ \ \ \}}
+\DoxyCodeLine{00390\ \ \ \ \ \textcolor{keywordflow}{return}\ fread(buffer,\ size,\ count,\ file-\/>file);}
+\DoxyCodeLine{00391\ \}}
+\DoxyCodeLine{00392\ }
+\DoxyCodeLine{00393\ \textcolor{comment}{//\ ReadAll\ reads\ the\ entire\ file\ into\ a\ buffer}}
+\DoxyCodeLine{00394\ \textcolor{comment}{//\ Returns\ the\ number\ of\ elements\ read.}}
+\DoxyCodeLine{00395\ \textcolor{comment}{//\ The\ size\ of\ the\ buffer\ is\ stored\ in\ the\ size\ parameter}}
+\DoxyCodeLine{00396\ \textcolor{comment}{//\ The\ caller\ is\ responsible\ for\ freeing\ the\ buffer}}
+\DoxyCodeLine{00397\ \textcolor{keywordtype}{void}*\ file\_readall(\mbox{\hyperlink{structFile}{File}}*\ file,\ ssize\_t*\ size)\ \{}
+\DoxyCodeLine{00398\ \ \ \ \ \textcolor{keywordflow}{if}\ (!file-\/>is\_open)\ \{}
+\DoxyCodeLine{00399\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00400\ \ \ \ \ \}}
+\DoxyCodeLine{00401\ }
+\DoxyCodeLine{00402\ \ \ \ \ fseek(file-\/>file,\ 0,\ SEEK\_END);}
+\DoxyCodeLine{00403\ \ \ \ \ *size\ =\ ftell(file-\/>file);}
+\DoxyCodeLine{00404\ \ \ \ \ fseek(file-\/>file,\ 0,\ SEEK\_SET);}
+\DoxyCodeLine{00405\ \ \ \ \ \textcolor{keywordtype}{void}*\ buffer\ =\ malloc(*size);}
+\DoxyCodeLine{00406\ \ \ \ \ \textcolor{keywordflow}{if}\ (!buffer)\ \{}
+\DoxyCodeLine{00407\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}malloc"{}});}
+\DoxyCodeLine{00408\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00409\ \ \ \ \ \}}
+\DoxyCodeLine{00410\ }
+\DoxyCodeLine{00411\ \ \ \ \ \textcolor{comment}{//\ Read\ the\ entire\ file\ into\ the\ buffer}}
+\DoxyCodeLine{00412\ \ \ \ \ ssize\_t\ bytes\_read\ =\ file\_read(file,\ buffer,\ 1,\ *size);}
+\DoxyCodeLine{00413\ \ \ \ \ \textcolor{keywordflow}{if}\ (bytes\_read\ !=\ *size)\ \{}
+\DoxyCodeLine{00414\ \ \ \ \ \ \ \ \ free(buffer);}
+\DoxyCodeLine{00415\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00416\ \ \ \ \ \}}
+\DoxyCodeLine{00417\ \ \ \ \ \textcolor{keywordflow}{return}\ buffer;}
+\DoxyCodeLine{00418\ \}}
+\DoxyCodeLine{00419\ }
+\DoxyCodeLine{00420\ \textcolor{comment}{/*\ Write\ to\ a\ file}}
+\DoxyCodeLine{00421\ \textcolor{comment}{}}
+\DoxyCodeLine{00422\ \textcolor{comment}{@param\ file:\ The\ file\ to\ write\ to.}}
+\DoxyCodeLine{00423\ \textcolor{comment}{@param\ buffer:\ The\ buffer\ to\ write\ from.}}
+\DoxyCodeLine{00424\ \textcolor{comment}{@param\ size:\ The\ size\ of\ each\ element\ to\ write.}}
+\DoxyCodeLine{00425\ \textcolor{comment}{@param\ count:\ The\ number\ of\ elements\ to\ write.}}
+\DoxyCodeLine{00426\ \textcolor{comment}{}}
+\DoxyCodeLine{00427\ \textcolor{comment}{Returns\ the\ number\ of\ elements\ written.}}
+\DoxyCodeLine{00428\ \textcolor{comment}{Example:}}
+\DoxyCodeLine{00429\ \textcolor{comment}{char\ *buffer\ =\ "{}Hello,\ World!"{};}}
+\DoxyCodeLine{00430\ \textcolor{comment}{file\_write(file,\ buffer,\ 1,\ strlen(buffer));}}
+\DoxyCodeLine{00431\ \textcolor{comment}{*/}}
+\DoxyCodeLine{00432\ \textcolor{keywordtype}{size\_t}\ file\_write(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size,\ \textcolor{keywordtype}{size\_t}\ count)\ \{}
+\DoxyCodeLine{00433\ \ \ \ \ \textcolor{keywordflow}{if}\ (!file-\/>is\_open)\ \{}
+\DoxyCodeLine{00434\ \ \ \ \ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}File\ is\ not\ open\(\backslash\)n"{}});}
+\DoxyCodeLine{00435\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00436\ \ \ \ \ \}}
+\DoxyCodeLine{00437\ \ \ \ \ \textcolor{keywordtype}{int}\ n\ =\ fwrite(buffer,\ size,\ count,\ file-\/>file);}
+\DoxyCodeLine{00438\ \ \ \ \ \textcolor{keywordflow}{if}\ (n\ >\ 0)\ \{}
+\DoxyCodeLine{00439\ \ \ \ \ \ \ \ \ file-\/>size\ +=\ n;}
+\DoxyCodeLine{00440\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (fflush(file-\/>file)\ !=\ 0)\ \{}
+\DoxyCodeLine{00441\ \ \ \ \ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}fflush"{}});}
+\DoxyCodeLine{00442\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00443\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00444\ \ \ \ \ \}}
+\DoxyCodeLine{00445\ \ \ \ \ \textcolor{keywordflow}{return}\ n;}
+\DoxyCodeLine{00446\ \}}
+\DoxyCodeLine{00447\ }
+\DoxyCodeLine{00448\ \textcolor{keywordtype}{size\_t}\ file\_write\_string(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ str)\ \{}
+\DoxyCodeLine{00449\ \ \ \ \ \textcolor{keywordflow}{if}\ (!file-\/>is\_open)\ \{}
+\DoxyCodeLine{00450\ \ \ \ \ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}File\ is\ not\ open\(\backslash\)n"{}});}
+\DoxyCodeLine{00451\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00452\ \ \ \ \ \}}
+\DoxyCodeLine{00453\ \ \ \ \ \textcolor{keywordflow}{return}\ fwrite(str,\ 1,\ strlen(str),\ file-\/>file);}
+\DoxyCodeLine{00454\ \}}
+\DoxyCodeLine{00455\ }
+\DoxyCodeLine{00456\ \textcolor{comment}{//\ Lock\ a\ file.\ Returns\ true\ if\ successful,\ false\ otherwise}}
+\DoxyCodeLine{00457\ \textcolor{keywordtype}{bool}\ file\_lock(\mbox{\hyperlink{structFile}{File}}*\ file)\ \{}
+\DoxyCodeLine{00458\ \ \ \ \ \textcolor{keywordflow}{if}\ (!file-\/>is\_open)\ \{}
+\DoxyCodeLine{00459\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00460\ \ \ \ \ \}}
+\DoxyCodeLine{00461\ \ \ \ \ \textcolor{keywordflow}{if}\ (file-\/>is\_locked)\ \{}
+\DoxyCodeLine{00462\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00463\ \ \ \ \ \}}
+\DoxyCodeLine{00464\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00465\ \ \ \ \ \textcolor{keywordflow}{if}\ (LockFile(file-\/>handle,\ 0,\ 0,\ file-\/>size,\ 0))\ \{}
+\DoxyCodeLine{00466\ \ \ \ \ \ \ \ \ file-\/>is\_locked\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00467\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00468\ \ \ \ \ \}}
+\DoxyCodeLine{00469\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00470\ \ \ \ \ \textcolor{keyword}{struct\ }flock\ fl;}
+\DoxyCodeLine{00471\ \ \ \ \ fl.l\_type\ \ \ =\ F\_WRLCK;}
+\DoxyCodeLine{00472\ \ \ \ \ fl.l\_whence\ =\ SEEK\_SET;}
+\DoxyCodeLine{00473\ \ \ \ \ fl.l\_start\ \ =\ 0;}
+\DoxyCodeLine{00474\ \ \ \ \ fl.l\_len\ \ \ \ =\ 0;}
+\DoxyCodeLine{00475\ \ \ \ \ \textcolor{keywordflow}{if}\ (fcntl(file-\/>fd,\ F\_SETLK,\ \&fl)\ ==\ 0)\ \{}
+\DoxyCodeLine{00476\ \ \ \ \ \ \ \ \ file-\/>is\_locked\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00477\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00478\ \ \ \ \ \}}
+\DoxyCodeLine{00479\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00480\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00481\ \}}
+\DoxyCodeLine{00482\ }
+\DoxyCodeLine{00483\ \textcolor{comment}{//\ Unlock\ a\ file.\ Returns\ true\ if\ successful,\ false\ otherwise}}
+\DoxyCodeLine{00484\ \textcolor{keywordtype}{bool}\ file\_unlock(\mbox{\hyperlink{structFile}{File}}*\ file)\ \{}
+\DoxyCodeLine{00485\ \ \ \ \ \textcolor{keywordflow}{if}\ (!file-\/>is\_open)\ \{}
+\DoxyCodeLine{00486\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00487\ \ \ \ \ \}}
+\DoxyCodeLine{00488\ \ \ \ \ \textcolor{keywordflow}{if}\ (!file-\/>is\_locked)\ \{}
+\DoxyCodeLine{00489\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00490\ \ \ \ \ \}}
+\DoxyCodeLine{00491\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00492\ \ \ \ \ \textcolor{keywordflow}{if}\ (UnlockFile(file-\/>handle,\ 0,\ 0,\ file-\/>size,\ 0))\ \{}
+\DoxyCodeLine{00493\ \ \ \ \ \ \ \ \ file-\/>is\_locked\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00494\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00495\ \ \ \ \ \}}
+\DoxyCodeLine{00496\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00497\ \ \ \ \ \textcolor{keyword}{struct\ }flock\ fl;}
+\DoxyCodeLine{00498\ \ \ \ \ fl.l\_type\ \ \ =\ F\_UNLCK;}
+\DoxyCodeLine{00499\ \ \ \ \ fl.l\_whence\ =\ SEEK\_SET;}
+\DoxyCodeLine{00500\ \ \ \ \ fl.l\_start\ \ =\ 0;}
+\DoxyCodeLine{00501\ \ \ \ \ fl.l\_len\ \ \ \ =\ 0;}
+\DoxyCodeLine{00502\ \ \ \ \ \textcolor{keywordflow}{if}\ (fcntl(file-\/>fd,\ F\_SETLK,\ \&fl)\ ==\ 0)\ \{}
+\DoxyCodeLine{00503\ \ \ \ \ \ \ \ \ file-\/>is\_locked\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00504\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00505\ \ \ \ \ \}}
+\DoxyCodeLine{00506\ }
+\DoxyCodeLine{00507\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00508\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00509\ \}}
+\DoxyCodeLine{00510\ }
+\DoxyCodeLine{00511\ \textcolor{comment}{//\ file\ seek}}
+\DoxyCodeLine{00512\ \textcolor{keywordtype}{int}\ file\_seek(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keywordtype}{long}\ offset,\ \textcolor{keywordtype}{int}\ origin)\ \{}
+\DoxyCodeLine{00513\ \ \ \ \ \textcolor{keywordflow}{return}\ fseek(file-\/>file,\ offset,\ origin);}
+\DoxyCodeLine{00514\ \}}
+\DoxyCodeLine{00515\ }
+\DoxyCodeLine{00516\ \textcolor{comment}{//\ rewind\ file}}
+\DoxyCodeLine{00517\ \textcolor{keywordtype}{void}\ file\_rewind(\mbox{\hyperlink{structFile}{File}}*\ file)\ \{}
+\DoxyCodeLine{00518\ \ \ \ \ rewind(file-\/>file);}
+\DoxyCodeLine{00519\ \}}
+\DoxyCodeLine{00520\ }
+\DoxyCodeLine{00521\ \textcolor{comment}{//\ file\ remove}}
+\DoxyCodeLine{00522\ \textcolor{keywordtype}{int}\ file\_remove(\mbox{\hyperlink{structFile}{File}}*\ file)\ \{}
+\DoxyCodeLine{00523\ \ \ \ \ \textcolor{keywordflow}{if}\ (file-\/>is\_open)\ \{}
+\DoxyCodeLine{00524\ \ \ \ \ \ \ \ \ fclose(file-\/>file);}
+\DoxyCodeLine{00525\ \ \ \ \ \}}
+\DoxyCodeLine{00526\ }
+\DoxyCodeLine{00527\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ remove(file-\/>filename);}
+\DoxyCodeLine{00528\ \ \ \ \ \textcolor{keywordflow}{if}\ (ret\ ==\ 0)\ \{}
+\DoxyCodeLine{00529\ \ \ \ \ \ \ \ \ file-\/>is\_open\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00530\ \ \ \ \ \}}
+\DoxyCodeLine{00531\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{00532\ \}}
+\DoxyCodeLine{00533\ }
+\DoxyCodeLine{00534\ \textcolor{comment}{//\ file\ rename}}
+\DoxyCodeLine{00535\ \textcolor{keywordtype}{int}\ file\_rename(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ newname)\ \{}
+\DoxyCodeLine{00536\ \ \ \ \ \textcolor{keywordflow}{if}\ (file-\/>is\_open)\ \{}
+\DoxyCodeLine{00537\ \ \ \ \ \ \ \ \ fclose(file-\/>file);}
+\DoxyCodeLine{00538\ \ \ \ \ \}}
+\DoxyCodeLine{00539\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ rename(file-\/>filename,\ newname);}
+\DoxyCodeLine{00540\ \ \ \ \ \textcolor{keywordflow}{if}\ (ret\ ==\ 0)\ \{}
+\DoxyCodeLine{00541\ \ \ \ \ \ \ \ \ free(file-\/>filename);}
+\DoxyCodeLine{00542\ \ \ \ \ \ \ \ \ file-\/>filename\ =\ strdup(newname);}
+\DoxyCodeLine{00543\ \ \ \ \ \}}
+\DoxyCodeLine{00544\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{00545\ \}}
+\DoxyCodeLine{00546\ }
+\DoxyCodeLine{00547\ \textcolor{comment}{//\ file\ copy.\ Bith\ file\ and\ dst\ must\ be\ open}}
+\DoxyCodeLine{00548\ \textcolor{comment}{//\ Returns\ 0\ if\ successful,\ -\/1\ otherwise}}
+\DoxyCodeLine{00549\ \textcolor{comment}{//\ The\ files\ are\ not\ closed\ after\ copying.}}
+\DoxyCodeLine{00550\ \textcolor{comment}{//\ The\ dest\ file\ is\ flushed\ and\ rewinded\ after\ copying.}}
+\DoxyCodeLine{00551\ \textcolor{keywordtype}{int}\ file\_copy(\mbox{\hyperlink{structFile}{File}}*\ file,\ \mbox{\hyperlink{structFile}{File}}*\ dst)\ \{}
+\DoxyCodeLine{00552\ \ \ \ \ \textcolor{keywordtype}{char}\ buffer[BUFSIZ];}
+\DoxyCodeLine{00553\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ bytes;}
+\DoxyCodeLine{00554\ \ \ \ \ \textcolor{keywordflow}{while}\ ((bytes\ =\ file\_read(file,\ buffer,\ 1,\ BUFSIZ))\ >\ 0)\ \{}
+\DoxyCodeLine{00555\ \ \ \ \ \ \ \ \ file\_write(dst,\ buffer,\ 1,\ bytes);}
+\DoxyCodeLine{00556\ \ \ \ \ \}}
+\DoxyCodeLine{00557\ }
+\DoxyCodeLine{00558\ \ \ \ \ \textcolor{comment}{//\ Check\ if\ the\ read\ was\ successful}}
+\DoxyCodeLine{00559\ \ \ \ \ \textcolor{keywordflow}{if}\ (bytes\ <\ 0)\ \{}
+\DoxyCodeLine{00560\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{00561\ \ \ \ \ \}}
+\DoxyCodeLine{00562\ }
+\DoxyCodeLine{00563\ \ \ \ \ \textcolor{comment}{//\ flush\ the\ file}}
+\DoxyCodeLine{00564\ \ \ \ \ fflush(dst-\/>file);}
+\DoxyCodeLine{00565\ \ \ \ \ rewind(dst-\/>file);}
+\DoxyCodeLine{00566\ }
+\DoxyCodeLine{00567\ \ \ \ \ \textcolor{comment}{//\ update\ the\ file\ size}}
+\DoxyCodeLine{00568\ \ \ \ \ dst-\/>size\ =\ file-\/>size;}
+\DoxyCodeLine{00569\ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00570\ \}}
+\DoxyCodeLine{00571\ }
+\DoxyCodeLine{00572\ \textcolor{comment}{//\ Memory\ map\ a\ file.\ Returns\ a\ pointer\ to\ the\ mapped\ memory}}
+\DoxyCodeLine{00573\ \textcolor{comment}{//\ The\ caller\ is\ responsible\ for\ unmapping\ the\ memory}}
+\DoxyCodeLine{00574\ \textcolor{keywordtype}{void}*\ file\_mmap(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keywordtype}{size\_t}\ length)\ \{}
+\DoxyCodeLine{00575\ \ \ \ \ \textcolor{keywordflow}{if}\ (!file-\/>is\_open)\ \{}
+\DoxyCodeLine{00576\ \ \ \ \ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}File\ is\ not\ open\(\backslash\)n"{}});}
+\DoxyCodeLine{00577\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00578\ \ \ \ \ \}}
+\DoxyCodeLine{00579\ \ \ \ \ \textcolor{keywordtype}{void}*\ addr\ =\ NULL;}
+\DoxyCodeLine{00580\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00581\ \ \ \ \ HANDLE\ hMapFile\ =\ CreateFileMapping(file-\/>handle,\ NULL,\ PAGE\_READWRITE,\ 0,\ length,\ NULL);}
+\DoxyCodeLine{00582\ \ \ \ \ \textcolor{keywordflow}{if}\ (hMapFile\ ==\ NULL)\ \{}
+\DoxyCodeLine{00583\ \ \ \ \ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}CreateFileMapping\ failed\(\backslash\)n"{}});}
+\DoxyCodeLine{00584\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00585\ \ \ \ \ \}}
+\DoxyCodeLine{00586\ \ \ \ \ addr\ =\ MapViewOfFile(hMapFile,\ FILE\_MAP\_ALL\_ACCESS,\ 0,\ 0,\ length);}
+\DoxyCodeLine{00587\ \ \ \ \ CloseHandle(hMapFile);}
+\DoxyCodeLine{00588\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00589\ \ \ \ \ addr\ =\ mmap(NULL,\ length,\ PROT\_READ\ |\ PROT\_WRITE,\ MAP\_SHARED,\ file-\/>fd,\ 0);}
+\DoxyCodeLine{00590\ \ \ \ \ \textcolor{keywordflow}{if}\ (addr\ ==\ MAP\_FAILED)\ \{}
+\DoxyCodeLine{00591\ \ \ \ \ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}mmap\ failed\(\backslash\)n"{}});}
+\DoxyCodeLine{00592\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00593\ \ \ \ \ \}}
+\DoxyCodeLine{00594\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00595\ \ \ \ \ \textcolor{keywordflow}{return}\ addr;}
+\DoxyCodeLine{00596\ \}}
+\DoxyCodeLine{00597\ }
+\DoxyCodeLine{00598\ \textcolor{comment}{//\ Unmap\ a\ memory\ mapped\ file}}
+\DoxyCodeLine{00599\ \textcolor{keywordtype}{int}\ file\_munmap(\textcolor{keywordtype}{void}*\ addr,\ \textcolor{keywordtype}{size\_t}\ length)\ \{}
+\DoxyCodeLine{00600\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{00601\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00602\ \ \ \ \ ret\ =\ UnmapViewOfFile(addr);}
+\DoxyCodeLine{00603\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00604\ \ \ \ \ ret\ =\ munmap(addr,\ length);}
+\DoxyCodeLine{00605\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00606\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{00607\ \}}
+\DoxyCodeLine{00608\ }
+\DoxyCodeLine{00609\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00610\ \textcolor{comment}{//\ Read\ from\ a\ file\ asynchronously}}
+\DoxyCodeLine{00611\ \textcolor{comment}{//\ Returns\ the\ number\ of\ bytes\ read\ or\ -\/1\ on\ error}}
+\DoxyCodeLine{00612\ DWORD\ file\_aread(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size,\ off\_t\ offset)\ \{}
+\DoxyCodeLine{00613\ \ \ \ \ DWORD\ dwBytesRead;}
+\DoxyCodeLine{00614\ \ \ \ \ OVERLAPPED\ overlapped;}
+\DoxyCodeLine{00615\ \ \ \ \ BOOL\ bResult;}
+\DoxyCodeLine{00616\ }
+\DoxyCodeLine{00617\ \ \ \ \ \textcolor{keywordflow}{if}\ (!file-\/>is\_open)\ \{}
+\DoxyCodeLine{00618\ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}File\ is\ not\ open!\(\backslash\)n"{}});}
+\DoxyCodeLine{00619\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{00620\ \ \ \ \ \}}
+\DoxyCodeLine{00621\ }
+\DoxyCodeLine{00622\ \ \ \ \ ZeroMemory(\&overlapped,\ \textcolor{keyword}{sizeof}(overlapped));}
+\DoxyCodeLine{00623\ \ \ \ \ overlapped.Offset\ \ \ \ \ =\ (DWORD)offset;}
+\DoxyCodeLine{00624\ \ \ \ \ overlapped.OffsetHigh\ =\ (DWORD)((DWORDLONG)offset\ >>\ 32);\ \ \textcolor{comment}{//\ Set\ the\ high\ part\ of\ offset}}
+\DoxyCodeLine{00625\ }
+\DoxyCodeLine{00626\ \ \ \ \ overlapped.hEvent\ =\ CreateEvent(NULL,\ TRUE,\ FALSE,\ NULL);}
+\DoxyCodeLine{00627\ \ \ \ \ \textcolor{keywordflow}{if}\ (overlapped.hEvent\ ==\ NULL)\ \{}
+\DoxyCodeLine{00628\ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}Error\ creating\ event!\(\backslash\)n"{}});}
+\DoxyCodeLine{00629\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{00630\ \ \ \ \ \}}
+\DoxyCodeLine{00631\ }
+\DoxyCodeLine{00632\ \ \ \ \ bResult\ =\ ReadFile(file-\/>handle,\ buffer,\ size,\ \&dwBytesRead,\ \&overlapped);}
+\DoxyCodeLine{00633\ \ \ \ \ \textcolor{keywordflow}{if}\ (!bResult)\ \{}
+\DoxyCodeLine{00634\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (GetLastError()\ ==\ ERROR\_IO\_PENDING)\ \{}
+\DoxyCodeLine{00635\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ printf("{}Read\ operation\ is\ pending...\(\backslash\)n"{});}}
+\DoxyCodeLine{00636\ \ \ \ \ \ \ \ \ \ \ \ \ GetOverlappedResult(file-\/>handle,\ \&overlapped,\ \&dwBytesRead,\ TRUE);}
+\DoxyCodeLine{00637\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ printf("{}Read\ completed\ asynchronously!\(\backslash\)n"{});}}
+\DoxyCodeLine{00638\ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00639\ \ \ \ \ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}Error\ reading\ file:\ \%ld\(\backslash\)n"{}},\ GetLastError());}
+\DoxyCodeLine{00640\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00641\ \ \ \ \ \}}
+\DoxyCodeLine{00642\ }
+\DoxyCodeLine{00643\ \ \ \ \ CloseHandle(overlapped.hEvent);}
+\DoxyCodeLine{00644\ \ \ \ \ \textcolor{keywordflow}{return}\ dwBytesRead;}
+\DoxyCodeLine{00645\ \}}
+\DoxyCodeLine{00646\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00647\ \textcolor{comment}{//\ Read\ from\ a\ file\ asynchronously}}
+\DoxyCodeLine{00648\ \textcolor{comment}{//\ Returns\ the\ number\ of\ bytes\ read\ or\ -\/1\ on\ error}}
+\DoxyCodeLine{00649\ ssize\_t\ file\_aread(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size,\ off\_t\ offset)\ \{}
+\DoxyCodeLine{00650\ \ \ \ \ \textcolor{keywordflow}{if}\ (!file-\/>is\_open)\ \{}
+\DoxyCodeLine{00651\ \ \ \ \ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}File\ is\ not\ open\(\backslash\)n"{}});}
+\DoxyCodeLine{00652\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{00653\ \ \ \ \ \}}
+\DoxyCodeLine{00654\ \ \ \ \ ssize\_t\ bytes\ =\ -\/1;}
+\DoxyCodeLine{00655\ \ \ \ \ bytes\ \ \ \ \ \ \ \ \ =\ pread(file-\/>fd,\ buffer,\ size,\ offset);}
+\DoxyCodeLine{00656\ \ \ \ \ \textcolor{keywordflow}{return}\ bytes;}
+\DoxyCodeLine{00657\ \}}
+\DoxyCodeLine{00658\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00659\ }
+\DoxyCodeLine{00660\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00661\ DWORD\ file\_awrite(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size,\ off\_t\ offset)\ \{}
+\DoxyCodeLine{00662\ \ \ \ \ DWORD\ dwBytesWritten;}
+\DoxyCodeLine{00663\ \ \ \ \ OVERLAPPED\ overlapped;}
+\DoxyCodeLine{00664\ \ \ \ \ BOOL\ bResult;}
+\DoxyCodeLine{00665\ }
+\DoxyCodeLine{00666\ \ \ \ \ \textcolor{keywordflow}{if}\ (!file-\/>is\_open)\ \{}
+\DoxyCodeLine{00667\ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}File\ is\ not\ open!\(\backslash\)n"{}});}
+\DoxyCodeLine{00668\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{00669\ \ \ \ \ \}}
+\DoxyCodeLine{00670\ }
+\DoxyCodeLine{00671\ \ \ \ \ ZeroMemory(\&overlapped,\ \textcolor{keyword}{sizeof}(overlapped));}
+\DoxyCodeLine{00672\ \ \ \ \ overlapped.Offset\ \ \ \ \ =\ (DWORD)offset;}
+\DoxyCodeLine{00673\ \ \ \ \ overlapped.OffsetHigh\ =\ (DWORD)((DWORDLONG)offset\ >>\ 32);\ \ \textcolor{comment}{//\ Set\ the\ high\ part\ of\ offset}}
+\DoxyCodeLine{00674\ }
+\DoxyCodeLine{00675\ \ \ \ \ overlapped.hEvent\ =\ CreateEvent(NULL,\ TRUE,\ FALSE,\ NULL);}
+\DoxyCodeLine{00676\ \ \ \ \ \textcolor{keywordflow}{if}\ (overlapped.hEvent\ ==\ NULL)\ \{}
+\DoxyCodeLine{00677\ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}Error\ creating\ event!\(\backslash\)n"{}});}
+\DoxyCodeLine{00678\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{00679\ \ \ \ \ \}}
+\DoxyCodeLine{00680\ }
+\DoxyCodeLine{00681\ \ \ \ \ bResult\ =\ WriteFile(file-\/>handle,\ buffer,\ size,\ \&dwBytesWritten,\ \&overlapped);}
+\DoxyCodeLine{00682\ \ \ \ \ \textcolor{keywordflow}{if}\ (!bResult)\ \{}
+\DoxyCodeLine{00683\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (GetLastError()\ ==\ ERROR\_IO\_PENDING)\ \{}
+\DoxyCodeLine{00684\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ printf("{}Write\ operation\ is\ pending...\(\backslash\)n"{});}}
+\DoxyCodeLine{00685\ \ \ \ \ \ \ \ \ \ \ \ \ GetOverlappedResult(file-\/>handle,\ \&overlapped,\ \&dwBytesWritten,\ TRUE);}
+\DoxyCodeLine{00686\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ printf("{}Write\ completed\ asynchronously!\(\backslash\)n"{});}}
+\DoxyCodeLine{00687\ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00688\ \ \ \ \ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}Error\ writing\ file:\ \%ld\(\backslash\)n"{}},\ GetLastError());}
+\DoxyCodeLine{00689\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00690\ \ \ \ \ \}}
+\DoxyCodeLine{00691\ }
+\DoxyCodeLine{00692\ \ \ \ \ CloseHandle(overlapped.hEvent);}
+\DoxyCodeLine{00693\ }
+\DoxyCodeLine{00694\ \ \ \ \ \textcolor{keywordflow}{return}\ dwBytesWritten;}
+\DoxyCodeLine{00695\ \}}
+\DoxyCodeLine{00696\ }
+\DoxyCodeLine{00697\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00698\ ssize\_t\ file\_awrite(\mbox{\hyperlink{structFile}{File}}*\ file,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size,\ off\_t\ offset)\ \{}
+\DoxyCodeLine{00699\ \ \ \ \ ssize\_t\ bytes\ =\ -\/1;}
+\DoxyCodeLine{00700\ \ \ \ \ bytes\ \ \ \ \ \ \ \ \ =\ pwrite(file-\/>fd,\ buffer,\ size,\ offset);}
+\DoxyCodeLine{00701\ \ \ \ \ \textcolor{keywordflow}{return}\ bytes;}
+\DoxyCodeLine{00702\ \}}
+\DoxyCodeLine{00703\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00704\ }
+\DoxyCodeLine{00705\ \textcolor{comment}{//\ filepath\ related\ functions}}
+\DoxyCodeLine{00706\ \textcolor{keywordtype}{void}\ filepath\_basename(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keywordtype}{char}*\ basename,\ \textcolor{keywordtype}{size\_t}\ size)\ \{}
+\DoxyCodeLine{00707\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ base\ =\ strrchr(path,\ \textcolor{charliteral}{'/'});\ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{00708\ \ \ \ \ \textcolor{keywordflow}{if}\ (!base)\ \{}
+\DoxyCodeLine{00709\ \ \ \ \ \ \ \ \ base\ =\ strrchr(path,\ \textcolor{charliteral}{'\(\backslash\)\(\backslash\)'});\ \ \textcolor{comment}{//\ Windows}}
+\DoxyCodeLine{00710\ \ \ \ \ \}}
+\DoxyCodeLine{00711\ \ \ \ \ \textcolor{keywordflow}{if}\ (!base)\ \{}
+\DoxyCodeLine{00712\ \ \ \ \ \ \ \ \ base\ =\ path;}
+\DoxyCodeLine{00713\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00714\ \ \ \ \ \ \ \ \ base++;\ \ \textcolor{comment}{//\ Skip\ the\ slash}}
+\DoxyCodeLine{00715\ \ \ \ \ \}}
+\DoxyCodeLine{00716\ \ \ \ \ strncpy(basename,\ base,\ size\ -\/\ 1);}
+\DoxyCodeLine{00717\ \ \ \ \ basename[size\ -\/\ 1]\ =\ \textcolor{charliteral}{'\(\backslash\)0'};}
+\DoxyCodeLine{00718\ \}}
+\DoxyCodeLine{00719\ }
+\DoxyCodeLine{00720\ \textcolor{comment}{//\ Get\ the\ directory\ name\ of\ a\ path}}
+\DoxyCodeLine{00721\ \textcolor{keywordtype}{void}\ filepath\_dirname(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keywordtype}{char}*\ dirname,\ \textcolor{keywordtype}{size\_t}\ size)\ \{}
+\DoxyCodeLine{00722\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ base\ =\ strrchr(path,\ \textcolor{charliteral}{'/'});\ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{00723\ \ \ \ \ \textcolor{keywordflow}{if}\ (!base)\ \{}
+\DoxyCodeLine{00724\ \ \ \ \ \ \ \ \ base\ =\ strrchr(path,\ \textcolor{charliteral}{'\(\backslash\)\(\backslash\)'});\ \ \textcolor{comment}{//\ Windows}}
+\DoxyCodeLine{00725\ \ \ \ \ \}}
+\DoxyCodeLine{00726\ \ \ \ \ \textcolor{keywordflow}{if}\ (!base)\ \{}
+\DoxyCodeLine{00727\ \ \ \ \ \ \ \ \ dirname[0]\ =\ \textcolor{charliteral}{'\(\backslash\)0'};}
+\DoxyCodeLine{00728\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00729\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ len\ =\ base\ -\/\ path;}
+\DoxyCodeLine{00730\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (len\ >=\ size)\ \{}
+\DoxyCodeLine{00731\ \ \ \ \ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}Warning:\ dirname\ buffer\ is\ too\ small\(\backslash\)n"{}});}
+\DoxyCodeLine{00732\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00733\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00734\ }
+\DoxyCodeLine{00735\ \ \ \ \ \ \ \ \ strncpy(dirname,\ path,\ len);}
+\DoxyCodeLine{00736\ \ \ \ \ \ \ \ \ dirname[len]\ =\ \textcolor{charliteral}{'\(\backslash\)0'};}
+\DoxyCodeLine{00737\ \ \ \ \ \}}
+\DoxyCodeLine{00738\ \}}
+\DoxyCodeLine{00739\ }
+\DoxyCodeLine{00740\ \textcolor{comment}{//\ Get\ the\ file\ extension}}
+\DoxyCodeLine{00741\ \textcolor{keywordtype}{void}\ filepath\_extension(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keywordtype}{char}*\ ext,\ \textcolor{keywordtype}{size\_t}\ size)\ \{}
+\DoxyCodeLine{00742\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ dot\ =\ strrchr(path,\ \textcolor{charliteral}{'.'});}
+\DoxyCodeLine{00743\ \ \ \ \ \textcolor{keywordflow}{if}\ (!dot)\ \{}
+\DoxyCodeLine{00744\ \ \ \ \ \ \ \ \ ext[0]\ =\ \textcolor{charliteral}{'\(\backslash\)0'};}
+\DoxyCodeLine{00745\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00746\ \ \ \ \ \ \ \ \ strncpy(ext,\ dot,\ size);}
+\DoxyCodeLine{00747\ \ \ \ \ \}}
+\DoxyCodeLine{00748\ \}}
+\DoxyCodeLine{00749\ }
+\DoxyCodeLine{00750\ \textcolor{comment}{//\ Get\ the\ file\ name(basename)\ without\ the\ extension}}
+\DoxyCodeLine{00751\ \textcolor{keywordtype}{void}\ filepath\_nameonly(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keywordtype}{char}*\ name,\ \textcolor{keywordtype}{size\_t}\ size)\ \{}
+\DoxyCodeLine{00752\ \ \ \ \ \textcolor{keywordtype}{char}\ base[FILENAME\_MAX];}
+\DoxyCodeLine{00753\ \ \ \ \ filepath\_basename(path,\ base,\ FILENAME\_MAX);}
+\DoxyCodeLine{00754\ \ \ \ \ \textcolor{keywordtype}{char}*\ dot\ =\ strrchr(base,\ \textcolor{charliteral}{'.'});}
+\DoxyCodeLine{00755\ \ \ \ \ \textcolor{keywordflow}{if}\ (!dot)\ \{}
+\DoxyCodeLine{00756\ \ \ \ \ \ \ \ \ strncpy(name,\ base,\ size);}
+\DoxyCodeLine{00757\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00758\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ len\ =\ dot\ -\/\ base;}
+\DoxyCodeLine{00759\ \ \ \ \ \ \ \ \ strncpy(name,\ base,\ len);}
+\DoxyCodeLine{00760\ \ \ \ \ \ \ \ \ name[len]\ =\ \textcolor{charliteral}{'\(\backslash\)0'};}
+\DoxyCodeLine{00761\ \ \ \ \ \}}
+\DoxyCodeLine{00762\ \}}
+\DoxyCodeLine{00763\ }
+\DoxyCodeLine{00764\ \textcolor{comment}{//\ Get\ the\ absolute\ path\ of\ a\ file.\ path\ must\ be\ a\ valid\ path.}}
+\DoxyCodeLine{00765\ \textcolor{comment}{//\ Returns\ a\ pointer\ to\ the\ absolute\ path\ or\ NULL\ on\ error.}}
+\DoxyCodeLine{00766\ \textcolor{comment}{//\ The\ caller\ is\ responsible\ for\ freeing\ the\ memory}}
+\DoxyCodeLine{00767\ \textcolor{keywordtype}{char}*\ filepath\_absolute(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \{}
+\DoxyCodeLine{00768\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00769\ \ \ \ \ \textcolor{keywordtype}{char}*\ abs\ =\ \_fullpath(NULL,\ path,\ 0);}
+\DoxyCodeLine{00770\ \ \ \ \ \textcolor{keywordflow}{if}\ (!abs)\ \{}
+\DoxyCodeLine{00771\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}\_fullpath"{}});}
+\DoxyCodeLine{00772\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00773\ \ \ \ \ \}}
+\DoxyCodeLine{00774\ \ \ \ \ \textcolor{keywordflow}{return}\ abs;}
+\DoxyCodeLine{00775\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00776\ \ \ \ \ \textcolor{keywordtype}{char}*\ abs\ =\ realpath(path,\ NULL);}
+\DoxyCodeLine{00777\ \ \ \ \ \textcolor{keywordflow}{if}\ (!abs)\ \{}
+\DoxyCodeLine{00778\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}realpath"{}});}
+\DoxyCodeLine{00779\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00780\ \ \ \ \ \}}
+\DoxyCodeLine{00781\ \ \ \ \ \textcolor{keywordflow}{return}\ abs;}
+\DoxyCodeLine{00782\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00783\ \}}
+\DoxyCodeLine{00784\ }
+\DoxyCodeLine{00785\ \textcolor{comment}{//\ Get\ the\ current\ working\ directory}}
+\DoxyCodeLine{00786\ \textcolor{keywordtype}{char}*\ get\_cwd()\ \{}
+\DoxyCodeLine{00787\ \ \ \ \ \textcolor{keywordtype}{char}*\ cwd\ =\ NULL;}
+\DoxyCodeLine{00788\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00789\ \ \ \ \ cwd\ =\ \_getcwd(NULL,\ 0);}
+\DoxyCodeLine{00790\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00791\ \ \ \ \ cwd\ =\ getcwd(NULL,\ 0);}
+\DoxyCodeLine{00792\ \ \ \ \ \textcolor{keywordflow}{if}\ (!cwd)\ \{}
+\DoxyCodeLine{00793\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}getcwd"{}});}
+\DoxyCodeLine{00794\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00795\ \ \ \ \ \}}
+\DoxyCodeLine{00796\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00797\ \ \ \ \ \textcolor{keywordflow}{return}\ cwd;}
+\DoxyCodeLine{00798\ \}}
+\DoxyCodeLine{00799\ }
+\DoxyCodeLine{00800\ \textcolor{comment}{//\ Remove\ a\ file}}
+\DoxyCodeLine{00801\ \textcolor{keywordtype}{int}\ filepath\_remove(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \{}
+\DoxyCodeLine{00802\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{00803\ \textcolor{preprocessor}{\#ifdef\ \_WIN}}
+\DoxyCodeLine{00804\ \ \ \ \ ret\ =\ \_unlink(path);}
+\DoxyCodeLine{00805\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00806\ \ \ \ \ ret\ =\ unlink(path);}
+\DoxyCodeLine{00807\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00808\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{00809\ \}}
+\DoxyCodeLine{00810\ }
+\DoxyCodeLine{00811\ \textcolor{comment}{//\ Rename\ a\ file}}
+\DoxyCodeLine{00812\ \textcolor{keywordtype}{int}\ filepath\_rename(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ oldpath,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ newpath)\ \{}
+\DoxyCodeLine{00813\ \ \ \ \ \textcolor{keywordflow}{return}\ rename(oldpath,\ newpath);}
+\DoxyCodeLine{00814\ \}}
+\DoxyCodeLine{00815\ }
+\DoxyCodeLine{00816\ \textcolor{comment}{//\ expand\ user\ home\ directory}}
+\DoxyCodeLine{00817\ \textcolor{keywordtype}{char}*\ filepath\_expanduser(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \{}
+\DoxyCodeLine{00818\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00819\ \ \ \ \ \textcolor{keywordtype}{char}*\ home\ =\ getenv(\textcolor{stringliteral}{"{}USERPROFILE"{}});}
+\DoxyCodeLine{00820\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00821\ \ \ \ \ \textcolor{keywordtype}{char}*\ home\ =\ (\textcolor{keywordtype}{char}*)secure\_getenv(\textcolor{stringliteral}{"{}HOME"{}});}
+\DoxyCodeLine{00822\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00823\ \ \ \ \ \textcolor{keywordflow}{if}\ (!home)\ \{}
+\DoxyCodeLine{00824\ \ \ \ \ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}USERPROFILE/HOME\ environment\ variable\ not\ set\(\backslash\)n"{}});}
+\DoxyCodeLine{00825\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00826\ \ \ \ \ \}}
+\DoxyCodeLine{00827\ }
+\DoxyCodeLine{00828\ \ \ \ \ \textcolor{comment}{//\ If\ the\ path\ is\ not\ a\ home\ directory\ path,\ return\ it\ as\ is}}
+\DoxyCodeLine{00829\ \ \ \ \ \textcolor{keywordflow}{if}\ (path[0]\ !=\ \textcolor{charliteral}{'\string~'})\ \{}
+\DoxyCodeLine{00830\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ strdup(path);}
+\DoxyCodeLine{00831\ \ \ \ \ \}}
+\DoxyCodeLine{00832\ }
+\DoxyCodeLine{00833\ \ \ \ \ \textcolor{comment}{//\ If\ path\ is\ just\ "{}\string~"{}\ or\ \string~/,\ return\ the\ home\ directory}}
+\DoxyCodeLine{00834\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ pathLen\ =\ strlen(path);}
+\DoxyCodeLine{00835\ \ \ \ \ \textcolor{keywordtype}{bool}\ isHome\ \ \ \ =\ pathLen\ ==\ 1\ ||\ (pathLen\ ==\ 2\ \&\&\ path[1]\ ==\ \textcolor{charliteral}{'/'});}
+\DoxyCodeLine{00836\ \ \ \ \ \textcolor{keywordflow}{if}\ (isHome)\ \{}
+\DoxyCodeLine{00837\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ strdup(home);}
+\DoxyCodeLine{00838\ \ \ \ \ \}}
+\DoxyCodeLine{00839\ }
+\DoxyCodeLine{00840\ \ \ \ \ \textcolor{comment}{//\ 1\ for\ the\ separator\ and\ 1\ for\ the\ null\ terminator}}
+\DoxyCodeLine{00841\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ len\ =\ strlen(home)\ +\ pathLen\ +\ 2;}
+\DoxyCodeLine{00842\ }
+\DoxyCodeLine{00843\ \ \ \ \ \textcolor{comment}{//\ Allocate\ memory\ for\ the\ expanded\ path}}
+\DoxyCodeLine{00844\ \ \ \ \ \textcolor{keywordtype}{char}*\ expanded\ =\ (\textcolor{keywordtype}{char}*)malloc(len);}
+\DoxyCodeLine{00845\ \ \ \ \ \textcolor{keywordflow}{if}\ (!expanded)\ \{}
+\DoxyCodeLine{00846\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}malloc"{}});}
+\DoxyCodeLine{00847\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00848\ \ \ \ \ \}}
+\DoxyCodeLine{00849\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00850\ \ \ \ \ \_snprintf(expanded,\ len,\ \textcolor{stringliteral}{"{}\%s\(\backslash\)\(\backslash\)\%s"{}},\ home,\ path);}
+\DoxyCodeLine{00851\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00852\ \ \ \ \ snprintf(expanded,\ len,\ \textcolor{stringliteral}{"{}\%s/\%s"{}},\ home,\ path);}
+\DoxyCodeLine{00853\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00854\ \ \ \ \ \textcolor{keywordflow}{return}\ expanded;}
+\DoxyCodeLine{00855\ \}}
+\DoxyCodeLine{00856\ }
+\DoxyCodeLine{00857\ \textcolor{comment}{//\ join\ path}}
+\DoxyCodeLine{00858\ \textcolor{keywordtype}{char}*\ filepath\_join(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path1,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path2)\ \{}
+\DoxyCodeLine{00859\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ len\ =}
+\DoxyCodeLine{00860\ \ \ \ \ \ \ \ \ strlen(path1)\ +\ strlen(path2)\ +\ 2;\ \ \textcolor{comment}{//\ 1\ for\ the\ separator\ and\ 1\ for\ the\ null\ terminator}}
+\DoxyCodeLine{00861\ \ \ \ \ \textcolor{keywordtype}{char}*\ joined\ =\ (\textcolor{keywordtype}{char}*)malloc(len);}
+\DoxyCodeLine{00862\ \ \ \ \ \textcolor{keywordflow}{if}\ (!joined)\ \{}
+\DoxyCodeLine{00863\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}malloc"{}});}
+\DoxyCodeLine{00864\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00865\ \ \ \ \ \}}
+\DoxyCodeLine{00866\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00867\ \ \ \ \ \_snprintf(joined,\ len,\ \textcolor{stringliteral}{"{}\%s\(\backslash\)\(\backslash\)\%s"{}},\ path1,\ path2);}
+\DoxyCodeLine{00868\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00869\ \ \ \ \ snprintf(joined,\ len,\ \textcolor{stringliteral}{"{}\%s/\%s"{}},\ path1,\ path2);}
+\DoxyCodeLine{00870\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00871\ \ \ \ \ \textcolor{keywordflow}{return}\ joined;}
+\DoxyCodeLine{00872\ \}}
+\DoxyCodeLine{00873\ }
+\DoxyCodeLine{00874\ \textcolor{comment}{/*}}
+\DoxyCodeLine{00875\ \textcolor{comment}{\ *\ Split\ a\ file\ path\ into\ directory\ and\ file\ name.}}
+\DoxyCodeLine{00876\ \textcolor{comment}{\ *\ The\ dir\ and\ name\ parameters\ must\ be\ pre-\/allocated\ buffers\ or\ pointers\ to\ pre-\/allocated}}
+\DoxyCodeLine{00877\ \textcolor{comment}{\ *\ buffers.\ dir\_size\ and\ name\_size\ are\ the\ size\ of\ the\ dir\ and\ name\ buffers.}}
+\DoxyCodeLine{00878\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00879\ \textcolor{keywordtype}{void}\ filepath\_split(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keywordtype}{char}*\ dir,\ \textcolor{keywordtype}{char}*\ name,\ \textcolor{keywordtype}{size\_t}\ dir\_size,\ \textcolor{keywordtype}{size\_t}\ name\_size)\ \{}
+\DoxyCodeLine{00880\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ p\ =\ strrchr(path,\ \textcolor{charliteral}{'/'});}
+\DoxyCodeLine{00881\ \ \ \ \ \textcolor{keywordflow}{if}\ (!p)\ \{}
+\DoxyCodeLine{00882\ \ \ \ \ \ \ \ \ p\ =\ strrchr(path,\ \textcolor{charliteral}{'\(\backslash\)\(\backslash\)'});}
+\DoxyCodeLine{00883\ \ \ \ \ \}}
+\DoxyCodeLine{00884\ }
+\DoxyCodeLine{00885\ \ \ \ \ \textcolor{keywordflow}{if}\ (!p)\ \{}
+\DoxyCodeLine{00886\ \ \ \ \ \ \ \ \ dir[0]\ =\ \textcolor{charliteral}{'\(\backslash\)0'};}
+\DoxyCodeLine{00887\ \ \ \ \ \ \ \ \ strncpy(name,\ path,\ name\_size);}
+\DoxyCodeLine{00888\ \ \ \ \ \ \ \ \ name[name\_size\ -\/\ 1]\ =\ \textcolor{charliteral}{'\(\backslash\)0'};\ \ \textcolor{comment}{//\ Ensure\ null-\/termination}}
+\DoxyCodeLine{00889\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00890\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ len\ =\ p\ -\/\ path;}
+\DoxyCodeLine{00891\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (len\ >=\ dir\_size)\ \{}
+\DoxyCodeLine{00892\ \ \ \ \ \ \ \ \ \ \ \ \ len\ =\ dir\_size\ -\/\ 1;}
+\DoxyCodeLine{00893\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00894\ \ \ \ \ \ \ \ \ strncpy(dir,\ path,\ len);}
+\DoxyCodeLine{00895\ \ \ \ \ \ \ \ \ dir[len]\ =\ \textcolor{charliteral}{'\(\backslash\)0'};}
+\DoxyCodeLine{00896\ \ \ \ \ \ \ \ \ strncpy(name,\ p\ +\ 1,\ name\_size);}
+\DoxyCodeLine{00897\ \ \ \ \ \ \ \ \ name[name\_size\ -\/\ 1]\ =\ \textcolor{charliteral}{'\(\backslash\)0'};\ \ \textcolor{comment}{//\ Ensure\ null-\/termination}}
+\DoxyCodeLine{00898\ \ \ \ \ \}}
+\DoxyCodeLine{00899\ \}}
+\DoxyCodeLine{00900\ }
+\DoxyCodeLine{00901\ \textcolor{comment}{//\ \ =====\ Directory\ related\ functions\ =====}}
+\DoxyCodeLine{00902\ }
+\DoxyCodeLine{00903\ \textcolor{comment}{//\ Open\ a\ directory}}
+\DoxyCodeLine{00904\ \mbox{\hyperlink{structDirectory}{Directory}}*\ dir\_open(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \{}
+\DoxyCodeLine{00905\ \ \ \ \ \mbox{\hyperlink{structDirectory}{Directory}}*\ dir\ =\ (\mbox{\hyperlink{structDirectory}{Directory}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structDirectory}{Directory}}));}
+\DoxyCodeLine{00906\ \ \ \ \ \textcolor{keywordflow}{if}\ (!dir)\ \{}
+\DoxyCodeLine{00907\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}malloc"{}});}
+\DoxyCodeLine{00908\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00909\ \ \ \ \ \}}
+\DoxyCodeLine{00910\ \ \ \ \ dir-\/>path\ =\ strdup(path);}
+\DoxyCodeLine{00911\ \ \ \ \ \textcolor{keywordflow}{if}\ (!dir-\/>path)\ \{}
+\DoxyCodeLine{00912\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}strdup"{}});}
+\DoxyCodeLine{00913\ \ \ \ \ \ \ \ \ free(dir);}
+\DoxyCodeLine{00914\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00915\ \ \ \ \ \}}
+\DoxyCodeLine{00916\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00917\ \ \ \ \ \textcolor{keywordtype}{char}\ search\_path[FILENAME\_MAX];}
+\DoxyCodeLine{00918\ \ \ \ \ \_snprintf(search\_path,\ FILENAME\_MAX,\ \textcolor{stringliteral}{"{}\%s\(\backslash\)\(\backslash\)*"{}},\ path);}
+\DoxyCodeLine{00919\ \ \ \ \ dir-\/>handle\ =\ FindFirstFileA(search\_path,\ \&dir-\/>find\_data);}
+\DoxyCodeLine{00920\ \ \ \ \ \textcolor{keywordflow}{if}\ (dir-\/>handle\ ==\ INVALID\_HANDLE\_VALUE)\ \{}
+\DoxyCodeLine{00921\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}FindFirstFileA"{}});}
+\DoxyCodeLine{00922\ \ \ \ \ \ \ \ \ free(dir-\/>path);}
+\DoxyCodeLine{00923\ \ \ \ \ \ \ \ \ free(dir);}
+\DoxyCodeLine{00924\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00925\ \ \ \ \ \}}
+\DoxyCodeLine{00926\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00927\ \ \ \ \ dir-\/>dir\ =\ opendir(path);}
+\DoxyCodeLine{00928\ \ \ \ \ \textcolor{keywordflow}{if}\ (!dir-\/>dir)\ \{}
+\DoxyCodeLine{00929\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}opendir"{}});}
+\DoxyCodeLine{00930\ \ \ \ \ \ \ \ \ free(dir-\/>path);}
+\DoxyCodeLine{00931\ \ \ \ \ \ \ \ \ free(dir);}
+\DoxyCodeLine{00932\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00933\ \ \ \ \ \}}
+\DoxyCodeLine{00934\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00935\ \ \ \ \ \textcolor{keywordflow}{return}\ dir;}
+\DoxyCodeLine{00936\ \}}
+\DoxyCodeLine{00937\ }
+\DoxyCodeLine{00938\ \textcolor{comment}{//\ Close\ a\ directory}}
+\DoxyCodeLine{00939\ \textcolor{keywordtype}{void}\ dir\_close(\mbox{\hyperlink{structDirectory}{Directory}}*\ dir)\ \{}
+\DoxyCodeLine{00940\ \ \ \ \ \textcolor{keywordflow}{if}\ (dir)\ \{}
+\DoxyCodeLine{00941\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00942\ \ \ \ \ \ \ \ \ FindClose(dir-\/>handle);}
+\DoxyCodeLine{00943\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00944\ \ \ \ \ \ \ \ \ closedir(dir-\/>dir);}
+\DoxyCodeLine{00945\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00946\ \ \ \ \ \ \ \ \ free(dir-\/>path);}
+\DoxyCodeLine{00947\ \ \ \ \ \ \ \ \ free(dir);}
+\DoxyCodeLine{00948\ \ \ \ \ \}}
+\DoxyCodeLine{00949\ \}}
+\DoxyCodeLine{00950\ }
+\DoxyCodeLine{00951\ \textcolor{comment}{//\ Read\ the\ next\ entry\ in\ the\ directory.}}
+\DoxyCodeLine{00952\ \textcolor{comment}{//\ Returns\ the\ name\ of\ the\ next\ entry\ (not\ allocated\ on\ the\ heap)}}
+\DoxyCodeLine{00953\ \textcolor{comment}{//\ or\ NULL\ if\ there\ are\ no\ more\ entries}}
+\DoxyCodeLine{00954\ \textcolor{keywordtype}{char}*\ dir\_next(\mbox{\hyperlink{structDirectory}{Directory}}*\ dir)\ \{}
+\DoxyCodeLine{00955\ \ \ \ \ \textcolor{keywordflow}{if}\ (!dir)\ \{}
+\DoxyCodeLine{00956\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00957\ \ \ \ \ \}}
+\DoxyCodeLine{00958\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00959\ \ \ \ \ \textcolor{keywordflow}{if}\ (FindNextFileA(dir-\/>handle,\ \&dir-\/>find\_data))\ \{}
+\DoxyCodeLine{00960\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ dir-\/>find\_data.cFileName;}
+\DoxyCodeLine{00961\ \ \ \ \ \}}
+\DoxyCodeLine{00962\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00963\ \ \ \ \ \textcolor{keyword}{struct\ }dirent*\ \mbox{\hyperlink{structentry}{entry}}\ =\ readdir(dir-\/>dir);}
+\DoxyCodeLine{00964\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structentry}{entry}})\ \{}
+\DoxyCodeLine{00965\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structentry}{entry}}-\/>d\_name;}
+\DoxyCodeLine{00966\ \ \ \ \ \}}
+\DoxyCodeLine{00967\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00968\ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00969\ \}}
+\DoxyCodeLine{00970\ }
+\DoxyCodeLine{00971\ \textcolor{comment}{//\ Create\ a\ directory.\ Returns\ 0\ if\ successful,\ -\/1\ otherwise}}
+\DoxyCodeLine{00972\ \textcolor{keywordtype}{int}\ dir\_create(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \{}
+\DoxyCodeLine{00973\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{00974\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00975\ \ \ \ \ ret\ =\ CreateDirectoryA(path,\ NULL);}
+\DoxyCodeLine{00976\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00977\ \ \ \ \ ret\ =\ mkdir(path,\ 0755);}
+\DoxyCodeLine{00978\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00979\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{00980\ \}}
+\DoxyCodeLine{00981\ }
+\DoxyCodeLine{00982\ \textcolor{comment}{//\ Remove\ a\ directory.\ Returns\ 0\ if\ successful,\ -\/1\ otherwise}}
+\DoxyCodeLine{00983\ \textcolor{keywordtype}{int}\ dir\_remove(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \{}
+\DoxyCodeLine{00984\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{00985\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00986\ \ \ \ \ ret\ =\ RemoveDirectoryA(path);}
+\DoxyCodeLine{00987\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00988\ \ \ \ \ ret\ =\ rmdir(path);}
+\DoxyCodeLine{00989\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00990\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{00991\ \}}
+\DoxyCodeLine{00992\ }
+\DoxyCodeLine{00993\ \textcolor{comment}{//\ Rename\ a\ directory.\ Returns\ 0\ if\ successful,\ -\/1\ otherwise}}
+\DoxyCodeLine{00994\ \textcolor{keywordtype}{int}\ dir\_rename(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ oldpath,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ newpath)\ \{}
+\DoxyCodeLine{00995\ \ \ \ \ \textcolor{keywordflow}{return}\ rename(oldpath,\ newpath);}
+\DoxyCodeLine{00996\ \}}
+\DoxyCodeLine{00997\ }
+\DoxyCodeLine{00998\ \textcolor{comment}{//\ Change\ the\ current\ working\ directory}}
+\DoxyCodeLine{00999\ \textcolor{keywordtype}{int}\ dir\_chdir(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \{}
+\DoxyCodeLine{01000\ \ \ \ \ \textcolor{keywordflow}{return}\ chdir(path);}
+\DoxyCodeLine{01001\ \}}
+\DoxyCodeLine{01002\ }
+\DoxyCodeLine{01003\ \textcolor{comment}{//\ List\ files\ in\ a\ directory,\ returns\ a\ pointer\ to\ a\ list\ of\ file\ names\ or\ NULL\ on\ error}}
+\DoxyCodeLine{01004\ \textcolor{comment}{//\ The\ caller\ is\ responsible\ for\ freeing\ the\ memory.}}
+\DoxyCodeLine{01005\ \textcolor{comment}{//\ The\ number\ of\ files\ is\ stored\ in\ the\ count\ parameter.}}
+\DoxyCodeLine{01006\ \textcolor{comment}{//\ Note:\ This\ algorithm\ walks\ the\ directory\ tree\ recursively}}
+\DoxyCodeLine{01007\ \textcolor{comment}{//\ and\ may\ be\ slow\ for\ large\ directories.}}
+\DoxyCodeLine{01008\ \textcolor{keywordtype}{char}**\ dir\_list(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keywordtype}{size\_t}*\ count)\ \{}
+\DoxyCodeLine{01009\ \ \ \ \ \textcolor{comment}{//\ Uses\ the\ dir\_open\ and\ dir\_next\ functions\ which\ are\ defined\ above}}
+\DoxyCodeLine{01010\ \ \ \ \ \mbox{\hyperlink{structDirectory}{Directory}}*\ dir\ =\ dir\_open(path);}
+\DoxyCodeLine{01011\ \ \ \ \ \textcolor{keywordflow}{if}\ (!dir)\ \{}
+\DoxyCodeLine{01012\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{01013\ \ \ \ \ \}}
+\DoxyCodeLine{01014\ }
+\DoxyCodeLine{01015\ \ \ \ \ \textcolor{keywordtype}{char}**\ list\ =\ NULL;}
+\DoxyCodeLine{01016\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ size\ =\ 0;}
+\DoxyCodeLine{01017\ \ \ \ \ \textcolor{keywordtype}{char}*\ name;}
+\DoxyCodeLine{01018\ \ \ \ \ \textcolor{keywordflow}{while}\ ((name\ =\ dir\_next(dir))\ !=\ NULL)\ \{}
+\DoxyCodeLine{01019\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{char}**\ tmp\ =\ (\textcolor{keywordtype}{char}**)realloc(list,\ (size\ +\ 1)\ *\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{char}*));}
+\DoxyCodeLine{01020\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!tmp)\ \{}
+\DoxyCodeLine{01021\ \ \ \ \ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}realloc"{}});}
+\DoxyCodeLine{01022\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{01023\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01024\ \ \ \ \ \ \ \ \ list\ \ \ \ \ \ \ =\ tmp;}
+\DoxyCodeLine{01025\ \ \ \ \ \ \ \ \ list[size]\ =\ strdup(name);}
+\DoxyCodeLine{01026\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!list[size])\ \{}
+\DoxyCodeLine{01027\ \ \ \ \ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}strdup"{}});}
+\DoxyCodeLine{01028\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{01029\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01030\ \ \ \ \ \ \ \ \ size++;}
+\DoxyCodeLine{01031\ \ \ \ \ \}}
+\DoxyCodeLine{01032\ \ \ \ \ dir\_close(dir);}
+\DoxyCodeLine{01033\ \ \ \ \ *count\ =\ size;}
+\DoxyCodeLine{01034\ \ \ \ \ \textcolor{keywordflow}{return}\ list;}
+\DoxyCodeLine{01035\ \}}
+\DoxyCodeLine{01036\ }
+\DoxyCodeLine{01037\ \textcolor{keywordtype}{bool}\ is\_dir(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \{}
+\DoxyCodeLine{01038\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01039\ \ \ \ \ DWORD\ attr\ =\ GetFileAttributesA(path);}
+\DoxyCodeLine{01040\ \ \ \ \ \textcolor{keywordflow}{if}\ (attr\ ==\ INVALID\_FILE\_ATTRIBUTES)\ \{}
+\DoxyCodeLine{01041\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{01042\ \ \ \ \ \}}
+\DoxyCodeLine{01043\ \ \ \ \ \textcolor{keywordflow}{return}\ (attr\ \&\ FILE\_ATTRIBUTE\_DIRECTORY);}
+\DoxyCodeLine{01044\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01045\ \ \ \ \ \textcolor{keyword}{struct\ }stat\ st;}
+\DoxyCodeLine{01046\ \ \ \ \ \textcolor{keywordflow}{if}\ (stat(path,\ \&st)\ !=\ 0)\ \{}
+\DoxyCodeLine{01047\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{01048\ \ \ \ \ \}}
+\DoxyCodeLine{01049\ \ \ \ \ \textcolor{keywordflow}{return}\ S\_ISDIR(st.st\_mode);}
+\DoxyCodeLine{01050\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01051\ \}}
+\DoxyCodeLine{01052\ }
+\DoxyCodeLine{01053\ \textcolor{keywordtype}{bool}\ is\_file(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \{}
+\DoxyCodeLine{01054\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01055\ \ \ \ \ DWORD\ attr\ =\ GetFileAttributesA(path);}
+\DoxyCodeLine{01056\ \ \ \ \ \textcolor{keywordflow}{if}\ (attr\ ==\ INVALID\_FILE\_ATTRIBUTES)\ \{}
+\DoxyCodeLine{01057\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{01058\ \ \ \ \ \}}
+\DoxyCodeLine{01059\ \ \ \ \ \textcolor{keywordflow}{return}\ !(attr\ \&\ FILE\_ATTRIBUTE\_DIRECTORY);}
+\DoxyCodeLine{01060\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01061\ \ \ \ \ \textcolor{keyword}{struct\ }stat\ st;}
+\DoxyCodeLine{01062\ \ \ \ \ \textcolor{keywordflow}{if}\ (stat(path,\ \&st)\ !=\ 0)\ \{}
+\DoxyCodeLine{01063\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{01064\ \ \ \ \ \}}
+\DoxyCodeLine{01065\ \ \ \ \ \textcolor{keywordflow}{return}\ S\_ISREG(st.st\_mode);}
+\DoxyCodeLine{01066\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01067\ \}}
+\DoxyCodeLine{01068\ }
+\DoxyCodeLine{01069\ \textcolor{comment}{//\ Is\ the\ path\ a\ symbolic\ link?}}
+\DoxyCodeLine{01070\ \textcolor{keywordtype}{bool}\ is\_symlink(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \{}
+\DoxyCodeLine{01071\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01072\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};\ \ \textcolor{comment}{//\ Windows\ does\ not\ have\ symbolic\ links}}
+\DoxyCodeLine{01073\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01074\ \ \ \ \ \textcolor{keyword}{struct\ }stat\ st;}
+\DoxyCodeLine{01075\ \ \ \ \ \textcolor{keywordflow}{if}\ (lstat(path,\ \&st)\ !=\ 0)\ \{}
+\DoxyCodeLine{01076\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{01077\ \ \ \ \ \}}
+\DoxyCodeLine{01078\ \ \ \ \ \textcolor{keywordflow}{return}\ S\_ISLNK(st.st\_mode);}
+\DoxyCodeLine{01079\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01080\ \}}
+\DoxyCodeLine{01081\ }
+\DoxyCodeLine{01082\ \textcolor{comment}{//\ Walk\ a\ directory\ tree\ recursively\ and\ call\ the\ callback\ function\ for\ each\ file}}
+\DoxyCodeLine{01083\ \textcolor{comment}{//\ The\ callback\ function\ should\ return\ 0\ to\ continue\ or\ non-\/zero\ to\ stop\ the\ walk}}
+\DoxyCodeLine{01084\ \textcolor{comment}{//\ Returns\ 0\ if\ successful,\ -\/1\ otherwise}}
+\DoxyCodeLine{01085\ \textcolor{comment}{//\ @param\ path:\ The\ directory\ to\ walk}}
+\DoxyCodeLine{01086\ \textcolor{comment}{//\ @param\ callback:\ The\ callback\ function\ to\ call\ for\ each\ file}}
+\DoxyCodeLine{01087\ \textcolor{comment}{//\ @param\ data:\ User\ data\ to\ pass\ to\ the\ callback\ function}}
+\DoxyCodeLine{01088\ \textcolor{comment}{//\ @param\ name:\ The\ name\ of\ the\ file\ or\ directory}}
+\DoxyCodeLine{01089\ \textcolor{keywordtype}{int}\ dir\_walk(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keywordtype}{int}\ (*callback)(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ name,\ \textcolor{keywordtype}{void}*\ data),}
+\DoxyCodeLine{01090\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ data)\ \{}
+\DoxyCodeLine{01091\ \ \ \ \ \mbox{\hyperlink{structDirectory}{Directory}}*\ dir\ =\ dir\_open(path);}
+\DoxyCodeLine{01092\ \ \ \ \ \textcolor{keywordflow}{if}\ (!dir)\ \{}
+\DoxyCodeLine{01093\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{01094\ \ \ \ \ \}}
+\DoxyCodeLine{01095\ }
+\DoxyCodeLine{01096\ \ \ \ \ \textcolor{keywordtype}{char}*\ name;}
+\DoxyCodeLine{01097\ \ \ \ \ \textcolor{keywordflow}{while}\ ((name\ =\ dir\_next(dir))\ !=\ NULL)\ \{}
+\DoxyCodeLine{01098\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (strcmp(name,\ \textcolor{stringliteral}{"{}."{}})\ ==\ 0\ ||\ strcmp(name,\ \textcolor{stringliteral}{"{}.."{}})\ ==\ 0)\ \{}
+\DoxyCodeLine{01099\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{continue};}
+\DoxyCodeLine{01100\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01101\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{char}*\ fullpath\ =\ filepath\_join(path,\ name);}
+\DoxyCodeLine{01102\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!fullpath)\ \{}
+\DoxyCodeLine{01103\ \ \ \ \ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}filepath\_join"{}});}
+\DoxyCodeLine{01104\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{01105\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01106\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ callback(fullpath,\ name,\ data);}
+\DoxyCodeLine{01107\ \ \ \ \ \ \ \ \ free(fullpath);}
+\DoxyCodeLine{01108\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (ret\ !=\ 0)\ \{}
+\DoxyCodeLine{01109\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{01110\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01111\ \ \ \ \ \}}
+\DoxyCodeLine{01112\ \ \ \ \ dir\_close(dir);}
+\DoxyCodeLine{01113\ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{01114\ \}}
+\DoxyCodeLine{01115\ }
+\DoxyCodeLine{01116\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{int}\ dir\_size\_callback(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ name,\ \textcolor{keywordtype}{void}*\ data)\ \{}
+\DoxyCodeLine{01117\ \ \ \ \ (void)name;\ \ \textcolor{comment}{//\ Suppress\ unused\ variable\ warning}}
+\DoxyCodeLine{01118\ }
+\DoxyCodeLine{01119\ \ \ \ \ ssize\_t*\ size\ =\ (ssize\_t*)data;}
+\DoxyCodeLine{01120\ \ \ \ \ \textcolor{keywordflow}{if}\ (is\_file(path))\ \{}
+\DoxyCodeLine{01121\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structFile}{File}}*\ file\ =\ file\_open(path,\ \textcolor{stringliteral}{"{}rb"{}});}
+\DoxyCodeLine{01122\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (file)\ \{}
+\DoxyCodeLine{01123\ \ \ \ \ \ \ \ \ \ \ \ \ *size\ +=\ file\_size(file);}
+\DoxyCodeLine{01124\ \ \ \ \ \ \ \ \ \ \ \ \ file\_close(file);}
+\DoxyCodeLine{01125\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01126\ \ \ \ \ \}}
+\DoxyCodeLine{01127\ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{01128\ \}}
+\DoxyCodeLine{01129\ }
+\DoxyCodeLine{01130\ \textcolor{comment}{//\ Get\ the\ directory\ size\ in\ bytes.}}
+\DoxyCodeLine{01131\ \textcolor{comment}{//\ Returns\ the\ size\ of\ the\ directory\ or\ -\/1\ on\ error.}}
+\DoxyCodeLine{01132\ \textcolor{comment}{//\ Walks\ the\ directory\ tree\ recursively\ and\ sums\ the\ size\ of\ all\ files.}}
+\DoxyCodeLine{01133\ \textcolor{comment}{//\ @param\ path:\ The\ directory\ to\ walk.}}
+\DoxyCodeLine{01134\ \textcolor{comment}{//\ Warning:\ This\ function\ may\ be\ slow\ for\ large\ directories}}
+\DoxyCodeLine{01135\ ssize\_t\ dir\_size(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \{}
+\DoxyCodeLine{01136\ \ \ \ \ ssize\_t\ size\ =\ 0;}
+\DoxyCodeLine{01137\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ \ \ \ \ \ =\ dir\_walk(path,\ dir\_size\_callback,\ \&size);}
+\DoxyCodeLine{01138\ \ \ \ \ \textcolor{keywordflow}{if}\ (ret\ !=\ 0)\ \{}
+\DoxyCodeLine{01139\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{01140\ \ \ \ \ \}}
+\DoxyCodeLine{01141\ \ \ \ \ \textcolor{keywordflow}{return}\ size;}
+\DoxyCodeLine{01142\ \}}
+\DoxyCodeLine{01143\ }
+\DoxyCodeLine{01144\ \textcolor{comment}{//\ Create\ a\ directory\ recursively}}
+\DoxyCodeLine{01145\ \textcolor{keywordtype}{bool}\ makedirs(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path)\ \{}
+\DoxyCodeLine{01146\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01147\ \ \ \ \ \textcolor{keywordtype}{char}*\ copy\ =\ \_strdup(path);\ \ \textcolor{comment}{//\ Use\ \_strdup\ for\ Windows}}
+\DoxyCodeLine{01148\ \ \ \ \ \textcolor{keywordflow}{if}\ (!copy)\ \{}
+\DoxyCodeLine{01149\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}\_strdup"{}});}
+\DoxyCodeLine{01150\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{01151\ \ \ \ \ \}}
+\DoxyCodeLine{01152\ }
+\DoxyCodeLine{01153\ \ \ \ \ \textcolor{keywordtype}{char}*\ p\ =\ copy;}
+\DoxyCodeLine{01154\ \ \ \ \ \textcolor{keywordflow}{while}\ (*p)\ \{}
+\DoxyCodeLine{01155\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (*p\ ==\ \textcolor{charliteral}{'/'}\ ||\ *p\ ==\ \textcolor{charliteral}{'\(\backslash\)\(\backslash\)'})\ \{}
+\DoxyCodeLine{01156\ \ \ \ \ \ \ \ \ \ \ \ \ *p\ =\ \textcolor{charliteral}{'\(\backslash\)0'};}
+\DoxyCodeLine{01157\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!CreateDirectoryA(copy,\ NULL))\ \{}
+\DoxyCodeLine{01158\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (GetLastError()\ !=\ ERROR\_ALREADY\_EXISTS)\ \{}
+\DoxyCodeLine{01159\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ free(copy);}
+\DoxyCodeLine{01160\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}CreateDirectoryA"{}});}
+\DoxyCodeLine{01161\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{01162\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01163\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01164\ \ \ \ \ \ \ \ \ \ \ \ \ *p\ =\ \textcolor{charliteral}{'\(\backslash\)\(\backslash\)'};\ \ \textcolor{comment}{//\ Restore\ the\ original\ path}}
+\DoxyCodeLine{01165\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01166\ \ \ \ \ \ \ \ \ p++;}
+\DoxyCodeLine{01167\ \ \ \ \ \}}
+\DoxyCodeLine{01168\ }
+\DoxyCodeLine{01169\ \ \ \ \ \textcolor{keywordtype}{bool}\ result\ =\ (CreateDirectoryA(copy,\ NULL)\ ||\ GetLastError()\ ==\ ERROR\_ALREADY\_EXISTS);}
+\DoxyCodeLine{01170\ \ \ \ \ free(copy);}
+\DoxyCodeLine{01171\ \ \ \ \ \textcolor{keywordflow}{return}\ result;}
+\DoxyCodeLine{01172\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01173\ \ \ \ \ \textcolor{keywordtype}{char}*\ copy\ =\ strdup(path);}
+\DoxyCodeLine{01174\ \ \ \ \ \textcolor{keywordflow}{if}\ (!copy)\ \{}
+\DoxyCodeLine{01175\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}strdup"{}});}
+\DoxyCodeLine{01176\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{01177\ \ \ \ \ \}}
+\DoxyCodeLine{01178\ }
+\DoxyCodeLine{01179\ \ \ \ \ \textcolor{keywordtype}{char}*\ p\ =\ copy;}
+\DoxyCodeLine{01180\ \ \ \ \ \textcolor{keywordflow}{while}\ (*p)\ \{}
+\DoxyCodeLine{01181\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (*p\ ==\ \textcolor{charliteral}{'/'})\ \{}
+\DoxyCodeLine{01182\ \ \ \ \ \ \ \ \ \ \ \ \ *p\ =\ \textcolor{charliteral}{'\(\backslash\)0'};}
+\DoxyCodeLine{01183\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (mkdir(copy,\ 0755)\ !=\ 0\ \&\&\ errno\ !=\ EEXIST)\ \{}
+\DoxyCodeLine{01184\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ free(copy);}
+\DoxyCodeLine{01185\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}mkdir"{}});}
+\DoxyCodeLine{01186\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{01187\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01188\ \ \ \ \ \ \ \ \ \ \ \ \ *p\ =\ \textcolor{charliteral}{'/'};}
+\DoxyCodeLine{01189\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01190\ \ \ \ \ \ \ \ \ p++;}
+\DoxyCodeLine{01191\ \ \ \ \ \}}
+\DoxyCodeLine{01192\ }
+\DoxyCodeLine{01193\ \ \ \ \ \textcolor{keywordtype}{bool}\ result\ =\ (mkdir(copy,\ 0755)\ ==\ 0\ ||\ errno\ ==\ EEXIST);}
+\DoxyCodeLine{01194\ \ \ \ \ free(copy);}
+\DoxyCodeLine{01195\ \ \ \ \ \textcolor{keywordflow}{return}\ result;}
+\DoxyCodeLine{01196\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01197\ \}}
+\DoxyCodeLine{01198\ }
+\DoxyCodeLine{01199\ \textcolor{comment}{//\ Returns\ the\ PATH\ for\ temporary\ files\ and\ directories}}
+\DoxyCodeLine{01200\ \textcolor{comment}{//\ in\ a\ platform\ specific\ manner.}}
+\DoxyCodeLine{01201\ \textcolor{comment}{//\ The\ caller\ is\ responsible\ for\ freeing\ the\ memory\ returned.}}
+\DoxyCodeLine{01202\ \textcolor{keywordtype}{char}*\ get\_tempdir()\ \{}
+\DoxyCodeLine{01203\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01204\ \ \ \ \ \textcolor{keywordtype}{char}*\ tmp\ =\ getenv(\textcolor{stringliteral}{"{}TEMP"{}});}
+\DoxyCodeLine{01205\ \ \ \ \ \textcolor{keywordflow}{if}\ (!tmp)\ \{}
+\DoxyCodeLine{01206\ \ \ \ \ \ \ \ \ tmp\ =\ getenv(\textcolor{stringliteral}{"{}TMP"{}});}
+\DoxyCodeLine{01207\ \ \ \ \ \}}
+\DoxyCodeLine{01208\ \ \ \ \ \textcolor{keywordflow}{if}\ (!tmp)\ \{}
+\DoxyCodeLine{01209\ \ \ \ \ \ \ \ \ tmp\ =\ \textcolor{stringliteral}{"{}C:\(\backslash\)\(\backslash\)Windows\(\backslash\)\(\backslash\)Temp"{}};}
+\DoxyCodeLine{01210\ \ \ \ \ \}}
+\DoxyCodeLine{01211\ \ \ \ \ \textcolor{keywordflow}{return}\ strdup(tmp);}
+\DoxyCodeLine{01212\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01213\ \ \ \ \ \textcolor{keywordflow}{return}\ strdup(\textcolor{stringliteral}{"{}/tmp"{}});}
+\DoxyCodeLine{01214\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01215\ \}}
+\DoxyCodeLine{01216\ }
+\DoxyCodeLine{01217\ \textcolor{comment}{//\ Make\ a\ temporary\ file}}
+\DoxyCodeLine{01218\ \textcolor{comment}{//\ Returns\ a\ pointer\ to\ the\ temporary\ file\ or\ NULL\ on\ error}}
+\DoxyCodeLine{01219\ \textcolor{comment}{//\ The\ caller\ is\ responsible\ for\ freeing\ the\ memory}}
+\DoxyCodeLine{01220\ \textcolor{keywordtype}{char}*\ make\_tempfile()\ \{}
+\DoxyCodeLine{01221\ \ \ \ \ \textcolor{keywordtype}{char}*\ tmpdir\ =\ get\_tempdir();}
+\DoxyCodeLine{01222\ \ \ \ \ \textcolor{keywordflow}{if}\ (!tmpdir)\ \{}
+\DoxyCodeLine{01223\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{01224\ \ \ \ \ \}}
+\DoxyCodeLine{01225\ \ \ \ \ \textcolor{keywordtype}{char}*\ tmpfile\ =\ filepath\_join(tmpdir,\ \textcolor{stringliteral}{"{}tmpfileXXXXXX"{}});}
+\DoxyCodeLine{01226\ \ \ \ \ \textcolor{keywordflow}{if}\ (!tmpfile)\ \{}
+\DoxyCodeLine{01227\ \ \ \ \ \ \ \ \ free(tmpdir);}
+\DoxyCodeLine{01228\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{01229\ \ \ \ \ \}}
+\DoxyCodeLine{01230\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01231\ \ \ \ \ \_mktemp(tmpfile);}
+\DoxyCodeLine{01232\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01233\ \ \ \ \ mkstemp(tmpfile);}
+\DoxyCodeLine{01234\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01235\ \ \ \ \ free(tmpdir);}
+\DoxyCodeLine{01236\ \ \ \ \ \textcolor{keywordflow}{return}\ tmpfile;}
+\DoxyCodeLine{01237\ \}}
+\DoxyCodeLine{01238\ }
+\DoxyCodeLine{01239\ \textcolor{comment}{//\ Make\ a\ temporary\ directory}}
+\DoxyCodeLine{01240\ \textcolor{comment}{//\ Returns\ a\ pointer\ to\ the\ temporary\ directory\ or\ NULL\ on\ error}}
+\DoxyCodeLine{01241\ \textcolor{comment}{//\ The\ caller\ is\ responsible\ for\ freeing\ the\ memory}}
+\DoxyCodeLine{01242\ \textcolor{keywordtype}{char}*\ make\_tempdir()\ \{}
+\DoxyCodeLine{01243\ \ \ \ \ \textcolor{keywordtype}{char}*\ tmpdir\ =\ get\_tempdir();}
+\DoxyCodeLine{01244\ \ \ \ \ \textcolor{keywordflow}{if}\ (!tmpdir)\ \{}
+\DoxyCodeLine{01245\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{01246\ \ \ \ \ \}}
+\DoxyCodeLine{01247\ \ \ \ \ \textcolor{keywordtype}{char}*\ tmp\ =\ filepath\_join(tmpdir,\ \textcolor{stringliteral}{"{}tmpdirXXXXXX"{}});}
+\DoxyCodeLine{01248\ \ \ \ \ \textcolor{keywordflow}{if}\ (!tmp)\ \{}
+\DoxyCodeLine{01249\ \ \ \ \ \ \ \ \ free(tmpdir);}
+\DoxyCodeLine{01250\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{01251\ \ \ \ \ \}}
+\DoxyCodeLine{01252\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01253\ \ \ \ \ \_mktemp(tmp);}
+\DoxyCodeLine{01254\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01255\ \ \ \ \ mkdtemp(tmp);}
+\DoxyCodeLine{01256\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01257\ \ \ \ \ free(tmpdir);}
+\DoxyCodeLine{01258\ \ \ \ \ \textcolor{keywordflow}{return}\ tmp;}
+\DoxyCodeLine{01259\ \}}
+\DoxyCodeLine{01260\ }
+\DoxyCodeLine{01261\ \textcolor{comment}{/*}}
+\DoxyCodeLine{01262\ \textcolor{comment}{Create\ a\ new\ process.}}
+\DoxyCodeLine{01263\ \textcolor{comment}{@param\ proc:\ Pointer\ to\ process.}}
+\DoxyCodeLine{01264\ \textcolor{comment}{The\ process\ startup\ info\ and\ process\ info\ will\ be\ zeroed\ for\ you}}
+\DoxyCodeLine{01265\ \textcolor{comment}{before\ calling\ CreateProcess\ on\ windows.}}
+\DoxyCodeLine{01266\ \textcolor{comment}{@param\ command:\ The\ command\ to\ execute}}
+\DoxyCodeLine{01267\ \textcolor{comment}{@param\ argv:\ The\ command\ line\ arguments}}
+\DoxyCodeLine{01268\ \textcolor{comment}{@param\ envp:\ The\ environment\ variables}}
+\DoxyCodeLine{01269\ \textcolor{comment}{@param\ pid:\ A\ pointer\ to\ an\ integer\ to\ store\ the\ process\ id}}
+\DoxyCodeLine{01270\ \textcolor{comment}{argv\ and\ envp\ are\ ignored\ on\ windows.}}
+\DoxyCodeLine{01271\ \textcolor{comment}{@return\ 0\ if\ successful,\ -\/1\ otherwise}}
+\DoxyCodeLine{01272\ \textcolor{comment}{*/}}
+\DoxyCodeLine{01273\ \textcolor{keywordtype}{int}\ process\_create(\mbox{\hyperlink{structProcess}{Process}}*\ proc,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ command,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \textcolor{keyword}{const}\ argv[],}
+\DoxyCodeLine{01274\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \textcolor{keyword}{const}\ envp[])\ \{}
+\DoxyCodeLine{01275\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{01276\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01277\ }
+\DoxyCodeLine{01278\ \ \ \ \ ZeroMemory(\&proc-\/>si,\ \textcolor{keyword}{sizeof}(proc-\/>si));}
+\DoxyCodeLine{01279\ \ \ \ \ proc-\/>si.cb\ =\ \textcolor{keyword}{sizeof}(proc-\/>si);}
+\DoxyCodeLine{01280\ \ \ \ \ ZeroMemory(\&proc-\/>pi,\ \textcolor{keyword}{sizeof}(proc-\/>pi));}
+\DoxyCodeLine{01281\ }
+\DoxyCodeLine{01282\ \ \ \ \ \textcolor{comment}{//\ create\ the\ process}}
+\DoxyCodeLine{01283\ \ \ \ \ \textcolor{keywordflow}{if}\ (CreateProcess(NULL,\ (LPSTR)command,\ NULL,\ NULL,\ FALSE,\ 0,\ NULL,\ NULL,\ \&proc-\/>si,}
+\DoxyCodeLine{01284\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&proc-\/>pi))\ \{}
+\DoxyCodeLine{01285\ }
+\DoxyCodeLine{01286\ \ \ \ \ \ \ \ \ proc-\/>pid\ =\ proc-\/>pi.dwProcessId;}
+\DoxyCodeLine{01287\ \ \ \ \ \ \ \ \ ret\ \ \ \ \ \ \ =\ 0;}
+\DoxyCodeLine{01288\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{01289\ \ \ \ \ \ \ \ \ DWORD\ error\ =\ GetLastError();}
+\DoxyCodeLine{01290\ \ \ \ \ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}CreateProcessA\ failed\ with\ error\ \%lu\(\backslash\)n"{}},\ error);}
+\DoxyCodeLine{01291\ \ \ \ \ \}}
+\DoxyCodeLine{01292\ }
+\DoxyCodeLine{01293\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01294\ \ \ \ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{01295\ \ \ \ \ pid\_t\ p\ =\ fork();}
+\DoxyCodeLine{01296\ \ \ \ \ \textcolor{keywordflow}{if}\ (p\ ==\ 0)\ \{}
+\DoxyCodeLine{01297\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Child\ process}}
+\DoxyCodeLine{01298\ \ \ \ \ \ \ \ \ execve(command,\ (\textcolor{keywordtype}{char}*\ \textcolor{keyword}{const}*)argv,\ (\textcolor{keywordtype}{char}*\ \textcolor{keyword}{const}*)envp);}
+\DoxyCodeLine{01299\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}execve"{}});}
+\DoxyCodeLine{01300\ \ \ \ \ \ \ \ \ exit(1);\ \ \textcolor{comment}{//\ Should\ not\ reach\ here}}
+\DoxyCodeLine{01301\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (p\ >\ 0)\ \{}
+\DoxyCodeLine{01302\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Parent\ process}}
+\DoxyCodeLine{01303\ \ \ \ \ \ \ \ \ proc-\/>pid\ =\ p;}
+\DoxyCodeLine{01304\ \ \ \ \ \ \ \ \ ret\ \ \ \ \ \ \ =\ 0;}
+\DoxyCodeLine{01305\ \ \ \ \ \}}
+\DoxyCodeLine{01306\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01307\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{01308\ \}}
+\DoxyCodeLine{01309\ }
+\DoxyCodeLine{01310\ \textcolor{comment}{/*}}
+\DoxyCodeLine{01311\ \textcolor{comment}{Wait\ for\ a\ process\ to\ exit.}}
+\DoxyCodeLine{01312\ \textcolor{comment}{}}
+\DoxyCodeLine{01313\ \textcolor{comment}{@param\ pid:\ The\ process\ id}}
+\DoxyCodeLine{01314\ \textcolor{comment}{@param\ status:\ A\ pointer\ to\ an\ integer\ to\ store\ the\ exit\ status}}
+\DoxyCodeLine{01315\ \textcolor{comment}{}}
+\DoxyCodeLine{01316\ \textcolor{comment}{@return\ 0\ if\ successful,\ -\/1\ otherwise}}
+\DoxyCodeLine{01317\ \textcolor{comment}{*/}}
+\DoxyCodeLine{01318\ \textcolor{keywordtype}{int}\ process\_wait(\mbox{\hyperlink{structProcess}{Process}}*\ proc,\ \textcolor{keywordtype}{int}*\ status)\ \{}
+\DoxyCodeLine{01319\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{01320\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01321\ \ \ \ \ DWORD\ dw\ =\ WaitForSingleObject(proc-\/>pi.hProcess,\ INFINITE);}
+\DoxyCodeLine{01322\ \ \ \ \ \textcolor{keywordflow}{if}\ (dw\ ==\ WAIT\_OBJECT\_0)\ \{}
+\DoxyCodeLine{01323\ \ \ \ \ \ \ \ \ DWORD\ exit\_code;}
+\DoxyCodeLine{01324\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (GetExitCodeProcess(proc-\/>pi.hProcess,\ \&exit\_code))\ \{}
+\DoxyCodeLine{01325\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (status)\ \{}
+\DoxyCodeLine{01326\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *status\ =\ exit\_code;}
+\DoxyCodeLine{01327\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01328\ \ \ \ \ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{01329\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01330\ \ \ \ \ \}}
+\DoxyCodeLine{01331\ \ \ \ \ CloseHandle(proc-\/>pi.hProcess);}
+\DoxyCodeLine{01332\ \ \ \ \ CloseHandle(proc-\/>pi.hThread);}
+\DoxyCodeLine{01333\ }
+\DoxyCodeLine{01334\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01335\ \ \ \ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{01336\ \ \ \ \ \textcolor{keywordtype}{int}\ stat;}
+\DoxyCodeLine{01337\ \ \ \ \ \textcolor{keywordflow}{if}\ (waitpid(proc-\/>pid,\ \&stat,\ 0)\ !=\ -\/1)\ \{}
+\DoxyCodeLine{01338\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (WIFEXITED(stat))\ \{}
+\DoxyCodeLine{01339\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (status)\ \{}
+\DoxyCodeLine{01340\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *status\ =\ WEXITSTATUS(stat);}
+\DoxyCodeLine{01341\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01342\ \ \ \ \ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{01343\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01344\ \ \ \ \ \}}
+\DoxyCodeLine{01345\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01346\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{01347\ \}}
+\DoxyCodeLine{01348\ }
+\DoxyCodeLine{01349\ \textcolor{comment}{/*}}
+\DoxyCodeLine{01350\ \textcolor{comment}{}}
+\DoxyCodeLine{01351\ \textcolor{comment}{Kill\ a\ process.}}
+\DoxyCodeLine{01352\ \textcolor{comment}{@param\ pid:\ The\ process\ id}}
+\DoxyCodeLine{01353\ \textcolor{comment}{@return\ 0\ if\ successful,\ -\/1\ otherwise}}
+\DoxyCodeLine{01354\ \textcolor{comment}{*/}}
+\DoxyCodeLine{01355\ \textcolor{keywordtype}{int}\ process\_kill(\mbox{\hyperlink{structProcess}{Process}}*\ proc)\ \{}
+\DoxyCodeLine{01356\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{01357\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01358\ \ \ \ \ \textcolor{comment}{//\ Windows}}
+\DoxyCodeLine{01359\ \ \ \ \ \textcolor{keywordflow}{if}\ (TerminateProcess(proc-\/>pi.hProcess,\ 0))\ \{}
+\DoxyCodeLine{01360\ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{01361\ \ \ \ \ \}}
+\DoxyCodeLine{01362\ \ \ \ \ CloseHandle(proc-\/>pi.hProcess);}
+\DoxyCodeLine{01363\ \ \ \ \ CloseHandle(proc-\/>pi.hThread);}
+\DoxyCodeLine{01364\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01365\ \ \ \ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{01366\ \ \ \ \ \textcolor{keywordflow}{if}\ (kill(proc-\/>pid,\ SIGKILL)\ ==\ 0)\ \{}
+\DoxyCodeLine{01367\ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{01368\ \ \ \ \ \}}
+\DoxyCodeLine{01369\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01370\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{01371\ \}}
+\DoxyCodeLine{01372\ }
+\DoxyCodeLine{01373\ \textcolor{comment}{//\ Create\ a\ new\ thread}}
+\DoxyCodeLine{01374\ \textcolor{comment}{//\ Returns\ 0\ if\ successful,\ -\/1\ otherwise}}
+\DoxyCodeLine{01375\ \textcolor{keywordtype}{int}\ thread\_create(Thread*\ thread,\ \textcolor{keywordtype}{void}*\ (*start\_routine)(\textcolor{keywordtype}{void}*),\ \mbox{\hyperlink{structThreadData}{ThreadData}}*\ data)\ \{}
+\DoxyCodeLine{01376\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{01377\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01378\ \ \ \ \ \textcolor{comment}{//\ use\ CreateThread}}
+\DoxyCodeLine{01379\ \ \ \ \ HANDLE\ t\ =\ CreateThread(NULL,\ 0,\ (LPTHREAD\_START\_ROUTINE)start\_routine,\ data,\ 0,\ NULL);}
+\DoxyCodeLine{01380\ \ \ \ \ \textcolor{keywordflow}{if}\ (t)\ \{}
+\DoxyCodeLine{01381\ \ \ \ \ \ \ \ \ *thread\ =\ t;}
+\DoxyCodeLine{01382\ \ \ \ \ \ \ \ \ ret\ \ \ \ \ =\ 0;}
+\DoxyCodeLine{01383\ \ \ \ \ \}}
+\DoxyCodeLine{01384\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01385\ \ \ \ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{01386\ \ \ \ \ pthread\_t\ t;}
+\DoxyCodeLine{01387\ \ \ \ \ \textcolor{keywordflow}{if}\ (pthread\_create(\&t,\ NULL,\ start\_routine,\ data)\ ==\ 0)\ \{}
+\DoxyCodeLine{01388\ \ \ \ \ \ \ \ \ *thread\ =\ t;}
+\DoxyCodeLine{01389\ \ \ \ \ \ \ \ \ ret\ \ \ \ \ =\ 0;}
+\DoxyCodeLine{01390\ \ \ \ \ \}}
+\DoxyCodeLine{01391\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01392\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{01393\ \}}
+\DoxyCodeLine{01394\ }
+\DoxyCodeLine{01395\ \textcolor{comment}{//\ Join\ a\ thread\ using\ it's\ id}}
+\DoxyCodeLine{01396\ \textcolor{comment}{//\ Returns\ 0\ if\ successful,\ -\/1\ otherwise}}
+\DoxyCodeLine{01397\ \textcolor{comment}{//\ The\ retval\ parameter\ is\ used\ to\ store\ the\ return\ value\ of\ the\ thread}}
+\DoxyCodeLine{01398\ \textcolor{comment}{//\ If\ retval\ is\ NULL,\ the\ return\ value\ is\ discarded}}
+\DoxyCodeLine{01399\ \textcolor{keywordtype}{int}\ thread\_join(Thread\ tid,\ \textcolor{keywordtype}{void}**\ retval)\ \{}
+\DoxyCodeLine{01400\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{01401\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01402\ \ \ \ \ \textcolor{keywordflow}{if}\ (WaitForSingleObject(tid,\ INFINITE)\ ==\ WAIT\_OBJECT\_0)\ \{}
+\DoxyCodeLine{01403\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (retval)\ \{}
+\DoxyCodeLine{01404\ \ \ \ \ \ \ \ \ \ \ \ \ GetExitCodeThread(tid,\ (DWORD*)retval);}
+\DoxyCodeLine{01405\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01406\ \ \ \ \ \ \ \ \ CloseHandle(tid);}
+\DoxyCodeLine{01407\ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{01408\ \ \ \ \ \}}
+\DoxyCodeLine{01409\ }
+\DoxyCodeLine{01410\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01411\ \ \ \ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{01412\ \ \ \ \ \textcolor{keywordflow}{if}\ (pthread\_join(tid,\ retval)\ ==\ 0)\ \{}
+\DoxyCodeLine{01413\ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{01414\ \ \ \ \ \}}
+\DoxyCodeLine{01415\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01416\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{01417\ \}}
+\DoxyCodeLine{01418\ }
+\DoxyCodeLine{01419\ \textcolor{comment}{//\ Get\ the\ current\ thread\ id}}
+\DoxyCodeLine{01420\ \textcolor{keywordtype}{int}\ thread\_self()\ \{}
+\DoxyCodeLine{01421\ \ \ \ \ \textcolor{keywordtype}{int}\ \textcolor{keywordtype}{id}\ =\ -\/1;}
+\DoxyCodeLine{01422\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01423\ \ \ \ \ \textcolor{keywordtype}{id}\ =\ GetCurrentThreadId();}
+\DoxyCodeLine{01424\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01425\ \ \ \ \ \textcolor{keywordtype}{id}\ =\ pthread\_self();}
+\DoxyCodeLine{01426\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01427\ \ \ \ \ \textcolor{keywordflow}{return}\ id;}
+\DoxyCodeLine{01428\ \}}
+\DoxyCodeLine{01429\ }
+\DoxyCodeLine{01430\ \textcolor{comment}{//\ Detach\ a\ thread.\ Returns\ 0\ if\ successful,\ -\/1\ otherwise}}
+\DoxyCodeLine{01431\ \textcolor{comment}{//\ This\ does\ nothing\ on\ Windows.}}
+\DoxyCodeLine{01432\ \textcolor{keywordtype}{int}\ thread\_detach(Thread\ tid)\ \{}
+\DoxyCodeLine{01433\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{01434\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01435\ \ \ \ \ \textcolor{comment}{//\ Windows\ does\ not\ have\ pthread\_detach}}
+\DoxyCodeLine{01436\ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{01437\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01438\ \ \ \ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{01439\ \ \ \ \ \textcolor{keywordflow}{if}\ (pthread\_detach(tid)\ ==\ 0)\ \{}
+\DoxyCodeLine{01440\ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{01441\ \ \ \ \ \}}
+\DoxyCodeLine{01442\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01443\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{01444\ \}}
+\DoxyCodeLine{01445\ }
+\DoxyCodeLine{01446\ \textcolor{comment}{//\ Sleep\ for\ a\ number\ of\ milliseconds}}
+\DoxyCodeLine{01447\ \textcolor{keywordtype}{void}\ sleep\_ms(\textcolor{keywordtype}{int}\ ms)\ \{}
+\DoxyCodeLine{01448\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01449\ \ \ \ \ Sleep(ms);}
+\DoxyCodeLine{01450\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01451\ \ \ \ \ \textcolor{keyword}{struct\ }timespec\ ts;}
+\DoxyCodeLine{01452\ \ \ \ \ ts.tv\_sec\ \ =\ ms\ /\ 1000;}
+\DoxyCodeLine{01453\ \ \ \ \ ts.tv\_nsec\ =\ (ms\ \%\ 1000)\ *\ 1000000;}
+\DoxyCodeLine{01454\ \ \ \ \ nanosleep(\&ts,\ NULL);}
+\DoxyCodeLine{01455\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01456\ \}}
+\DoxyCodeLine{01457\ }
+\DoxyCodeLine{01458\ \textcolor{comment}{//\ Get\ the\ current\ process\ id}}
+\DoxyCodeLine{01459\ \textcolor{keywordtype}{int}\ get\_pid()\ \{}
+\DoxyCodeLine{01460\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01461\ \ \ \ \ \textcolor{keywordflow}{return}\ GetCurrentProcessId();}
+\DoxyCodeLine{01462\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01463\ \ \ \ \ \textcolor{keywordflow}{return}\ getpid();}
+\DoxyCodeLine{01464\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01465\ \}}
+\DoxyCodeLine{01466\ }
+\DoxyCodeLine{01467\ \textcolor{comment}{//\ Get\ the\ current\ thread\ id}}
+\DoxyCodeLine{01468\ \textcolor{keywordtype}{int}\ get\_tid()\ \{}
+\DoxyCodeLine{01469\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01470\ \ \ \ \ \textcolor{keywordflow}{return}\ GetCurrentThreadId();}
+\DoxyCodeLine{01471\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01472\ \ \ \ \ \textcolor{keywordflow}{return}\ pthread\_self();}
+\DoxyCodeLine{01473\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01474\ \}}
+\DoxyCodeLine{01475\ }
+\DoxyCodeLine{01476\ \textcolor{comment}{//\ Get\ the\ parent\ process\ id}}
+\DoxyCodeLine{01477\ \textcolor{keywordtype}{int}\ get\_ppid()\ \{}
+\DoxyCodeLine{01478\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01479\ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;\ \ \textcolor{comment}{//\ Windows\ does\ not\ have\ parent\ process\ id}}
+\DoxyCodeLine{01480\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01481\ \ \ \ \ \textcolor{keywordflow}{return}\ getppid();}
+\DoxyCodeLine{01482\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01483\ \}}
+\DoxyCodeLine{01484\ }
+\DoxyCodeLine{01485\ \textcolor{comment}{//\ Get\ the\ number\ of\ CPU\ cores}}
+\DoxyCodeLine{01486\ \textcolor{keywordtype}{int}\ get\_ncpus()\ \{}
+\DoxyCodeLine{01487\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01488\ \ \ \ \ SYSTEM\_INFO\ sysinfo;}
+\DoxyCodeLine{01489\ \ \ \ \ GetSystemInfo(\&sysinfo);}
+\DoxyCodeLine{01490\ \ \ \ \ \textcolor{keywordflow}{return}\ sysinfo.dwNumberOfProcessors;}
+\DoxyCodeLine{01491\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01492\ \ \ \ \ \textcolor{keywordflow}{return}\ sysconf(\_SC\_NPROCESSORS\_ONLN);}
+\DoxyCodeLine{01493\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01494\ \}}
+\DoxyCodeLine{01495\ }
+\DoxyCodeLine{01496\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01497\ \textcolor{comment}{//\ No\ need\ for\ these\ functions\ on\ Windows}}
+\DoxyCodeLine{01498\ \textcolor{preprocessor}{\#else\ \ }\textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{01499\ \textcolor{comment}{//\ Get\ the\ current\ user\ id}}
+\DoxyCodeLine{01500\ \textcolor{keywordtype}{int}\ get\_uid()\ \{}
+\DoxyCodeLine{01501\ \ \ \ \ \textcolor{keywordflow}{return}\ getuid();}
+\DoxyCodeLine{01502\ \}}
+\DoxyCodeLine{01503\ }
+\DoxyCodeLine{01504\ \textcolor{comment}{//\ Get\ the\ current\ group\ id}}
+\DoxyCodeLine{01505\ \textcolor{keywordtype}{int}\ get\_gid()\ \{}
+\DoxyCodeLine{01506\ \ \ \ \ \textcolor{keywordflow}{return}\ getgid();}
+\DoxyCodeLine{01507\ \}}
+\DoxyCodeLine{01508\ }
+\DoxyCodeLine{01509\ \textcolor{comment}{//\ Get\ the\ current\ user\ name}}
+\DoxyCodeLine{01510\ \textcolor{keywordtype}{char}*\ get\_username()\ \{}
+\DoxyCodeLine{01511\ \ \ \ \ \textcolor{keywordflow}{return}\ getpwuid(getuid())-\/>pw\_name;}
+\DoxyCodeLine{01512\ \}}
+\DoxyCodeLine{01513\ }
+\DoxyCodeLine{01514\ \textcolor{comment}{//\ Get\ the\ current\ group\ name}}
+\DoxyCodeLine{01515\ \textcolor{keywordtype}{char}*\ get\_groupname()\ \{}
+\DoxyCodeLine{01516\ \ \ \ \ \textcolor{keywordflow}{return}\ getgrgid(getgid())-\/>gr\_name;}
+\DoxyCodeLine{01517\ \}}
+\DoxyCodeLine{01518\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01519\ }
+\DoxyCodeLine{01520\ \textcolor{comment}{//\ ===========\ END\ Thread\ and\ process\ related\ functions\ ===========}}
+\DoxyCodeLine{01521\ }
+\DoxyCodeLine{01522\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01523\ \textcolor{keywordtype}{int}\ pipe\_open(\mbox{\hyperlink{structPIPE}{PIPE}}*\ pPipe)\ \{}
+\DoxyCodeLine{01524\ \ \ \ \ \textcolor{keywordflow}{return}\ CreatePipe(\&(pPipe-\/>hReadPipe),\ \&(pPipe-\/>hWritePipe),\ NULL,\ 0)\ ?\ 0\ :\ -\/1;}
+\DoxyCodeLine{01525\ \}}
+\DoxyCodeLine{01526\ }
+\DoxyCodeLine{01527\ \textcolor{keywordtype}{void}\ pipe\_close(\mbox{\hyperlink{structPIPE}{PIPE}}*\ pPipe,\ PipeEnd\ endToClose)\ \{}
+\DoxyCodeLine{01528\ \ \ \ \ \textcolor{keywordflow}{if}\ (endToClose\ ==\ PIPE\_END\_READ\ ||\ endToClose\ ==\ PIPE\_END\_BOTH)\ \{}
+\DoxyCodeLine{01529\ \ \ \ \ \ \ \ \ CloseHandle(pPipe-\/>hReadPipe);}
+\DoxyCodeLine{01530\ \ \ \ \ \}}
+\DoxyCodeLine{01531\ \ \ \ \ \textcolor{keywordflow}{if}\ (endToClose\ ==\ PIPE\_END\_WRITE\ ||\ endToClose\ ==\ PIPE\_END\_BOTH)\ \{}
+\DoxyCodeLine{01532\ \ \ \ \ \ \ \ \ CloseHandle(pPipe-\/>hWritePipe);}
+\DoxyCodeLine{01533\ \ \ \ \ \}}
+\DoxyCodeLine{01534\ \}}
+\DoxyCodeLine{01535\ }
+\DoxyCodeLine{01536\ ssize\_t\ pipe\_read(\mbox{\hyperlink{structPIPE}{PIPE}}*\ pPipe,\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size)\ \{}
+\DoxyCodeLine{01537\ \ \ \ \ DWORD\ bytesRead;}
+\DoxyCodeLine{01538\ \ \ \ \ \textcolor{keywordflow}{if}\ (ReadFile(pPipe-\/>hReadPipe,\ buffer,\ size,\ \&bytesRead,\ NULL))\ \{}
+\DoxyCodeLine{01539\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ (ssize\_t)bytesRead;}
+\DoxyCodeLine{01540\ \ \ \ \ \}}
+\DoxyCodeLine{01541\ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{01542\ \}}
+\DoxyCodeLine{01543\ }
+\DoxyCodeLine{01544\ ssize\_t\ pipe\_write(\mbox{\hyperlink{structPIPE}{PIPE}}*\ pPipe,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size)\ \{}
+\DoxyCodeLine{01545\ \ \ \ \ DWORD\ bytesWritten;}
+\DoxyCodeLine{01546\ \ \ \ \ \textcolor{keywordflow}{if}\ (WriteFile(pPipe-\/>hWritePipe,\ buffer,\ size,\ \&bytesWritten,\ NULL))\ \{}
+\DoxyCodeLine{01547\ \ \ \ \ \ \ \ \ FlushFileBuffers(pPipe-\/>hWritePipe);}
+\DoxyCodeLine{01548\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ (ssize\_t)bytesWritten;}
+\DoxyCodeLine{01549\ \ \ \ \ \}}
+\DoxyCodeLine{01550\ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{01551\ \}}
+\DoxyCodeLine{01552\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01553\ \textcolor{keywordtype}{int}\ pipe\_open(\mbox{\hyperlink{structPIPE}{PIPE}}*\ pPipe)\ \{}
+\DoxyCodeLine{01554\ \ \ \ \ \textcolor{keywordflow}{return}\ pipe(pPipe-\/>fd);}
+\DoxyCodeLine{01555\ \}}
+\DoxyCodeLine{01556\ }
+\DoxyCodeLine{01557\ \textcolor{keywordtype}{void}\ pipe\_close(\mbox{\hyperlink{structPIPE}{PIPE}}*\ pPipe,\ PipeEnd\ endToClose)\ \{}
+\DoxyCodeLine{01558\ \ \ \ \ \textcolor{keywordflow}{if}\ (endToClose\ ==\ PIPE\_END\_READ\ ||\ endToClose\ ==\ PIPE\_END\_BOTH)\ \{}
+\DoxyCodeLine{01559\ \ \ \ \ \ \ \ \ close(pPipe-\/>fd[0]);}
+\DoxyCodeLine{01560\ \ \ \ \ \}}
+\DoxyCodeLine{01561\ \ \ \ \ \textcolor{keywordflow}{if}\ (endToClose\ ==\ PIPE\_END\_WRITE\ ||\ endToClose\ ==\ PIPE\_END\_BOTH)\ \{}
+\DoxyCodeLine{01562\ \ \ \ \ \ \ \ \ close(pPipe-\/>fd[1]);}
+\DoxyCodeLine{01563\ \ \ \ \ \}}
+\DoxyCodeLine{01564\ \}}
+\DoxyCodeLine{01565\ }
+\DoxyCodeLine{01566\ ssize\_t\ pipe\_read(\mbox{\hyperlink{structPIPE}{PIPE}}*\ pPipe,\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size)\ \{}
+\DoxyCodeLine{01567\ \ \ \ \ \textcolor{keywordflow}{return}\ read(pPipe-\/>fd[0],\ buffer,\ size);}
+\DoxyCodeLine{01568\ \}}
+\DoxyCodeLine{01569\ }
+\DoxyCodeLine{01570\ ssize\_t\ pipe\_write(\mbox{\hyperlink{structPIPE}{PIPE}}*\ pPipe,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size)\ \{}
+\DoxyCodeLine{01571\ \ \ \ \ \textcolor{keywordflow}{return}\ write(pPipe-\/>fd[1],\ buffer,\ size);}
+\DoxyCodeLine{01572\ \}}
+\DoxyCodeLine{01573\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01574\ }
+\DoxyCodeLine{01575\ \textcolor{comment}{//\ ===========\ END\ PIPE\ related\ functions\ ===========}}
+\DoxyCodeLine{01576\ }
+\DoxyCodeLine{01577\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{01578\ \textcolor{keyword}{static}\ DWORD\ WINAPI\ threadpool\_worker(\mbox{\hyperlink{structThreadData}{ThreadData}}*\ data)\ \{}
+\DoxyCodeLine{01579\ \ \ \ \ \mbox{\hyperlink{structThreadPool}{ThreadPool}}*\ pool\ =\ (\mbox{\hyperlink{structThreadPool}{ThreadPool}}*)data-\/>arg;}
+\DoxyCodeLine{01580\ \ \ \ \ free(data);}
+\DoxyCodeLine{01581\ }
+\DoxyCodeLine{01582\ \ \ \ \ \textcolor{keywordflow}{while}\ (1)\ \{}
+\DoxyCodeLine{01583\ \ \ \ \ \ \ \ \ EnterCriticalSection(\&pool-\/>lock);}
+\DoxyCodeLine{01584\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Wait\ for\ a\ task\ to\ be\ available\ or\ the\ pool\ to\ be\ shut\ down}}
+\DoxyCodeLine{01585\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (pool-\/>task\_queue\ ==\ NULL\ \&\&\ !pool-\/>shutdown)\ \{}
+\DoxyCodeLine{01586\ \ \ \ \ \ \ \ \ \ \ \ \ SleepConditionVariableCS(\&pool-\/>task\_available,\ \&pool-\/>lock,\ INFINITE);}
+\DoxyCodeLine{01587\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01588\ }
+\DoxyCodeLine{01589\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ the\ pool\ is\ shut\ down,\ exit\ the\ thread}}
+\DoxyCodeLine{01590\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (pool-\/>shutdown)\ \{}
+\DoxyCodeLine{01591\ \ \ \ \ \ \ \ \ \ \ \ \ LeaveCriticalSection(\&pool-\/>lock);}
+\DoxyCodeLine{01592\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{01593\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01594\ }
+\DoxyCodeLine{01595\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Get\ the\ next\ task}}
+\DoxyCodeLine{01596\ \ \ \ \ \ \ \ \ pool-\/>num\_working\_threads++;}
+\DoxyCodeLine{01597\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structTask}{Task}}*\ task\ =\ pool-\/>task\_queue;}
+\DoxyCodeLine{01598\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (task)\ \{}
+\DoxyCodeLine{01599\ \ \ \ \ \ \ \ \ \ \ \ \ pool-\/>task\_queue\ =\ task-\/>next;}
+\DoxyCodeLine{01600\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01601\ }
+\DoxyCodeLine{01602\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Signal\ that\ a\ task\ is\ available}}
+\DoxyCodeLine{01603\ \ \ \ \ \ \ \ \ LeaveCriticalSection(\&pool-\/>lock);}
+\DoxyCodeLine{01604\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (task\ !=\ NULL)\ \{}
+\DoxyCodeLine{01605\ \ \ \ \ \ \ \ \ \ \ \ \ task-\/>function(task-\/>arg);\ \ \textcolor{comment}{//\ Execute\ the\ task}}
+\DoxyCodeLine{01606\ \ \ \ \ \ \ \ \ \ \ \ \ free(task);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Free\ the\ task}}
+\DoxyCodeLine{01607\ \ \ \ \ \ \ \ \ \ \ \ \ task\ =\ NULL;}
+\DoxyCodeLine{01608\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01609\ }
+\DoxyCodeLine{01610\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Signal\ that\ the\ task\ is\ completed}}
+\DoxyCodeLine{01611\ \ \ \ \ \ \ \ \ EnterCriticalSection(\&pool-\/>lock);}
+\DoxyCodeLine{01612\ \ \ \ \ \ \ \ \ pool-\/>num\_working\_threads-\/-\/;}
+\DoxyCodeLine{01613\ }
+\DoxyCodeLine{01614\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Signal\ that\ all\ tasks\ are\ completed}}
+\DoxyCodeLine{01615\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (pool-\/>num\_working\_threads\ ==\ 0)\ \{}
+\DoxyCodeLine{01616\ \ \ \ \ \ \ \ \ \ \ \ \ WakeAllConditionVariable(\&pool-\/>all\_tasks\_completed);}
+\DoxyCodeLine{01617\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01618\ \ \ \ \ \ \ \ \ LeaveCriticalSection(\&pool-\/>lock);\ \ \textcolor{comment}{//\ Release\ the\ lock}}
+\DoxyCodeLine{01619\ \ \ \ \ \}}
+\DoxyCodeLine{01620\ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{01621\ \}}
+\DoxyCodeLine{01622\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{01623\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}*\ threadpool\_worker(\mbox{\hyperlink{structThreadData}{ThreadData}}*\ data)\ \{}
+\DoxyCodeLine{01624\ \ \ \ \ \mbox{\hyperlink{structThreadPool}{ThreadPool}}*\ pool\ =\ (\mbox{\hyperlink{structThreadPool}{ThreadPool}}*)data-\/>arg;}
+\DoxyCodeLine{01625\ \ \ \ \ free(data);}
+\DoxyCodeLine{01626\ }
+\DoxyCodeLine{01627\ \ \ \ \ \textcolor{keywordflow}{while}\ (1)\ \{}
+\DoxyCodeLine{01628\ \ \ \ \ \ \ \ \ pthread\_mutex\_lock(\&pool-\/>lock);}
+\DoxyCodeLine{01629\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (pool-\/>task\_queue\ ==\ NULL\ \&\&\ !pool-\/>shutdown)\ \{}
+\DoxyCodeLine{01630\ \ \ \ \ \ \ \ \ \ \ \ \ pthread\_cond\_wait(\&pool-\/>task\_available,\ \&pool-\/>lock);}
+\DoxyCodeLine{01631\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01632\ }
+\DoxyCodeLine{01633\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (pool-\/>shutdown)\ \{}
+\DoxyCodeLine{01634\ \ \ \ \ \ \ \ \ \ \ \ \ pthread\_mutex\_unlock(\&pool-\/>lock);}
+\DoxyCodeLine{01635\ \ \ \ \ \ \ \ \ \ \ \ \ pthread\_exit(NULL);}
+\DoxyCodeLine{01636\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01637\ }
+\DoxyCodeLine{01638\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structTask}{Task}}*\ task\ =\ pool-\/>task\_queue;}
+\DoxyCodeLine{01639\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (task\ !=\ NULL)\ \{}
+\DoxyCodeLine{01640\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Remove\ the\ task\ from\ the\ queue}}
+\DoxyCodeLine{01641\ \ \ \ \ \ \ \ \ \ \ \ \ pool-\/>task\_queue\ =\ task-\/>next;}
+\DoxyCodeLine{01642\ }
+\DoxyCodeLine{01643\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Increment\ the\ number\ of\ working\ threads}}
+\DoxyCodeLine{01644\ \ \ \ \ \ \ \ \ \ \ \ \ pool-\/>num\_working\_threads++;}
+\DoxyCodeLine{01645\ }
+\DoxyCodeLine{01646\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Unlock\ the\ pool}}
+\DoxyCodeLine{01647\ \ \ \ \ \ \ \ \ \ \ \ \ pthread\_mutex\_unlock(\&pool-\/>lock);}
+\DoxyCodeLine{01648\ }
+\DoxyCodeLine{01649\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ printf("{}Thread\ \%ld\ executing\ task\(\backslash\)n"{},\ thread\_self());}}
+\DoxyCodeLine{01650\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Execute\ the\ task}}
+\DoxyCodeLine{01651\ \ \ \ \ \ \ \ \ \ \ \ \ task-\/>function(task-\/>arg);}
+\DoxyCodeLine{01652\ }
+\DoxyCodeLine{01653\ \ \ \ \ \ \ \ \ \ \ \ \ free(task);}
+\DoxyCodeLine{01654\ \ \ \ \ \ \ \ \ \ \ \ \ task\ =\ NULL;}
+\DoxyCodeLine{01655\ }
+\DoxyCodeLine{01656\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Decrement\ the\ number\ of\ working\ threads}}
+\DoxyCodeLine{01657\ \ \ \ \ \ \ \ \ \ \ \ \ pthread\_mutex\_lock(\&pool-\/>lock);}
+\DoxyCodeLine{01658\ \ \ \ \ \ \ \ \ \ \ \ \ pool-\/>num\_working\_threads-\/-\/;}
+\DoxyCodeLine{01659\ }
+\DoxyCodeLine{01660\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Signal\ that\ a\ task\ has\ completed}}
+\DoxyCodeLine{01661\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (pool-\/>num\_working\_threads\ ==\ 0)\ \{}
+\DoxyCodeLine{01662\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ pthread\_cond\_signal(\&pool-\/>all\_tasks\_completed);}
+\DoxyCodeLine{01663\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01664\ \ \ \ \ \ \ \ \ \ \ \ \ pthread\_mutex\_unlock(\&pool-\/>lock);}
+\DoxyCodeLine{01665\ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{01666\ \ \ \ \ \ \ \ \ \ \ \ \ pthread\_mutex\_unlock(\&pool-\/>lock);}
+\DoxyCodeLine{01667\ \ \ \ \ \ \ \ \ \ \ \ \ pthread\_exit(NULL);}
+\DoxyCodeLine{01668\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01669\ \ \ \ \ \}}
+\DoxyCodeLine{01670\ }
+\DoxyCodeLine{01671\ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{01672\ \}}
+\DoxyCodeLine{01673\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01674\ }
+\DoxyCodeLine{01675\ \mbox{\hyperlink{structThreadPool}{ThreadPool}}*\ threadpool\_create(\textcolor{keywordtype}{int}\ num\_threads)\ \{}
+\DoxyCodeLine{01676\ \ \ \ \ \mbox{\hyperlink{structThreadPool}{ThreadPool}}*\ pool\ =\ (\mbox{\hyperlink{structThreadPool}{ThreadPool}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structThreadPool}{ThreadPool}}));}
+\DoxyCodeLine{01677\ \ \ \ \ \textcolor{keywordflow}{if}\ (!pool)\ \{}
+\DoxyCodeLine{01678\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}malloc"{}});}
+\DoxyCodeLine{01679\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{01680\ \ \ \ \ \}}
+\DoxyCodeLine{01681\ \ \ \ \ pool-\/>num\_threads\ \ \ \ \ \ \ \ \ =\ num\_threads;}
+\DoxyCodeLine{01682\ \ \ \ \ pool-\/>num\_working\_threads\ =\ 0;}
+\DoxyCodeLine{01683\ \ \ \ \ pool-\/>shutdown\ \ \ \ \ \ \ \ \ \ \ \ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{01684\ \ \ \ \ pool-\/>task\_queue\ \ \ \ \ \ \ \ \ \ =\ NULL;}
+\DoxyCodeLine{01685\ }
+\DoxyCodeLine{01686\ \ \ \ \ lock\_init(\&pool-\/>lock);}
+\DoxyCodeLine{01687\ \ \ \ \ cond\_init(\&pool-\/>task\_available);}
+\DoxyCodeLine{01688\ \ \ \ \ cond\_init(\&pool-\/>all\_tasks\_completed);}
+\DoxyCodeLine{01689\ }
+\DoxyCodeLine{01690\ \ \ \ \ Thread*\ threads\ =\ (Thread*)calloc(num\_threads,\ \textcolor{keyword}{sizeof}(Thread));}
+\DoxyCodeLine{01691\ \ \ \ \ \textcolor{keywordflow}{if}\ (!threads)\ \{}
+\DoxyCodeLine{01692\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}malloc"{}});}
+\DoxyCodeLine{01693\ \ \ \ \ \ \ \ \ free(pool);}
+\DoxyCodeLine{01694\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{01695\ \ \ \ \ \}}
+\DoxyCodeLine{01696\ }
+\DoxyCodeLine{01697\ \ \ \ \ \textcolor{comment}{//\ create\ worker\ threads}}
+\DoxyCodeLine{01698\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ i\ =\ 0;\ i\ <\ num\_threads;\ i++)\ \{}
+\DoxyCodeLine{01699\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structThreadData}{ThreadData}}*\ data\ =\ (\mbox{\hyperlink{structThreadData}{ThreadData}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structThreadData}{ThreadData}}));}
+\DoxyCodeLine{01700\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!data)\ \{}
+\DoxyCodeLine{01701\ \ \ \ \ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}malloc"{}});}
+\DoxyCodeLine{01702\ \ \ \ \ \ \ \ \ \ \ \ \ threadpool\_destroy(pool);}
+\DoxyCodeLine{01703\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{01704\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01705\ \ \ \ \ \ \ \ \ data-\/>arg\ \ \ \ =\ pool;}
+\DoxyCodeLine{01706\ \ \ \ \ \ \ \ \ data-\/>retval\ =\ NULL;}
+\DoxyCodeLine{01707\ }
+\DoxyCodeLine{01708\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (thread\_create(\&threads[i],\ (\textcolor{keywordtype}{void}*\ (*)(\textcolor{keywordtype}{void}*))threadpool\_worker,\ data)\ !=\ 0)\ \{}
+\DoxyCodeLine{01709\ \ \ \ \ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}thread\_create"{}});}
+\DoxyCodeLine{01710\ \ \ \ \ \ \ \ \ \ \ \ \ free(data);}
+\DoxyCodeLine{01711\ \ \ \ \ \ \ \ \ \ \ \ \ threadpool\_destroy(pool);}
+\DoxyCodeLine{01712\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{01713\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01714\ \ \ \ \ \}}
+\DoxyCodeLine{01715\ \ \ \ \ \textcolor{keywordflow}{return}\ pool;}
+\DoxyCodeLine{01716\ \}}
+\DoxyCodeLine{01717\ }
+\DoxyCodeLine{01718\ \textcolor{comment}{//\ Add\ a\ task\ to\ the\ thread\ pool.}}
+\DoxyCodeLine{01719\ \textcolor{comment}{//\ Returns\ 0\ if\ successful,\ -\/1\ otherwise}}
+\DoxyCodeLine{01720\ \textcolor{comment}{//\ The\ threadpool\ with\ free\ the\ memory\ for\ arg\ after\ the\ task\ is\ completed.}}
+\DoxyCodeLine{01721\ \textcolor{keywordtype}{int}\ threadpool\_add\_task(\mbox{\hyperlink{structThreadPool}{ThreadPool}}*\ pool,\ \textcolor{keywordtype}{void}\ (*task)(\textcolor{keywordtype}{void}*),\ \textcolor{keywordtype}{void}*\ arg)\ \{}
+\DoxyCodeLine{01722\ \ \ \ \ \textcolor{keywordflow}{if}\ (pool\ ==\ NULL\ ||\ task\ ==\ NULL)\ \{}
+\DoxyCodeLine{01723\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{01724\ \ \ \ \ \}}
+\DoxyCodeLine{01725\ }
+\DoxyCodeLine{01726\ \ \ \ \ \mbox{\hyperlink{structTask}{Task}}*\ new\_task\ =\ (\mbox{\hyperlink{structTask}{Task}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structTask}{Task}}));}
+\DoxyCodeLine{01727\ \ \ \ \ \textcolor{keywordflow}{if}\ (!new\_task)\ \{}
+\DoxyCodeLine{01728\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}malloc"{}});}
+\DoxyCodeLine{01729\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{01730\ \ \ \ \ \}}
+\DoxyCodeLine{01731\ }
+\DoxyCodeLine{01732\ \ \ \ \ new\_task-\/>function\ =\ task;}
+\DoxyCodeLine{01733\ \ \ \ \ new\_task-\/>arg\ \ \ \ \ \ =\ arg;}
+\DoxyCodeLine{01734\ \ \ \ \ new\_task-\/>next\ \ \ \ \ =\ NULL;}
+\DoxyCodeLine{01735\ }
+\DoxyCodeLine{01736\ \ \ \ \ \textcolor{comment}{//\ Lock\ the\ pool}}
+\DoxyCodeLine{01737\ \ \ \ \ lock\_acquire(\&pool-\/>lock);}
+\DoxyCodeLine{01738\ }
+\DoxyCodeLine{01739\ \ \ \ \ \textcolor{comment}{//\ Add\ the\ task\ to\ the\ queue}}
+\DoxyCodeLine{01740\ \ \ \ \ \textcolor{keywordflow}{if}\ (pool-\/>task\_queue\ ==\ NULL)\ \{}
+\DoxyCodeLine{01741\ \ \ \ \ \ \ \ \ pool-\/>task\_queue\ =\ new\_task;}
+\DoxyCodeLine{01742\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{01743\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structTask}{Task}}*\ current\_task\ =\ pool-\/>task\_queue;}
+\DoxyCodeLine{01744\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (current\_task-\/>next\ !=\ NULL)\ \{}
+\DoxyCodeLine{01745\ \ \ \ \ \ \ \ \ \ \ \ \ current\_task\ =\ current\_task-\/>next;}
+\DoxyCodeLine{01746\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01747\ \ \ \ \ \ \ \ \ current\_task-\/>next\ =\ new\_task;}
+\DoxyCodeLine{01748\ \ \ \ \ \}}
+\DoxyCodeLine{01749\ }
+\DoxyCodeLine{01750\ \ \ \ \ \textcolor{comment}{//\ Signal\ that\ a\ task\ is\ available}}
+\DoxyCodeLine{01751\ \ \ \ \ cond\_signal(\&pool-\/>task\_available);}
+\DoxyCodeLine{01752\ }
+\DoxyCodeLine{01753\ \ \ \ \ \textcolor{comment}{//\ Unlock\ the\ pool}}
+\DoxyCodeLine{01754\ \ \ \ \ lock\_release(\&pool-\/>lock);}
+\DoxyCodeLine{01755\ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{01756\ \}}
+\DoxyCodeLine{01757\ }
+\DoxyCodeLine{01758\ \textcolor{keywordtype}{void}\ threadpool\_wait(\mbox{\hyperlink{structThreadPool}{ThreadPool}}*\ pool)\ \{}
+\DoxyCodeLine{01759\ \ \ \ \ \textcolor{keywordflow}{if}\ (pool\ ==\ NULL)}
+\DoxyCodeLine{01760\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{01761\ }
+\DoxyCodeLine{01762\ \ \ \ \ \textcolor{comment}{//\ Lock\ the\ pool}}
+\DoxyCodeLine{01763\ \ \ \ \ lock\_acquire(\&pool-\/>lock);}
+\DoxyCodeLine{01764\ }
+\DoxyCodeLine{01765\ \ \ \ \ \textcolor{comment}{//\ Wait\ for\ all\ threads\ to\ complete}}
+\DoxyCodeLine{01766\ \ \ \ \ \textcolor{keywordflow}{while}\ (pool-\/>task\_queue\ !=\ NULL\ ||\ pool-\/>num\_working\_threads\ >\ 0)\ \{}
+\DoxyCodeLine{01767\ \ \ \ \ \ \ \ \ cond\_wait(\&pool-\/>all\_tasks\_completed,\ \&pool-\/>lock);}
+\DoxyCodeLine{01768\ \ \ \ \ \}}
+\DoxyCodeLine{01769\ \ \ \ \ \textcolor{comment}{//\ Unlock\ the\ pool}}
+\DoxyCodeLine{01770\ \ \ \ \ lock\_release(\&pool-\/>lock);}
+\DoxyCodeLine{01771\ \}}
+\DoxyCodeLine{01772\ }
+\DoxyCodeLine{01773\ \textcolor{keywordtype}{void}\ threadpool\_destroy(\mbox{\hyperlink{structThreadPool}{ThreadPool}}*\ pool)\ \{}
+\DoxyCodeLine{01774\ \ \ \ \ \textcolor{keywordflow}{if}\ (!pool)}
+\DoxyCodeLine{01775\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{01776\ }
+\DoxyCodeLine{01777\ \ \ \ \ \textcolor{keywordflow}{if}\ (pool-\/>shutdown)\ \{}
+\DoxyCodeLine{01778\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{01779\ \ \ \ \ \}}
+\DoxyCodeLine{01780\ }
+\DoxyCodeLine{01781\ \ \ \ \ lock\_acquire(\&pool-\/>lock);}
+\DoxyCodeLine{01782\ \ \ \ \ pool-\/>shutdown\ =\ \textcolor{keyword}{true};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Signal\ all\ threads\ to\ shut\ down}}
+\DoxyCodeLine{01783\ \ \ \ \ cond\_broadcast(\&pool-\/>task\_available);\ \ \textcolor{comment}{//\ Signal\ all\ threads\ to\ wake\ up}}
+\DoxyCodeLine{01784\ }
+\DoxyCodeLine{01785\ \ \ \ \ \textcolor{comment}{//\ Wait\ for\ all\ threads\ to\ complete}}
+\DoxyCodeLine{01786\ \ \ \ \ \textcolor{keywordflow}{while}\ (pool-\/>num\_working\_threads\ >\ 0)\ \{}
+\DoxyCodeLine{01787\ \ \ \ \ \ \ \ \ cond\_wait(\&pool-\/>all\_tasks\_completed,\ \&pool-\/>lock);}
+\DoxyCodeLine{01788\ \ \ \ \ \}}
+\DoxyCodeLine{01789\ }
+\DoxyCodeLine{01790\ \ \ \ \ \textcolor{comment}{//\ Unlock\ the\ pool}}
+\DoxyCodeLine{01791\ \ \ \ \ lock\_release(\&pool-\/>lock);}
+\DoxyCodeLine{01792\ \ \ \ \ lock\_free(\&pool-\/>lock);}
+\DoxyCodeLine{01793\ \ \ \ \ cond\_free(\&pool-\/>task\_available);}
+\DoxyCodeLine{01794\ \ \ \ \ cond\_free(\&pool-\/>all\_tasks\_completed);}
+\DoxyCodeLine{01795\ }
+\DoxyCodeLine{01796\ \ \ \ \ free(pool-\/>threads);}
+\DoxyCodeLine{01797\ \ \ \ \ free(pool);}
+\DoxyCodeLine{01798\ \ \ \ \ pool\ =\ NULL;}
+\DoxyCodeLine{01799\ \}}
+\DoxyCodeLine{01800\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ OS\_IMPL}}
+\DoxyCodeLine{01801\ }
+\DoxyCodeLine{01802\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ OS\_H}}
+
+\end{DoxyCode}

@@ -1,0 +1,34 @@
+\doxysection{Thread\+Pool Struct Reference}
+\hypertarget{structThreadPool}{}\label{structThreadPool}\index{ThreadPool@{ThreadPool}}
+\doxysubsubsection*{Data Fields}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{structThreadPool_a68d4ff1ec1be65889cb8f34fad7fe5df}\label{structThreadPool_a68d4ff1ec1be65889cb8f34fad7fe5df} 
+struct \mbox{\hyperlink{structTask}{Task}} \texorpdfstring{$\ast$}{*} {\bfseries task\+\_\+queue}
+\item 
+\Hypertarget{structThreadPool_a7df288b3f877cb99b5e7ba0fc94f2a94}\label{structThreadPool_a7df288b3f877cb99b5e7ba0fc94f2a94} 
+int {\bfseries num\+\_\+threads}
+\item 
+\Hypertarget{structThreadPool_adb63354b59070146b631dca36389b8b1}\label{structThreadPool_adb63354b59070146b631dca36389b8b1} 
+int {\bfseries num\+\_\+working\+\_\+threads}
+\item 
+\Hypertarget{structThreadPool_a51a3c58738aabd4086555ee17caffe89}\label{structThreadPool_a51a3c58738aabd4086555ee17caffe89} 
+Thread \texorpdfstring{$\ast$}{*} {\bfseries threads}
+\item 
+\Hypertarget{structThreadPool_a3bd7296c4c4190d82a04dfaefee6c156}\label{structThreadPool_a3bd7296c4c4190d82a04dfaefee6c156} 
+Lock {\bfseries lock}
+\item 
+\Hypertarget{structThreadPool_a5424c19c4d4f166745dbeb52798dd27c}\label{structThreadPool_a5424c19c4d4f166745dbeb52798dd27c} 
+Condition {\bfseries task\+\_\+available}
+\item 
+\Hypertarget{structThreadPool_adc31ed985e984b1a1220549f9c88533c}\label{structThreadPool_adc31ed985e984b1a1220549f9c88533c} 
+Condition {\bfseries all\+\_\+tasks\+\_\+completed}
+\item 
+\Hypertarget{structThreadPool_a02543247401916930bb6a407f6e50007}\label{structThreadPool_a02543247401916930bb6a407f6e50007} 
+bool {\bfseries shutdown}
+\end{DoxyCompactItemize}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+os.\+h\end{DoxyCompactItemize}

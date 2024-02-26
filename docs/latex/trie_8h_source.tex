@@ -1,0 +1,158 @@
+\doxysection{trie.\+h}
+\hypertarget{trie_8h_source}{}\label{trie_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ D231241A\_A151\_496C\_BD63\_5DB930D6E76C}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ D231241A\_A151\_496C\_BD63\_5DB930D6E76C}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#if\ defined(\_\_cplusplus)}}
+\DoxyCodeLine{00005\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \{}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00007\ }
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#include\ <stdio.h>}}
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#include\ <stdlib.h>}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#include\ <string.h>}}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#define\ ALPHABET\_SIZE\ 26}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ MAX\_WORD\_SIZE}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ MAX\_WORD\_SIZE\ 100}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }TrieNode\ TrieNode;}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ Create\ a\ new\ trie\ node.}}
+\DoxyCodeLine{00022\ TrieNode*\ trie\_create();}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ Inserts\ a\ word\ into\ the\ trie.}}
+\DoxyCodeLine{00025\ \textcolor{keywordtype}{void}\ insert\_word(\textcolor{keyword}{struct}\ TrieNode*\ root,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ word);}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ Searches\ for\ a\ word\ in\ the\ trie.\ Returns\ 1\ if\ the\ word\ is\ found,\ 0\ otherwise.}}
+\DoxyCodeLine{00028\ \textcolor{keywordtype}{int}\ search\_word(\textcolor{keyword}{struct}\ TrieNode*\ root,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ word);}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ Removes\ a\ word\ from\ the\ trie.}}
+\DoxyCodeLine{00031\ \textcolor{keywordtype}{void}\ remove\_word(\textcolor{keyword}{struct}\ TrieNode*\ root,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ word);}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{keywordtype}{size\_t}\ trie\_autocomplete(\textcolor{keyword}{struct}\ TrieNode*\ root,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ prefix,\ \textcolor{keywordtype}{char}\ (*results)[MAX\_WORD\_SIZE],}
+\DoxyCodeLine{00034\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ arr\_size);}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ Frees\ the\ memory\ used\ by\ the\ trie.}}
+\DoxyCodeLine{00037\ \textcolor{keywordtype}{void}\ trie\_destroy(\textcolor{keyword}{struct}\ TrieNode*\ root);}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#if\ defined(\_\_cplusplus)}}
+\DoxyCodeLine{00040\ \}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#ifdef\ TRIE\_IMPL}}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \textcolor{keyword}{struct\ }TrieNode\ \{}
+\DoxyCodeLine{00046\ \ \ \ \ \textcolor{keyword}{struct\ }TrieNode*\ children[ALPHABET\_SIZE];}
+\DoxyCodeLine{00047\ \ \ \ \ \textcolor{keywordtype}{int}\ isEndOfWord;}
+\DoxyCodeLine{00048\ \};}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00050\ \textcolor{keyword}{static}\ \textcolor{keyword}{struct\ }TrieNode*\ create\_node()\ \{}
+\DoxyCodeLine{00051\ \ \ \ \ \textcolor{keyword}{struct\ }TrieNode*\ node\ =\ (\textcolor{keyword}{struct\ }TrieNode*)malloc(\textcolor{keyword}{sizeof}(\textcolor{keyword}{struct}\ TrieNode));}
+\DoxyCodeLine{00052\ \ \ \ \ node-\/>isEndOfWord\ \ \ \ \ =\ 0;}
+\DoxyCodeLine{00053\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ i\ =\ 0;\ i\ <\ ALPHABET\_SIZE;\ i++)\ \{}
+\DoxyCodeLine{00054\ \ \ \ \ \ \ \ \ node-\/>children[i]\ =\ NULL;}
+\DoxyCodeLine{00055\ \ \ \ \ \}}
+\DoxyCodeLine{00056\ \ \ \ \ \textcolor{keywordflow}{return}\ node;}
+\DoxyCodeLine{00057\ \}}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ Create\ a\ new\ trie}}
+\DoxyCodeLine{00060\ TrieNode*\ trie\_create()\ \{}
+\DoxyCodeLine{00061\ \ \ \ \ \textcolor{keywordflow}{return}\ create\_node();}
+\DoxyCodeLine{00062\ \}}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00064\ \textcolor{keywordtype}{void}\ insert\_word(\textcolor{keyword}{struct}\ TrieNode*\ root,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ word)\ \{}
+\DoxyCodeLine{00065\ \ \ \ \ \textcolor{keyword}{struct\ }TrieNode*\ current\ =\ root;}
+\DoxyCodeLine{00066\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ strlen(word);\ i++)\ \{}
+\DoxyCodeLine{00067\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ index\ =\ word[i]\ -\/\ \textcolor{charliteral}{'a'};}
+\DoxyCodeLine{00068\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!current-\/>children[index])\ \{}
+\DoxyCodeLine{00069\ \ \ \ \ \ \ \ \ \ \ \ \ current-\/>children[index]\ =\ create\_node();}
+\DoxyCodeLine{00070\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00071\ \ \ \ \ \ \ \ \ current\ =\ current-\/>children[index];}
+\DoxyCodeLine{00072\ \ \ \ \ \}}
+\DoxyCodeLine{00073\ \ \ \ \ current-\/>isEndOfWord\ =\ 1;}
+\DoxyCodeLine{00074\ \}}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \textcolor{keywordtype}{void}\ trie\_destroy(\textcolor{keyword}{struct}\ TrieNode*\ root)\ \{}
+\DoxyCodeLine{00077\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ i\ =\ 0;\ i\ <\ ALPHABET\_SIZE;\ i++)\ \{}
+\DoxyCodeLine{00078\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (root-\/>children[i])\ \{}
+\DoxyCodeLine{00079\ \ \ \ \ \ \ \ \ \ \ \ \ trie\_destroy(root-\/>children[i]);}
+\DoxyCodeLine{00080\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00081\ \ \ \ \ \}}
+\DoxyCodeLine{00082\ \ \ \ \ free(root);}
+\DoxyCodeLine{00083\ \}}
+\DoxyCodeLine{00084\ }
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ remove\ a\ word\ from\ the\ trie}}
+\DoxyCodeLine{00086\ \textcolor{keywordtype}{void}\ remove\_word(\textcolor{keyword}{struct}\ TrieNode*\ root,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ word)\ \{}
+\DoxyCodeLine{00087\ \ \ \ \ \textcolor{keyword}{struct\ }TrieNode*\ current\ =\ root;}
+\DoxyCodeLine{00088\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ strlen(word);\ i++)\ \{}
+\DoxyCodeLine{00089\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ index\ =\ word[i]\ -\/\ \textcolor{charliteral}{'a'};}
+\DoxyCodeLine{00090\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!current-\/>children[index])\ \{}
+\DoxyCodeLine{00091\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00092\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \ \ current\ =\ current-\/>children[index];}
+\DoxyCodeLine{00094\ \ \ \ \ \}}
+\DoxyCodeLine{00095\ \ \ \ \ current-\/>isEndOfWord\ =\ 0;}
+\DoxyCodeLine{00096\ \}}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \textcolor{keywordtype}{int}\ search\_word(\textcolor{keyword}{struct}\ TrieNode*\ root,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ word)\ \{}
+\DoxyCodeLine{00099\ \ \ \ \ \textcolor{keyword}{struct\ }TrieNode*\ current\ =\ root;}
+\DoxyCodeLine{00100\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ strlen(word);\ i++)\ \{}
+\DoxyCodeLine{00101\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ index\ =\ word[i]\ -\/\ \textcolor{charliteral}{'a'};}
+\DoxyCodeLine{00102\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!current-\/>children[index])\ \{}
+\DoxyCodeLine{00103\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00104\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00105\ \ \ \ \ \ \ \ \ current\ =\ current-\/>children[index];}
+\DoxyCodeLine{00106\ \ \ \ \ \}}
+\DoxyCodeLine{00107\ \ \ \ \ \textcolor{keywordflow}{return}\ (current\ !=\ NULL\ \&\&\ current-\/>isEndOfWord);}
+\DoxyCodeLine{00108\ \}}
+\DoxyCodeLine{00109\ }
+\DoxyCodeLine{00110\ \textcolor{keywordtype}{void}\ autoCompleteUtil(\textcolor{keyword}{struct}\ TrieNode*\ root,\ \textcolor{keywordtype}{char}*\ prefix,\ \textcolor{keywordtype}{size\_t}*\ match\_count,\ \textcolor{keywordtype}{char}*\ buffer,}
+\DoxyCodeLine{00111\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ depth,\ \textcolor{keywordtype}{char}\ (*results)[MAX\_WORD\_SIZE],\ \textcolor{keywordtype}{size\_t}\ arr\_size)\ \{}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00113\ \ \ \ \ \textcolor{comment}{//\ If\ we\ have\ found\ enough\ words,\ return}}
+\DoxyCodeLine{00114\ \ \ \ \ \textcolor{keywordflow}{if}\ (*match\_count\ >=\ arr\_size)\ \{}
+\DoxyCodeLine{00115\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00116\ \ \ \ \ \}}
+\DoxyCodeLine{00117\ }
+\DoxyCodeLine{00118\ \ \ \ \ \textcolor{keywordflow}{if}\ (root-\/>isEndOfWord)\ \{}
+\DoxyCodeLine{00119\ \ \ \ \ \ \ \ \ buffer[depth]\ =\ \textcolor{charliteral}{'\(\backslash\)0'};}
+\DoxyCodeLine{00120\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Copy\ the\ word\ "{}prefix\ +\ buffer"{}\ into\ the\ results\ array}}
+\DoxyCodeLine{00121\ \ \ \ \ \ \ \ \ snprintf(results[*match\_count],\ MAX\_WORD\_SIZE,\ \textcolor{stringliteral}{"{}\%s\%s"{}},\ prefix,\ buffer);}
+\DoxyCodeLine{00122\ \ \ \ \ \ \ \ \ (*match\_count)++;}
+\DoxyCodeLine{00123\ \ \ \ \ \}}
+\DoxyCodeLine{00124\ }
+\DoxyCodeLine{00125\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ i\ =\ 0;\ i\ <\ ALPHABET\_SIZE;\ i++)\ \{}
+\DoxyCodeLine{00126\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (root-\/>children[i])\ \{}
+\DoxyCodeLine{00127\ \ \ \ \ \ \ \ \ \ \ \ \ buffer[depth]\ =\ \textcolor{charliteral}{'a'}\ +\ i;}
+\DoxyCodeLine{00128\ \ \ \ \ \ \ \ \ \ \ \ \ autoCompleteUtil(root-\/>children[i],\ prefix,\ match\_count,\ buffer,\ depth\ +\ 1,\ results,}
+\DoxyCodeLine{00129\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ arr\_size);}
+\DoxyCodeLine{00130\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00131\ \ \ \ \ \}}
+\DoxyCodeLine{00132\ \}}
+\DoxyCodeLine{00133\ }
+\DoxyCodeLine{00134\ \textcolor{keywordtype}{size\_t}\ trie\_autocomplete(\textcolor{keyword}{struct}\ TrieNode*\ root,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ prefix,\ \textcolor{keywordtype}{char}\ (*results)[MAX\_WORD\_SIZE],}
+\DoxyCodeLine{00135\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ arr\_size)\ \{}
+\DoxyCodeLine{00136\ \ \ \ \ \textcolor{keyword}{struct\ }TrieNode*\ current\ =\ root;}
+\DoxyCodeLine{00137\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ strlen(prefix);\ i++)\ \{}
+\DoxyCodeLine{00138\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ index\ =\ prefix[i]\ -\/\ \textcolor{charliteral}{'a'};}
+\DoxyCodeLine{00139\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!current-\/>children[index])\ \{}
+\DoxyCodeLine{00140\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00141\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00142\ \ \ \ \ \ \ \ \ current\ =\ current-\/>children[index];}
+\DoxyCodeLine{00143\ \ \ \ \ \}}
+\DoxyCodeLine{00144\ }
+\DoxyCodeLine{00145\ \ \ \ \ \textcolor{keywordtype}{char}\ buffer[100];}
+\DoxyCodeLine{00146\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ match\_count\ =\ 0;}
+\DoxyCodeLine{00147\ \ \ \ \ autoCompleteUtil(current,\ (\textcolor{keywordtype}{char}*)prefix,\ \&match\_count,\ buffer,\ 0,\ results,\ arr\_size);}
+\DoxyCodeLine{00148\ \ \ \ \ \textcolor{keywordflow}{return}\ match\_count;}
+\DoxyCodeLine{00149\ \}}
+\DoxyCodeLine{00150\ }
+\DoxyCodeLine{00151\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{/*\ TRIE\_IMPL\ */}\textcolor{preprocessor}{}}
+\DoxyCodeLine{00152\ }
+\DoxyCodeLine{00153\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{/*\ D231241A\_A151\_496C\_BD63\_5DB930D6E76C\ */}\textcolor{preprocessor}{}}
+
+\end{DoxyCode}

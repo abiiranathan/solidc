@@ -1,0 +1,557 @@
+\doxysection{socket.\+h}
+\hypertarget{socket_8h_source}{}\label{socket_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ SOCKET\_H}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ SOCKET\_H}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#if\ defined(\_\_cplusplus)}}
+\DoxyCodeLine{00005\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \{}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00007\ }
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#include\ <stdbool.h>}}
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#include\ <stdio.h>}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#include\ <stdlib.h>}}
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#include\ <string.h>}}
+\DoxyCodeLine{00013\ }
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#include\ <mswsock.h>}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ <windows.h>}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ <winsock2.h>}}
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <ws2tcpip.h>}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#pragma\ comment(lib,\ "{}ws2\_32.lib"{})}}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ <arpa/inet.h>}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ <fcntl.h>}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ <netinet/in.h>}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ <sys/epoll.h>}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ <sys/socket.h>}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ <sys/types.h>}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ <unistd.h>}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ Socket\ abstraction\ that\ works\ on\ both\ Windows\ and\ Unix}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ On\ windows,\ you\ need\ to\ call\ initialize\_winsock()\ before\ using\ any\ socket\ functions}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ and\ cleanup\_winsock()\ after\ you\ are\ done\ using\ the\ socket\ functions.}}
+\DoxyCodeLine{00035\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\{}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00037\ \ \ \ \ SOCKET\ handle;}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00039\ \ \ \ \ \textcolor{keywordtype}{int}\ handle;}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00041\ \}\ \mbox{\hyperlink{structSocket}{Socket}};}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00044\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ printLastErrorMessage(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ prefix);}
+\DoxyCodeLine{00045\ \textcolor{keywordtype}{void}\ initialize\_winsock();}
+\DoxyCodeLine{00046\ \textcolor{keywordtype}{void}\ cleanup\_winsock();}
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ Create\ a\ socket}}
+\DoxyCodeLine{00050\ \mbox{\hyperlink{structSocket}{Socket}}*\ socket\_create(\textcolor{keywordtype}{int}\ domain,\ \textcolor{keywordtype}{int}\ type,\ \textcolor{keywordtype}{int}\ protocol);}
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ Close\ a\ socket}}
+\DoxyCodeLine{00052\ \textcolor{keywordtype}{int}\ socket\_close(\mbox{\hyperlink{structSocket}{Socket}}*\ sock);}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ Bind\ a\ socket\ to\ an\ address}}
+\DoxyCodeLine{00054\ \textcolor{keywordtype}{int}\ socket\_bind(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keyword}{const}\ \textcolor{keyword}{struct}\ sockaddr*\ addr,\ socklen\_t\ addrlen);}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ Listen\ for\ incoming\ connections}}
+\DoxyCodeLine{00056\ \textcolor{keywordtype}{int}\ socket\_listen(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keywordtype}{int}\ backlog);}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ Accept\ an\ incoming\ connection}}
+\DoxyCodeLine{00058\ \mbox{\hyperlink{structSocket}{Socket}}*\ socket\_accept(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keyword}{struct}\ sockaddr*\ addr,\ socklen\_t*\ addrlen);}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ Connect\ to\ a\ remote\ socket}}
+\DoxyCodeLine{00060\ \textcolor{keywordtype}{int}\ socket\_connect(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keyword}{const}\ \textcolor{keyword}{struct}\ sockaddr*\ addr,\ socklen\_t\ addrlen);}
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ Read\ from\ a\ socket}}
+\DoxyCodeLine{00062\ ssize\_t\ socket\_read(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size);}
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ Write\ to\ a\ socket}}
+\DoxyCodeLine{00064\ ssize\_t\ socket\_write(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size);}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ Get\ the\ socket\ file\ descriptor}}
+\DoxyCodeLine{00066\ \textcolor{keywordtype}{int}\ socket\_fd(\mbox{\hyperlink{structSocket}{Socket}}*\ sock);}
+\DoxyCodeLine{00067\ \textcolor{comment}{//\ Get\ the\ socket\ error}}
+\DoxyCodeLine{00068\ \textcolor{keywordtype}{int}\ socket\_error();}
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ Get\ the\ socket\ option}}
+\DoxyCodeLine{00070\ \textcolor{keywordtype}{int}\ socket\_get\_option(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keywordtype}{int}\ level,\ \textcolor{keywordtype}{int}\ optname,\ \textcolor{keywordtype}{void}*\ optval,\ socklen\_t*\ optlen);}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ Set\ the\ socket\ option\ (SOL\_SOCKET,\ SO\_REUSEADDR,\ \&optval,\ sizeof(optval))}}
+\DoxyCodeLine{00072\ \textcolor{keywordtype}{int}\ socket\_reuse\_port(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keywordtype}{int}\ enable);}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ Set\ the\ socket\ option}}
+\DoxyCodeLine{00074\ \textcolor{keywordtype}{int}\ socket\_set\_option(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keywordtype}{int}\ level,\ \textcolor{keywordtype}{int}\ optname,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ optval,\ socklen\_t\ optlen);}
+\DoxyCodeLine{00075\ \textcolor{comment}{//\ Get\ the\ socket\ address}}
+\DoxyCodeLine{00076\ \textcolor{keywordtype}{int}\ socket\_get\_address(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keyword}{struct}\ sockaddr*\ addr,\ socklen\_t*\ addrlen);}
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ Get\ the\ socket\ peer\ address}}
+\DoxyCodeLine{00078\ \textcolor{keywordtype}{int}\ socket\_get\_peer\_address(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keyword}{struct}\ sockaddr*\ addr,\ socklen\_t*\ addrlen);}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ Get\ the\ socket\ type}}
+\DoxyCodeLine{00080\ \textcolor{keywordtype}{int}\ socket\_type(\mbox{\hyperlink{structSocket}{Socket}}*\ sock);}
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ Get\ the\ socket\ protocol}}
+\DoxyCodeLine{00082\ \textcolor{keywordtype}{int}\ socket\_protocol(\mbox{\hyperlink{structSocket}{Socket}}*\ sock);}
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ Get\ the\ socket\ family}}
+\DoxyCodeLine{00084\ \textcolor{keywordtype}{int}\ socket\_family(\mbox{\hyperlink{structSocket}{Socket}}*\ sock);}
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ Get\ the\ socket\ type}}
+\DoxyCodeLine{00086\ \textcolor{keywordtype}{int}\ socket\_type(\mbox{\hyperlink{structSocket}{Socket}}*\ sock);}
+\DoxyCodeLine{00087\ }
+\DoxyCodeLine{00088\ \textcolor{preprocessor}{\#if\ defined(\_\_cplusplus)}}
+\DoxyCodeLine{00089\ \}}
+\DoxyCodeLine{00090\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00092\ \textcolor{preprocessor}{\#ifdef\ SOCKET\_IMPL}}
+\DoxyCodeLine{00093\ \textcolor{preprocessor}{\#include\ <errno.h>}}
+\DoxyCodeLine{00094\ }
+\DoxyCodeLine{00095\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00096\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ printLastErrorMessage(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ prefix)\ \{}
+\DoxyCodeLine{00097\ \ \ \ \ LPSTR\ errorText\ =\ NULL;}
+\DoxyCodeLine{00098\ \ \ \ \ FormatMessageA(}
+\DoxyCodeLine{00099\ \ \ \ \ \ \ \ \ FORMAT\_MESSAGE\_FROM\_SYSTEM\ |\ FORMAT\_MESSAGE\_ALLOCATE\_BUFFER\ |\ FORMAT\_MESSAGE\_IGNORE\_INSERTS,}
+\DoxyCodeLine{00100\ \ \ \ \ \ \ \ \ NULL,\ WSAGetLastError(),\ MAKELANGID(LANG\_NEUTRAL,\ SUBLANG\_DEFAULT),\ (LPSTR)\&errorText,\ 0,}
+\DoxyCodeLine{00101\ \ \ \ \ \ \ \ \ NULL);}
+\DoxyCodeLine{00102\ \ \ \ \ \textcolor{keywordflow}{if}\ (errorText\ !=\ NULL)\ \{}
+\DoxyCodeLine{00103\ \ \ \ \ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}\%s\ failed\ with\ error\ \%d:\ \%s\(\backslash\)n"{}},\ prefix,\ WSAGetLastError(),\ errorText);}
+\DoxyCodeLine{00104\ \ \ \ \ \ \ \ \ LocalFree(errorText);}
+\DoxyCodeLine{00105\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00106\ \ \ \ \ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}\%s\ failed\ with\ unknown\ error\ \%d\(\backslash\)n"{}},\ prefix,\ WSAGetLastError());}
+\DoxyCodeLine{00107\ \ \ \ \ \}}
+\DoxyCodeLine{00108\ \}}
+\DoxyCodeLine{00109\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00111\ \textcolor{comment}{//\ Create\ a\ socket}}
+\DoxyCodeLine{00112\ \mbox{\hyperlink{structSocket}{Socket}}*\ socket\_create(\textcolor{keywordtype}{int}\ domain,\ \textcolor{keywordtype}{int}\ type,\ \textcolor{keywordtype}{int}\ protocol)\ \{}
+\DoxyCodeLine{00113\ \ \ \ \ \mbox{\hyperlink{structSocket}{Socket}}*\ sock\ =\ (\mbox{\hyperlink{structSocket}{Socket}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structSocket}{Socket}}));}
+\DoxyCodeLine{00114\ \ \ \ \ \textcolor{keywordflow}{if}\ (!sock)\ \{}
+\DoxyCodeLine{00115\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}malloc"{}});}
+\DoxyCodeLine{00116\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00117\ \ \ \ \ \}}
+\DoxyCodeLine{00118\ \ \ \ \ sock-\/>handle\ =\ -\/1;}
+\DoxyCodeLine{00119\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00120\ \ \ \ \ sock-\/>handle\ =\ socket(domain,\ type,\ protocol);}
+\DoxyCodeLine{00121\ \ \ \ \ \textcolor{keywordflow}{if}\ (sock-\/>handle\ ==\ INVALID\_SOCKET)\ \{}
+\DoxyCodeLine{00122\ \ \ \ \ \ \ \ \ free(sock);}
+\DoxyCodeLine{00123\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ print\ the\ error\ message}}
+\DoxyCodeLine{00124\ \ \ \ \ \ \ \ \ printLastErrorMessage(\textcolor{stringliteral}{"{}socket"{}});}
+\DoxyCodeLine{00125\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00126\ \ \ \ \ \}}
+\DoxyCodeLine{00127\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00128\ \ \ \ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{00129\ \ \ \ \ sock-\/>handle\ =\ socket(domain,\ type,\ protocol);}
+\DoxyCodeLine{00130\ \ \ \ \ \textcolor{keywordflow}{if}\ (sock-\/>handle\ ==\ -\/1)\ \{}
+\DoxyCodeLine{00131\ \ \ \ \ \ \ \ \ free(sock);}
+\DoxyCodeLine{00132\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00133\ \ \ \ \ \}}
+\DoxyCodeLine{00134\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00135\ \ \ \ \ \textcolor{keywordflow}{return}\ sock;}
+\DoxyCodeLine{00136\ \}}
+\DoxyCodeLine{00137\ }
+\DoxyCodeLine{00138\ \textcolor{comment}{//\ Close\ a\ socket}}
+\DoxyCodeLine{00139\ \textcolor{keywordtype}{int}\ socket\_close(\mbox{\hyperlink{structSocket}{Socket}}*\ sock)\ \{}
+\DoxyCodeLine{00140\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{00141\ \ \ \ \ \textcolor{keywordflow}{if}\ (sock)\ \{}
+\DoxyCodeLine{00142\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00143\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Windows}}
+\DoxyCodeLine{00144\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (closesocket(sock-\/>handle)\ ==\ 0)\ \{}
+\DoxyCodeLine{00145\ \ \ \ \ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{00146\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00147\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00148\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{00149\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (close(sock-\/>handle)\ ==\ 0)\ \{}
+\DoxyCodeLine{00150\ \ \ \ \ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{00151\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00152\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00153\ \ \ \ \ \ \ \ \ free(sock);}
+\DoxyCodeLine{00154\ \ \ \ \ \}}
+\DoxyCodeLine{00155\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{00156\ \}}
+\DoxyCodeLine{00157\ }
+\DoxyCodeLine{00158\ \textcolor{comment}{//\ Bind\ a\ socket\ to\ an\ address}}
+\DoxyCodeLine{00159\ \textcolor{keywordtype}{int}\ socket\_bind(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keyword}{const}\ \textcolor{keyword}{struct}\ sockaddr*\ addr,\ socklen\_t\ addrlen)\ \{}
+\DoxyCodeLine{00160\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{00161\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00162\ \ \ \ \ \textcolor{comment}{//\ Windows}}
+\DoxyCodeLine{00163\ \ \ \ \ \textcolor{keywordflow}{if}\ (bind(sock-\/>handle,\ addr,\ addrlen)\ ==\ 0)\ \{}
+\DoxyCodeLine{00164\ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{00165\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00166\ \ \ \ \ \ \ \ \ printLastErrorMessage(\textcolor{stringliteral}{"{}bind"{}});}
+\DoxyCodeLine{00167\ \ \ \ \ \}}
+\DoxyCodeLine{00168\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00169\ \ \ \ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{00170\ \ \ \ \ \textcolor{keywordflow}{if}\ (bind(sock-\/>handle,\ addr,\ addrlen)\ ==\ 0)\ \{}
+\DoxyCodeLine{00171\ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{00172\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00173\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}bind"{}});}
+\DoxyCodeLine{00174\ \ \ \ \ \}}
+\DoxyCodeLine{00175\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00176\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{00177\ \}}
+\DoxyCodeLine{00178\ }
+\DoxyCodeLine{00179\ \textcolor{comment}{//\ Listen\ for\ incoming\ connections}}
+\DoxyCodeLine{00180\ \textcolor{keywordtype}{int}\ socket\_listen(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keywordtype}{int}\ backlog)\ \{}
+\DoxyCodeLine{00181\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{00182\ \ \ \ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{00183\ \ \ \ \ \textcolor{keywordflow}{if}\ (listen(sock-\/>handle,\ backlog)\ ==\ 0)\ \{}
+\DoxyCodeLine{00184\ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{00185\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00186\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}listen"{}});}
+\DoxyCodeLine{00187\ \ \ \ \ \}}
+\DoxyCodeLine{00188\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{00189\ \}}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ \textcolor{comment}{//\ Accept\ an\ incoming\ connection}}
+\DoxyCodeLine{00192\ \mbox{\hyperlink{structSocket}{Socket}}*\ socket\_accept(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keyword}{struct}\ sockaddr*\ addr,\ socklen\_t*\ addrlen)\ \{}
+\DoxyCodeLine{00193\ \ \ \ \ \mbox{\hyperlink{structSocket}{Socket}}*\ client\ =\ (\mbox{\hyperlink{structSocket}{Socket}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structSocket}{Socket}}));}
+\DoxyCodeLine{00194\ \ \ \ \ \textcolor{keywordflow}{if}\ (!client)\ \{}
+\DoxyCodeLine{00195\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}malloc"{}});}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00197\ \ \ \ \ \}}
+\DoxyCodeLine{00198\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00199\ \ \ \ \ \textcolor{comment}{//\ Windows}}
+\DoxyCodeLine{00200\ \ \ \ \ client-\/>handle\ =\ accept(sock-\/>handle,\ addr,\ addrlen);}
+\DoxyCodeLine{00201\ \ \ \ \ \textcolor{keywordflow}{if}\ (client-\/>handle\ ==\ INVALID\_SOCKET)\ \{}
+\DoxyCodeLine{00202\ \ \ \ \ \ \ \ \ free(client);}
+\DoxyCodeLine{00203\ \ \ \ \ \ \ \ \ printLastErrorMessage(\textcolor{stringliteral}{"{}accept"{}});}
+\DoxyCodeLine{00204\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00205\ \ \ \ \ \}}
+\DoxyCodeLine{00206\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00207\ \ \ \ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{00208\ \ \ \ \ client-\/>handle\ =\ accept(sock-\/>handle,\ addr,\ addrlen);}
+\DoxyCodeLine{00209\ \ \ \ \ \textcolor{keywordflow}{if}\ (client-\/>handle\ ==\ -\/1)\ \{}
+\DoxyCodeLine{00210\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}accept"{}});}
+\DoxyCodeLine{00211\ \ \ \ \ \ \ \ \ free(client);}
+\DoxyCodeLine{00212\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00213\ \ \ \ \ \}}
+\DoxyCodeLine{00214\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00215\ \ \ \ \ \textcolor{keywordflow}{return}\ client;}
+\DoxyCodeLine{00216\ \}}
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00218\ \textcolor{comment}{//\ Connect\ to\ a\ remote\ socket}}
+\DoxyCodeLine{00219\ \textcolor{keywordtype}{int}\ socket\_connect(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keyword}{const}\ \textcolor{keyword}{struct}\ sockaddr*\ addr,\ socklen\_t\ addrlen)\ \{}
+\DoxyCodeLine{00220\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{00221\ \ \ \ \ \textcolor{keywordflow}{if}\ (connect(sock-\/>handle,\ addr,\ addrlen)\ ==\ 0)\ \{}
+\DoxyCodeLine{00222\ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{00223\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00224\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}connect"{}});}
+\DoxyCodeLine{00225\ \ \ \ \ \}}
+\DoxyCodeLine{00226\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{00227\ \}}
+\DoxyCodeLine{00228\ }
+\DoxyCodeLine{00229\ \textcolor{comment}{/*}}
+\DoxyCodeLine{00230\ \textcolor{comment}{Read\ from\ a\ socket.\ Returns\ the\ number\ of\ bytes\ read,\ or\ -\/1\ on\ error.}}
+\DoxyCodeLine{00231\ \textcolor{comment}{buffer:\ Points\ to\ a\ buffer\ where\ the\ message\ should\ be\ stored.}}
+\DoxyCodeLine{00232\ \textcolor{comment}{size:\ Specifies\ the\ length\ in\ bytes\ of\ the\ buffer\ pointed\ to\ by\ the\ buffer\ argument.}}
+\DoxyCodeLine{00233\ \textcolor{comment}{}}
+\DoxyCodeLine{00234\ \textcolor{comment}{flags:}}
+\DoxyCodeLine{00235\ \textcolor{comment}{Specifies\ \ the\ \ type\ of\ message\ reception.\ Values\ of\ this\ argument\ are\ formed\ by\ logically\ OR'ing}}
+\DoxyCodeLine{00236\ \textcolor{comment}{zero\ or\ more\ of\ the\ following\ values:}}
+\DoxyCodeLine{00237\ \textcolor{comment}{}}
+\DoxyCodeLine{00238\ \textcolor{comment}{\ \ \ \ MSG\_PEEK\ -\/\ Peeks\ at\ an\ incoming\ message.\ The\ data\ is\ treated\ as\ unread\ and\ the}}
+\DoxyCodeLine{00239\ \textcolor{comment}{next\ recv()\ or\ similar\ function\ shall\ still\ return\ this\ data.}}
+\DoxyCodeLine{00240\ \textcolor{comment}{}}
+\DoxyCodeLine{00241\ \textcolor{comment}{\ \ \ \ MSG\_OOB\ \ -\/\ Requests\ out-\/of-\/band\ data.\ The\ significance\ and\ semantics\ of}}
+\DoxyCodeLine{00242\ \textcolor{comment}{out-\/of-\/band\ data\ \ are\ \ proto‐\ col-\/specific.}}
+\DoxyCodeLine{00243\ \textcolor{comment}{}}
+\DoxyCodeLine{00244\ \textcolor{comment}{\ \ \ \ MSG\_WAITALL\ On\ SOCK\_STREAM\ sockets\ this\ requests\ that\ the\ function\ block\ until\ the}}
+\DoxyCodeLine{00245\ \textcolor{comment}{full\ amount\ of\ data\ can\ \ be\ \ returned.}}
+\DoxyCodeLine{00246\ \textcolor{comment}{The\ \ function\ may\ return\ the\ smaller\ amount\ of\ data\ if\ the}}
+\DoxyCodeLine{00247\ \textcolor{comment}{socket\ is\ a\ message-\/based\ socket,\ if\ a\ signal\ is\ caught,}}
+\DoxyCodeLine{00248\ \textcolor{comment}{if\ the\ connection\ is\ terminated,\ if}}
+\DoxyCodeLine{00249\ \textcolor{comment}{MSG\_PEEK\ was\ specified,\ or\ if\ an\ error\ is\ pending\ for\ the\ socket.}}
+\DoxyCodeLine{00250\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00251\ ssize\_t\ socket\_read(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size,\ \textcolor{keywordtype}{int}\ flags)\ \{}
+\DoxyCodeLine{00252\ \ \ \ \ ssize\_t\ bytes;}
+\DoxyCodeLine{00253\ \ \ \ \ bytes\ =\ recv(sock-\/>handle,\ buffer,\ size,\ flags);}
+\DoxyCodeLine{00254\ \ \ \ \ \textcolor{keywordflow}{return}\ bytes;}
+\DoxyCodeLine{00255\ \}}
+\DoxyCodeLine{00256\ }
+\DoxyCodeLine{00257\ \textcolor{comment}{/*\ Write\ to\ a\ socket.\ Returns\ the\ number\ of\ bytes\ written,\ or\ -\/1\ on\ error.}}
+\DoxyCodeLine{00258\ \textcolor{comment}{}}
+\DoxyCodeLine{00259\ \textcolor{comment}{buffer:\ Points\ to\ the\ buffer\ containing\ the\ message\ to\ send.}}
+\DoxyCodeLine{00260\ \textcolor{comment}{length:\ Specifies\ the\ length\ of\ the\ message\ in\ bytes.}}
+\DoxyCodeLine{00261\ \textcolor{comment}{flags:\ \ Specifies\ the\ type\ of\ message\ transmission.}}
+\DoxyCodeLine{00262\ \textcolor{comment}{Values\ of\ this\ argument\ are\ formed\ by\ logically\ \ OR'ing\ zero\ or\ more\ of\ the\ following\ flags:}}
+\DoxyCodeLine{00263\ \textcolor{comment}{}}
+\DoxyCodeLine{00264\ \textcolor{comment}{MSG\_EOR\ -\/\ Terminates\ a\ record\ (if\ supported\ by\ the\ protocol).}}
+\DoxyCodeLine{00265\ \textcolor{comment}{MSG\_OOB\ -\/\ Sends\ out-\/of-\/band\ data\ on\ sockets\ that\ support\ out-\/of-\/band}}
+\DoxyCodeLine{00266\ \textcolor{comment}{communications.\ The\ signif‐\ icance\ and\ semantics\ of\ out-\/of-\/band\ data\ are\ protocol-\/specific.}}
+\DoxyCodeLine{00267\ \textcolor{comment}{MSG\_NOSIGNAL\ \ Requests\ not\ to\ send\ the\ SIGPIPE\ signal\ if\ an\ attempt\ to\ send\ is}}
+\DoxyCodeLine{00268\ \textcolor{comment}{made\ on\ a\ stream-\/oriented\ socket\ that\ is\ no\ longer\ connected.}}
+\DoxyCodeLine{00269\ \textcolor{comment}{The\ [EPIPE]\ error\ shall\ still\ be\ returned.}}
+\DoxyCodeLine{00270\ \textcolor{comment}{*/}}
+\DoxyCodeLine{00271\ ssize\_t\ socket\_write(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ buffer,\ \textcolor{keywordtype}{size\_t}\ size,\ \textcolor{keywordtype}{int}\ flags)\ \{}
+\DoxyCodeLine{00272\ \ \ \ \ ssize\_t\ bytes;}
+\DoxyCodeLine{00273\ \ \ \ \ bytes\ =\ send(sock-\/>handle,\ buffer,\ size,\ flags);}
+\DoxyCodeLine{00274\ \ \ \ \ \textcolor{keywordflow}{return}\ bytes;}
+\DoxyCodeLine{00275\ \}}
+\DoxyCodeLine{00276\ }
+\DoxyCodeLine{00277\ \textcolor{comment}{//\ Get\ the\ socket\ file\ descriptor}}
+\DoxyCodeLine{00278\ \textcolor{keywordtype}{int}\ socket\_fd(\mbox{\hyperlink{structSocket}{Socket}}*\ sock)\ \{}
+\DoxyCodeLine{00279\ \ \ \ \ \textcolor{keywordflow}{return}\ sock-\/>handle;}
+\DoxyCodeLine{00280\ \}}
+\DoxyCodeLine{00281\ }
+\DoxyCodeLine{00282\ \textcolor{comment}{//\ Get\ the\ socket\ error.\ Returns\ the\ last\ error\ code.}}
+\DoxyCodeLine{00283\ \textcolor{comment}{//\ On\ Windows,\ it\ returns\ the\ code\ from\ WSAGetLastError().}}
+\DoxyCodeLine{00284\ \textcolor{comment}{//\ On\ Unix,\ it\ returns\ the\ value\ of\ errno.}}
+\DoxyCodeLine{00285\ \textcolor{keywordtype}{int}\ socket\_error()\ \{}
+\DoxyCodeLine{00286\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00287\ \ \ \ \ \textcolor{comment}{//\ Windows}}
+\DoxyCodeLine{00288\ \ \ \ \ \textcolor{keywordflow}{return}\ WSAGetLastError();}
+\DoxyCodeLine{00289\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00290\ \ \ \ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{00291\ \ \ \ \ \textcolor{keywordflow}{return}\ errno;}
+\DoxyCodeLine{00292\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00293\ \}}
+\DoxyCodeLine{00294\ }
+\DoxyCodeLine{00295\ \textcolor{comment}{//\ Get\ the\ socket\ error\ message\ as\ a\ string.}}
+\DoxyCodeLine{00296\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ socket\_strerror(\textcolor{keywordtype}{int}\ err)\ \{}
+\DoxyCodeLine{00297\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00298\ \ \ \ \ \textcolor{comment}{//\ Windows}}
+\DoxyCodeLine{00299\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{char}\ buffer[256];}
+\DoxyCodeLine{00300\ \ \ \ \ FormatMessageA(FORMAT\_MESSAGE\_FROM\_SYSTEM,\ NULL,\ err,\ 0,\ buffer,\ \textcolor{keyword}{sizeof}(buffer),\ NULL);}
+\DoxyCodeLine{00301\ \ \ \ \ \textcolor{keywordflow}{return}\ buffer;}
+\DoxyCodeLine{00302\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00303\ \ \ \ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{00304\ \ \ \ \ \textcolor{keywordflow}{return}\ strerror(err);}
+\DoxyCodeLine{00305\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00306\ \}}
+\DoxyCodeLine{00307\ }
+\DoxyCodeLine{00308\ \textcolor{comment}{//\ Get\ the\ socket\ option}}
+\DoxyCodeLine{00309\ \textcolor{keywordtype}{int}\ socket\_get\_option(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keywordtype}{int}\ level,\ \textcolor{keywordtype}{int}\ optname,\ \textcolor{keywordtype}{void}*\ optval,\ socklen\_t*\ optlen)\ \{}
+\DoxyCodeLine{00310\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{00311\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00312\ \ \ \ \ \textcolor{comment}{//\ Windows}}
+\DoxyCodeLine{00313\ \ \ \ \ \textcolor{keywordflow}{if}\ (getsockopt(sock-\/>handle,\ level,\ optname,\ (\textcolor{keywordtype}{char}*)optval,\ optlen)\ ==\ 0)\ \{}
+\DoxyCodeLine{00314\ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{00315\ \ \ \ \ \}}
+\DoxyCodeLine{00316\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00317\ \ \ \ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{00318\ \ \ \ \ \textcolor{keywordflow}{if}\ (getsockopt(sock-\/>handle,\ level,\ optname,\ optval,\ optlen)\ ==\ 0)\ \{}
+\DoxyCodeLine{00319\ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{00320\ \ \ \ \ \}}
+\DoxyCodeLine{00321\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00322\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{00323\ \}}
+\DoxyCodeLine{00324\ }
+\DoxyCodeLine{00325\ \textcolor{comment}{//\ Set\ the\ socket\ option}}
+\DoxyCodeLine{00326\ \textcolor{keywordtype}{int}\ socket\_set\_option(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keywordtype}{int}\ level,\ \textcolor{keywordtype}{int}\ optname,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ optval,\ socklen\_t\ optlen)\ \{}
+\DoxyCodeLine{00327\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{00328\ }
+\DoxyCodeLine{00329\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00330\ \ \ \ \ \textcolor{comment}{//\ Windows}}
+\DoxyCodeLine{00331\ \ \ \ \ \textcolor{keywordflow}{if}\ (setsockopt(sock-\/>handle,\ level,\ optname,\ (\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*)optval,\ optlen)\ ==\ 0)\ \{}
+\DoxyCodeLine{00332\ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{00333\ \ \ \ \ \}}
+\DoxyCodeLine{00334\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00335\ \ \ \ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{00336\ \ \ \ \ \textcolor{keywordflow}{if}\ (setsockopt(sock-\/>handle,\ level,\ optname,\ optval,\ optlen)\ ==\ 0)\ \{}
+\DoxyCodeLine{00337\ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{00338\ \ \ \ \ \}}
+\DoxyCodeLine{00339\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00340\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{00341\ \}}
+\DoxyCodeLine{00342\ }
+\DoxyCodeLine{00343\ \textcolor{comment}{//\ Call\ this\ function\ be4\ binding\ the\ socket.}}
+\DoxyCodeLine{00344\ \textcolor{keywordtype}{int}\ socket\_reuse\_port(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keywordtype}{int}\ enable)\ \{}
+\DoxyCodeLine{00345\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00346\ \ \ \ \ \textcolor{comment}{//\ Enable\ SO\_REUSEADDR}}
+\DoxyCodeLine{00347\ \ \ \ \ \textcolor{keywordflow}{if}\ (setsockopt(sock-\/>handle,\ SOL\_SOCKET,\ SO\_REUSEADDR,\ (\textcolor{keywordtype}{char}*)\&enable,\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}))\ ==}
+\DoxyCodeLine{00348\ \ \ \ \ \ \ \ \ SOCKET\_ERROR)\ \{}
+\DoxyCodeLine{00349\ \ \ \ \ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}setsockopt\ SO\_REUSEADDR\ failed\(\backslash\)n"{}});}
+\DoxyCodeLine{00350\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ 1;}
+\DoxyCodeLine{00351\ \ \ \ \ \}}
+\DoxyCodeLine{00352\ }
+\DoxyCodeLine{00353\ \ \ \ \ \textcolor{comment}{//\ Enable\ SO\_EXCLUSIVEADDRUSE}}
+\DoxyCodeLine{00354\ \ \ \ \ \textcolor{keywordflow}{if}\ (setsockopt(sock-\/>handle,\ SOL\_SOCKET,\ SO\_EXCLUSIVEADDRUSE,\ (\textcolor{keywordtype}{char}*)\&enable,\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}))\ ==}
+\DoxyCodeLine{00355\ \ \ \ \ \ \ \ \ SOCKET\_ERROR)\ \{}
+\DoxyCodeLine{00356\ \ \ \ \ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}setsockopt\ SO\_EXCLUSIVEADDRUSE\ failed\(\backslash\)n"{}});}
+\DoxyCodeLine{00357\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ 1;}
+\DoxyCodeLine{00358\ \ \ \ \ \}}
+\DoxyCodeLine{00359\ }
+\DoxyCodeLine{00360\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00361\ \ \ \ \ \textcolor{keywordflow}{return}\ setsockopt(sock-\/>handle,\ SOL\_SOCKET,\ SO\_REUSEPORT\ |\ SO\_REUSEADDR,\ \&enable,\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}));}
+\DoxyCodeLine{00362\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00363\ \}}
+\DoxyCodeLine{00364\ }
+\DoxyCodeLine{00365\ \textcolor{comment}{//\ Get\ the\ socket\ address}}
+\DoxyCodeLine{00366\ \textcolor{keywordtype}{int}\ socket\_get\_address(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keyword}{struct}\ sockaddr*\ addr,\ socklen\_t*\ addrlen)\ \{}
+\DoxyCodeLine{00367\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{00368\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00369\ \ \ \ \ \textcolor{comment}{//\ Windows}}
+\DoxyCodeLine{00370\ \ \ \ \ \textcolor{keywordflow}{if}\ (getsockname(sock-\/>handle,\ addr,\ addrlen)\ ==\ 0)\ \{}
+\DoxyCodeLine{00371\ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{00372\ \ \ \ \ \}}
+\DoxyCodeLine{00373\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00374\ \ \ \ \ \textcolor{comment}{//\ Unix}}
+\DoxyCodeLine{00375\ \ \ \ \ \textcolor{keywordflow}{if}\ (getsockname(sock-\/>handle,\ addr,\ addrlen)\ ==\ 0)\ \{}
+\DoxyCodeLine{00376\ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{00377\ \ \ \ \ \}}
+\DoxyCodeLine{00378\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00379\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{00380\ \}}
+\DoxyCodeLine{00381\ }
+\DoxyCodeLine{00382\ \textcolor{comment}{//\ Get\ the\ socket\ peer\ address}}
+\DoxyCodeLine{00383\ \textcolor{keywordtype}{int}\ socket\_get\_peer\_address(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keyword}{struct}\ sockaddr*\ addr,\ socklen\_t*\ addrlen)\ \{}
+\DoxyCodeLine{00384\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{00385\ \ \ \ \ \textcolor{comment}{//\ Windows}}
+\DoxyCodeLine{00386\ \ \ \ \ \textcolor{keywordflow}{if}\ (getpeername(sock-\/>handle,\ addr,\ addrlen)\ ==\ 0)\ \{}
+\DoxyCodeLine{00387\ \ \ \ \ \ \ \ \ ret\ =\ 0;}
+\DoxyCodeLine{00388\ \ \ \ \ \}}
+\DoxyCodeLine{00389\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{00390\ \}}
+\DoxyCodeLine{00391\ }
+\DoxyCodeLine{00392\ \textcolor{comment}{//\ Get\ the\ socket\ type}}
+\DoxyCodeLine{00393\ \textcolor{keywordtype}{int}\ socket\_type(\mbox{\hyperlink{structSocket}{Socket}}*\ sock)\ \{}
+\DoxyCodeLine{00394\ \ \ \ \ \textcolor{keywordtype}{int}\ ret\ =\ -\/1;}
+\DoxyCodeLine{00395\ \ \ \ \ \textcolor{keywordtype}{int}\ type;}
+\DoxyCodeLine{00396\ \ \ \ \ socklen\_t\ len\ =\ \textcolor{keyword}{sizeof}(type);}
+\DoxyCodeLine{00397\ \ \ \ \ \textcolor{keywordflow}{if}\ (socket\_get\_option(sock,\ SOL\_SOCKET,\ SO\_TYPE,\ \&type,\ \&len)\ ==\ 0)\ \{}
+\DoxyCodeLine{00398\ \ \ \ \ \ \ \ \ ret\ =\ type;}
+\DoxyCodeLine{00399\ \ \ \ \ \}}
+\DoxyCodeLine{00400\ \ \ \ \ \textcolor{keywordflow}{return}\ ret;}
+\DoxyCodeLine{00401\ \}}
+\DoxyCodeLine{00402\ }
+\DoxyCodeLine{00403\ \textcolor{comment}{//\ Get\ the\ socket\ domain\ or\ type(address\ family,\ SOCK\_STREAM\ or\ SOCK\_DGRAM,\ for\ example).)}}
+\DoxyCodeLine{00404\ \textcolor{keywordtype}{int}\ socket\_family(\mbox{\hyperlink{structSocket}{Socket}}*\ sock)\ \{}
+\DoxyCodeLine{00405\ \ \ \ \ \textcolor{keywordtype}{int}\ domain\ \ \ \ =\ 0;}
+\DoxyCodeLine{00406\ \ \ \ \ socklen\_t\ len\ =\ \textcolor{keyword}{sizeof}(domain);}
+\DoxyCodeLine{00407\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00408\ \ \ \ \ \textcolor{keywordflow}{if}\ (socket\_get\_option(sock,\ SOL\_SOCKET,\ SO\_TYPE,\ \&domain,\ \&len)\ ==\ 0)\ \{}
+\DoxyCodeLine{00409\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ domain;}
+\DoxyCodeLine{00410\ \ \ \ \ \}}
+\DoxyCodeLine{00411\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00412\ \ \ \ \ \textcolor{keywordflow}{if}\ (socket\_get\_option(sock,\ SOL\_SOCKET,\ SO\_DOMAIN,\ \&domain,\ \&len)\ ==\ 0)\ \{}
+\DoxyCodeLine{00413\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ domain;}
+\DoxyCodeLine{00414\ \ \ \ \ \}}
+\DoxyCodeLine{00415\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00416\ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;\ \ \textcolor{comment}{//\ Error}}
+\DoxyCodeLine{00417\ \}}
+\DoxyCodeLine{00418\ }
+\DoxyCodeLine{00419\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00420\ \textcolor{keywordtype}{void}\ initialize\_winsock()\ \{}
+\DoxyCodeLine{00421\ \ \ \ \ WSADATA\ wsaData;}
+\DoxyCodeLine{00422\ \ \ \ \ WSAStartup(MAKEWORD(2,\ 2),\ \&wsaData);}
+\DoxyCodeLine{00423\ \}}
+\DoxyCodeLine{00424\ }
+\DoxyCodeLine{00425\ \textcolor{keywordtype}{void}\ cleanup\_winsock()\ \{}
+\DoxyCodeLine{00426\ \ \ \ \ WSACleanup();}
+\DoxyCodeLine{00427\ \}}
+\DoxyCodeLine{00428\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00429\ }
+\DoxyCodeLine{00430\ \textcolor{comment}{//\ set\ non-\/blocking\ mode}}
+\DoxyCodeLine{00431\ \textcolor{keywordtype}{int}\ socket\_set\_non\_blocking(\mbox{\hyperlink{structSocket}{Socket}}*\ sock,\ \textcolor{keywordtype}{int}\ enable)\ \{}
+\DoxyCodeLine{00432\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00433\ \ \ \ \ u\_long\ mode\ =\ enable\ ?\ 1\ :\ 0;}
+\DoxyCodeLine{00434\ \ \ \ \ \textcolor{keywordflow}{return}\ ioctlsocket(sock-\/>handle,\ FIONBIO,\ \&mode);}
+\DoxyCodeLine{00435\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00436\ \ \ \ \ \textcolor{keywordtype}{int}\ flags\ =\ fcntl(sock-\/>handle,\ F\_GETFL,\ 0);}
+\DoxyCodeLine{00437\ \ \ \ \ \textcolor{keywordflow}{if}\ (flags\ ==\ -\/1)\ \{}
+\DoxyCodeLine{00438\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}fcntl"{}});}
+\DoxyCodeLine{00439\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{00440\ \ \ \ \ \}}
+\DoxyCodeLine{00441\ \ \ \ \ \textcolor{keywordflow}{if}\ (enable)\ \{}
+\DoxyCodeLine{00442\ \ \ \ \ \ \ \ \ flags\ |=\ O\_NONBLOCK;}
+\DoxyCodeLine{00443\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00444\ \ \ \ \ \ \ \ \ flags\ \&=\ \string~O\_NONBLOCK;}
+\DoxyCodeLine{00445\ \ \ \ \ \}}
+\DoxyCodeLine{00446\ \ \ \ \ \textcolor{keywordflow}{return}\ fcntl(sock-\/>handle,\ F\_SETFL,\ flags);}
+\DoxyCodeLine{00447\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00448\ \}}
+\DoxyCodeLine{00449\ }
+\DoxyCodeLine{00450\ \textcolor{comment}{//\ epoll\_create}}
+\DoxyCodeLine{00451\ \textcolor{preprocessor}{\#ifndef\ \_WIN32\ \ }\textcolor{comment}{//\ epoll\_create\ is\ not\ available\ on\ Windows}}
+\DoxyCodeLine{00452\ \textcolor{comment}{//\ Create\ an\ epoll\ instance.\ Returns\ the\ file\ descriptor\ of\ the\ new\ epoll\ instance,\ or\ -\/1\ on\ error.}}
+\DoxyCodeLine{00453\ \textcolor{keywordtype}{int}\ socket\_epoll\_create()\ \{}
+\DoxyCodeLine{00454\ \ \ \ \ \textcolor{keywordflow}{return}\ epoll\_create(0);}
+\DoxyCodeLine{00455\ \}}
+\DoxyCodeLine{00456\ }
+\DoxyCodeLine{00457\ \textcolor{comment}{/*\ socket\_epoll\_ctl\ is\ a\ wrapper\ around\ epoll\_ctl.}}
+\DoxyCodeLine{00458\ \textcolor{comment}{\ It\ adds\ a\ new\ file\ descriptor\ to\ the\ epoll\ instance.}}
+\DoxyCodeLine{00459\ \textcolor{comment}{\ Returns\ 0\ on\ success,\ or\ -\/1\ on\ error.}}
+\DoxyCodeLine{00460\ \textcolor{comment}{\ Usage:}}
+\DoxyCodeLine{00461\ \textcolor{comment}{\ struct\ epoll\_event\ event;}}
+\DoxyCodeLine{00462\ \textcolor{comment}{\ socket\_epoll\_ctl(epoll\_fd,\ sock\_fd,\ \&event,\ EPOLLIN);}}
+\DoxyCodeLine{00463\ \textcolor{comment}{}}
+\DoxyCodeLine{00464\ \textcolor{comment}{A\ simple\ accept\ function\ using\ epoll:}}
+\DoxyCodeLine{00465\ \textcolor{comment}{\ int\ Accept()\ \{}}
+\DoxyCodeLine{00466\ \textcolor{comment}{\ \ int\ client\_fd;}}
+\DoxyCodeLine{00467\ \textcolor{comment}{\ \ socklen\_t\ client\_len\ =\ sizeof(server\_addr);}}
+\DoxyCodeLine{00468\ \textcolor{comment}{\ \ client\_fd\ =\ socket\_accept(server\_fd,\ (struct\ sockaddr\ *)\&server\_addr,\ \&client\_len);}}
+\DoxyCodeLine{00469\ \textcolor{comment}{\ \ if\ (client\_fd\ !=\ -\/1)\ \{}}
+\DoxyCodeLine{00470\ \textcolor{comment}{\ \ \ \ nonblocking(client\_fd);}}
+\DoxyCodeLine{00471\ \textcolor{comment}{\ \ \ \ socket\_epoll\_ctl\_add(epoll\_fd,\ client\_fd,\ \&event,\ EPOLLIN\ |\ EPOLLET\ |\ EPOLLONESHOT);}}
+\DoxyCodeLine{00472\ \textcolor{comment}{\ \ \}}}
+\DoxyCodeLine{00473\ \textcolor{comment}{\ \ return\ client\_fd;}}
+\DoxyCodeLine{00474\ \textcolor{comment}{\}}}
+\DoxyCodeLine{00475\ \textcolor{comment}{*/}}
+\DoxyCodeLine{00476\ \textcolor{keywordtype}{int}\ socket\_epoll\_ctl\_add(\textcolor{keywordtype}{int}\ epoll\_fd,\ \textcolor{keywordtype}{int}\ sock\_fd,\ \textcolor{keyword}{struct}\ epoll\_event*\ event,\ uint32\_t\ events)\ \{}
+\DoxyCodeLine{00477\ \ \ \ \ \textcolor{keyword}{event}-\/>events\ \ =\ events;}
+\DoxyCodeLine{00478\ \ \ \ \ \textcolor{keyword}{event}-\/>data.fd\ =\ sock\_fd;}
+\DoxyCodeLine{00479\ \ \ \ \ \textcolor{keywordflow}{if}\ (epoll\_ctl(epoll\_fd,\ EPOLL\_CTL\_ADD,\ sock\_fd,\ event)\ ==\ -\/1)\ \{}
+\DoxyCodeLine{00480\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}epoll\_ctl"{}});}
+\DoxyCodeLine{00481\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{00482\ \ \ \ \ \}}
+\DoxyCodeLine{00483\ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00484\ \}}
+\DoxyCodeLine{00485\ }
+\DoxyCodeLine{00486\ \textcolor{comment}{//\ Modify\ an\ existing\ file\ descriptor\ in\ the\ epoll\ instance.}}
+\DoxyCodeLine{00487\ \textcolor{keywordtype}{int}\ socket\_epoll\_ctl\_mod(\textcolor{keywordtype}{int}\ epoll\_fd,\ \textcolor{keywordtype}{int}\ sock\_fd,\ \textcolor{keyword}{struct}\ epoll\_event*\ event,\ uint32\_t\ events)\ \{}
+\DoxyCodeLine{00488\ \ \ \ \ \textcolor{keyword}{event}-\/>events\ \ =\ events;}
+\DoxyCodeLine{00489\ \ \ \ \ \textcolor{keyword}{event}-\/>data.fd\ =\ sock\_fd;}
+\DoxyCodeLine{00490\ \ \ \ \ \textcolor{keywordflow}{if}\ (epoll\_ctl(epoll\_fd,\ EPOLL\_CTL\_MOD,\ sock\_fd,\ event)\ ==\ -\/1)\ \{}
+\DoxyCodeLine{00491\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}epoll\_ctl"{}});}
+\DoxyCodeLine{00492\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{00493\ \ \ \ \ \}}
+\DoxyCodeLine{00494\ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00495\ \}}
+\DoxyCodeLine{00496\ }
+\DoxyCodeLine{00497\ \textcolor{comment}{//\ Remove\ a\ file\ descriptor\ from\ the\ epoll\ instance.}}
+\DoxyCodeLine{00498\ \textcolor{keywordtype}{int}\ socket\_epoll\_ctl\_del(\textcolor{keywordtype}{int}\ epoll\_fd,\ \textcolor{keywordtype}{int}\ sock\_fd)\ \{}
+\DoxyCodeLine{00499\ \ \ \ \ \textcolor{keywordflow}{if}\ (epoll\_ctl(epoll\_fd,\ EPOLL\_CTL\_DEL,\ sock\_fd,\ NULL)\ ==\ -\/1)\ \{}
+\DoxyCodeLine{00500\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}epoll\_ctl"{}});}
+\DoxyCodeLine{00501\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{00502\ \ \ \ \ \}}
+\DoxyCodeLine{00503\ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00504\ \}}
+\DoxyCodeLine{00505\ }
+\DoxyCodeLine{00506\ \textcolor{comment}{//\ Wait\ for\ events\ on\ an\ epoll\ instance.}}
+\DoxyCodeLine{00507\ \textcolor{comment}{//\ Returns\ the\ number\ of\ file\ descriptors\ ready\ for\ I/O,\ or\ -\/1}}
+\DoxyCodeLine{00508\ \textcolor{comment}{//\ on\ error.\ Timeout\ can\ be\ -\/1\ to\ block\ indefinitely,\ or\ 0\ to\ return\ immediately.}}
+\DoxyCodeLine{00509\ \textcolor{comment}{//\ Otherwise,\ it\ specifies\ the\ maximum\ number\ of\ milliseconds\ to\ wait.}}
+\DoxyCodeLine{00510\ \textcolor{keywordtype}{int}\ socket\_epoll\_wait(\textcolor{keywordtype}{int}\ epoll\_fd,\ \textcolor{keyword}{struct}\ epoll\_event*\ events,\ \textcolor{keywordtype}{int}\ maxevents,\ \textcolor{keywordtype}{int}\ timeout)\ \{}
+\DoxyCodeLine{00511\ \ \ \ \ \textcolor{keywordflow}{return}\ epoll\_wait(epoll\_fd,\ events,\ maxevents,\ timeout);}
+\DoxyCodeLine{00512\ \}}
+\DoxyCodeLine{00513\ }
+\DoxyCodeLine{00514\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00515\ \textcolor{comment}{//\ ==================\ END\ Socket\ related\ functions\ ==================}}
+\DoxyCodeLine{00516\ }
+\DoxyCodeLine{00517\ \textcolor{comment}{//\ ==================\ Socket\ address\ related\ functions\ ==================}}
+\DoxyCodeLine{00518\ }
+\DoxyCodeLine{00519\ \textcolor{comment}{//\ Create\ an\ IPv4\ address}}
+\DoxyCodeLine{00520\ \textcolor{comment}{//\ Allocate\ a\ new\ sockaddr\_in\ and\ set\ the\ address\ and\ port.}}
+\DoxyCodeLine{00521\ \textcolor{keyword}{struct\ }sockaddr\_in*\ socket\_ipv4\_address(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ ip,\ \textcolor{keywordtype}{int}\ port)\ \{}
+\DoxyCodeLine{00522\ \ \ \ \ \textcolor{keyword}{struct\ }sockaddr\_in*\ addr\ =\ (\textcolor{keyword}{struct\ }sockaddr\_in*)malloc(\textcolor{keyword}{sizeof}(\textcolor{keyword}{struct}\ sockaddr\_in));}
+\DoxyCodeLine{00523\ \ \ \ \ \textcolor{keywordflow}{if}\ (!addr)\ \{}
+\DoxyCodeLine{00524\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}malloc"{}});}
+\DoxyCodeLine{00525\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00526\ \ \ \ \ \}}
+\DoxyCodeLine{00527\ \ \ \ \ memset(addr,\ 0,\ \textcolor{keyword}{sizeof}(\textcolor{keyword}{struct}\ sockaddr\_in));}
+\DoxyCodeLine{00528\ \ \ \ \ addr-\/>sin\_family\ \ \ \ \ \ =\ AF\_INET;}
+\DoxyCodeLine{00529\ \ \ \ \ addr-\/>sin\_port\ \ \ \ \ \ \ \ =\ htons(port);}
+\DoxyCodeLine{00530\ \ \ \ \ addr-\/>sin\_addr.s\_addr\ =\ inet\_addr(ip);}
+\DoxyCodeLine{00531\ \ \ \ \ \textcolor{keywordflow}{return}\ addr;}
+\DoxyCodeLine{00532\ \}}
+\DoxyCodeLine{00533\ }
+\DoxyCodeLine{00534\ \textcolor{comment}{//\ Create\ an\ IPv6\ address}}
+\DoxyCodeLine{00535\ \textcolor{comment}{//\ Allocate\ a\ new\ sockaddr\_in6\ and\ set\ the\ address\ and\ port.}}
+\DoxyCodeLine{00536\ \textcolor{keyword}{struct\ }sockaddr\_in6*\ socket\_ipv6\_address(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ ip,\ \textcolor{keywordtype}{int}\ port)\ \{}
+\DoxyCodeLine{00537\ \ \ \ \ \textcolor{keyword}{struct\ }sockaddr\_in6*\ addr\ =\ (\textcolor{keyword}{struct\ }sockaddr\_in6*)malloc(\textcolor{keyword}{sizeof}(\textcolor{keyword}{struct}\ sockaddr\_in6));}
+\DoxyCodeLine{00538\ \ \ \ \ \textcolor{keywordflow}{if}\ (!addr)\ \{}
+\DoxyCodeLine{00539\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}malloc"{}});}
+\DoxyCodeLine{00540\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00541\ \ \ \ \ \}}
+\DoxyCodeLine{00542\ \ \ \ \ memset(addr,\ 0,\ \textcolor{keyword}{sizeof}(\textcolor{keyword}{struct}\ sockaddr\_in6));}
+\DoxyCodeLine{00543\ \ \ \ \ addr-\/>sin6\_family\ =\ AF\_INET6;}
+\DoxyCodeLine{00544\ \ \ \ \ addr-\/>sin6\_port\ \ \ =\ htons(port);}
+\DoxyCodeLine{00545\ \ \ \ \ inet\_pton(AF\_INET6,\ ip,\ \&addr-\/>sin6\_addr);}
+\DoxyCodeLine{00546\ \ \ \ \ \textcolor{keywordflow}{return}\ addr;}
+\DoxyCodeLine{00547\ \}}
+\DoxyCodeLine{00548\ }
+\DoxyCodeLine{00549\ \textcolor{comment}{//\ ==================\ END\ Socket\ address\ related\ functions\ ==================}}
+\DoxyCodeLine{00550\ }
+\DoxyCodeLine{00551\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ SOCKET\_IMPL}}
+\DoxyCodeLine{00552\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ SOCKET\_H}}
+
+\end{DoxyCode}

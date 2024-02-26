@@ -36,6 +36,8 @@ extern "C" {
 #include <unistd.h>
 #endif
 
+#include "lock.h"
+
 // ========== Type definitions =========================
 
 // File handle
@@ -52,71 +54,11 @@ typedef struct {
 #endif
 } File;
 
-// PIPE related function declarations
-typedef enum { PIPE_END_READ = 1, PIPE_END_WRITE = 2, PIPE_END_BOTH = 3 } PipeEnd;
-
-typedef struct {
-#ifdef _WIN32
-    HANDLE hReadPipe;
-    HANDLE hWritePipe;
-#else
-    int fd[2];
-#endif
-} PIPE;
-
-// IMPLEMENT A THREAD POOL
-typedef struct ThreadPool {
-#ifdef _WIN32
-    CRITICAL_SECTION lock;
-    CONDITION_VARIABLE task_available;
-    CONDITION_VARIABLE all_tasks_completed;
-#else
-    pthread_mutex_t lock;
-    pthread_cond_t task_available;
-    pthread_cond_t all_tasks_completed;
-#endif
-    struct Task* task_queue;
-    int num_threads;
-    int num_working_threads;
-    bool shutdown;
-} ThreadPool;
-
-typedef struct Task {
-    void (*function)(void*);
-    void* arg;
-    struct Task* next;
-} Task;
-
-// Thread and process related function declarations
-#ifdef _WIN32
-// Alias to win32 HANDLE
-typedef HANDLE Thread;
-#else
-// Alias to posix pthread
-typedef pthread_t Thread;
-#endif
-
-typedef struct {
-    void* arg;     // Argument to the start_routine
-    void* retval;  // Pointer to the return value
-} ThreadData;
-
-typedef struct Process {
-#ifdef _WIN32
-    DWORD pid;               // Process id is similar to pi.dwProcessId
-    STARTUPINFO si;          // Start up info
-    PROCESS_INFORMATION pi;  // Process information
-#else
-    long pid;  // Process ID(long to match DWORD on Windows)
-#endif
-} Process;
-
-// ======= END OF TYPE DEFINITIONS =======================
-
 // ============ File related functions ============
 File* file_open(const char* filename, const char* mode) __attribute__((warn_unused_result));
 void file_close(File* file);
-ssize_t file_size(FILE* file);
+ssize_t file_size(File* file);
+int file_seek(File* file, long offset, int origin);
 size_t file_write(File* file, const void* buffer, size_t size, size_t count);
 size_t file_write_string(File* file, const char* str);
 
@@ -141,9 +83,122 @@ ssize_t file_aread(File* file, void* buffer, size_t size, off_t offset);
 void* file_readall(File* file, ssize_t* size);
 bool file_lock(File* file);
 bool file_unlock(File* file);
+int file_rename(File* file, const char* newname);
+int file_copy(File* file, File* dst);
+void* file_mmap(File* file, size_t length);
+int file_munmap(void* addr, size_t length);
 bool is_file(const char* path);
 
+// Pipe declarations
+// PIPE related function declarations
+typedef enum { PIPE_END_READ = 1, PIPE_END_WRITE = 2, PIPE_END_BOTH = 3 } PipeEnd;
+
+typedef struct {
+#ifdef _WIN32
+    HANDLE hReadPipe;
+    HANDLE hWritePipe;
+#else
+    int fd[2];
+#endif
+} PIPE;
+
+int pipe_open(PIPE* pPipe);
+void pipe_close(PIPE* pPipe, PipeEnd endToClose);
+ssize_t pipe_read(PIPE* pPipe, void* buffer, size_t size);
+ssize_t pipe_write(PIPE* pPipe, const void* buffer, size_t size);
+
 // =========== END File related functions ===========
+
+typedef struct Process {
+#ifdef _WIN32
+    DWORD pid;               // Process id is similar to pi.dwProcessId
+    STARTUPINFO si;          // Start up info
+    PROCESS_INFORMATION pi;  // Process information
+#else
+    long pid;  // Process ID(long to match DWORD on Windows)
+#endif
+} Process;
+
+#ifdef _WIN32
+// Alias to win32 HANDLE
+typedef HANDLE Thread;
+#else
+// Alias to posix pthread
+typedef pthread_t Thread;
+#endif
+
+typedef struct {
+    void* arg;     // Argument to the start_routine
+    void* retval;  // Pointer to the return value
+} ThreadData;
+
+// Thread and processes
+// Create a new process
+int process_create(Process* proc, const char* command, const char* const argv[],
+                   const char* const envp[]);
+// Wait for a process to exit
+int process_wait(Process* proc, int* status);
+// Kill a process
+int process_kill(Process* proc);
+
+// Create a new thread
+int thread_create(Thread* thread, void* (*start_routine)(void*), ThreadData* data);
+// Join a thread
+int thread_join(Thread tid, void** retval);
+
+// Get the current thread id
+int thread_self();
+
+int thread_detach(Thread tid);
+// Sleep for a number of milliseconds
+void sleep_ms(int ms);
+// Get the current process id
+int get_pid();
+// Get the current thread id
+int get_tid();
+// Get the parent process id
+int get_ppid();
+// Get the number of CPU cores
+int get_ncpus();
+
+#ifdef _WIN32  // No need for these functions on Windows
+#else          // Unix
+// Get the current user id
+int get_uid();
+// Get the current group id
+int get_gid();
+// Get the current user name
+char* get_username();
+// Get the current group name
+char* get_groupname();
+#endif
+
+// IMPLEMENT A THREAD POOL
+typedef struct ThreadPool {
+    struct Task* task_queue;  // Linked list queue of tasks
+    int num_threads;          // Total Number of threads
+    int num_working_threads;  // Number of threads working
+    Thread* threads;          // Array of threads
+
+    // Cross platform Lock and condition variables(lock.h)
+    Lock lock;
+    Condition task_available;
+    Condition all_tasks_completed;
+
+    // 1 if the thread pool is shutting down, 0 otherwise
+    bool shutdown;
+} ThreadPool;
+
+typedef struct Task {
+    void (*function)(void*);
+    void* arg;
+    struct Task* next;
+} Task;
+
+ThreadPool* threadpool_create(int num_threads);
+void threadpool_destroy(ThreadPool* pool);
+int threadpool_add_task(ThreadPool* pool, void (*task)(void*), void* arg);
+void threadpool_wait(ThreadPool* pool);
 
 //  ===== Directory related function declarations =====
 // Directory handle
@@ -259,6 +314,7 @@ void filepath_split(const char* path, char* dir, char* name, size_t dir_size, si
 
 // IMPLEMENTATION
 #ifdef OS_IMPL
+
 // Open a file
 File* file_open(const char* filename, const char* mode) {
     FILE* fp = fopen(filename, mode);
@@ -274,10 +330,14 @@ File* file_open(const char* filename, const char* mode) {
 
     file->file      = fp;
     file->is_open   = true;
-    file->size      = file_size(file->file);
-    file->fd        = fileno(file->file);
     file->is_locked = false;
     file->filename  = strdup(filename);
+    if (file->filename == NULL) {
+        perror("strdup() failed: unable to copy filename");
+        return NULL;
+    }
+    file->fd   = fileno(file->file);
+    file->size = file_size(file);
 #ifdef _WIN32
     file->handle = (HANDLE)_get_osfhandle(file->fd);
 #endif
@@ -294,33 +354,40 @@ void file_close(File* file) {
     if (file->is_locked) {
         file_unlock(file);
     }
-    free(file->filename);
+
+    if (file->filename) {
+        free(file->filename);
+    }
 }
 
 // cross platform file size
-ssize_t file_size(FILE* file) {
+ssize_t file_size(File* file) {
     ssize_t size = -1;
 #ifdef _WIN32
-    int fd = _fileno(file);
-    size   = _filelength(fd);
+    size = _filelength(file->fd);
 #else
-    int fd = fileno(file);
     struct stat st;
-    if (fstat(fd, &st) == 0) {
+    if (fstat(file->fd, &st) == 0) {
         size = st.st_size;
     }
 #endif
     return size;
 }
 
-// Read from a file into a buffer of size, count is the number of elements to read
-// Returns the number of elements read
+// Read from a file into a buffer.
+// @param file: The file to read from
+// @param buffer: The buffer to read into
+// @param size: The size of each element to read
+// @param count: The number of elements to read
+// Example:
+// char buffer[1024];
+// file_read(file, buffer, 1, 1024);
 size_t file_read(File* file, void* buffer, size_t size, size_t count) {
     if (!file->is_open) {
         fprintf(stderr, "File is not open\n");
         return 0;
     }
-    return read(file->fd, buffer, size * count);
+    return fread(buffer, size, count, file->file);
 }
 
 // ReadAll reads the entire file into a buffer
@@ -350,13 +417,32 @@ void* file_readall(File* file, ssize_t* size) {
     return buffer;
 }
 
-// Write to a file
+/* Write to a file
+
+@param file: The file to write to.
+@param buffer: The buffer to write from.
+@param size: The size of each element to write.
+@param count: The number of elements to write.
+
+Returns the number of elements written.
+Example:
+char *buffer = "Hello, World!";
+file_write(file, buffer, 1, strlen(buffer));
+*/
 size_t file_write(File* file, const void* buffer, size_t size, size_t count) {
     if (!file->is_open) {
         fprintf(stderr, "File is not open\n");
         return 0;
     }
-    return fwrite(buffer, size, count, file->file);
+    int n = fwrite(buffer, size, count, file->file);
+    if (n > 0) {
+        file->size += n;
+        if (fflush(file->file) != 0) {
+            perror("fflush");
+            return 0;
+        }
+    }
+    return n;
 }
 
 size_t file_write_string(File* file, const char* str) {
@@ -424,25 +510,20 @@ bool file_unlock(File* file) {
 
 // file seek
 int file_seek(File* file, long offset, int origin) {
-    if (!file->is_open) {
-        return -1;
-    }
     return fseek(file->file, offset, origin);
 }
 
 // rewind file
 void file_rewind(File* file) {
-    if (!file->is_open) {
-        return;
-    }
     rewind(file->file);
 }
 
 // file remove
 int file_remove(File* file) {
-    if (!file->is_open) {
-        return -1;
+    if (file->is_open) {
+        fclose(file->file);
     }
+
     int ret = remove(file->filename);
     if (ret == 0) {
         file->is_open = false;
@@ -452,9 +533,8 @@ int file_remove(File* file) {
 
 // file rename
 int file_rename(File* file, const char* newname) {
-    if (!file->is_open) {
-        fprintf(stderr, "File is not open\n");
-        return -1;
+    if (file->is_open) {
+        fclose(file->file);
     }
     int ret = rename(file->filename, newname);
     if (ret == 0) {
@@ -466,23 +546,26 @@ int file_rename(File* file, const char* newname) {
 
 // file copy. Bith file and dst must be open
 // Returns 0 if successful, -1 otherwise
-// The files are not closed after copying
+// The files are not closed after copying.
+// The dest file is flushed and rewinded after copying.
 int file_copy(File* file, File* dst) {
-    if (!file->is_open) {
-        fprintf(stderr, "File is not open\n");
-        return -1;
-    }
-    if (!dst->is_open) {
-        fprintf(stderr, "Destination file is not open\n");
-        return -1;
-    }
-
-    // copy from src to dst
     char buffer[BUFSIZ];
     size_t bytes;
     while ((bytes = file_read(file, buffer, 1, BUFSIZ)) > 0) {
         file_write(dst, buffer, 1, bytes);
     }
+
+    // Check if the read was successful
+    if (bytes < 0) {
+        return -1;
+    }
+
+    // flush the file
+    fflush(dst->file);
+    rewind(dst->file);
+
+    // update the file size
+    dst->size = file->size;
     return 0;
 }
 
@@ -678,7 +761,7 @@ void filepath_nameonly(const char* path, char* name, size_t size) {
     }
 }
 
-// Get the absolute path of a file
+// Get the absolute path of a file. path must be a valid path.
 // Returns a pointer to the absolute path or NULL on error.
 // The caller is responsible for freeing the memory
 char* filepath_absolute(const char* path) {
@@ -738,9 +821,26 @@ char* filepath_expanduser(const char* path) {
     char* home = (char*)secure_getenv("HOME");
 #endif
     if (!home) {
+        fprintf(stderr, "USERPROFILE/HOME environment variable not set\n");
         return NULL;
     }
-    size_t len     = strlen(home) + strlen(path) + 2;
+
+    // If the path is not a home directory path, return it as is
+    if (path[0] != '~') {
+        return strdup(path);
+    }
+
+    // If path is just "~" or ~/, return the home directory
+    size_t pathLen = strlen(path);
+    bool isHome    = pathLen == 1 || (pathLen == 2 && path[1] == '/');
+    if (isHome) {
+        return strdup(home);
+    }
+
+    // 1 for the separator and 1 for the null terminator
+    size_t len = strlen(home) + pathLen + 2;
+
+    // Allocate memory for the expanded path
     char* expanded = (char*)malloc(len);
     if (!expanded) {
         perror("malloc");
@@ -1020,7 +1120,7 @@ static int dir_size_callback(const char* path, const char* name, void* data) {
     if (is_file(path)) {
         File* file = file_open(path, "rb");
         if (file) {
-            *size += file_size(file->file);
+            *size += file_size(file);
             file_close(file);
         }
     }
@@ -1157,50 +1257,6 @@ char* make_tempdir() {
     free(tmpdir);
     return tmp;
 }
-
-// =========== END Directory related functions ===========
-
-// Create a new process
-int process_create(Process* proc, const char* command, const char* const argv[],
-                   const char* const envp[]);
-// Wait for a process to exit
-int process_wait(Process* proc, int* status);
-// Kill a process
-int process_kill(Process* proc);
-
-// Create a new thread
-int thread_create(Thread* thread, void* (*start_routine)(void*), ThreadData* data);
-// Join a thread
-int thread_join(Thread tid, void** retval);
-
-// Get the current thread id
-int thread_self();
-
-int thread_detach(Thread tid);
-// Sleep for a number of milliseconds
-void sleep_ms(int ms);
-// Get the current process id
-int get_pid();
-// Get the current thread id
-int get_tid();
-// Get the parent process id
-int get_ppid();
-// Get the number of CPU cores
-int get_ncpus();
-
-#ifdef _WIN32  // No need for these functions on Windows
-#else          // Unix
-// Get the current user id
-int get_uid();
-// Get the current group id
-int get_gid();
-// Get the current user name
-char* get_username();
-// Get the current group name
-char* get_groupname();
-#endif
-
-// =========== END Thread and process related function declarations ===========
 
 /*
 Create a new process.
@@ -1463,12 +1519,6 @@ char* get_groupname() {
 
 // =========== END Thread and process related functions ===========
 
-// Pipe declarations
-int pipe_open(PIPE* pPipe);
-void pipe_close(PIPE* pPipe, PipeEnd endToClose);
-ssize_t pipe_read(PIPE* pPipe, void* buffer, size_t size);
-ssize_t pipe_write(PIPE* pPipe, const void* buffer, size_t size);
-
 #ifdef _WIN32
 int pipe_open(PIPE* pPipe) {
     return CreatePipe(&(pPipe->hReadPipe), &(pPipe->hWritePipe), NULL, 0) ? 0 : -1;
@@ -1524,13 +1574,7 @@ ssize_t pipe_write(PIPE* pPipe, const void* buffer, size_t size) {
 
 // =========== END PIPE related functions ===========
 
-ThreadPool* threadpool_create(int num_threads);
-void threadpool_destroy(ThreadPool* pool);
-int threadpool_add_task(ThreadPool* pool, void (*task)(void*), void* arg);
-void threadpool_wait(ThreadPool* pool);
-
 #ifdef _WIN32
-
 static DWORD WINAPI threadpool_worker(ThreadData* data) {
     ThreadPool* pool = (ThreadPool*)data->arg;
     free(data);
@@ -1602,6 +1646,7 @@ static void* threadpool_worker(ThreadData* data) {
             // Unlock the pool
             pthread_mutex_unlock(&pool->lock);
 
+            // printf("Thread %ld executing task\n", thread_self());
             // Execute the task
             task->function(task->arg);
 
@@ -1638,15 +1683,16 @@ ThreadPool* threadpool_create(int num_threads) {
     pool->shutdown            = false;
     pool->task_queue          = NULL;
 
-#ifdef _WIN32
-    InitializeCriticalSection(&pool->lock);
-    InitializeConditionVariable(&pool->task_available);
-    InitializeConditionVariable(&pool->all_tasks_completed);
-#else
-    pthread_mutex_init(&pool->lock, NULL);
-    pthread_cond_init(&pool->task_available, NULL);
-    pthread_cond_init(&pool->all_tasks_completed, NULL);
-#endif
+    lock_init(&pool->lock);
+    cond_init(&pool->task_available);
+    cond_init(&pool->all_tasks_completed);
+
+    Thread* threads = (Thread*)calloc(num_threads, sizeof(Thread));
+    if (!threads) {
+        perror("malloc");
+        free(pool);
+        return NULL;
+    }
 
     // create worker threads
     for (int i = 0; i < num_threads; i++) {
@@ -1658,8 +1704,8 @@ ThreadPool* threadpool_create(int num_threads) {
         }
         data->arg    = pool;
         data->retval = NULL;
-        Thread tid;
-        if (thread_create(&tid, (void* (*)(void*))threadpool_worker, data) != 0) {
+
+        if (thread_create(&threads[i], (void* (*)(void*))threadpool_worker, data) != 0) {
             perror("thread_create");
             free(data);
             threadpool_destroy(pool);
@@ -1667,51 +1713,6 @@ ThreadPool* threadpool_create(int num_threads) {
         }
     }
     return pool;
-}
-
-void threadpool_destroy(ThreadPool* pool) {
-    if (!pool)
-        return;
-
-        // Lock the pool
-#ifdef _WIN32
-    EnterCriticalSection(&pool->lock);
-#else
-    pthread_mutex_lock(&pool->lock);
-#endif
-    // Set the shutdown flag
-    pool->shutdown = true;
-
-    // Signal all threads to wake up
-#ifdef _WIN32
-    WakeAllConditionVariable(&pool->task_available);
-#else
-    pthread_cond_broadcast(&pool->task_available);
-#endif
-    // Wait for all threads to complete
-    while (pool->num_working_threads > 0) {
-#ifdef _WIN32
-        SleepConditionVariableCS(&pool->all_tasks_completed, &pool->lock, INFINITE);
-#else
-        pthread_cond_wait(&pool->all_tasks_completed, &pool->lock);
-#endif
-    }
-
-    // Unlock the pool
-#ifdef _WIN32
-    LeaveCriticalSection(&pool->lock);
-    DeleteCriticalSection(&pool->lock);
-    WakeAllConditionVariable(&pool->task_available);
-    WakeAllConditionVariable(&pool->all_tasks_completed);
-#else
-    pthread_mutex_unlock(&pool->lock);
-    pthread_mutex_destroy(&pool->lock);
-    pthread_cond_destroy(&pool->task_available);
-    pthread_cond_destroy(&pool->all_tasks_completed);
-
-    free(pool);
-    pool = NULL;
-#endif
 }
 
 // Add a task to the thread pool.
@@ -1733,11 +1734,7 @@ int threadpool_add_task(ThreadPool* pool, void (*task)(void*), void* arg) {
     new_task->next     = NULL;
 
     // Lock the pool
-#ifdef _WIN32
-    EnterCriticalSection(&pool->lock);
-#else
-    pthread_mutex_lock(&pool->lock);
-#endif
+    lock_acquire(&pool->lock);
 
     // Add the task to the queue
     if (pool->task_queue == NULL) {
@@ -1751,48 +1748,54 @@ int threadpool_add_task(ThreadPool* pool, void (*task)(void*), void* arg) {
     }
 
     // Signal that a task is available
-#ifdef _WIN32
-    WakeConditionVariable(&pool->task_available);
-#else
-    pthread_cond_signal(&pool->task_available);
-#endif
+    cond_signal(&pool->task_available);
 
     // Unlock the pool
-#ifdef _WIN32
-    LeaveCriticalSection(&pool->lock);
-#else
-    pthread_mutex_unlock(&pool->lock);
-#endif
+    lock_release(&pool->lock);
     return 0;
 }
 
 void threadpool_wait(ThreadPool* pool) {
-    if (pool == NULL) {
+    if (pool == NULL)
         return;
-    }
 
     // Lock the pool
-#ifdef _WIN32
-    EnterCriticalSection(&pool->lock);
-#else
-    pthread_mutex_lock(&pool->lock);
-#endif
+    lock_acquire(&pool->lock);
 
     // Wait for all threads to complete
     while (pool->task_queue != NULL || pool->num_working_threads > 0) {
-#ifdef _WIN32
-        SleepConditionVariableCS(&pool->all_tasks_completed, &pool->lock, INFINITE);
-#else
-        pthread_cond_wait(&pool->all_tasks_completed, &pool->lock);
-#endif
+        cond_wait(&pool->all_tasks_completed, &pool->lock);
+    }
+    // Unlock the pool
+    lock_release(&pool->lock);
+}
+
+void threadpool_destroy(ThreadPool* pool) {
+    if (!pool)
+        return;
+
+    if (pool->shutdown) {
+        return;
+    }
+
+    lock_acquire(&pool->lock);
+    pool->shutdown = true;                  // Signal all threads to shut down
+    cond_broadcast(&pool->task_available);  // Signal all threads to wake up
+
+    // Wait for all threads to complete
+    while (pool->num_working_threads > 0) {
+        cond_wait(&pool->all_tasks_completed, &pool->lock);
     }
 
     // Unlock the pool
-#ifdef _WIN32
-    LeaveCriticalSection(&pool->lock);
-#else
-    pthread_mutex_unlock(&pool->lock);
-#endif
+    lock_release(&pool->lock);
+    lock_free(&pool->lock);
+    cond_free(&pool->task_available);
+    cond_free(&pool->all_tasks_completed);
+
+    free(pool->threads);
+    free(pool);
+    pool = NULL;
 }
 #endif  // OS_IMPL
 

@@ -1,0 +1,270 @@
+\doxysection{slist.\+h}
+\hypertarget{slist_8h_source}{}\label{slist_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ E3BD52A6\_7A93\_4758\_8633\_F1005A651260}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ E3BD52A6\_7A93\_4758\_8633\_F1005A651260}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ singly\ linked\ list}}
+\DoxyCodeLine{00004\ }
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#if\ defined(\_\_cplusplus)}}
+\DoxyCodeLine{00006\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \{}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00008\ }
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#include\ <stdio.h>}}
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#include\ <stdlib.h>}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#include\ <string.h>}}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structslist__node}{slist\_node}}\ \{}
+\DoxyCodeLine{00014\ \ \ \ \ \textcolor{keywordtype}{void}*\ data;}
+\DoxyCodeLine{00015\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structslist__node}{slist\_node}}*\ next;}
+\DoxyCodeLine{00016\ \}\ \mbox{\hyperlink{structslist__node}{slist\_node\_t}};}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\{}
+\DoxyCodeLine{00019\ \ \ \ \ \mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ head;}
+\DoxyCodeLine{00020\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ size;}
+\DoxyCodeLine{00021\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ elem\_size;}
+\DoxyCodeLine{00022\ \}\ \mbox{\hyperlink{structslist__t}{slist\_t}};}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \mbox{\hyperlink{structslist__t}{slist\_t}}*\ slist\_new(\textcolor{keywordtype}{size\_t}\ elem\_size);}
+\DoxyCodeLine{00025\ \textcolor{keywordtype}{void}\ slist\_free(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list);}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{keywordtype}{size\_t}\ slist\_size(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list);}
+\DoxyCodeLine{00028\ \textcolor{keywordtype}{void}\ slist\_clear(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list);}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ slist\_node\_new(\textcolor{keywordtype}{size\_t}\ elem\_size,\ \textcolor{keywordtype}{void}*\ data);}
+\DoxyCodeLine{00031\ \textcolor{keywordtype}{void}\ slist\_node\_free(\mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ node);}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{keywordtype}{void}\ slist\_push(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem);}
+\DoxyCodeLine{00034\ \textcolor{keywordtype}{void}\ slist\_pop(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list);}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \textcolor{keywordtype}{void}\ slist\_insert(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list,\ \textcolor{keywordtype}{size\_t}\ index,\ \textcolor{keywordtype}{void}*\ elem);}
+\DoxyCodeLine{00037\ \textcolor{keywordtype}{void}\ slist\_remove(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list,\ \textcolor{keywordtype}{size\_t}\ index);}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \textcolor{keywordtype}{void}*\ slist\_get(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list,\ \textcolor{keywordtype}{size\_t}\ index);}
+\DoxyCodeLine{00040\ \textcolor{keywordtype}{int}\ slist\_index\_of(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem);}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00042\ \textcolor{keywordtype}{void}\ slist\_insert\_after(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem,\ \textcolor{keywordtype}{void}*\ after);}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \textcolor{keywordtype}{void}\ slist\_insert\_before(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem,\ \textcolor{keywordtype}{void}*\ before);}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \textcolor{keywordtype}{void}\ slist\_print\_asint(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list);}
+\DoxyCodeLine{00047\ \textcolor{keywordtype}{void}\ slist\_print\_aschar(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list);}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\#if\ defined(\_\_cplusplus)}}
+\DoxyCodeLine{00050\ \}}
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00052\ }
+\DoxyCodeLine{00053\ \textcolor{preprocessor}{\#ifdef\ SLIST\_IMPL}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ Implementation}}
+\DoxyCodeLine{00055\ \mbox{\hyperlink{structslist__t}{slist\_t}}*\ slist\_new(\textcolor{keywordtype}{size\_t}\ elem\_size)\ \{}
+\DoxyCodeLine{00056\ \ \ \ \ \mbox{\hyperlink{structslist__t}{slist\_t}}*\ list\ =\ (\mbox{\hyperlink{structslist__t}{slist\_t}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structslist__t}{slist\_t}}));}
+\DoxyCodeLine{00057\ \ \ \ \ \textcolor{keywordflow}{if}\ (list\ ==\ NULL)\ \{}
+\DoxyCodeLine{00058\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00059\ \ \ \ \ \}}
+\DoxyCodeLine{00060\ \ \ \ \ list-\/>head\ \ \ \ \ \ =\ NULL;}
+\DoxyCodeLine{00061\ \ \ \ \ list-\/>size\ \ \ \ \ \ =\ 0;}
+\DoxyCodeLine{00062\ \ \ \ \ list-\/>elem\_size\ =\ elem\_size;}
+\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keywordflow}{return}\ list;}
+\DoxyCodeLine{00064\ \}}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \textcolor{keywordtype}{void}\ slist\_free(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list)\ \{}
+\DoxyCodeLine{00067\ \ \ \ \ \textcolor{keywordflow}{if}\ (list\ ==\ NULL)\ \{}
+\DoxyCodeLine{00068\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00069\ \ \ \ \ \}}
+\DoxyCodeLine{00070\ \ \ \ \ slist\_clear(list);}
+\DoxyCodeLine{00071\ \ \ \ \ free(list);}
+\DoxyCodeLine{00072\ \ \ \ \ list\ =\ NULL;}
+\DoxyCodeLine{00073\ \}}
+\DoxyCodeLine{00074\ }
+\DoxyCodeLine{00075\ \textcolor{keywordtype}{size\_t}\ slist\_size(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list)\ \{}
+\DoxyCodeLine{00076\ \ \ \ \ \textcolor{keywordflow}{if}\ (list\ ==\ NULL)\ \{}
+\DoxyCodeLine{00077\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00078\ \ \ \ \ \}}
+\DoxyCodeLine{00079\ \ \ \ \ \textcolor{keywordflow}{return}\ list-\/>size;}
+\DoxyCodeLine{00080\ \}}
+\DoxyCodeLine{00081\ }
+\DoxyCodeLine{00082\ \textcolor{keywordtype}{void}\ slist\_clear(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list)\ \{}
+\DoxyCodeLine{00083\ \ \ \ \ \textcolor{keywordflow}{if}\ (list\ ==\ NULL)\ \{}
+\DoxyCodeLine{00084\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00085\ \ \ \ \ \}}
+\DoxyCodeLine{00086\ \ \ \ \ \mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ current\ =\ list-\/>head;}
+\DoxyCodeLine{00087\ \ \ \ \ \textcolor{keywordflow}{while}\ (current)\ \{}
+\DoxyCodeLine{00088\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ next\ =\ current-\/>next;}
+\DoxyCodeLine{00089\ \ \ \ \ \ \ \ \ slist\_node\_free(current);}
+\DoxyCodeLine{00090\ \ \ \ \ \ \ \ \ current\ =\ next;}
+\DoxyCodeLine{00091\ \ \ \ \ \}}
+\DoxyCodeLine{00092\ \ \ \ \ list-\/>head\ =\ NULL;}
+\DoxyCodeLine{00093\ \ \ \ \ list-\/>size\ =\ 0;}
+\DoxyCodeLine{00094\ \}}
+\DoxyCodeLine{00095\ }
+\DoxyCodeLine{00096\ \mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ slist\_node\_new(\textcolor{keywordtype}{size\_t}\ elem\_size,\ \textcolor{keywordtype}{void}*\ data)\ \{}
+\DoxyCodeLine{00097\ \ \ \ \ \mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ node\ =\ (\mbox{\hyperlink{structslist__node}{slist\_node\_t}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structslist__node}{slist\_node\_t}}));}
+\DoxyCodeLine{00098\ \ \ \ \ \textcolor{keywordflow}{if}\ (node\ ==\ NULL)\ \{}
+\DoxyCodeLine{00099\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00100\ \ \ \ \ \}}
+\DoxyCodeLine{00101\ \ \ \ \ node-\/>data\ =\ malloc(elem\_size);}
+\DoxyCodeLine{00102\ \ \ \ \ \textcolor{keywordflow}{if}\ (node-\/>data\ ==\ NULL)\ \{}
+\DoxyCodeLine{00103\ \ \ \ \ \ \ \ \ free(node);}
+\DoxyCodeLine{00104\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00105\ \ \ \ \ \}}
+\DoxyCodeLine{00106\ \ \ \ \ node-\/>next\ =\ NULL;}
+\DoxyCodeLine{00107\ \ \ \ \ memcpy(node-\/>data,\ data,\ elem\_size);}
+\DoxyCodeLine{00108\ \ \ \ \ \textcolor{keywordflow}{return}\ node;}
+\DoxyCodeLine{00109\ \}}
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00111\ \textcolor{keywordtype}{void}\ slist\_node\_free(\mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ node)\ \{}
+\DoxyCodeLine{00112\ \ \ \ \ \textcolor{keywordflow}{if}\ (node\ ==\ NULL)\ \{}
+\DoxyCodeLine{00113\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00114\ \ \ \ \ \}}
+\DoxyCodeLine{00115\ \ \ \ \ \textcolor{keywordflow}{if}\ (node-\/>data)\ \{}
+\DoxyCodeLine{00116\ \ \ \ \ \ \ \ \ free(node-\/>data);}
+\DoxyCodeLine{00117\ \ \ \ \ \ \ \ \ node-\/>data\ =\ NULL;}
+\DoxyCodeLine{00118\ \ \ \ \ \}}
+\DoxyCodeLine{00119\ \ \ \ \ free(node);}
+\DoxyCodeLine{00120\ \ \ \ \ node\ =\ NULL;}
+\DoxyCodeLine{00121\ \}}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00123\ \textcolor{keywordtype}{void}\ slist\_push(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem)\ \{}
+\DoxyCodeLine{00124\ \ \ \ \ \mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ new\_node\ =\ slist\_node\_new(list-\/>elem\_size,\ elem);}
+\DoxyCodeLine{00125\ \ \ \ \ \textcolor{keywordflow}{if}\ (new\_node\ ==\ NULL)\ \{}
+\DoxyCodeLine{00126\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00127\ \ \ \ \ \}}
+\DoxyCodeLine{00128\ \ \ \ \ new\_node-\/>next\ =\ list-\/>head;}
+\DoxyCodeLine{00129\ \ \ \ \ list-\/>head\ \ \ \ \ =\ new\_node;}
+\DoxyCodeLine{00130\ \ \ \ \ list-\/>size++;}
+\DoxyCodeLine{00131\ \}}
+\DoxyCodeLine{00132\ }
+\DoxyCodeLine{00133\ \textcolor{keywordtype}{void}\ slist\_pop(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list)\ \{}
+\DoxyCodeLine{00134\ \ \ \ \ \textcolor{keywordflow}{if}\ (list\ ==\ NULL\ ||\ list-\/>head\ ==\ NULL)\ \{}
+\DoxyCodeLine{00135\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00136\ \ \ \ \ \}}
+\DoxyCodeLine{00137\ \ \ \ \ \mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ temp\ =\ list-\/>head;}
+\DoxyCodeLine{00138\ \ \ \ \ list-\/>head\ \ \ \ \ \ \ \ \ =\ list-\/>head-\/>next;}
+\DoxyCodeLine{00139\ \ \ \ \ slist\_node\_free(temp);}
+\DoxyCodeLine{00140\ \ \ \ \ list-\/>size-\/-\/;}
+\DoxyCodeLine{00141\ \}}
+\DoxyCodeLine{00142\ }
+\DoxyCodeLine{00143\ \textcolor{keywordtype}{void}\ slist\_insert(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list,\ \textcolor{keywordtype}{size\_t}\ index,\ \textcolor{keywordtype}{void}*\ elem)\ \{}
+\DoxyCodeLine{00144\ \ \ \ \ \textcolor{keywordflow}{if}\ (index\ >\ list-\/>size)\ \{}
+\DoxyCodeLine{00145\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00146\ \ \ \ \ \}}
+\DoxyCodeLine{00147\ }
+\DoxyCodeLine{00148\ \ \ \ \ \textcolor{keywordflow}{if}\ (index\ ==\ 0)\ \{}
+\DoxyCodeLine{00149\ \ \ \ \ \ \ \ \ slist\_push(list,\ elem);}
+\DoxyCodeLine{00150\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00151\ \ \ \ \ \}}
+\DoxyCodeLine{00152\ }
+\DoxyCodeLine{00153\ \ \ \ \ \textcolor{comment}{//\ Remember\ nodes\ are\ in\ reverse\ order}}
+\DoxyCodeLine{00154\ \ \ \ \ \textcolor{comment}{//\ i.e\ last\ push\ is\ the\ first\ node}}
+\DoxyCodeLine{00155\ \ \ \ \ \mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ current\ =\ list-\/>head;}
+\DoxyCodeLine{00156\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ index\ -\/\ 1;\ i++)\ \{}
+\DoxyCodeLine{00157\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (current\ ==\ NULL)\ \{}
+\DoxyCodeLine{00158\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00159\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00160\ \ \ \ \ \ \ \ \ current\ =\ current-\/>next;}
+\DoxyCodeLine{00161\ \ \ \ \ \}}
+\DoxyCodeLine{00162\ }
+\DoxyCodeLine{00163\ \ \ \ \ \mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ new\_node\ =\ slist\_node\_new(list-\/>elem\_size,\ elem);}
+\DoxyCodeLine{00164\ \ \ \ \ \textcolor{keywordflow}{if}\ (new\_node\ ==\ NULL)\ \{}
+\DoxyCodeLine{00165\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00166\ \ \ \ \ \}}
+\DoxyCodeLine{00167\ \ \ \ \ new\_node-\/>next\ =\ current-\/>next;}
+\DoxyCodeLine{00168\ \ \ \ \ current-\/>next\ \ =\ new\_node;}
+\DoxyCodeLine{00169\ \ \ \ \ list-\/>size++;}
+\DoxyCodeLine{00170\ \}}
+\DoxyCodeLine{00171\ }
+\DoxyCodeLine{00172\ \textcolor{keywordtype}{void}\ slist\_remove(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list,\ \textcolor{keywordtype}{size\_t}\ index)\ \{}
+\DoxyCodeLine{00173\ \ \ \ \ \textcolor{keywordflow}{if}\ (index\ ==\ 0)\ \{}
+\DoxyCodeLine{00174\ \ \ \ \ \ \ \ \ slist\_pop(list);}
+\DoxyCodeLine{00175\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00176\ \ \ \ \ \}}
+\DoxyCodeLine{00177\ }
+\DoxyCodeLine{00178\ \ \ \ \ \mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ current\ =\ list-\/>head;}
+\DoxyCodeLine{00179\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ index\ -\/\ 1;\ i++)\ \{}
+\DoxyCodeLine{00180\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (current\ ==\ NULL)\ \{}
+\DoxyCodeLine{00181\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00182\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00183\ \ \ \ \ \ \ \ \ current\ =\ current-\/>next;}
+\DoxyCodeLine{00184\ \ \ \ \ \}}
+\DoxyCodeLine{00185\ \ \ \ \ \mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ temp\ =\ current-\/>next;}
+\DoxyCodeLine{00186\ \ \ \ \ current-\/>next\ \ \ \ \ \ =\ temp-\/>next;}
+\DoxyCodeLine{00187\ \ \ \ \ slist\_node\_free(temp);}
+\DoxyCodeLine{00188\ \ \ \ \ list-\/>size-\/-\/;}
+\DoxyCodeLine{00189\ \}}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ \textcolor{keywordtype}{void}*\ slist\_get(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list,\ \textcolor{keywordtype}{size\_t}\ index)\ \{}
+\DoxyCodeLine{00192\ \ \ \ \ \textcolor{keywordflow}{if}\ (list\ ==\ NULL)\ \{}
+\DoxyCodeLine{00193\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00194\ \ \ \ \ \}}
+\DoxyCodeLine{00195\ }
+\DoxyCodeLine{00196\ \ \ \ \ \mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ current\ =\ list-\/>head;}
+\DoxyCodeLine{00197\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ index;\ i++)\ \{}
+\DoxyCodeLine{00198\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (current\ ==\ NULL)\ \{}
+\DoxyCodeLine{00199\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00200\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00201\ \ \ \ \ \ \ \ \ current\ =\ current-\/>next;}
+\DoxyCodeLine{00202\ \ \ \ \ \}}
+\DoxyCodeLine{00203\ \ \ \ \ \textcolor{keywordflow}{return}\ current-\/>data;}
+\DoxyCodeLine{00204\ \}}
+\DoxyCodeLine{00205\ }
+\DoxyCodeLine{00206\ \textcolor{keywordtype}{int}\ slist\_index\_of(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem)\ \{}
+\DoxyCodeLine{00207\ \ \ \ \ \textcolor{keywordflow}{if}\ (list\ ==\ NULL)\ \{}
+\DoxyCodeLine{00208\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{00209\ \ \ \ \ \}}
+\DoxyCodeLine{00210\ }
+\DoxyCodeLine{00211\ \ \ \ \ \mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ current\ =\ list-\/>head;}
+\DoxyCodeLine{00212\ \ \ \ \ \textcolor{keywordtype}{int}\ index\ \ \ \ \ \ \ \ \ \ \ \ \ =\ 0;}
+\DoxyCodeLine{00213\ \ \ \ \ \textcolor{keywordflow}{while}\ (current)\ \{}
+\DoxyCodeLine{00214\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (memcmp(current-\/>data,\ elem,\ list-\/>elem\_size)\ ==\ 0)\ \{}
+\DoxyCodeLine{00215\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ index;}
+\DoxyCodeLine{00216\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00217\ \ \ \ \ \ \ \ \ current\ =\ current-\/>next;}
+\DoxyCodeLine{00218\ \ \ \ \ \ \ \ \ index++;}
+\DoxyCodeLine{00219\ \ \ \ \ \}}
+\DoxyCodeLine{00220\ \ \ \ \ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{00221\ \}}
+\DoxyCodeLine{00222\ }
+\DoxyCodeLine{00223\ \textcolor{keywordtype}{void}\ slist\_insert\_after(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem,\ \textcolor{keywordtype}{void}*\ after)\ \{}
+\DoxyCodeLine{00224\ \ \ \ \ \textcolor{keywordtype}{int}\ index\ =\ slist\_index\_of(list,\ after);}
+\DoxyCodeLine{00225\ \ \ \ \ \textcolor{keywordflow}{if}\ (index\ >=\ 0\ \&\&\ index\ <\ list-\/>size)\ \{}
+\DoxyCodeLine{00226\ \ \ \ \ \ \ \ \ slist\_insert(list,\ index\ +\ 1,\ elem);}
+\DoxyCodeLine{00227\ \ \ \ \ \}}
+\DoxyCodeLine{00228\ \}}
+\DoxyCodeLine{00229\ }
+\DoxyCodeLine{00230\ \textcolor{keywordtype}{void}\ slist\_insert\_before(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list,\ \textcolor{keywordtype}{void}*\ elem,\ \textcolor{keywordtype}{void}*\ before)\ \{}
+\DoxyCodeLine{00231\ \ \ \ \ \textcolor{keywordtype}{int}\ index\ =\ slist\_index\_of(list,\ before);}
+\DoxyCodeLine{00232\ \ \ \ \ \textcolor{keywordflow}{if}\ (index\ >\ 0\ \&\&\ index\ <\ list-\/>size)\ \{}
+\DoxyCodeLine{00233\ \ \ \ \ \ \ \ \ slist\_insert(list,\ index\ -\/\ 1,\ elem);}
+\DoxyCodeLine{00234\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (index\ ==\ 0)\ \{}
+\DoxyCodeLine{00235\ \ \ \ \ \ \ \ \ slist\_push(list,\ elem);}
+\DoxyCodeLine{00236\ \ \ \ \ \}}
+\DoxyCodeLine{00237\ \}}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00239\ \textcolor{keywordtype}{void}\ slist\_print\_asint(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list)\ \{}
+\DoxyCodeLine{00240\ \ \ \ \ \textcolor{keywordflow}{if}\ (list\ ==\ NULL)\ \{}
+\DoxyCodeLine{00241\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00242\ \ \ \ \ \}}
+\DoxyCodeLine{00243\ \ \ \ \ \mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ current\ =\ list-\/>head;}
+\DoxyCodeLine{00244\ \ \ \ \ \textcolor{keywordflow}{while}\ (current)\ \{}
+\DoxyCodeLine{00245\ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}\%d\ "{}},\ *(\textcolor{keywordtype}{int}*)current-\/>data);}
+\DoxyCodeLine{00246\ \ \ \ \ \ \ \ \ current\ =\ current-\/>next;}
+\DoxyCodeLine{00247\ \ \ \ \ \}}
+\DoxyCodeLine{00248\ \ \ \ \ printf(\textcolor{stringliteral}{"{}\(\backslash\)n"{}});}
+\DoxyCodeLine{00249\ \}}
+\DoxyCodeLine{00250\ }
+\DoxyCodeLine{00251\ \textcolor{keywordtype}{void}\ slist\_print\_aschar(\mbox{\hyperlink{structslist__t}{slist\_t}}*\ list)\ \{}
+\DoxyCodeLine{00252\ \ \ \ \ \textcolor{keywordflow}{if}\ (list\ ==\ NULL)\ \{}
+\DoxyCodeLine{00253\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00254\ \ \ \ \ \}}
+\DoxyCodeLine{00255\ \ \ \ \ \mbox{\hyperlink{structslist__node}{slist\_node\_t}}*\ current\ =\ list-\/>head;}
+\DoxyCodeLine{00256\ \ \ \ \ \textcolor{keywordflow}{while}\ (current)\ \{}
+\DoxyCodeLine{00257\ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}\%c\ "{}},\ *(\textcolor{keywordtype}{char}*)current-\/>data);}
+\DoxyCodeLine{00258\ \ \ \ \ \ \ \ \ current\ =\ current-\/>next;}
+\DoxyCodeLine{00259\ \ \ \ \ \}}
+\DoxyCodeLine{00260\ \ \ \ \ printf(\textcolor{stringliteral}{"{}\(\backslash\)n"{}});}
+\DoxyCodeLine{00261\ \}}
+\DoxyCodeLine{00262\ }
+\DoxyCodeLine{00263\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{/*SLIST\_IMPL*/}\textcolor{preprocessor}{}}
+\DoxyCodeLine{00264\ }
+\DoxyCodeLine{00265\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{/*\ E3BD52A6\_7A93\_4758\_8633\_F1005A651260\ */}\textcolor{preprocessor}{}}
+
+\end{DoxyCode}

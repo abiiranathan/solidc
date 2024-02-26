@@ -1,0 +1,354 @@
+\doxysection{map.\+h}
+\hypertarget{map_8h_source}{}\label{map_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ A02E572A\_DD85\_4D77\_AC81\_41037EDE290A}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ A02E572A\_DD85\_4D77\_AC81\_41037EDE290A}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#ifdef\ \_\_cplusplus}}
+\DoxyCodeLine{00005\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \{}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00007\ }
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#include\ <stdio.h>}}
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#include\ <stdlib.h>}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#include\ <string.h>}}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ Allow\ user\ to\ customize\ initial\ map\ size\ and\ load\ factor\ threshold}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#ifndef\ INITIAL\_MAP\_SIZE}}
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#define\ INITIAL\_MAP\_SIZE\ 64}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#ifndef\ LOAD\_FACTOR\_THRESHOLD}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#define\ LOAD\_FACTOR\_THRESHOLD\ 0.75}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\{}
+\DoxyCodeLine{00023\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ key;}
+\DoxyCodeLine{00024\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ value;}
+\DoxyCodeLine{00025\ \}\ \mbox{\hyperlink{structentry}{entry}};}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structmap}{map}}\ \{}
+\DoxyCodeLine{00028\ \ \ \ \ \mbox{\hyperlink{structentry}{entry}}*\ entries;}
+\DoxyCodeLine{00029\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ size;}
+\DoxyCodeLine{00030\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ capacity;}
+\DoxyCodeLine{00031\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ long\ (*hash)(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*);}
+\DoxyCodeLine{00032\ \}\ \mbox{\hyperlink{structmap}{map}};}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\{}
+\DoxyCodeLine{00035\ \ \ \ \ \mbox{\hyperlink{structmap}{map}}*\ m;}
+\DoxyCodeLine{00036\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ bucket;}
+\DoxyCodeLine{00037\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ index;}
+\DoxyCodeLine{00038\ \}\ \mbox{\hyperlink{structmap__iterator}{map\_iterator}};}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#define\ map\_foreach(map,\ entry\_var)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\ \ \ \ for\ (size\_t\ i\ =\ 0;\ i\ <\ map-\/>size;\ i++)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ for\ (int\ cont\ =\ 1;\ cont;\ cont\ =\ 0)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ for\ (entry*\ entry\_var\ =\ \&map-\/>entries[i];\ cont;\ cont\ =\ 0)}}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ Create\ a\ new\ map\ iterator}}
+\DoxyCodeLine{00046\ \mbox{\hyperlink{structmap__iterator}{map\_iterator}}*\ map\_iterator\_create(\mbox{\hyperlink{structmap}{map}}*\ m);}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ Destroy\ the\ map\ iterator}}
+\DoxyCodeLine{00049\ \textcolor{keywordtype}{void}\ map\_iterator\_destroy(\mbox{\hyperlink{structmap__iterator}{map\_iterator}}*\ iter);}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ Check\ if\ the\ map\ iterator\ has\ more\ elements}}
+\DoxyCodeLine{00052\ \textcolor{keywordtype}{int}\ map\_iterator\_has\_next(\mbox{\hyperlink{structmap__iterator}{map\_iterator}}*\ iter);}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ Return\ the\ next\ entry\ in\ the\ map\ using\ the\ iterator}}
+\DoxyCodeLine{00055\ \mbox{\hyperlink{structentry}{entry}}\ map\_iterator\_next(\mbox{\hyperlink{structmap__iterator}{map\_iterator}}*\ iter);}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ Create\ a\ new\ map\ and\ initialize\ it}}
+\DoxyCodeLine{00058\ \mbox{\hyperlink{structmap}{map}}*\ map\_create();}
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ Destroy\ the\ map\ and\ free\ the\ memory}}
+\DoxyCodeLine{00061\ \textcolor{keywordtype}{void}\ map\_destroy(\mbox{\hyperlink{structmap}{map}}*\ m);}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ Resize\ the\ map\ to\ a\ new\ capacity\ and\ rehash\ the\ entries}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ This\ is\ an\ expensive\ operation.\ Use\ with\ caution.}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ Consider\ setting\ the\ initial\ capacity\ to\ a\ large\ value}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ by\ defining\ INITIAL\_MAP\_SIZE\ before\ including\ this\ file.}}
+\DoxyCodeLine{00067\ \textcolor{keywordtype}{void}\ map\_resize(\mbox{\hyperlink{structmap}{map}}*\ m,\ \textcolor{keywordtype}{size\_t}\ new\_capacity);}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ Set\ a\ key-\/value\ pair\ in\ the\ map}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ This\ is\ idempotent.}}
+\DoxyCodeLine{00071\ \textcolor{keywordtype}{void}\ map\_set(\mbox{\hyperlink{structmap}{map}}*\ m,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ key,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ value);}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ Set\ multiple\ key-\/value\ pairs\ in\ the\ map\ from\ arrays}}
+\DoxyCodeLine{00074\ \textcolor{comment}{//\ The\ keys\ and\ values\ arrays\ must\ be\ of\ the\ same\ length}}
+\DoxyCodeLine{00075\ \textcolor{keywordtype}{void}\ map\_set\_from\_array(\mbox{\hyperlink{structmap}{map}}*\ m,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}**\ keys,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}**\ values,\ \textcolor{keywordtype}{size\_t}\ num\_keys);}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ Get\ the\ value\ for\ a\ key\ in\ the\ map}}
+\DoxyCodeLine{00078\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ map\_get(\mbox{\hyperlink{structmap}{map}}*\ m,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ key);}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ Get\ all\ the\ keys\ in\ the\ map.}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ The\ number\ of\ keys\ is\ returned\ in\ num\_keys}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//\ The\ user\ is\ responsible\ for\ freeing\ the\ keys\ array\ with\ map\_free\_keys}}
+\DoxyCodeLine{00083\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}**\ map\_getkeys(\mbox{\hyperlink{structmap}{map}}*\ m,\ \textcolor{keywordtype}{size\_t}*\ num\_keys);}
+\DoxyCodeLine{00084\ }
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ Free\ the\ keys\ array\ returned\ by\ map\_getkeys}}
+\DoxyCodeLine{00086\ \textcolor{keywordtype}{void}\ map\_free\_keys(\textcolor{keywordtype}{void}**\ keys);}
+\DoxyCodeLine{00087\ }
+\DoxyCodeLine{00088\ \textcolor{comment}{//\ Remove\ a\ key\ from\ the\ map}}
+\DoxyCodeLine{00089\ \textcolor{keywordtype}{void}\ map\_remove(\mbox{\hyperlink{structmap}{map}}*\ m,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ key);}
+\DoxyCodeLine{00090\ }
+\DoxyCodeLine{00091\ \textcolor{comment}{//\ Set\ the\ hash\ function\ for\ the\ map}}
+\DoxyCodeLine{00092\ \textcolor{comment}{//\ The\ default\ hash\ function\ is\ djb2\_hash}}
+\DoxyCodeLine{00093\ \textcolor{keywordtype}{void}\ map\_set\_hash(\mbox{\hyperlink{structmap}{map}}*\ m,\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ (*hash)(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*));}
+\DoxyCodeLine{00094\ }
+\DoxyCodeLine{00095\ \textcolor{comment}{//\ Get\ the\ number\ of\ key-\/value\ pairs\ in\ the\ map}}
+\DoxyCodeLine{00096\ \textcolor{keywordtype}{size\_t}\ map\_length(\mbox{\hyperlink{structmap}{map}}*\ m);}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \textcolor{comment}{//\ Get\ the\ capacity\ of\ the\ map}}
+\DoxyCodeLine{00099\ \textcolor{keywordtype}{size\_t}\ map\_capacity(\mbox{\hyperlink{structmap}{map}}*\ m);}
+\DoxyCodeLine{00100\ }
+\DoxyCodeLine{00101\ \textcolor{comment}{//\ djb2\ hash\ function.}}
+\DoxyCodeLine{00102\ \textcolor{comment}{//\ http://www.cse.yorku.ca/\string~oz/hash.html}}
+\DoxyCodeLine{00103\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ djb2\_hash(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ key);}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \textcolor{comment}{//\ Simple\ DataBase\ Manager\ hash.}}
+\DoxyCodeLine{00106\ \textcolor{comment}{//\ http://www.cse.yorku.ca/\string~oz/hash.html}}
+\DoxyCodeLine{00107\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ sdbm\_hash(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ key);}
+\DoxyCodeLine{00108\ }
+\DoxyCodeLine{00109\ \textcolor{preprocessor}{\#if\ defined(\_\_cplusplus)}}
+\DoxyCodeLine{00110\ \}}
+\DoxyCodeLine{00111\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00113\ \textcolor{comment}{//\ define\ MAP\_IMPL\ before\ including\ this\ file\ to}}
+\DoxyCodeLine{00114\ \textcolor{comment}{//\ generate\ the\ implementation}}
+\DoxyCodeLine{00115\ \textcolor{preprocessor}{\#ifdef\ MAP\_IMPL}}
+\DoxyCodeLine{00116\ }
+\DoxyCodeLine{00117\ \textcolor{comment}{//\ http://www.cse.yorku.ca/\string~oz/hash.html}}
+\DoxyCodeLine{00118\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ djb2\_hash(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ key)\ \{}
+\DoxyCodeLine{00119\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}*\ str\ =\ (\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}*)key;}
+\DoxyCodeLine{00120\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ hash\ =\ 5381;}
+\DoxyCodeLine{00121\ \ \ \ \ \textcolor{keywordtype}{int}\ c;}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00123\ \ \ \ \ \textcolor{keywordflow}{while}\ ((c\ =\ *str++)\ !=\ \textcolor{charliteral}{'\(\backslash\)0'})\ \{}
+\DoxyCodeLine{00124\ \ \ \ \ \ \ \ \ hash\ =\ ((hash\ <<\ 5)\ +\ hash)\ +\ c;\ \ \textcolor{comment}{//\ hash\ *\ 33\ +\ c}}
+\DoxyCodeLine{00125\ \ \ \ \ \}}
+\DoxyCodeLine{00126\ }
+\DoxyCodeLine{00127\ \ \ \ \ \textcolor{keywordflow}{return}\ hash;}
+\DoxyCodeLine{00128\ \}}
+\DoxyCodeLine{00129\ }
+\DoxyCodeLine{00130\ \textcolor{comment}{//\ Simple\ DataBase\ Manager\ hash}}
+\DoxyCodeLine{00131\ \textcolor{comment}{//\ http://www.cse.yorku.ca/\string~oz/hash.html}}
+\DoxyCodeLine{00132\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ sdbm\_hash(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ key)\ \{}
+\DoxyCodeLine{00133\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}*\ str\ =\ (\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}*)key;}
+\DoxyCodeLine{00134\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ hash\ =\ 0;}
+\DoxyCodeLine{00135\ \ \ \ \ \textcolor{keywordtype}{int}\ c;}
+\DoxyCodeLine{00136\ \ \ \ \ \textcolor{keywordflow}{while}\ ((c\ =\ *str++)\ !=\ \textcolor{charliteral}{'\(\backslash\)0'})\ \{}
+\DoxyCodeLine{00137\ \ \ \ \ \ \ \ \ hash\ =\ c\ +\ (hash\ <<\ 6)\ +\ (hash\ <<\ 16)\ -\/\ hash;}
+\DoxyCodeLine{00138\ \ \ \ \ \}}
+\DoxyCodeLine{00139\ \ \ \ \ \textcolor{keywordflow}{return}\ hash;}
+\DoxyCodeLine{00140\ \}}
+\DoxyCodeLine{00141\ }
+\DoxyCodeLine{00142\ \textcolor{comment}{//\ Implementation\ of\ map\ functions}}
+\DoxyCodeLine{00143\ \mbox{\hyperlink{structmap}{map}}*\ map\_create()\ \{}
+\DoxyCodeLine{00144\ \ \ \ \ \mbox{\hyperlink{structmap}{map}}*\ m\ =\ (\mbox{\hyperlink{structmap}{map}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structmap}{map}}));}
+\DoxyCodeLine{00145\ \ \ \ \ \textcolor{keywordflow}{if}\ (m\ ==\ NULL)\ \{}
+\DoxyCodeLine{00146\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}Failed\ to\ allocate\ memory\ for\ map"{}});}
+\DoxyCodeLine{00147\ \ \ \ \ \ \ \ \ exit(EXIT\_FAILURE);}
+\DoxyCodeLine{00148\ \ \ \ \ \}}
+\DoxyCodeLine{00149\ }
+\DoxyCodeLine{00150\ \ \ \ \ m-\/>entries\ =\ (\mbox{\hyperlink{structentry}{entry}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structentry}{entry}})\ *\ INITIAL\_MAP\_SIZE);}
+\DoxyCodeLine{00151\ \ \ \ \ \textcolor{keywordflow}{if}\ (m-\/>entries\ ==\ NULL)\ \{}
+\DoxyCodeLine{00152\ \ \ \ \ \ \ \ \ free(m);}
+\DoxyCodeLine{00153\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}Failed\ to\ allocate\ memory\ for\ map\ entries"{}});}
+\DoxyCodeLine{00154\ \ \ \ \ \ \ \ \ exit(EXIT\_FAILURE);}
+\DoxyCodeLine{00155\ \ \ \ \ \}}
+\DoxyCodeLine{00156\ }
+\DoxyCodeLine{00157\ \ \ \ \ \textcolor{comment}{//\ Initialize\ the\ entries}}
+\DoxyCodeLine{00158\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ INITIAL\_MAP\_SIZE;\ i++)\ \{}
+\DoxyCodeLine{00159\ \ \ \ \ \ \ \ \ m-\/>entries[i].key\ \ \ =\ NULL;}
+\DoxyCodeLine{00160\ \ \ \ \ \ \ \ \ m-\/>entries[i].value\ =\ NULL;}
+\DoxyCodeLine{00161\ \ \ \ \ \}}
+\DoxyCodeLine{00162\ }
+\DoxyCodeLine{00163\ \ \ \ \ m-\/>size\ \ \ \ \ =\ 0;}
+\DoxyCodeLine{00164\ \ \ \ \ m-\/>capacity\ =\ INITIAL\_MAP\_SIZE;}
+\DoxyCodeLine{00165\ \ \ \ \ m-\/>hash\ \ \ \ \ =\ djb2\_hash;}
+\DoxyCodeLine{00166\ \ \ \ \ \textcolor{keywordflow}{return}\ m;}
+\DoxyCodeLine{00167\ \}}
+\DoxyCodeLine{00168\ }
+\DoxyCodeLine{00169\ \textcolor{keywordtype}{void}\ map\_destroy(\mbox{\hyperlink{structmap}{map}}*\ m)\ \{}
+\DoxyCodeLine{00170\ \ \ \ \ free(m-\/>entries);}
+\DoxyCodeLine{00171\ \ \ \ \ free(m);}
+\DoxyCodeLine{00172\ \}}
+\DoxyCodeLine{00173\ }
+\DoxyCodeLine{00174\ \textcolor{keywordtype}{void}\ map\_resize(\mbox{\hyperlink{structmap}{map}}*\ m,\ \textcolor{keywordtype}{size\_t}\ new\_capacity)\ \{}
+\DoxyCodeLine{00175\ \ \ \ \ \textcolor{comment}{//\ Allocate\ memory\ for\ the\ new\ entries}}
+\DoxyCodeLine{00176\ \ \ \ \ \mbox{\hyperlink{structentry}{entry}}*\ new\_entries\ =\ (\mbox{\hyperlink{structentry}{entry}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structentry}{entry}})\ *\ new\_capacity);}
+\DoxyCodeLine{00177\ \ \ \ \ \textcolor{keywordflow}{if}\ (new\_entries\ ==\ NULL)\ \{}
+\DoxyCodeLine{00178\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}Failed\ to\ allocate\ memory\ for\ new\ map\ entries"{}});}
+\DoxyCodeLine{00179\ \ \ \ \ \ \ \ \ exit(EXIT\_FAILURE);}
+\DoxyCodeLine{00180\ \ \ \ \ \}}
+\DoxyCodeLine{00181\ }
+\DoxyCodeLine{00182\ \ \ \ \ \textcolor{comment}{//\ Initialize\ the\ new\ entries}}
+\DoxyCodeLine{00183\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ new\_capacity;\ i++)\ \{}
+\DoxyCodeLine{00184\ \ \ \ \ \ \ \ \ new\_entries[i].key\ \ \ =\ NULL;}
+\DoxyCodeLine{00185\ \ \ \ \ \ \ \ \ new\_entries[i].value\ =\ NULL;}
+\DoxyCodeLine{00186\ \ \ \ \ \}}
+\DoxyCodeLine{00187\ }
+\DoxyCodeLine{00188\ \ \ \ \ \textcolor{comment}{//\ Rehash\ the\ old\ entries\ into\ the\ new\ entries}}
+\DoxyCodeLine{00189\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ m-\/>capacity;\ i++)\ \{}
+\DoxyCodeLine{00190\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (m-\/>entries[i].key\ !=\ NULL)\ \{}
+\DoxyCodeLine{00191\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ index\ =\ m-\/>hash(m-\/>entries[i].key)\ \%\ new\_capacity;}
+\DoxyCodeLine{00192\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (new\_entries[index].key\ !=\ NULL)\ \{}
+\DoxyCodeLine{00193\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index\ =\ (index\ +\ 1)\ \%\ new\_capacity;}
+\DoxyCodeLine{00194\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00195\ \ \ \ \ \ \ \ \ \ \ \ \ new\_entries[index].key\ \ \ =\ m-\/>entries[i].key;}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ \ \ \ \ \ \ new\_entries[index].value\ =\ m-\/>entries[i].value;}
+\DoxyCodeLine{00197\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00198\ \ \ \ \ \}}
+\DoxyCodeLine{00199\ }
+\DoxyCodeLine{00200\ \ \ \ \ \textcolor{comment}{//\ Free\ the\ old\ entries\ and\ update\ the\ map}}
+\DoxyCodeLine{00201\ \ \ \ \ free(m-\/>entries);}
+\DoxyCodeLine{00202\ \ \ \ \ m-\/>entries\ \ =\ new\_entries;}
+\DoxyCodeLine{00203\ \ \ \ \ m-\/>capacity\ =\ new\_capacity;}
+\DoxyCodeLine{00204\ \}}
+\DoxyCodeLine{00205\ }
+\DoxyCodeLine{00206\ \textcolor{keywordtype}{void}\ map\_set(\mbox{\hyperlink{structmap}{map}}*\ m,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ key,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ value)\ \{}
+\DoxyCodeLine{00207\ \ \ \ \ \textcolor{keywordflow}{if}\ ((\textcolor{keywordtype}{double})m-\/>size\ /\ m-\/>capacity\ >\ LOAD\_FACTOR\_THRESHOLD)\ \{}
+\DoxyCodeLine{00208\ \ \ \ \ \ \ \ \ map\_resize(m,\ m-\/>capacity\ *\ 2);}
+\DoxyCodeLine{00209\ \ \ \ \ \}}
+\DoxyCodeLine{00210\ }
+\DoxyCodeLine{00211\ \ \ \ \ \textcolor{comment}{//\ Find\ the\ index\ to\ insert\ the\ new\ entry}}
+\DoxyCodeLine{00212\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ index\ =\ m-\/>hash(key)\ \%\ m-\/>capacity;}
+\DoxyCodeLine{00213\ }
+\DoxyCodeLine{00214\ \ \ \ \ \textcolor{comment}{//\ Linear\ probing\ to\ find\ the\ next\ available\ index}}
+\DoxyCodeLine{00215\ \ \ \ \ \textcolor{keywordflow}{while}\ (m-\/>entries[index].key\ !=\ NULL)\ \{}
+\DoxyCodeLine{00216\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (m-\/>entries[index].key\ ==\ key)\ \{}
+\DoxyCodeLine{00217\ \ \ \ \ \ \ \ \ \ \ \ \ m-\/>entries[index].value\ =\ value;}
+\DoxyCodeLine{00218\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};\ \ \textcolor{comment}{//\ Key\ already\ exists\ with\ the\ same\ value}}
+\DoxyCodeLine{00219\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00220\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Key\ collision,\ continue\ probing}}
+\DoxyCodeLine{00221\ \ \ \ \ \ \ \ \ index\ =\ (index\ +\ 1)\ \%\ m-\/>capacity;}
+\DoxyCodeLine{00222\ \ \ \ \ \}}
+\DoxyCodeLine{00223\ }
+\DoxyCodeLine{00224\ \ \ \ \ m-\/>entries[index].key\ \ \ =\ key;}
+\DoxyCodeLine{00225\ \ \ \ \ m-\/>entries[index].value\ =\ value;}
+\DoxyCodeLine{00226\ \ \ \ \ m-\/>size++;}
+\DoxyCodeLine{00227\ \}}
+\DoxyCodeLine{00228\ }
+\DoxyCodeLine{00229\ \textcolor{keywordtype}{void}\ map\_set\_from\_array(\mbox{\hyperlink{structmap}{map}}*\ m,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}**\ keys,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}**\ values,\ \textcolor{keywordtype}{size\_t}\ num\_keys)\ \{}
+\DoxyCodeLine{00230\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ i\ =\ 0;\ i\ <\ num\_keys;\ i++)\ \{}
+\DoxyCodeLine{00231\ \ \ \ \ \ \ \ \ map\_set(m,\ keys[i],\ values[i]);}
+\DoxyCodeLine{00232\ \ \ \ \ \}}
+\DoxyCodeLine{00233\ \}}
+\DoxyCodeLine{00234\ }
+\DoxyCodeLine{00235\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ map\_get(\mbox{\hyperlink{structmap}{map}}*\ m,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ key)\ \{}
+\DoxyCodeLine{00236\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ index\ =\ m-\/>hash(key)\ \%\ m-\/>capacity;}
+\DoxyCodeLine{00237\ }
+\DoxyCodeLine{00238\ \ \ \ \ \textcolor{keywordflow}{while}\ (m-\/>entries[index].key\ !=\ NULL)\ \{}
+\DoxyCodeLine{00239\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (m-\/>entries[index].key\ ==\ key)\ \{}
+\DoxyCodeLine{00240\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ m-\/>entries[index].value;}
+\DoxyCodeLine{00241\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00242\ \ \ \ \ \ \ \ \ index\ =\ (index\ +\ 1)\ \%\ m-\/>capacity;}
+\DoxyCodeLine{00243\ \ \ \ \ \}}
+\DoxyCodeLine{00244\ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00245\ \}}
+\DoxyCodeLine{00246\ }
+\DoxyCodeLine{00247\ \textcolor{keywordtype}{void}\ map\_remove(\mbox{\hyperlink{structmap}{map}}*\ m,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ key)\ \{}
+\DoxyCodeLine{00248\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ index\ =\ m-\/>hash(key)\ \%\ m-\/>capacity;}
+\DoxyCodeLine{00249\ \ \ \ \ \textcolor{keywordflow}{while}\ (m-\/>entries[index].key\ !=\ NULL)\ \{}
+\DoxyCodeLine{00250\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (m-\/>entries[index].key\ ==\ key)\ \{}
+\DoxyCodeLine{00251\ \ \ \ \ \ \ \ \ \ \ \ \ m-\/>entries[index].key\ \ \ =\ NULL;}
+\DoxyCodeLine{00252\ \ \ \ \ \ \ \ \ \ \ \ \ m-\/>entries[index].value\ =\ NULL;}
+\DoxyCodeLine{00253\ \ \ \ \ \ \ \ \ \ \ \ \ m-\/>size-\/-\/;}
+\DoxyCodeLine{00254\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00255\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00256\ \ \ \ \ \ \ \ \ index\ =\ (index\ +\ 1)\ \%\ m-\/>capacity;}
+\DoxyCodeLine{00257\ \ \ \ \ \}}
+\DoxyCodeLine{00258\ \}}
+\DoxyCodeLine{00259\ }
+\DoxyCodeLine{00260\ \textcolor{keywordtype}{size\_t}\ map\_length(\mbox{\hyperlink{structmap}{map}}*\ m)\ \{}
+\DoxyCodeLine{00261\ \ \ \ \ \textcolor{keywordflow}{return}\ m-\/>size;}
+\DoxyCodeLine{00262\ \}}
+\DoxyCodeLine{00263\ \textcolor{keywordtype}{size\_t}\ map\_capacity(\mbox{\hyperlink{structmap}{map}}*\ m)\ \{}
+\DoxyCodeLine{00264\ \ \ \ \ \textcolor{keywordflow}{return}\ m-\/>capacity;}
+\DoxyCodeLine{00265\ \}}
+\DoxyCodeLine{00266\ }
+\DoxyCodeLine{00267\ \textcolor{keywordtype}{void}\ map\_set\_hash(\mbox{\hyperlink{structmap}{map}}*\ m,\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ (*hash)(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*))\ \{}
+\DoxyCodeLine{00268\ \ \ \ \ m-\/>hash\ =\ hash;}
+\DoxyCodeLine{00269\ \}}
+\DoxyCodeLine{00270\ }
+\DoxyCodeLine{00271\ \mbox{\hyperlink{structmap__iterator}{map\_iterator}}*\ map\_iterator\_create(\mbox{\hyperlink{structmap}{map}}*\ m)\ \{}
+\DoxyCodeLine{00272\ \ \ \ \ \mbox{\hyperlink{structmap__iterator}{map\_iterator}}*\ iter\ =\ (\mbox{\hyperlink{structmap__iterator}{map\_iterator}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structmap__iterator}{map\_iterator}}));}
+\DoxyCodeLine{00273\ \ \ \ \ \textcolor{keywordflow}{if}\ (iter\ ==\ NULL)\ \{}
+\DoxyCodeLine{00274\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}Failed\ to\ allocate\ memory\ for\ map\ iterator"{}});}
+\DoxyCodeLine{00275\ \ \ \ \ \ \ \ \ exit(EXIT\_FAILURE);}
+\DoxyCodeLine{00276\ \ \ \ \ \}}
+\DoxyCodeLine{00277\ }
+\DoxyCodeLine{00278\ \ \ \ \ iter-\/>m\ \ \ \ \ \ =\ m;}
+\DoxyCodeLine{00279\ \ \ \ \ iter-\/>bucket\ =\ 0;}
+\DoxyCodeLine{00280\ \ \ \ \ iter-\/>index\ \ =\ 0;}
+\DoxyCodeLine{00281\ \ \ \ \ \textcolor{keywordflow}{return}\ iter;}
+\DoxyCodeLine{00282\ \}}
+\DoxyCodeLine{00283\ }
+\DoxyCodeLine{00284\ \textcolor{keywordtype}{void}\ map\_iterator\_destroy(\mbox{\hyperlink{structmap__iterator}{map\_iterator}}*\ iter)\ \{}
+\DoxyCodeLine{00285\ \ \ \ \ \textcolor{keywordflow}{if}\ (iter\ !=\ NULL)\ \{}
+\DoxyCodeLine{00286\ \ \ \ \ \ \ \ \ free(iter);}
+\DoxyCodeLine{00287\ \ \ \ \ \ \ \ \ iter\ =\ NULL;}
+\DoxyCodeLine{00288\ \ \ \ \ \}}
+\DoxyCodeLine{00289\ \}}
+\DoxyCodeLine{00290\ }
+\DoxyCodeLine{00291\ \textcolor{keywordtype}{int}\ map\_iterator\_has\_next(\mbox{\hyperlink{structmap__iterator}{map\_iterator}}*\ iter)\ \{}
+\DoxyCodeLine{00292\ \ \ \ \ \textcolor{keywordflow}{while}\ (iter-\/>bucket\ <\ iter-\/>m-\/>capacity)\ \{}
+\DoxyCodeLine{00293\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (iter-\/>m-\/>entries[iter-\/>bucket].key\ !=\ NULL)\ \{}
+\DoxyCodeLine{00294\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ 1;}
+\DoxyCodeLine{00295\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00296\ \ \ \ \ \ \ \ \ iter-\/>bucket++;}
+\DoxyCodeLine{00297\ \ \ \ \ \}}
+\DoxyCodeLine{00298\ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00299\ \}}
+\DoxyCodeLine{00300\ }
+\DoxyCodeLine{00301\ \textcolor{comment}{//\ Return\ the\ next\ entry\ in\ the\ map\ using\ the\ iterator}}
+\DoxyCodeLine{00302\ \mbox{\hyperlink{structentry}{entry}}\ map\_iterator\_next(\mbox{\hyperlink{structmap__iterator}{map\_iterator}}*\ iter)\ \{}
+\DoxyCodeLine{00303\ \ \ \ \ \mbox{\hyperlink{structentry}{entry}}\ e\ =\ \{NULL,\ NULL\};}
+\DoxyCodeLine{00304\ }
+\DoxyCodeLine{00305\ \ \ \ \ \textcolor{comment}{//\ Iterate\ over\ the\ map\ entries\ and\ return\ the\ next\ entry}}
+\DoxyCodeLine{00306\ \ \ \ \ \textcolor{comment}{//\ that\ has\ a\ non-\/NULL\ key.}}
+\DoxyCodeLine{00307\ \ \ \ \ \textcolor{keywordflow}{while}\ (iter-\/>bucket\ <\ iter-\/>m-\/>capacity)\ \{}
+\DoxyCodeLine{00308\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (iter-\/>m-\/>entries[iter-\/>bucket].key\ !=\ NULL)\ \{}
+\DoxyCodeLine{00309\ \ \ \ \ \ \ \ \ \ \ \ \ e.key\ \ \ =\ iter-\/>m-\/>entries[iter-\/>bucket].key;}
+\DoxyCodeLine{00310\ \ \ \ \ \ \ \ \ \ \ \ \ e.value\ =\ iter-\/>m-\/>entries[iter-\/>bucket].value;}
+\DoxyCodeLine{00311\ \ \ \ \ \ \ \ \ \ \ \ \ iter-\/>bucket++;}
+\DoxyCodeLine{00312\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ e;}
+\DoxyCodeLine{00313\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00314\ \ \ \ \ \ \ \ \ iter-\/>bucket++;}
+\DoxyCodeLine{00315\ \ \ \ \ \}}
+\DoxyCodeLine{00316\ }
+\DoxyCodeLine{00317\ \ \ \ \ \textcolor{keywordflow}{return}\ e;}
+\DoxyCodeLine{00318\ \}}
+\DoxyCodeLine{00319\ }
+\DoxyCodeLine{00320\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}**\ map\_getkeys(\mbox{\hyperlink{structmap}{map}}*\ m,\ \textcolor{keywordtype}{size\_t}*\ num\_keys)\ \{}
+\DoxyCodeLine{00321\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ count\ \ \ \ \ \ \ =\ 0;}
+\DoxyCodeLine{00322\ \ \ \ \ \mbox{\hyperlink{structmap__iterator}{map\_iterator}}*\ iter\ =\ map\_iterator\_create(m);}
+\DoxyCodeLine{00323\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}**\ keys\ \ =\ (\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}**)malloc(\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{void}*)\ *\ m-\/>size);}
+\DoxyCodeLine{00324\ \ \ \ \ \textcolor{keywordflow}{if}\ (keys\ ==\ NULL)\ \{}
+\DoxyCodeLine{00325\ \ \ \ \ \ \ \ \ perror(\textcolor{stringliteral}{"{}Failed\ to\ allocate\ memory\ for\ keys"{}});}
+\DoxyCodeLine{00326\ \ \ \ \ \ \ \ \ exit(EXIT\_FAILURE);}
+\DoxyCodeLine{00327\ \ \ \ \ \}}
+\DoxyCodeLine{00328\ }
+\DoxyCodeLine{00329\ \ \ \ \ \textcolor{keywordflow}{while}\ (map\_iterator\_has\_next(iter))\ \{}
+\DoxyCodeLine{00330\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structentry}{entry}}\ e\ \ \ \ \ \ \ =\ map\_iterator\_next(iter);}
+\DoxyCodeLine{00331\ \ \ \ \ \ \ \ \ keys[count++]\ =\ e.key;}
+\DoxyCodeLine{00332\ \ \ \ \ \}}
+\DoxyCodeLine{00333\ \ \ \ \ map\_iterator\_destroy(iter);}
+\DoxyCodeLine{00334\ }
+\DoxyCodeLine{00335\ \ \ \ \ \textcolor{keywordflow}{if}\ (num\_keys\ !=\ NULL)\ \{}
+\DoxyCodeLine{00336\ \ \ \ \ \ \ \ \ *num\_keys\ =\ count;}
+\DoxyCodeLine{00337\ \ \ \ \ \}}
+\DoxyCodeLine{00338\ \ \ \ \ \textcolor{keywordflow}{return}\ keys;}
+\DoxyCodeLine{00339\ \}}
+\DoxyCodeLine{00340\ }
+\DoxyCodeLine{00341\ \textcolor{keywordtype}{void}\ map\_free\_keys(\textcolor{keywordtype}{void}**\ keys)\ \{}
+\DoxyCodeLine{00342\ \ \ \ \ \textcolor{keywordflow}{if}\ (keys\ !=\ NULL)\ \{}
+\DoxyCodeLine{00343\ \ \ \ \ \ \ \ \ free(keys);}
+\DoxyCodeLine{00344\ \ \ \ \ \ \ \ \ keys\ =\ NULL;}
+\DoxyCodeLine{00345\ \ \ \ \ \}}
+\DoxyCodeLine{00346\ \}}
+\DoxyCodeLine{00347\ }
+\DoxyCodeLine{00348\ \textcolor{preprocessor}{\#endif\ }}
+\DoxyCodeLine{00350\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{/*\ A02E572A\_DD85\_4D77\_AC81\_41037EDE290A\ */}\textcolor{preprocessor}{}}
+
+\end{DoxyCode}

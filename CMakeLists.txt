@@ -20,6 +20,7 @@ target_include_directories(solidc INTERFACE
 
 set(HEADERS
     os.h
+    lock.h
     list.h
     log.h
     map.h
@@ -60,6 +61,9 @@ if(BUILD_TESTING)
     add_executable(set_test tests/set_test.cpp)
     target_link_libraries(set_test gtest)
 
+    add_executable(os_test tests/os_test.cpp)
+    target_link_libraries(os_test gtest)
+
     include(GoogleTest)
     
     gtest_discover_tests(str_test)
@@ -70,4 +74,5 @@ if(BUILD_TESTING)
     gtest_discover_tests(list_test)
     gtest_discover_tests(slist_test)
     gtest_discover_tests(set_test)
+    gtest_discover_tests(os_test)
 endif()

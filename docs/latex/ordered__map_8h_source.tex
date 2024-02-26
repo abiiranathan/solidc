@@ -1,0 +1,236 @@
+\doxysection{ordered\+\_\+map.\+h}
+\hypertarget{ordered__map_8h_source}{}\label{ordered__map_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ D1A994E3\_5DD3\_4405\_A395\_67CCF6C87622}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ D1A994E3\_5DD3\_4405\_A395\_67CCF6C87622}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#if\ defined(\_\_cplusplus)}}
+\DoxyCodeLine{00005\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \{}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00007\ }
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ ordered\ map}}
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#include\ <stdio.h>}}
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#include\ <stdlib.h>}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#include\ <string.h>}}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structordered__map__node}{ordered\_map\_node}}\ \{}
+\DoxyCodeLine{00014\ \ \ \ \ \textcolor{keywordtype}{void}*\ key;}
+\DoxyCodeLine{00015\ \ \ \ \ \textcolor{keywordtype}{void}*\ value;}
+\DoxyCodeLine{00016\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structordered__map__node}{ordered\_map\_node}}*\ next;}
+\DoxyCodeLine{00017\ \ \ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structordered__map__node}{ordered\_map\_node}}*\ prev;}
+\DoxyCodeLine{00018\ \}\ \mbox{\hyperlink{structordered__map__node}{ordered\_map\_node\_t}};}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\{}
+\DoxyCodeLine{00021\ \ \ \ \ \mbox{\hyperlink{structordered__map__node}{ordered\_map\_node\_t}}*\ head;}
+\DoxyCodeLine{00022\ \ \ \ \ \mbox{\hyperlink{structordered__map__node}{ordered\_map\_node\_t}}*\ tail;}
+\DoxyCodeLine{00023\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ size;}
+\DoxyCodeLine{00024\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ key\_size;}
+\DoxyCodeLine{00025\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ value\_size;}
+\DoxyCodeLine{00026\ \}\ \mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}};}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#define\ ordermap\_foreach(map,\ node\_var)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\ \ \ \ for\ (ordered\_map\_node\_t*\ node\_var\ =\ map-\/>head;\ node\_var\ !=\ NULL;\ node\_var\ =\ node\_var-\/>next)}}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*\ ordered\_map\_new(\textcolor{keywordtype}{size\_t}\ key\_size,\ \textcolor{keywordtype}{size\_t}\ value\_size);}
+\DoxyCodeLine{00032\ \textcolor{keywordtype}{void}\ ordered\_map\_free(\mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*\ \mbox{\hyperlink{structmap}{map}});}
+\DoxyCodeLine{00033\ \textcolor{keywordtype}{size\_t}\ ordered\_map\_size(\mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*\ \mbox{\hyperlink{structmap}{map}});}
+\DoxyCodeLine{00034\ \textcolor{keywordtype}{void}\ ordered\_map\_clear(\mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*\ \mbox{\hyperlink{structmap}{map}});}
+\DoxyCodeLine{00035\ \mbox{\hyperlink{structordered__map__node}{ordered\_map\_node\_t}}*\ ordered\_map\_node\_new(\textcolor{keywordtype}{size\_t}\ key\_size,\ \textcolor{keywordtype}{size\_t}\ value\_size,\ \textcolor{keywordtype}{void}*\ key,}
+\DoxyCodeLine{00036\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ value);}
+\DoxyCodeLine{00037\ \textcolor{keywordtype}{void}\ ordered\_map\_node\_free(\mbox{\hyperlink{structordered__map__node}{ordered\_map\_node\_t}}*\ node);}
+\DoxyCodeLine{00038\ \textcolor{keywordtype}{void}\ ordered\_map\_insert(\mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*\ \mbox{\hyperlink{structmap}{map}},\ \textcolor{keywordtype}{void}*\ key,\ \textcolor{keywordtype}{void}*\ value);}
+\DoxyCodeLine{00039\ \textcolor{keywordtype}{void}\ ordered\_map\_remove(\mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*\ \mbox{\hyperlink{structmap}{map}},\ \textcolor{keywordtype}{void}*\ key);}
+\DoxyCodeLine{00040\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ ordered\_map\_get(\mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*\ \mbox{\hyperlink{structmap}{map}},\ \textcolor{keywordtype}{void}*\ key);}
+\DoxyCodeLine{00041\ \textcolor{keywordtype}{void}\ ordered\_map\_print\_aschar(\mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*\ \mbox{\hyperlink{structmap}{map}});}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \textcolor{comment}{/*}}
+\DoxyCodeLine{00044\ \textcolor{comment}{\#define\ map\_foreach(map,\ entry\_var)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00045\ \textcolor{comment}{\ \ \ \ for\ (size\_t\ i\ =\ 0;\ i\ <\ map-\/>size;\ i++)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00046\ \textcolor{comment}{\ \ \ \ \ \ \ \ for\ (int\ cont\ =\ 1;\ cont;\ cont\ =\ 0)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00047\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ for\ (entry*\ entry\_var\ =\ \&map-\/>entries[i];\ cont;\ cont\ =\ 0)}}
+\DoxyCodeLine{00048\ \textcolor{comment}{*/}}
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\#define\ ordered\_map\_foreach(map,\ key,\ value)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00050\ \textcolor{preprocessor}{\ \ \ \ for\ (ordered\_map\_node\_t*\ node\ =\ map-\/>head;\ node\ !=\ NULL;\ node\ =\ node-\/>next)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ for\ (int\ cont\ =\ 1;\ cont;\ cont\ =\ 0)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ for\ (void\ *key\ =\ node-\/>key,\ *value\ =\ node-\/>value;\ cont;\ cont\ =\ 0)}}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{preprocessor}{\#if\ defined(\_\_cplusplus)}}
+\DoxyCodeLine{00055\ \}}
+\DoxyCodeLine{00056\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00057\ }
+\DoxyCodeLine{00058\ \textcolor{preprocessor}{\#ifdef\ ORDERED\_MAP\_IMPL}}
+\DoxyCodeLine{00059\ \mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*\ ordered\_map\_new(\textcolor{keywordtype}{size\_t}\ key\_size,\ \textcolor{keywordtype}{size\_t}\ value\_size)\ \{}
+\DoxyCodeLine{00060\ \ \ \ \ \mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*\ \mbox{\hyperlink{structmap}{map}}\ =\ (\mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}));}
+\DoxyCodeLine{00061\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structmap}{map}}\ ==\ NULL)\ \{}
+\DoxyCodeLine{00062\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00063\ \ \ \ \ \}}
+\DoxyCodeLine{00064\ \ \ \ \ \mbox{\hyperlink{structmap}{map}}-\/>head\ \ \ \ \ \ \ =\ NULL;}
+\DoxyCodeLine{00065\ \ \ \ \ \mbox{\hyperlink{structmap}{map}}-\/>tail\ \ \ \ \ \ \ =\ NULL;}
+\DoxyCodeLine{00066\ \ \ \ \ \mbox{\hyperlink{structmap}{map}}-\/>size\ \ \ \ \ \ \ =\ 0;}
+\DoxyCodeLine{00067\ \ \ \ \ \mbox{\hyperlink{structmap}{map}}-\/>key\_size\ \ \ =\ key\_size;}
+\DoxyCodeLine{00068\ \ \ \ \ \mbox{\hyperlink{structmap}{map}}-\/>value\_size\ =\ value\_size;}
+\DoxyCodeLine{00069\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structmap}{map}};}
+\DoxyCodeLine{00070\ \}}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \textcolor{keywordtype}{void}\ ordered\_map\_free(\mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*\ \mbox{\hyperlink{structmap}{map}})\ \{}
+\DoxyCodeLine{00073\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structmap}{map}}\ ==\ NULL)\ \{}
+\DoxyCodeLine{00074\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00075\ \ \ \ \ \}}
+\DoxyCodeLine{00076\ \ \ \ \ ordered\_map\_clear(\mbox{\hyperlink{structmap}{map}});}
+\DoxyCodeLine{00077\ \ \ \ \ free(\mbox{\hyperlink{structmap}{map}});}
+\DoxyCodeLine{00078\ \ \ \ \ \mbox{\hyperlink{structmap}{map}}\ =\ NULL;}
+\DoxyCodeLine{00079\ \}}
+\DoxyCodeLine{00080\ }
+\DoxyCodeLine{00081\ \textcolor{keywordtype}{void}\ ordered\_map\_clear(\mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*\ \mbox{\hyperlink{structmap}{map}})\ \{}
+\DoxyCodeLine{00082\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structmap}{map}}\ ==\ NULL)\ \{}
+\DoxyCodeLine{00083\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00084\ \ \ \ \ \}}
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00086\ \ \ \ \ \mbox{\hyperlink{structordered__map__node}{ordered\_map\_node\_t}}*\ current\ =\ \mbox{\hyperlink{structmap}{map}}-\/>head;}
+\DoxyCodeLine{00087\ \ \ \ \ \textcolor{keywordflow}{while}\ (current)\ \{}
+\DoxyCodeLine{00088\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structordered__map__node}{ordered\_map\_node\_t}}*\ next\ =\ current-\/>next;}
+\DoxyCodeLine{00089\ \ \ \ \ \ \ \ \ ordered\_map\_node\_free(current);}
+\DoxyCodeLine{00090\ \ \ \ \ \ \ \ \ current\ =\ next;}
+\DoxyCodeLine{00091\ \ \ \ \ \}}
+\DoxyCodeLine{00092\ \ \ \ \ \mbox{\hyperlink{structmap}{map}}-\/>head\ =\ NULL;}
+\DoxyCodeLine{00093\ \ \ \ \ \mbox{\hyperlink{structmap}{map}}-\/>tail\ =\ NULL;}
+\DoxyCodeLine{00094\ \ \ \ \ \mbox{\hyperlink{structmap}{map}}-\/>size\ =\ 0;}
+\DoxyCodeLine{00095\ \}}
+\DoxyCodeLine{00096\ }
+\DoxyCodeLine{00097\ \mbox{\hyperlink{structordered__map__node}{ordered\_map\_node\_t}}*\ ordered\_map\_node\_new(\textcolor{keywordtype}{size\_t}\ key\_size,\ \textcolor{keywordtype}{size\_t}\ value\_size,\ \textcolor{keywordtype}{void}*\ key,}
+\DoxyCodeLine{00098\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ value)\ \{}
+\DoxyCodeLine{00099\ \ \ \ \ \mbox{\hyperlink{structordered__map__node}{ordered\_map\_node\_t}}*\ node\ =\ (\mbox{\hyperlink{structordered__map__node}{ordered\_map\_node\_t}}*)malloc(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structordered__map__node}{ordered\_map\_node\_t}}));}
+\DoxyCodeLine{00100\ \ \ \ \ \textcolor{keywordflow}{if}\ (node\ ==\ NULL)\ \{}
+\DoxyCodeLine{00101\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00102\ \ \ \ \ \}}
+\DoxyCodeLine{00103\ \ \ \ \ node-\/>key\ =\ malloc(key\_size);}
+\DoxyCodeLine{00104\ \ \ \ \ \textcolor{keywordflow}{if}\ (node-\/>key\ ==\ NULL)\ \{}
+\DoxyCodeLine{00105\ \ \ \ \ \ \ \ \ free(node);}
+\DoxyCodeLine{00106\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00107\ \ \ \ \ \}}
+\DoxyCodeLine{00108\ \ \ \ \ node-\/>value\ =\ malloc(value\_size);}
+\DoxyCodeLine{00109\ \ \ \ \ \textcolor{keywordflow}{if}\ (node-\/>value\ ==\ NULL)\ \{}
+\DoxyCodeLine{00110\ \ \ \ \ \ \ \ \ free(node-\/>key);}
+\DoxyCodeLine{00111\ \ \ \ \ \ \ \ \ free(node);}
+\DoxyCodeLine{00112\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00113\ \ \ \ \ \}}
+\DoxyCodeLine{00114\ }
+\DoxyCodeLine{00115\ \ \ \ \ node-\/>next\ =\ NULL;}
+\DoxyCodeLine{00116\ \ \ \ \ node-\/>prev\ =\ NULL;}
+\DoxyCodeLine{00117\ \ \ \ \ memcpy(node-\/>key,\ key,\ key\_size);}
+\DoxyCodeLine{00118\ \ \ \ \ memcpy(node-\/>value,\ value,\ value\_size);}
+\DoxyCodeLine{00119\ \ \ \ \ \textcolor{keywordflow}{return}\ node;}
+\DoxyCodeLine{00120\ \}}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00122\ \textcolor{keywordtype}{void}\ ordered\_map\_node\_free(\mbox{\hyperlink{structordered__map__node}{ordered\_map\_node\_t}}*\ node)\ \{}
+\DoxyCodeLine{00123\ \ \ \ \ \textcolor{keywordflow}{if}\ (node\ ==\ NULL)\ \{}
+\DoxyCodeLine{00124\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00125\ \ \ \ \ \}}
+\DoxyCodeLine{00126\ }
+\DoxyCodeLine{00127\ \ \ \ \ \textcolor{keywordflow}{if}\ (node-\/>key)\ \{}
+\DoxyCodeLine{00128\ \ \ \ \ \ \ \ \ free(node-\/>key);}
+\DoxyCodeLine{00129\ \ \ \ \ \ \ \ \ node-\/>key\ =\ NULL;}
+\DoxyCodeLine{00130\ \ \ \ \ \}}
+\DoxyCodeLine{00131\ \ \ \ \ \textcolor{keywordflow}{if}\ (node-\/>value)\ \{}
+\DoxyCodeLine{00132\ \ \ \ \ \ \ \ \ free(node-\/>value);}
+\DoxyCodeLine{00133\ \ \ \ \ \ \ \ \ node-\/>value\ =\ NULL;}
+\DoxyCodeLine{00134\ \ \ \ \ \}}
+\DoxyCodeLine{00135\ \ \ \ \ free(node);}
+\DoxyCodeLine{00136\ \}}
+\DoxyCodeLine{00137\ }
+\DoxyCodeLine{00138\ \textcolor{keywordtype}{void}\ ordered\_map\_insert(\mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*\ \mbox{\hyperlink{structmap}{map}},\ \textcolor{keywordtype}{void}*\ key,\ \textcolor{keywordtype}{void}*\ value)\ \{}
+\DoxyCodeLine{00139\ \ \ \ \ \mbox{\hyperlink{structordered__map__node}{ordered\_map\_node\_t}}*\ new\_node\ =\ ordered\_map\_node\_new(\mbox{\hyperlink{structmap}{map}}-\/>key\_size,\ \mbox{\hyperlink{structmap}{map}}-\/>value\_size,\ key,\ value);}
+\DoxyCodeLine{00140\ \ \ \ \ \textcolor{keywordflow}{if}\ (new\_node\ ==\ NULL)\ \{}
+\DoxyCodeLine{00141\ \ \ \ \ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}error\ createing\ new\ node\(\backslash\)n"{}});}
+\DoxyCodeLine{00142\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00143\ \ \ \ \ \}}
+\DoxyCodeLine{00144\ }
+\DoxyCodeLine{00145\ \ \ \ \ \mbox{\hyperlink{structordered__map__node}{ordered\_map\_node\_t}}*\ current\ =\ \mbox{\hyperlink{structmap}{map}}-\/>head;}
+\DoxyCodeLine{00146\ \ \ \ \ \textcolor{keywordflow}{while}\ (current)\ \{}
+\DoxyCodeLine{00147\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (memcmp(current-\/>key,\ key,\ \mbox{\hyperlink{structmap}{map}}-\/>key\_size)\ ==\ 0)\ \{}
+\DoxyCodeLine{00148\ \ \ \ \ \ \ \ \ \ \ \ \ memcpy(current-\/>value,\ value,\ \mbox{\hyperlink{structmap}{map}}-\/>value\_size);}
+\DoxyCodeLine{00149\ \ \ \ \ \ \ \ \ \ \ \ \ free(new\_node);}
+\DoxyCodeLine{00150\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00151\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00152\ \ \ \ \ \ \ \ \ current\ =\ current-\/>next;}
+\DoxyCodeLine{00153\ \ \ \ \ \}}
+\DoxyCodeLine{00154\ }
+\DoxyCodeLine{00155\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structmap}{map}}-\/>head\ ==\ NULL)\ \{}
+\DoxyCodeLine{00156\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structmap}{map}}-\/>head\ =\ new\_node;}
+\DoxyCodeLine{00157\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structmap}{map}}-\/>tail\ =\ new\_node;}
+\DoxyCodeLine{00158\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00159\ \ \ \ \ \ \ \ \ new\_node-\/>next\ \ =\ \mbox{\hyperlink{structmap}{map}}-\/>head;}
+\DoxyCodeLine{00160\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structmap}{map}}-\/>head-\/>prev\ =\ new\_node;}
+\DoxyCodeLine{00161\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structmap}{map}}-\/>head\ \ \ \ \ \ \ =\ new\_node;}
+\DoxyCodeLine{00162\ \ \ \ \ \}}
+\DoxyCodeLine{00163\ \ \ \ \ \mbox{\hyperlink{structmap}{map}}-\/>size++;}
+\DoxyCodeLine{00164\ \}}
+\DoxyCodeLine{00165\ }
+\DoxyCodeLine{00166\ \textcolor{keywordtype}{void}\ ordered\_map\_remove(\mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*\ \mbox{\hyperlink{structmap}{map}},\ \textcolor{keywordtype}{void}*\ key)\ \{}
+\DoxyCodeLine{00167\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structmap}{map}}\ ==\ NULL)\ \{}
+\DoxyCodeLine{00168\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00169\ \ \ \ \ \}}
+\DoxyCodeLine{00170\ }
+\DoxyCodeLine{00171\ \ \ \ \ \mbox{\hyperlink{structordered__map__node}{ordered\_map\_node\_t}}*\ current\ =\ \mbox{\hyperlink{structmap}{map}}-\/>head;}
+\DoxyCodeLine{00172\ \ \ \ \ \textcolor{keywordflow}{while}\ (current)\ \{}
+\DoxyCodeLine{00173\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (memcmp(current-\/>key,\ key,\ \mbox{\hyperlink{structmap}{map}}-\/>key\_size)\ ==\ 0)\ \{}
+\DoxyCodeLine{00174\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (current-\/>prev)\ \{}
+\DoxyCodeLine{00175\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ current-\/>prev-\/>next\ =\ current-\/>next;}
+\DoxyCodeLine{00176\ \ \ \ \ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00177\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structmap}{map}}-\/>head\ =\ current-\/>next;}
+\DoxyCodeLine{00178\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00179\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (current-\/>next)\ \{}
+\DoxyCodeLine{00180\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ current-\/>next-\/>prev\ =\ current-\/>prev;}
+\DoxyCodeLine{00181\ \ \ \ \ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00182\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structmap}{map}}-\/>tail\ =\ current-\/>prev;}
+\DoxyCodeLine{00183\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00184\ \ \ \ \ \ \ \ \ \ \ \ \ ordered\_map\_node\_free(current);}
+\DoxyCodeLine{00185\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structmap}{map}}-\/>size-\/-\/;}
+\DoxyCodeLine{00186\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00187\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00188\ \ \ \ \ \ \ \ \ current\ =\ current-\/>next;}
+\DoxyCodeLine{00189\ \ \ \ \ \}}
+\DoxyCodeLine{00190\ \}}
+\DoxyCodeLine{00191\ }
+\DoxyCodeLine{00192\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ ordered\_map\_get(\mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*\ \mbox{\hyperlink{structmap}{map}},\ \textcolor{keywordtype}{void}*\ key)\ \{}
+\DoxyCodeLine{00193\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structmap}{map}}\ ==\ NULL)\ \{}
+\DoxyCodeLine{00194\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00195\ \ \ \ \ \}}
+\DoxyCodeLine{00196\ }
+\DoxyCodeLine{00197\ \ \ \ \ \mbox{\hyperlink{structordered__map__node}{ordered\_map\_node\_t}}*\ current\ =\ \mbox{\hyperlink{structmap}{map}}-\/>head;}
+\DoxyCodeLine{00198\ \ \ \ \ \textcolor{keywordflow}{while}\ (current)\ \{}
+\DoxyCodeLine{00199\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (memcmp(current-\/>key,\ key,\ \mbox{\hyperlink{structmap}{map}}-\/>key\_size)\ ==\ 0)\ \{}
+\DoxyCodeLine{00200\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ (\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*)current-\/>value;}
+\DoxyCodeLine{00201\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00202\ \ \ \ \ \ \ \ \ current\ =\ current-\/>next;}
+\DoxyCodeLine{00203\ \ \ \ \ \}}
+\DoxyCodeLine{00204\ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00205\ \}}
+\DoxyCodeLine{00206\ }
+\DoxyCodeLine{00207\ \textcolor{keywordtype}{void}\ ordered\_map\_print\_aschar(\mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*\ \mbox{\hyperlink{structmap}{map}})\ \{}
+\DoxyCodeLine{00208\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structmap}{map}}\ ==\ NULL)\ \{}
+\DoxyCodeLine{00209\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00210\ \ \ \ \ \}}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00212\ \ \ \ \ \mbox{\hyperlink{structordered__map__node}{ordered\_map\_node\_t}}*\ current\ =\ \mbox{\hyperlink{structmap}{map}}-\/>head;}
+\DoxyCodeLine{00213\ \ \ \ \ \textcolor{keywordflow}{while}\ (current)\ \{}
+\DoxyCodeLine{00214\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (current-\/>key\ \&\&\ current-\/>value)}
+\DoxyCodeLine{00215\ \ \ \ \ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}\%s:\ \%s\(\backslash\)n"{}},\ (\textcolor{keywordtype}{char}*)current-\/>key,\ (\textcolor{keywordtype}{char}*)current-\/>value);}
+\DoxyCodeLine{00216\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00217\ \ \ \ \ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}NULL:\ NULL\(\backslash\)n"{}});}
+\DoxyCodeLine{00218\ \ \ \ \ \ \ \ \ current\ =\ current-\/>next;}
+\DoxyCodeLine{00219\ \ \ \ \ \}}
+\DoxyCodeLine{00220\ \}}
+\DoxyCodeLine{00221\ }
+\DoxyCodeLine{00222\ \textcolor{keywordtype}{size\_t}\ ordered\_map\_size(\mbox{\hyperlink{structordered__map__t}{ordered\_map\_t}}*\ \mbox{\hyperlink{structmap}{map}})\ \{}
+\DoxyCodeLine{00223\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structmap}{map}}\ ==\ NULL)\ \{}
+\DoxyCodeLine{00224\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00225\ \ \ \ \ \}}
+\DoxyCodeLine{00226\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structmap}{map}}-\/>size;}
+\DoxyCodeLine{00227\ \}}
+\DoxyCodeLine{00228\ }
+\DoxyCodeLine{00229\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ORDERED\_MAP\_IMPL}}
+\DoxyCodeLine{00230\ }
+\DoxyCodeLine{00231\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{/*\ D1A994E3\_5DD3\_4405\_A395\_67CCF6C87622\ */}\textcolor{preprocessor}{}}
+
+\end{DoxyCode}
