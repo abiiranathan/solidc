@@ -19,7 +19,6 @@ extern "C" {
 #ifdef _WIN32
 #include <io.h>
 #include <windows.h>
-
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0400  // Required for syncapi
 #endif
@@ -969,13 +968,26 @@ char* dir_next(Directory* dir) {
 }
 
 // Create a directory. Returns 0 if successful, -1 otherwise
+// @param path: The path of the directory to create
+// If the directory already exists, return 0.
+// On Windows, the path must be in ANSI encoding.
 int dir_create(const char* path) {
     int ret = -1;
 #ifdef _WIN32
     ret = CreateDirectoryA(path, NULL);
+    if (ret == 0) {
+        if (GetLastError() == ERROR_ALREADY_EXISTS) {
+            return 0;
+        }
+    }
 #else
     ret = mkdir(path, 0755);
+    // If alread exists, return 0
+    if (ret == -1 && errno == EEXIST) {
+        return 0;
+    }
 #endif
+
     return ret;
 }
 
@@ -1080,7 +1092,9 @@ bool is_symlink(const char* path) {
 }
 
 // Walk a directory tree recursively and call the callback function for each file
-// The callback function should return 0 to continue or non-zero to stop the walk
+// The callback function should return 0 to continue or non-zero to stop the walk.
+// dir_walk skips the "." and ".." directories.
+//
 // Returns 0 if successful, -1 otherwise
 // @param path: The directory to walk
 // @param callback: The callback function to call for each file
@@ -1103,11 +1117,21 @@ int dir_walk(const char* path, int (*callback)(const char* path, const char* nam
             perror("filepath_join");
             break;
         }
+
         int ret = callback(fullpath, name, data);
-        free(fullpath);
         if (ret != 0) {
+            free(fullpath);
             break;
         }
+
+        if (is_dir(fullpath)) {
+            ret = dir_walk(fullpath, callback, data);
+            if (ret != 0) {
+                free(fullpath);
+                break;
+            }
+        }
+        free(fullpath);
     }
     dir_close(dir);
     return 0;
@@ -1143,56 +1167,40 @@ ssize_t dir_size(const char* path) {
 
 // Create a directory recursively
 bool makedirs(const char* path) {
+    // if the directory already exists, return true
+    if (is_dir(path)) {
+        return true;
+    }
+
 #ifdef _WIN32
-    char* copy = _strdup(path);  // Use _strdup for Windows
-    if (!copy) {
-        perror("_strdup");
-        return false;
-    }
-
-    char* p = copy;
-    while (*p) {
-        if (*p == '/' || *p == '\\') {
-            *p = '\0';
-            if (!CreateDirectoryA(copy, NULL)) {
-                if (GetLastError() != ERROR_ALREADY_EXISTS) {
-                    free(copy);
-                    perror("CreateDirectoryA");
-                    return false;
-                }
-            }
-            *p = '\\';  // Restore the original path
-        }
-        p++;
-    }
-
-    bool result = (CreateDirectoryA(copy, NULL) || GetLastError() == ERROR_ALREADY_EXISTS);
-    free(copy);
-    return result;
-#else
-    char* copy = strdup(path);
-    if (!copy) {
+    char* p = strdup(path);
+    if (!p) {
         perror("strdup");
         return false;
     }
-
-    char* p = copy;
-    while (*p) {
-        if (*p == '/') {
-            *p = '\0';
-            if (mkdir(copy, 0755) != 0 && errno != EEXIST) {
-                free(copy);
-                perror("mkdir");
-                return false;
-            }
-            *p = '/';
+    for (char* c = p; *c; c++) {
+        if (*c == '/') {
+            *c = '\\';
         }
-        p++;
     }
 
-    bool result = (mkdir(copy, 0755) == 0 || errno == EEXIST);
-    free(copy);
-    return result;
+    // surround the path with quotes to handle spaces
+    char cmd[FILENAME_MAX];
+    _snprintf(cmd, FILENAME_MAX, "mkdir \"%s\"", p);
+    int ret = system(cmd);
+    free(p);
+    return ret == 0;
+#else
+    Process proc;
+    int status         = -1;
+    const char* p      = path;
+    const char* argv[] = {"mkdir", "-p", (char*)p, NULL};
+    int ret            = process_create(&proc, "/bin/mkdir", argv, NULL);
+    if (ret != 0) {
+        return false;
+    }
+    ret = process_wait(&proc, &status);
+    return status == 0;
 #endif
 }
 
@@ -1287,7 +1295,7 @@ int process_create(Process* proc, const char* command, const char* const argv[],
         ret       = 0;
     } else {
         DWORD error = GetLastError();
-        fprintf(stderr, "CreateProcessA failed with error %lu\n", error);
+        fprintf(stderr, "CreateProcess failed with error %lu\n", error);
     }
 
 #else
