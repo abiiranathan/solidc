@@ -59,9 +59,9 @@ Socket* socket_accept(Socket* sock, struct sockaddr* addr, socklen_t* addrlen);
 // Connect to a remote socket
 int socket_connect(Socket* sock, const struct sockaddr* addr, socklen_t addrlen);
 // Read from a socket
-ssize_t socket_read(Socket* sock, void* buffer, size_t size);
+ssize_t socket_recv(Socket* sock, void* buffer, size_t size);
 // Write to a socket
-ssize_t socket_write(Socket* sock, const void* buffer, size_t size);
+ssize_t socket_send(Socket* sock, const void* buffer, size_t size);
 // Get the socket file descriptor
 int socket_fd(Socket* sock);
 // Get the socket error
@@ -76,12 +76,10 @@ int socket_set_option(Socket* sock, int level, int optname, const void* optval, 
 int socket_get_address(Socket* sock, struct sockaddr* addr, socklen_t* addrlen);
 // Get the socket peer address
 int socket_get_peer_address(Socket* sock, struct sockaddr* addr, socklen_t* addrlen);
-// Get the socket type
-int socket_type(Socket* sock);
-// Get the socket protocol
-int socket_protocol(Socket* sock);
+
 // Get the socket family
 int socket_family(Socket* sock);
+
 // Get the socket type
 int socket_type(Socket* sock);
 
@@ -248,7 +246,7 @@ socket is a message-based socket, if a signal is caught,
 if the connection is terminated, if
 MSG_PEEK was specified, or if an error is pending for the socket.
  */
-ssize_t socket_read(Socket* sock, void* buffer, size_t size, int flags) {
+ssize_t socket_recv(Socket* sock, void* buffer, size_t size, int flags) {
     ssize_t bytes;
     bytes = recv(sock->handle, buffer, size, flags);
     return bytes;
@@ -268,7 +266,7 @@ MSG_NOSIGNAL  Requests not to send the SIGPIPE signal if an attempt to send is
 made on a stream-oriented socket that is no longer connected.
 The [EPIPE] error shall still be returned.
 */
-ssize_t socket_write(Socket* sock, const void* buffer, size_t size, int flags) {
+ssize_t socket_send(Socket* sock, const void* buffer, size_t size, int flags) {
     ssize_t bytes;
     bytes = send(sock->handle, buffer, size, flags);
     return bytes;
