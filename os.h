@@ -257,6 +257,11 @@ char* make_tempdir() __attribute__((warn_unused_result));
 // Returns true if path is a symbolic link.
 bool is_symlink(const char* path);
 
+// Walk the directory path, for each entry call the callback.
+// with path, name and user data pointer.
+// Returns 0 to continue or non-zero to stop the walk.
+typedef int (*WalkDirCallback)(const char* path, const char* name, void* data);
+
 // Walk the directory path, for each entry call the callback
 // with path, name and user data pointer.
 int dir_walk(const char* path, int (*callback)(const char* path, const char* name, void* data),
@@ -1095,13 +1100,11 @@ bool is_symlink(const char* path) {
 // The callback function should return 0 to continue or non-zero to stop the walk.
 // dir_walk skips the "." and ".." directories.
 //
-// Returns 0 if successful, -1 otherwise
 // @param path: The directory to walk
 // @param callback: The callback function to call for each file
-// @param data: User data to pass to the callback function
-// @param name: The name of the file or directory
-int dir_walk(const char* path, int (*callback)(const char* path, const char* name, void* data),
-             void* data) {
+// @param data: User data pointer to pass to the callback function
+// Returns 0 if successful, -1 otherwise
+int dir_walk(const char* path, WalkDirCallback callback, void* data) {
     Directory* dir = dir_open(path);
     if (!dir) {
         return -1;
