@@ -193,7 +193,7 @@ TEST_F(PipeTest, PipeReadAndWrite) {
 }
 
 // test threadpool functions
-void handle_threadpool(void* ptr) {
+void* handle_threadpool(void* ptr) {
     ThreadData* data = (ThreadData*)ptr;
 
     // Double number in  retval
@@ -202,6 +202,7 @@ void handle_threadpool(void* ptr) {
     free(data);
 
     sleep_ms(250);
+    return NULL;
 }
 
 TEST(ThreadPoolTest, ThreadPool) {
@@ -341,66 +342,6 @@ TEST(FilepathTest, FilepathSplit) {
 }
 
 // ========= Directory functions =========
-/**
-// Open a directory
-Directory* dir_open(const char* path) __attribute__((warn_unused_result));
-
-// Close a directory
-void dir_close(Directory* dir);
-
-// Read the next entry in the directory.
-char* dir_next(Directory* dir) __attribute__((warn_unused_result));
-
-// Create a directory. Returns 0 if successful, -1 otherwise
-int dir_create(const char* path);
-
-// Remove a directory. Returns 0 if successful, -1 otherwise
-int dir_remove(const char* path);
-
-// Rename a directory. Returns 0 if successful, -1 otherwise
-int dir_rename(const char* oldpath, const char* newpath);
-
-// Change the current working directory
-int dir_chdir(const char* path);
-
-// List files in a directory, returns a pointer to a list of file names or NULL on error
-// The caller is responsible for freeing the memory.
-// The number of files is stored in the count parameter.
-// Note: This algorithm walks the directory tree recursively
-// and may be slow for large directories.
-char** dir_list(const char* path, size_t* count) __attribute__((warn_unused_result));
-
-// Returns true if the path is a directory
-bool is_dir(const char* path);
-
-// Create a directory recursively
-bool makedirs(const char* path);
-
-// Get path to platform's TEMP directory.
-char* get_tempdir() __attribute__((warn_unused_result));
-
-// Create a temporary file.
-char* make_tempfile() __attribute__((warn_unused_result));
-
-// Create a temporary directory
-char* make_tempdir() __attribute__((warn_unused_result));
-
-// Returns true if path is a symbolic link.
-bool is_symlink(const char* path);
-
-// Walk the directory path, for each entry call the callback
-// with path, name and user data pointer.
-int dir_walk(const char* path, int (*callback)(const char* path, const char* name, void* data),
-             void* data);
-
-// Find the size of the directory.
-// This is slow on large directories since it walks the directory.
-ssize_t dir_size(const char* path);
-
-// Returns the path to the current working directory.
-char* get_cwd() __attribute__((warn_unused_result));
-*/
-
 class DirectoryTest : public ::testing::Test {
    protected:
     virtual void SetUp() {
@@ -531,13 +472,13 @@ TEST_F(DirectoryTest, DirWalk) {
     int count = 0;
     dir_walk(
         tempDir2,
-        [](const char* path, const char* name, void* data) {
+        [](const char* path, const char* name, void* data) -> WalkDirOption {
             (void)path;
             (void)name;
 
             int* count = (int*)data;
             (*count)++;
-            return 0;
+            return DirContinue;
         },
         &count);
 

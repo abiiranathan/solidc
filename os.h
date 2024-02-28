@@ -57,6 +57,8 @@ typedef struct {
 File* file_open(const char* filename, const char* mode) __attribute__((warn_unused_result));
 void file_close(File* file);
 ssize_t file_size(File* file);
+// Return file size for a given file name
+ssize_t pfile_size(const char* filename);
 int file_seek(File* file, long offset, int origin);
 size_t file_write(File* file, const void* buffer, size_t size, size_t count);
 size_t file_write_string(File* file, const char* str);
@@ -141,7 +143,7 @@ int process_wait(Process* proc, int* status);
 int process_kill(Process* proc);
 
 // Create a new thread
-int thread_create(Thread* thread, void* (*start_routine)(void*), ThreadData* data);
+int thread_create(Thread* thread, void* (*start_routine)(void*), void* data);
 // Join a thread
 int thread_join(Thread tid, void** retval);
 
@@ -189,14 +191,14 @@ typedef struct ThreadPool {
 } ThreadPool;
 
 typedef struct Task {
-    void (*function)(void*);
+    void* (*function)(void*);
     void* arg;
     struct Task* next;
 } Task;
 
 ThreadPool* threadpool_create(int num_threads);
 void threadpool_destroy(ThreadPool* pool);
-int threadpool_add_task(ThreadPool* pool, void (*task)(void*), void* arg);
+int threadpool_add_task(ThreadPool* pool, void* (*task)(void*), void* arg);
 void threadpool_wait(ThreadPool* pool);
 
 //  ===== Directory related function declarations =====
@@ -257,15 +259,21 @@ char* make_tempdir() __attribute__((warn_unused_result));
 // Returns true if path is a symbolic link.
 bool is_symlink(const char* path);
 
+typedef enum WalkDirOption {
+    DirContinue,  // Continue walking the directory recursively
+    DirStop,      // Stop traversal of this directory
+} WalkDirOption;
+
 // Walk the directory path, for each entry call the callback.
 // with path, name and user data pointer.
 // Returns 0 to continue or non-zero to stop the walk.
-typedef int (*WalkDirCallback)(const char* path, const char* name, void* data);
+typedef WalkDirOption (*WalkDirCallback)(const char* path, const char* name, void* data);
 
 // Walk the directory path, for each entry call the callback
 // with path, name and user data pointer.
-int dir_walk(const char* path, int (*callback)(const char* path, const char* name, void* data),
-             void* data);
+// Return from the callback 0 to continue or non-zero to stop the walk.
+// Returns 0 if successful, -1 otherwise
+int dir_walk(const char* path, WalkDirCallback callback, void* data);
 
 // Find the size of the directory.
 // This is slow on large directories since it walks the directory.
@@ -305,6 +313,8 @@ char* filepath_expanduser(const char* path) __attribute__((warn_unused_result));
 // Join path1 and path2 using standard os specific separator.
 char* filepath_join(const char* path1, const char* path2) __attribute__((warn_unused_result));
 
+bool filepath_join_buf(const char* path1, const char* path2, char* abspath, size_t len);
+
 // Split a file path into directory and basename.
 // The dir and name parameters must be pre-allocated buffers or
 // pointers to pre-allocated buffers.
@@ -316,7 +326,7 @@ void filepath_split(const char* path, char* dir, char* name, size_t dir_size, si
 }
 #endif
 
-// IMPLEMENTATION
+// ***************** IMPLEMENTATION *************************
 #ifdef OS_IMPL
 
 // Open a file
@@ -375,6 +385,17 @@ ssize_t file_size(File* file) {
         size = st.st_size;
     }
 #endif
+    return size;
+}
+
+// Return file size for a given file name
+ssize_t pfile_size(const char* filename) {
+    File* file = file_open(filename, "r");
+    if (!file) {
+        return -1;
+    }
+    ssize_t size = file_size(file);
+    file_close(file);
     return size;
 }
 
@@ -875,6 +896,28 @@ char* filepath_join(const char* path1, const char* path2) {
     return joined;
 }
 
+/**
+ Join path1 and path2 using standard os specific separator.
+    @param path1: The first path
+    @param path2: The second path
+    @param abspath: The buffer to store the joined path
+    @param len: The size of the buffer
+*/
+bool filepath_join_buf(const char* path1, const char* path2, char* abspath, size_t len) {
+    size_t newlen = strlen(path1) + strlen(path2) + 2;
+    if (newlen > len) {
+        fprintf(stderr, "Buffer too small\n");
+        return false;
+    }
+
+#ifdef _WIN32
+    _snprintf(abspath, len, "%s\\%s", path1, path2);
+#else
+    snprintf(abspath, len, "%s/%s", path1, path2);
+#endif
+    return true;
+}
+
 /*
  * Split a file path into directory and file name.
  * The dir and name parameters must be pre-allocated buffers or pointers to pre-allocated
@@ -1110,37 +1153,37 @@ int dir_walk(const char* path, WalkDirCallback callback, void* data) {
         return -1;
     }
 
-    char* name;
+    char* name        = NULL;
+    WalkDirOption ret = DirContinue;
+    int success       = -1;
+
     while ((name = dir_next(dir)) != NULL) {
         if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
             continue;
         }
-        char* fullpath = filepath_join(path, name);
-        if (!fullpath) {
-            perror("filepath_join");
-            break;
-        }
 
-        int ret = callback(fullpath, name, data);
-        if (ret != 0) {
-            free(fullpath);
+        char fullpath[FILENAME_MAX];
+        if (!filepath_join_buf(path, name, fullpath, FILENAME_MAX)) {
+            perror("filepath_join_buf() failed");
             break;
-        }
+        };
 
-        if (is_dir(fullpath)) {
-            ret = dir_walk(fullpath, callback, data);
-            if (ret != 0) {
-                free(fullpath);
+        ret = callback(fullpath, name, data);
+        if (ret == DirStop) {
+            break;
+        } else if (ret == DirContinue && is_dir(fullpath)) {
+            success = dir_walk(fullpath, callback, data);
+            if (success != 0) {
                 break;
             }
         }
-        free(fullpath);
     }
+
     dir_close(dir);
     return 0;
 }
 
-static int dir_size_callback(const char* path, const char* name, void* data) {
+static WalkDirOption dir_size_callback(const char* path, const char* name, void* data) {
     (void)name;  // Suppress unused variable warning
 
     ssize_t* size = (ssize_t*)data;
@@ -1151,7 +1194,7 @@ static int dir_size_callback(const char* path, const char* name, void* data) {
             file_close(file);
         }
     }
-    return 0;
+    return DirContinue;
 }
 
 // Get the directory size in bytes.
@@ -1383,7 +1426,7 @@ int process_kill(Process* proc) {
 
 // Create a new thread
 // Returns 0 if successful, -1 otherwise
-int thread_create(Thread* thread, void* (*start_routine)(void*), ThreadData* data) {
+int thread_create(Thread* thread, void* (*start_routine)(void*), void* data) {
     int ret = -1;
 #ifdef _WIN32
     // use CreateThread
@@ -1393,11 +1436,8 @@ int thread_create(Thread* thread, void* (*start_routine)(void*), ThreadData* dat
         ret     = 0;
     }
 #else
-    // Unix
-    pthread_t t;
-    if (pthread_create(&t, NULL, start_routine, data) == 0) {
-        *thread = t;
-        ret     = 0;
+    if (pthread_create(thread, NULL, start_routine, data) == 0) {
+        ret = 0;
     }
 #endif
     return ret;
@@ -1729,7 +1769,7 @@ ThreadPool* threadpool_create(int num_threads) {
 // Add a task to the thread pool.
 // Returns 0 if successful, -1 otherwise
 // The threadpool with free the memory for arg after the task is completed.
-int threadpool_add_task(ThreadPool* pool, void (*task)(void*), void* arg) {
+int threadpool_add_task(ThreadPool* pool, void* (*task)(void*), void* arg) {
     if (pool == NULL || task == NULL) {
         return -1;
     }

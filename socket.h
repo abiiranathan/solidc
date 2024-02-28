@@ -59,9 +59,9 @@ Socket* socket_accept(Socket* sock, struct sockaddr* addr, socklen_t* addrlen);
 // Connect to a remote socket
 int socket_connect(Socket* sock, const struct sockaddr* addr, socklen_t addrlen);
 // Read from a socket
-ssize_t socket_recv(Socket* sock, void* buffer, size_t size);
+ssize_t socket_recv(Socket* sock, void* buffer, size_t size, int flags);
 // Write to a socket
-ssize_t socket_send(Socket* sock, const void* buffer, size_t size);
+ssize_t socket_send(Socket* sock, const void* buffer, size_t size, int flags);
 // Get the socket file descriptor
 int socket_fd(Socket* sock);
 // Get the socket error
