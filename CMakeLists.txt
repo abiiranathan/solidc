@@ -68,6 +68,9 @@ if(BUILD_TESTING)
     add_executable(str_builder tests/str_builder_test.cpp)
     target_link_libraries(str_builder gtest)
 
+    add_executable(unicode_test tests/unicode_test.cpp)
+    target_link_libraries(unicode_test gtest)
+
     include(GoogleTest)
     
     gtest_discover_tests(str_test)
@@ -80,4 +83,5 @@ if(BUILD_TESTING)
     gtest_discover_tests(set_test)
     gtest_discover_tests(os_test)
     gtest_discover_tests(str_builder)
+    gtest_discover_tests(unicode_test)
 endif()
