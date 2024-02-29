@@ -32,6 +32,7 @@ set(HEADERS
     trie.h
     vec.h
     set.h
+    unicode.h
 )
 
 install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/solidc)
