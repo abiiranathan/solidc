@@ -314,6 +314,22 @@ TEST(UnicodeTest, Utf8StringRegexMatch) {
     EXPECT_TRUE(regex_match("A¢€😀🇯🇵🇺🇸🇸🇦🇱🇷🇳", "A¢€😀🇯"));
 }
 
+// void utf8_tolower(char* str)
+TEST(UnicodeTest, Utf8StringToLower) {
+    char* str = utf8_copy("A¢€😀🇯🇵🇺🇸🇸🇦🇱🇷BCDZQ123");
+    utf8_tolower(str);
+    EXPECT_STREQ(str, "a¢€😀🇯🇵🇺🇸🇸🇦🇱🇷bcdzq123");
+    free(str);
+}
+
+// void utf8_toupper(char* str)
+TEST(UnicodeTest, Utf8StringToUpper) {
+    char* str = utf8_copy("a¢€😀🇯🇵🇺🇸🇸🇦🇱🇷bcdzq123");
+    utf8_toupper(str);
+    EXPECT_STREQ(str, "A¢€😀🇯🇵🇺🇸🇸🇦🇱🇷BCDZQ123");
+    free(str);
+}
+
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

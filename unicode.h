@@ -75,6 +75,9 @@ void utf8_trim_chars(char* str, const char* c);
 // utf8_trim_char removes leading and trailing character c from str.
 void utf8_trim_char(char* str, char c);
 
+void utf8_tolower(char* str);
+void utf8_toupper(char* str);
+
 bool utf8_starts_with(const char* str, const char* prefix);
 bool utf8_ends_with(const char* str, const char* suffix);
 bool utf8_contains(const char* str, const char* substr);
@@ -473,6 +476,36 @@ void utf8_trim_char(char* str, char c) {
         i -= utf8_char_length(&str[i - 1]);
     }
     str[i] = '\0';
+}
+
+void utf8_tolower(char* str) {
+    for (size_t i = 0; str[i] != '\0';) {
+        uint32_t codepoint = utf8_to_codepoint(&str[i]);
+        if (iswupper(codepoint)) {
+            char utf8[5];
+            ucp_to_utf8(towlower(codepoint), utf8);
+            size_t len = utf8_byte_length(utf8);
+            memmove(&str[i], utf8, len);
+            i += len;
+        } else {
+            i += utf8_char_length(&str[i]);
+        }
+    }
+}
+
+void utf8_toupper(char* str) {
+    for (size_t i = 0; str[i] != '\0';) {
+        uint32_t codepoint = utf8_to_codepoint(&str[i]);
+        if (iswlower(codepoint)) {
+            char utf8[5];
+            ucp_to_utf8(towupper(codepoint), utf8);
+            size_t len = utf8_byte_length(utf8);
+            memmove(&str[i], utf8, len);
+            i += len;
+        } else {
+            i += utf8_char_length(&str[i]);
+        }
+    }
 }
 
 bool utf8_starts_with(const char* str, const char* prefix) {
