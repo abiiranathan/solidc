@@ -9,7 +9,7 @@ test: build
 	GTEST_COLOR=1 ctest  --test-dir build -j8
 
 install:
-	sudo cmake --install build --prefix=/usr/include
+	sudo cmake --install build
 
 # Add phony target
 .PHONY: build clean test install

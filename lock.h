@@ -2,6 +2,7 @@
 #define AB1DC3C5_00AA_4460_BD6A_65D8301B4779
 // Cross-platform function wrapper for syncronization primitives
 
+#include <time.h>
 #ifdef _WIN32
 #include <windows.h>
 
