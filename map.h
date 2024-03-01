@@ -24,11 +24,18 @@ typedef struct {
     const void* value;
 } entry;
 
+// Function pointer type for the key comparison.
+// The function should return true if the keys are equal.
+// This is necessary because the map does not know the size of the keys.
+// memcmp can be used for byte-wise comparison of keys if the keys are of known size.
+typedef bool (*key_compare_fn)(const void*, const void*);
+
 typedef struct map {
     entry* entries;
     size_t size;
     size_t capacity;
     unsigned long (*hash)(const void*);
+    key_compare_fn key_compare;
 } map;
 
 typedef struct {
@@ -55,7 +62,7 @@ int map_iterator_has_next(map_iterator* iter);
 entry map_iterator_next(map_iterator* iter);
 
 // Create a new map and initialize it
-map* map_create();
+map* map_create(size_t initial_capacity, key_compare_fn key_compare);
 
 // Destroy the map and free the memory
 void map_destroy(map* m);
@@ -140,14 +147,23 @@ unsigned long sdbm_hash(const void* key) {
 }
 
 // Implementation of map functions
-map* map_create() {
+map* map_create(size_t initial_capacity, key_compare_fn key_compare) {
+    if (initial_capacity == 0) {
+        initial_capacity = INITIAL_MAP_SIZE;
+    }
+
+    if (!key_compare) {
+        perror("Key comparison function is required");
+        exit(EXIT_FAILURE);
+    }
+
     map* m = (map*)malloc(sizeof(map));
     if (m == NULL) {
         perror("Failed to allocate memory for map");
         exit(EXIT_FAILURE);
     }
 
-    m->entries = (entry*)malloc(sizeof(entry) * INITIAL_MAP_SIZE);
+    m->entries = (entry*)malloc(sizeof(entry) * initial_capacity);
     if (m->entries == NULL) {
         free(m);
         perror("Failed to allocate memory for map entries");
@@ -155,14 +171,15 @@ map* map_create() {
     }
 
     // Initialize the entries
-    for (size_t i = 0; i < INITIAL_MAP_SIZE; i++) {
+    for (size_t i = 0; i < initial_capacity; i++) {
         m->entries[i].key   = NULL;
         m->entries[i].value = NULL;
     }
 
-    m->size     = 0;
-    m->capacity = INITIAL_MAP_SIZE;
-    m->hash     = djb2_hash;
+    m->size        = 0;
+    m->capacity    = initial_capacity;
+    m->hash        = djb2_hash;
+    m->key_compare = key_compare;
     return m;
 }
 
@@ -213,7 +230,7 @@ void map_set(map* m, const void* key, const void* value) {
 
     // Linear probing to find the next available index
     while (m->entries[index].key != NULL) {
-        if (m->entries[index].key == key) {
+        if (m->key_compare(m->entries[index].key, key)) {
             m->entries[index].value = value;
             return;  // Key already exists with the same value
         }
@@ -236,7 +253,7 @@ const void* map_get(map* m, const void* key) {
     size_t index = m->hash(key) % m->capacity;
 
     while (m->entries[index].key != NULL) {
-        if (m->entries[index].key == key) {
+        if (m->key_compare(m->entries[index].key, key)) {
             return m->entries[index].value;
         }
         index = (index + 1) % m->capacity;
@@ -247,7 +264,7 @@ const void* map_get(map* m, const void* key) {
 void map_remove(map* m, const void* key) {
     size_t index = m->hash(key) % m->capacity;
     while (m->entries[index].key != NULL) {
-        if (m->entries[index].key == key) {
+        if (m->key_compare(m->entries[index].key, key)) {
             m->entries[index].key   = NULL;
             m->entries[index].value = NULL;
             m->size--;

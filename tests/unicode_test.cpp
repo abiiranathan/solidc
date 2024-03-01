@@ -201,6 +201,12 @@ TEST(UnicodeTest, Utf8StringReplaceAll) {
     utf8_replace_all(str, "🇺🇸", "🇺🇸🇺🇸");
     EXPECT_STREQ(str->data, "A¢€😀🇯🇵🇺🇸🇺🇸🇸🇦🇱🇷🇳");
     utf8_free(str);
+
+    // Test replace all with empty string
+    str = utf8_new("    A¢€   😀🇯🇵🇺🇸🇸🇦🇱🇷🇳   ");
+    utf8_replace_all(str, " ", "");
+    EXPECT_STREQ(str->data, "A¢€😀🇯🇵🇺🇸🇸🇦🇱🇷🇳");
+    utf8_free(str);
 }
 
 TEST(UnicodeTest, Utf8StringCopy) {
@@ -328,6 +334,97 @@ TEST(UnicodeTest, Utf8StringToUpper) {
     utf8_toupper(str);
     EXPECT_STREQ(str, "A¢€😀🇯🇵🇺🇸🇸🇦🇱🇷BCDZQ123");
     free(str);
+}
+
+// utf8_string** utf8_split(const utf8_string* str, const char* delim)
+TEST(UnicodeTest, Utf8StringSplit) {
+    const char* utf8_data = "A¢€😀🇯🇵🇺🇸🇸🇦🇱🇷🇳";
+    utf8_string* str      = utf8_new(utf8_data);
+
+    size_t count;
+    utf8_string** parts = utf8_split(str, "🇺🇸", &count);
+    ASSERT_EQ(count, 2);
+    EXPECT_STREQ(parts[0]->data, "A¢€😀🇯🇵");
+    EXPECT_STREQ(parts[1]->data, "🇸🇦🇱🇷🇳");
+    utf8_free(str);
+
+    // free null-term strings
+    utf8_split_free(parts, count);
+
+    // A complex example with Chinese, Japanese, English, and emojis
+    str = utf8_new(
+        "This is a test 字字字 string with Chinese characters: 人,Kěkǒu Kělè; 字字字 Japanese "
+        "characters: "
+        "字字字字 and "
+        "emojis: 😀🇺🇸🇸🇦🇱🇷🇳");
+
+    count = 0;
+    parts = utf8_split(str, "字字字", &count);
+    ASSERT_EQ(count, 4);
+
+    EXPECT_STREQ(parts[0]->data, "This is a test ");
+    EXPECT_STREQ(parts[1]->data, " string with Chinese characters: 人,Kěkǒu Kělè; ");
+    EXPECT_STREQ(parts[2]->data, " Japanese characters: ");
+    EXPECT_STREQ(parts[3]->data, "字 and emojis: 😀🇺🇸🇸🇦🇱🇷🇳");
+
+    // free null-term strings
+    utf8_split_free(parts, count);
+}
+
+// int utf8_compare(const utf8_string* s1, const utf8_string* s2)
+TEST(UnicodeTest, Utf8StringCompare) {
+    utf8_string* s1;
+    utf8_string* s2;
+
+    s1 = utf8_new("A¢€😀🇯🇵🇺🇸🇸🇦🇱🇷🇳");
+    s2 = utf8_new("B");
+
+    EXPECT_EQ(strcmp(s1->data, s2->data), -1);
+    utf8_free(s1);
+    utf8_free(s2);
+
+    s1 = utf8_new("A¢€😀🇯🇵🇺🇸🇸🇦🇱🇷🇳");
+    s2 = utf8_new("A¢€😀🇯🇵🇺🇸🇸🇦🇱🇷🇳");
+
+    EXPECT_EQ(strcmp(s1->data, s2->data), 0);
+    utf8_free(s1);
+    utf8_free(s2);
+
+    s1 = utf8_new("B");
+    s2 = utf8_new("A¢€😀🇯🇵🇺🇸🇸🇦🇱🇷🇳");
+
+    EXPECT_EQ(strcmp(s1->data, s2->data), 1);
+    utf8_free(s1);
+    utf8_free(s2);
+}
+
+// void utf8_array_remove(utf8_string** array, size_t size, size_t index)
+TEST(UnicodeTest, Utf8ArrayRemove) {
+    utf8_string* s1 = utf8_new("A");
+    utf8_string* s2 = utf8_new("B");
+    utf8_string* s3 = utf8_new("C");
+    utf8_string* s4 = utf8_new("D");
+    utf8_string* s5 = utf8_new("E");
+
+    utf8_string** array = (utf8_string**)malloc(5 * sizeof(utf8_string*));
+    array[0]            = s1;
+    array[1]            = s2;
+    array[2]            = s3;
+    array[3]            = s4;
+    array[4]            = s5;
+
+    utf8_array_remove(array, 5, 2);
+    EXPECT_STREQ(array[0]->data, "A");
+    EXPECT_STREQ(array[1]->data, "B");
+    EXPECT_STREQ(array[2]->data, "D");
+    EXPECT_STREQ(array[3]->data, "E");
+
+    utf8_free(s1);
+    utf8_free(s2);
+    // utf8_free(s3); // removed and freed.
+    utf8_free(s4);
+    utf8_free(s5);
+    free(array);
 }
 
 int main(int argc, char** argv) {

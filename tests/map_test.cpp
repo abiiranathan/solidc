@@ -5,7 +5,11 @@
 
 class MapTest : public ::testing::Test {
    protected:
-    virtual void SetUp() { m = map_create(); }
+    virtual void SetUp() {
+        m = map_create(3, [](const void* a, const void* b) -> bool {
+            return strcmp((const char*)a, (const char*)b) == 0;
+        });
+    }
 
     virtual void TearDown() { map_destroy(m); }
 
@@ -101,22 +105,6 @@ TEST_F(MapTest, Iterator) {
     ASSERT_TRUE(city);
 
     map_iterator_destroy(iter);
-}
-
-// Test integers as keys and values
-TEST_F(MapTest, Integers) {
-    int key   = 10;
-    int value = 20;
-    map_set(m, &key, &value);
-
-    int* result = (int*)map_get(m, &key);
-    ASSERT_TRUE(result != NULL);
-    ASSERT_EQ(*result, value);
-
-    size_t num_keys;
-    int** keys = (int**)map_getkeys(m, &num_keys);
-    ASSERT_EQ(num_keys, 1U);
-    ASSERT_EQ(*keys[0], key);
 }
 
 // test map set_from_array

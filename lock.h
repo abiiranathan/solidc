@@ -2,7 +2,6 @@
 #define AB1DC3C5_00AA_4460_BD6A_65D8301B4779
 // Cross-platform function wrapper for syncronization primitives
 
-#include <time.h>
 #ifdef _WIN32
 #include <windows.h>
 
@@ -61,6 +60,10 @@ void cond_wait_timeout(Condition* condition, Lock* lock, int timeout);
 void cond_free(Condition* condition);
 
 #ifdef OS_IMPL
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
 #ifdef _WIN32
 void lock_init(Lock* lock) {
     InitializeCriticalSection(lock);

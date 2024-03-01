@@ -60,6 +60,12 @@ void utf8_reverse(utf8_string* s);
 ssize_t utf8_writeto(const utf8_string* s, const char* filename);
 utf8_string* utf8_readfrom(const char* filename);
 
+// Split a string into parts using a delimiter.
+// Returns an array of utf8_string pointers that need to be freed with utf8_split_free.
+// The last element of the array is NULL.
+utf8_string** utf8_split(const utf8_string* str, const char* delim, size_t* num_parts);
+void utf8_split_free(utf8_string** str, size_t size);
+
 // string_ltrim removes leading whitespace from str.
 void utf8_ltrim(char* str);
 
@@ -77,6 +83,7 @@ void utf8_trim_char(char* str, char c);
 
 void utf8_tolower(char* str);
 void utf8_toupper(char* str);
+void utf8_array_remove(utf8_string** array, size_t size, size_t index);
 
 bool utf8_starts_with(const char* str, const char* prefix);
 bool utf8_ends_with(const char* str, const char* suffix);
@@ -251,8 +258,13 @@ utf8_string* utf8_new(const char* data) {
 }
 
 void utf8_free(utf8_string* s) {
+    if (!s) {
+        return;
+    }
+
     free(s->data);
     free(s);
+    s = NULL;
 }
 
 void utf8_print(const utf8_string* s) {
@@ -357,9 +369,12 @@ void utf8_replace_all(utf8_string* s, const char* old_str, const char* new_str) 
     char* index = s->data;
     while ((index = strstr(index, old_str)) != NULL) {
         size_t offset = index - s->data;
-        if (old_byte_len != new_byte_len) {
+
+        // If new string is an empty string, then remove the old string
+        if (new_byte_len > 0 && old_byte_len != new_byte_len) {
             s->data = (char*)realloc(s->data, s->length - old_byte_len + new_byte_len + 1);
         }
+
         if (s->data) {
             memmove(&s->data[offset + new_byte_len], &s->data[offset + old_byte_len],
                     s->length - offset - old_byte_len + 1);
@@ -506,6 +521,71 @@ void utf8_toupper(char* str) {
             i += utf8_char_length(&str[i]);
         }
     }
+}
+
+// Split a string into parts using a delimiter.
+// Returns an array of utf8_string pointers that need to be freed.
+// The last element of the array is NULL.
+utf8_string** utf8_split(const utf8_string* str, const char* delim, size_t* num_parts) {
+    size_t count = 0;
+    *num_parts   = 0;
+    size_t len   = utf8_byte_length(str->data);
+    for (size_t i = 0; i < len;) {
+        if (utf8_starts_with(&str->data[i], delim)) {
+            count++;
+            i += utf8_byte_length(delim);
+        } else {
+            i += utf8_char_length(&str->data[i]);
+        }
+    }
+    count++;
+
+    utf8_string** parts = (utf8_string**)malloc(count * sizeof(utf8_string*));
+    if (!parts) {
+        return NULL;
+    }
+
+    size_t index = 0;
+    size_t start = 0;
+    for (size_t i = 0; i < len;) {
+        if (utf8_starts_with(&str->data[i], delim)) {
+            parts[index]                  = utf8_new(&str->data[start]);
+            parts[index]->data[i - start] = '\0';
+            parts[index]->length          = i - start;
+            parts[index]->count           = utf8_count_codepoints(parts[index]->data);
+            index++;
+            i += utf8_byte_length(delim);
+            start = i;
+        } else {
+            i += utf8_char_length(&str->data[i]);
+        }
+    }
+
+    parts[index]                    = utf8_new(&str->data[start]);
+    parts[index]->data[len - start] = '\0';
+    parts[index]->length            = len - start;
+    parts[index]->count             = utf8_count_codepoints(parts[index]->data);
+
+    *num_parts = count;
+    return parts;
+}
+
+void utf8_array_remove(utf8_string** array, size_t size, size_t index) {
+    if (index >= size) {
+        return;
+    }
+
+    utf8_free(array[index]);
+    for (size_t i = index; i < size; i++) {
+        array[i] = array[i + 1];
+    }
+}
+
+void utf8_split_free(utf8_string** str, size_t size) {
+    for (size_t i = 0; i < size; i++) {
+        utf8_free(str[i]);
+    }
+    free(str);
 }
 
 bool utf8_starts_with(const char* str, const char* prefix) {
