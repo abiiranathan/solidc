@@ -10,15 +10,21 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct {
+// Function pointer type for custom comparison functions
+// The function should return true if the two elements are equal.
+// We can't use == to compare the elements because we don't know their type.
+typedef bool (*vec_cmp_fn)(const void*, const void*);
+
+typedef struct vec_t {
     void** data;
     size_t size;
     size_t capacity;
     size_t elem_size;
     bool heap_allocated;
+    vec_cmp_fn cmp;
 } vec_t;
 
-vec_t* vec_new(size_t capacity, bool heap_allocated);
+vec_t* vec_new(size_t capacity, bool heap_allocated, vec_cmp_fn cmp);
 
 void vec_free(vec_t* vec);
 
@@ -50,6 +56,13 @@ int vec_find_index(vec_t* vec, void* elem);
 
 void vec_reverse(vec_t* vec);
 
+// compare functions
+bool int_cmp(const void* a, const void* b);
+bool str_cmp(const void* a, const void* b);
+bool float_cmp(const void* a, const void* b);
+bool double_cmp(const void* a, const void* b);
+bool size_t_cmp(const void* a, const void* b);
+
 #define vec_foreach(vec, index_var)                                                                \
     for (size_t index_var = 0; index_var < vec_size(vec); index_var++)
 
@@ -64,7 +77,37 @@ void vec_reverse(vec_t* vec);
 
 #ifdef VEC_IMPL
 
-vec_t* vec_new(size_t capacity, bool heap_allocated) {
+bool int_cmp(const void* a, const void* b) {
+    if (a == NULL || b == NULL)
+        return false;
+    return *(int*)a == *(int*)b;
+}
+
+bool str_cmp(const void* a, const void* b) {
+    if (a == NULL || b == NULL)
+        return false;
+    return strcmp((char*)a, (char*)b) == 0;
+}
+
+bool float_cmp(const void* a, const void* b) {
+    if (a == NULL || b == NULL)
+        return false;
+    return *(float*)a == *(float*)b;
+}
+
+bool double_cmp(const void* a, const void* b) {
+    if (a == NULL || b == NULL)
+        return false;
+    return *(double*)a == *(double*)b;
+}
+
+bool size_t_cmp(const void* a, const void* b) {
+    if (a == NULL || b == NULL)
+        return false;
+    return *(size_t*)a == *(size_t*)b;
+}
+
+vec_t* vec_new(size_t capacity, bool heap_allocated, vec_cmp_fn cmp) {
     vec_t* vec = (vec_t*)malloc(sizeof(vec_t));
     if (vec == NULL) {
         perror("vec_new() failed");
@@ -75,6 +118,7 @@ vec_t* vec_new(size_t capacity, bool heap_allocated) {
     vec->size           = 0;
     vec->capacity       = 0;
     vec->heap_allocated = heap_allocated;
+    vec->cmp            = cmp;
 
     if (capacity > 0) {
         vec_reserve(vec, capacity);
@@ -174,7 +218,7 @@ void vec_swap(vec_t** vec1, vec_t** vec2) {
 }
 
 vec_t* vec_copy(vec_t* vec) {
-    vec_t* copy = vec_new(vec->capacity, vec->heap_allocated);
+    vec_t* copy = vec_new(vec->capacity, vec->heap_allocated, vec->cmp);
     if (copy != NULL) {
         vec_reserve(copy, vec->capacity);
         memcpy(copy->data, vec->data, vec->size * sizeof(void*));
@@ -185,7 +229,7 @@ vec_t* vec_copy(vec_t* vec) {
 
 bool vec_contains(vec_t* vec, void* elem) {
     for (size_t i = 0; i < vec->size; ++i) {
-        if (memcmp(vec_get(vec, i), elem, sizeof(void*)) == 0) {
+        if (vec->cmp(vec->data[i], elem)) {
             return true;
         }
     }
@@ -194,7 +238,7 @@ bool vec_contains(vec_t* vec, void* elem) {
 
 int vec_find_index(vec_t* vec, void* elem) {
     for (size_t i = 0; i < vec->size; ++i) {
-        if (memcmp(vec_get(vec, i), elem, sizeof(void*)) == 0) {
+        if (vec->cmp(vec->data[i], elem)) {
             return i;
         }
     }

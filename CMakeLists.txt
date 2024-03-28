@@ -5,7 +5,7 @@ project(solidc
     LANGUAGES CXX C
 )
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 23)
 set(CMAKE_CXX_STANDARD 17)
 
 include(GNUInstallDirs)
@@ -33,6 +33,7 @@ set(HEADERS
     vec.h
     set.h
     unicode.h
+    optional.h
 )
 
 install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/solidc)
@@ -72,6 +73,9 @@ if(BUILD_TESTING)
     add_executable(unicode_test tests/unicode_test.cpp)
     target_link_libraries(unicode_test gtest)
 
+    add_executable(optional_test tests/optional_test.cpp)
+    target_link_libraries(optional_test gtest)
+
     include(GoogleTest)
     
     gtest_discover_tests(str_test)
@@ -85,4 +89,5 @@ if(BUILD_TESTING)
     gtest_discover_tests(os_test)
     gtest_discover_tests(str_builder)
     gtest_discover_tests(unicode_test)
+    gtest_discover_tests(optional_test)
 endif()

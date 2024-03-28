@@ -5,7 +5,7 @@
 
 class VecTest : public ::testing::Test {
    protected:
-    virtual void SetUp() { v = vec_new(10, true); }
+    virtual void SetUp() { v = vec_new(10, true, int_cmp); }
     virtual void TearDown() { vec_free(v); }
 
     vec_t* v;
@@ -167,7 +167,7 @@ TEST_F(VecTest, Clear) {
 
 // vec_swap
 TEST_F(VecTest, Swap) {
-    vec_t* v2 = vec_new(10, true);
+    vec_t* v2 = vec_new(10, true, int_cmp);
 
     int *a, *b, *c, *d;
 
@@ -258,11 +258,17 @@ TEST_F(VecTest, Contains) {
     vec_push(v, a);
     vec_push(v, b);
     vec_push(v, c);
+    vec_push(v, d);
+
+    int e = 40;
 
     ASSERT_TRUE(vec_contains(v, a));
     ASSERT_TRUE(vec_contains(v, b));
     ASSERT_TRUE(vec_contains(v, c));
-    ASSERT_FALSE(vec_contains(v, d));
+    ASSERT_TRUE(vec_contains(v, d));
+
+    // Contains uses the cmp function to compare elements
+    ASSERT_TRUE(vec_contains(v, &e));
 }
 
 // vec_find_index
@@ -371,7 +377,7 @@ TEST_F(VecTest, Reverse) {
 
 // Test vec_new with heap_allocated = true
 TEST_F(VecTest, NewHeapAllocated) {
-    vec_t* v = vec_new(10, true);
+    vec_t* v = vec_new(10, true, str_cmp);
 
     ASSERT_EQ(vec_capacity(v), 10U);
     ASSERT_EQ(vec_size(v), 0U);

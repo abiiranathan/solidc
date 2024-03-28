@@ -51,10 +51,10 @@ int list_index_of(list_t* list, void* elem);
 // Insert an element at the given index
 void list_insert(list_t* list, size_t index, void* elem);
 
-// // Insert element after the given element
+// Insert element after the given element
 void list_insert_after(list_t* list, void* elem, void* after);
 
-// // Insert element before the given element
+// Insert element before the given element
 void list_insert_before(list_t* list, void* elem, void* before);
 
 // Get the size of the list

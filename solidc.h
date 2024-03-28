@@ -26,6 +26,7 @@ extern "C" {
 #include "list.h"
 #include "log.h"
 #include "map.h"
+#include "optional.h"
 #include "ordered_map.h"
 #include "os.h"
 #include "set.h"
@@ -34,6 +35,7 @@ extern "C" {
 #include "str.h"
 #include "trie.h"
 #include "vec.h"
+
 #if defined(__cplusplus)
 }
 #endif

@@ -25,6 +25,7 @@ Available Headers:
 - [trie.h](trie.h) - A trie implementation for strings.
 - [vec.h](vec.h) - A dynamic array(vector) implementation.
 - [set.h](set.h) - Defines `SET_DEFINE` macro to define a type-safe set.
+- [optional.h](optional.h) Implements rust-style Result options for error handling.
 
 If you want to include all the headers, you can include the main header file:
 
