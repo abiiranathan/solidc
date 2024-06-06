@@ -1,0 +1,5 @@
+{
+  "code-runner.executorMap": {
+    "c": "cd $dir && gcc -ggdb -Wall -Wextra -Werror -pedantic $dir/*.c -o $fileNameWithoutExt && $dir$fileNameWithoutExt"
+  }
+}

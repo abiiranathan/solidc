@@ -67,15 +67,13 @@ add_test(thread_test thread_test)
 
 
 # Add the test executable for map module
-set(MAP_SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/map_test.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/map.c
+set(SAFE_MAP_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/safe_map_test.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/threadpool.c
 )
 
-add_executable(map_test ${MAP_SRCS})
-add_test(map_test map_test)
+add_executable(safe_map_test ${SAFE_MAP_SRCS})
+add_test(safe_map_test safe_map_test)
 
 
 # Add the test executable for process module
@@ -126,3 +124,44 @@ set(SOCKET_SRCS
 
 add_executable(socket_test ${SOCKET_SRCS})
 add_test(socket_test socket_test)
+
+# If you have access to stdin, turn this on
+set(TEST_STDIN OFF)
+
+# stdstreams_test module
+set(STDSTREAMS_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/stdstreams_test.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/stdstreams.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/cstr.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/arena.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/filepath.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/file.c
+)
+
+
+
+add_executable(stdstreams_test ${STDSTREAMS_SRCS})
+if(TEST_STDIN)
+    target_compile_definitions(stdstreams_test PUBLIC TEST_STDIN=1)
+endif()
+
+add_test(stdstreams_test stdstreams_test)
+ 
+# strton_test module
+set(STRTON_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/strton_test.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/strton.c
+)
+
+add_executable(strton_test ${STRTON_SRCS})
+add_test(strton_test strton_test)
+
+# hash test module
+set(HASH_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/hash_test.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/hash.c
+)
+
+add_executable(hash_test ${HASH_SRCS})
+add_test(hash_test hash_test)

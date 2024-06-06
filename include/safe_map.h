@@ -96,7 +96,7 @@
         map->size++;                                                                               \
     }                                                                                              \
                                                                                                    \
-    value_type* map_name##_lookup(map_name* map, key_type key) {                                   \
+    value_type* map_name##_get(map_name* map, key_type key) {                                      \
         size_t index = map_name##_hash(key, map->bucket_count);                                    \
         map_name##_node* node = map->buckets[index];                                               \
         while (node) {                                                                             \
@@ -107,8 +107,24 @@
         }                                                                                          \
         return NULL;                                                                               \
     }                                                                                              \
+    bool map_name##_contains(map_name* map, key_type key) {                                        \
+        return map_name##_get(map, key) != NULL;                                                   \
+    }                                                                                              \
                                                                                                    \
-    void map_name##_delete(map_name* map, key_type key) {                                          \
+    void map_name##_clear(map_name* map) {                                                         \
+        for (size_t i = 0; i < map->bucket_count; ++i) {                                           \
+            map_name##_node* node = map->buckets[i];                                               \
+            while (node) {                                                                         \
+                map_name##_node* next = node->next;                                                \
+                free(node);                                                                        \
+                node = next;                                                                       \
+            }                                                                                      \
+            map->buckets[i] = NULL;                                                                \
+        }                                                                                          \
+        map->size = 0;                                                                             \
+    }                                                                                              \
+                                                                                                   \
+    void map_name##_remove(map_name* map, key_type key) {                                          \
         size_t index = map_name##_hash(key, map->bucket_count);                                    \
         map_name##_node* node = map->buckets[index];                                               \
         map_name##_node* prev = NULL;                                                              \

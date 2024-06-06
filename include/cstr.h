@@ -132,6 +132,14 @@ bool cstr_append(cstr* str, const char* s);
 size_t cstr_len(const cstr* str);
 
 /**
+ * @brief Gets the capacity of a cstr.
+ * 
+ * @param str A pointer to the cstr.
+ * @return The capacity of the cstr in bytes.
+ */
+size_t cstr_capacity(const cstr* str);
+
+/**
  * @brief Appends a formatted string to the cstr.
  * 
  * @param str A pointer to the cstr to append to.
@@ -175,6 +183,23 @@ int cstr_compare(const cstr* str1, const cstr* str2);
  * @return A pointer to an array of cstr pointers, or NULL if allocation fails. 
  */
 cstr** cstr_split(const cstr* str, char delimiter, size_t* count)
+    __attribute__((warn_unused_result()));
+
+// Free an array of cstr pointers, like the one returned by cstr_split.
+void cstr_free_array(cstr** strs, size_t count);
+
+// Free an array of char* pointers, like the one returned by cstr_split2.
+void cstr_free2(char** substrings, size_t count);
+
+/**
+ * @brief Splits a char* into an array of substrings based on a delimiter.
+ * 
+ * @param str A pointer to the char* to split.
+ * @param delimiter The delimiter character to split on.
+ * @param count A pointer to a size_t variable that will store the number of substrings found.
+ * @return A pointer to an array of char* pointers, or NULL if allocation fails. 
+ */
+char** cstr_split2(const char* str, char delimiter, size_t* count)
     __attribute__((warn_unused_result()));
 
 /**

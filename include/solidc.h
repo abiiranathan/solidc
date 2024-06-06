@@ -14,6 +14,8 @@
 #include "set.h"
 #include "slist.h"
 #include "socket.h"
+#include "stdstreams.h"
+#include "strton.h"
 #include "thread.h"
 #include "threadpool.h"
 #include "unicode.h"

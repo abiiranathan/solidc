@@ -149,6 +149,10 @@ bool cstr_append(cstr* str, const char* s) {
 size_t cstr_len(const cstr* str) {
     return str->length;
 }
+// Get the capacity of a cstr.
+size_t cstr_capacity(const cstr* str) {
+    return str->capacity;
+}
 
 // Append a formatted string to the cstr.
 __attribute__((format(printf, 2, 3))) bool cstr_append_fmt(cstr* str, const char* fmt, ...) {
@@ -247,6 +251,99 @@ fail:
     }
     free(result);
     return NULL;
+}
+
+void cstr_free_array(cstr** strs, size_t count) {
+    for (size_t i = 0; i < count; ++i) {
+        cstr_free(strs[i]);
+    }
+    free(strs);
+}
+
+/**
+ * @brief Splits a char* into an array of substrings based on a delimiter.
+ * 
+ * @param str A pointer to the char* to split.
+ * @param delimiter The delimiter character to split on.
+ * @param count A pointer to a size_t variable that will store the number of substrings found.
+ * @return A pointer to an array of char* pointers, or NULL if allocation fails. 
+ */
+char** cstr_split2(const char* str, char delimiter, size_t* count) {
+    if (str == NULL) {
+        return NULL;
+    }
+
+    *count = 0;
+    size_t len = strlen(str);
+    if (len == 0) {
+        return NULL;
+    }
+
+    // Count the number of substrings
+    for (size_t i = 0; i < len; i++) {
+        if (str[i] == delimiter) {
+            (*count)++;
+        }
+    }
+    (*count)++;  // Add 1 for the last substring
+
+    // Allocate memory for the array of substrings
+    char** substrings = (char**)malloc((*count) * sizeof(char*));
+    if (substrings == NULL) {
+        return NULL;
+    }
+
+    // Special case for a single substring
+    if (*count == 1) {
+        substrings[0] = strdup(str);
+        return substrings;
+    }
+
+    // Split the string into substrings
+    size_t start = 0;
+    size_t end = 0;
+    size_t substring_index = 0;
+
+    for (size_t i = 0; i < len; i++) {
+        if (str[i] == delimiter || i == len - 1) {
+            end = i;
+
+            // Include the delimiter in the substring
+            if (i == len - 1) {
+                end = len;
+            }
+
+            size_t substring_len = end - start + 1;
+            substrings[substring_index] = (char*)malloc(substring_len);
+
+            if (substrings[substring_index] == NULL) {
+                // Free previously allocated memory
+                for (size_t j = 0; j < substring_index; j++) {
+                    free(substrings[j]);
+                }
+                free(substrings);
+                return NULL;
+            }
+
+            strncpy(substrings[substring_index], &str[start], substring_len);
+            substrings[substring_index][substring_len - 1] = '\0';  // Add null terminator
+            substring_index++;
+            start = i + 1;
+        }
+    }
+
+    return substrings;
+}
+
+// Free an array of char* pointers.
+void cstr_free2(char** substrings, size_t count) {
+    if (substrings == NULL) {
+        return;
+    }
+    for (size_t i = 0; i < count; i++) {
+        free(substrings[i]);
+    }
+    free(substrings);
 }
 
 // Split a cstr into an array of cstrs by a given delimiter.

@@ -10,24 +10,27 @@ All the functions are implemented in a way that they are safe and easy to use
 and are fully tested.
 
 Available Headers:
-1. [arena.h](./arena.h) - Arena allocator for fast memory allocation.
-1. [cstr.h](./cstr.h) -  A simple string library with a lot of utility functions.
-2. [file.h](./file.h) - Cross-platform file handling library for synchronous and asynchronous file operations.
-3. [filepath.h](./filepath.h) - File path utility functions.
-4. [list.h](./list.h) - Doubly linked list implementation.
-5. [lock.h](./lock.h) - Cross-platform mutex abstraction.
-6. [map.h](./map.h) - Generic hash map implementation.
-7. [optional.h](./optional.h) - A simple optional type implementation.
-8. [process.h](./process.h) - Cross-platform process creation and management.
-9. [safe_map.h](./safe_map.h) -  A type-safe and thread-safe hash map implementation implemented with a macro.
-10. [set.h](./set.h) - A generic set implementation.
-11. [slist.h](./slist.h) - Singly linked list implementation.
-12. [socket.h](./socket.h) -  Cross-platform socket library for TCP communication.
-13. [solidc.h](./solidc.h) - A single header file that includes all the headers.
-14. [thread.h](./thread.h) - Cross-platform thread library for creating and managing threads.
-15. [threadpool.h](./threadpool.h) - A simple but roubust thread pool implementation.
-16. [unicode.h](./unicode.h) - UTF-8 string utility functions.
-17. [vec.h](./vec.h) -  A simple dynamic array implementation.
+1. [arena.h](./include/arena.h) - Arena allocator for fast memory allocation.
+1. [cstr.h](./include/cstr.h) -  A simple string library with a lot of utility functions.
+2. [file.h](./include/file.h) - Cross-platform file handling library for synchronous and asynchronous file operations.
+3. [filepath.h](./include/filepath.h) - File path utility functions.
+4. [list.h](./include/list.h) - Doubly linked list implementation.
+5. [lock.h](./include/lock.h) - Cross-platform mutex abstraction.
+6. [map.h](./include/map.h) - Generic hash map implementation.
+7. [optional.h](./include/optional.h) - A simple optional type implementation.
+8. [process.h](./include/process.h) - Cross-platform process creation and management.
+9. [safe_map.h](./include/safe_map.h) -  A type-safe and thread-safe hash map implementation implemented with a macro.
+10. [set.h](./include/set.h) - A generic set implementation.
+11. [slist.h](./include/slist.h) - Singly linked list implementation.
+12. [socket.h](./include/socket.h) -  Cross-platform socket library for TCP communication.
+13. [solidc.h](./include/solidc.h) - A single header file that includes all the headers.
+14. [thread.h](./include/thread.h) - Cross-platform thread library for creating and managing threads.
+15. [threadpool.h](./include/threadpool.h) - A simple but roubust thread pool implementation.
+16. [unicode.h](./include/unicode.h) - UTF-8 string utility functions.
+17. [vec.h](./include/vec.h) -  A simple dynamic array implementation.
+18. [hash.h](./include/hash.h) - A collection of fast non-cryptographic hash functions.
+19. [strton.h](./include/strton.h) - A collection of functions to convert strings to numbers.
+20. [stdstreams.h](./include/stdstreams.h) - A collection of functions to read and write to standard streams, FILE* streams, convert strings to streams, io_copy, io_copy_n between streams, etc.
 
 ## Installation
 

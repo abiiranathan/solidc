@@ -85,11 +85,34 @@ int main(void) {
     ASSERT(count == 2, "Assertion failed");
     ASSERT(strcmp(cstr_data(parts[0]), "Hello") == 0, "Assertion failed");
     ASSERT(strcmp(cstr_data(parts[1]), " world!") == 0, "Assertion failed");
-    for (size_t i = 0; i < count; ++i) {
-        cstr_free(parts[i]);
+    cstr_free_array(parts, count);
+
+    // Test cstr_split2 that work with plain char*
+    const char* str = "Hello, world, my, people!,I really love you!";
+    size_t count1;
+    char** parts1 = cstr_split2(str, ',', &count1);
+
+    // print the parts
+    for (size_t i = 0; i < count1; ++i) {
+        printf("part%ld: %s\n", i + 1, parts1[i]);
     }
-    free(parts);
-    cstr_free(str6);
+
+    ASSERT(count1 == 5, "expected 4 parts");
+    ASSERT(strcmp(parts1[0], "Hello") == 0, "Assertion failed");
+    ASSERT(strcmp(parts1[1], " world") == 0, "Assertion failed");
+    ASSERT(strcmp(parts1[2], " my") == 0, "Assertion failed");
+    ASSERT(strcmp(parts1[3], " people!") == 0, "Assertion failed");
+    ASSERT(strcmp(parts1[4], "I really love you!") == 0, "Assertion failed");
+    cstr_free2(parts1, count1);
+
+    // Test with a string that has no delimiter
+    const char* str_no_delim = "Hello";
+    size_t count_no_delim;
+    char** parts_no_delim = cstr_split2(str_no_delim, ',', &count_no_delim);
+    printf("count_no_delimite: %ld: %s\n", count_no_delim, parts_no_delim[0]);
+    ASSERT(count_no_delim == 1, "expected 1 part");
+    ASSERT(strcmp(parts_no_delim[0], "Hello") == 0, "Assertion failed");
+    cstr_free2(parts_no_delim, count_no_delim);
 
     // Test cstr_split_at
     cstr* str7 = cstr_from("one,two,three");
