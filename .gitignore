@@ -38,3 +38,4 @@ dist
 *.egg
 bin
 .cache
+CMakeLists.txt.user
