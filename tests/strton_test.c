@@ -14,16 +14,24 @@
     } while (0)
 
 // Test function prototypes
-void test_sto_ulong();
-void test_sto_long();
-void test_sto_double();
-void test_sto_int();
-void test_sto_ulong_b();
-void test_sto_long_b();
-void test_sto_int_b();
-void test_sto_bool();
+void test_sto_ulong(void);
+void test_sto_long(void);
+void test_sto_double(void);
+void test_sto_int(void);
+void test_sto_ulong_b(void);
+void test_sto_long_b(void);
+void test_sto_int_b(void);
+void test_sto_bool(void);
+void test_sto_uint8(void);
+void test_sto_int8(void);
+void test_sto_uint16(void);
+void test_sto_int16(void);
+void test_sto_uint32(void);
+void test_sto_int32(void);
+void test_sto_uint64(void);
+void test_sto_int64(void);
 
-int main() {
+int main(void) {
     test_sto_ulong();
     test_sto_long();
     test_sto_double();
@@ -32,12 +40,20 @@ int main() {
     test_sto_long_b();
     test_sto_int_b();
     test_sto_bool();
+    test_sto_uint8();
+    test_sto_int8();
+    test_sto_uint16();
+    test_sto_int16();
+    test_sto_uint32();
+    test_sto_int32();
+    test_sto_uint64();
+    test_sto_int64();
 
     printf("All tests completed.\n");
     return 0;
 }
 
-void test_sto_ulong() {
+void test_sto_ulong(void) {
     unsigned long result;
     StoError err;
 
@@ -54,7 +70,7 @@ void test_sto_ulong() {
     LOG_TEST_RESULT("sto_ulong overflow input", err == STO_OVERFLOW);
 }
 
-void test_sto_long() {
+void test_sto_long(void) {
     long result;
     StoError err;
 
@@ -71,7 +87,7 @@ void test_sto_long() {
     LOG_TEST_RESULT("sto_long overflow input", err == STO_OVERFLOW);
 }
 
-void test_sto_double() {
+void test_sto_double(void) {
     double result;
     StoError err;
 
@@ -88,7 +104,7 @@ void test_sto_double() {
     LOG_TEST_RESULT("sto_double overflow input", err == STO_OVERFLOW);
 }
 
-void test_sto_int() {
+void test_sto_int(void) {
     int result;
     StoError err;
 
@@ -105,7 +121,7 @@ void test_sto_int() {
     LOG_TEST_RESULT("sto_int overflow input", err == STO_OVERFLOW);
 }
 
-void test_sto_ulong_b() {
+void test_sto_ulong_b(void) {
     unsigned long result;
     StoError err;
 
@@ -122,7 +138,7 @@ void test_sto_ulong_b() {
     LOG_TEST_RESULT("sto_ulong_b overflow input", err == STO_OVERFLOW);
 }
 
-void test_sto_long_b() {
+void test_sto_long_b(void) {
     long result;
     StoError err;
 
@@ -139,7 +155,7 @@ void test_sto_long_b() {
     LOG_TEST_RESULT("sto_long_b overflow input", err == STO_OVERFLOW);
 }
 
-void test_sto_int_b() {
+void test_sto_int_b(void) {
     int result;
     StoError err;
 
@@ -164,7 +180,7 @@ void test_sto_int_b() {
     LOG_TEST_RESULT("sto_int_b overflow input", err == STO_OVERFLOW);
 }
 
-void test_sto_bool() {
+void test_sto_bool(void) {
     bool result;
     StoError err;
 
@@ -197,4 +213,173 @@ void test_sto_bool() {
     // Invalid input
     err = sto_bool("maybe", &result);
     LOG_TEST_RESULT("sto_bool invalid input", err == STO_INVALID);
+}
+
+void test_sto_uint8(void) {
+    uint8_t result;
+    StoError err;
+
+    // Valid input
+    err = sto_uint8("255", &result);
+    LOG_TEST_RESULT("sto_uint8 valid input", err == STO_SUCCESS && result == 255);
+
+    // Invalid input
+    err = sto_uint8("abc", &result);
+    LOG_TEST_RESULT("sto_uint8 invalid input", err == STO_INVALID);
+
+    // Overflow input
+    err = sto_uint8("256", &result);
+    LOG_TEST_RESULT("sto_uint8 overflow input", err == STO_OVERFLOW);
+
+    // Underflow input
+    err = sto_uint8("-1", &result);
+    LOG_TEST_RESULT("sto_uint8 underflow input", err == STO_OVERFLOW);
+}
+
+void test_sto_int8(void) {
+    int8_t result;
+    StoError err;
+
+    // Valid input
+    err = sto_int8("127", &result);
+    LOG_TEST_RESULT("sto_int8 valid input", err == STO_SUCCESS && result == 127);
+
+    // Invalid input
+    err = sto_int8("abc", &result);
+    LOG_TEST_RESULT("sto_int8 invalid input", err == STO_INVALID);
+
+    // Overflow input
+    err = sto_int8("128", &result);
+    LOG_TEST_RESULT("sto_int8 overflow input", err == STO_OVERFLOW);
+
+    // Underflow input
+    err = sto_int8("-129", &result);
+    LOG_TEST_RESULT("sto_int8 underflow input", err == STO_OVERFLOW);
+}
+
+void test_sto_uint16(void) {
+    uint16_t result;
+    StoError err;
+
+    // Valid input
+    err = sto_uint16("65535", &result);
+    LOG_TEST_RESULT("sto_uint16 valid input", err == STO_SUCCESS && result == 65535);
+
+    // Invalid input
+    err = sto_uint16("abc", &result);
+    LOG_TEST_RESULT("sto_uint16 invalid input", err == STO_INVALID);
+
+    // Overflow input
+    err = sto_uint16("65536", &result);
+    LOG_TEST_RESULT("sto_uint16 overflow input", err == STO_OVERFLOW);
+
+    // Underflow input
+    err = sto_uint16("-1", &result);
+    LOG_TEST_RESULT("sto_uint16 underflow input", err == STO_OVERFLOW);
+}
+
+void test_sto_int16(void) {
+    int16_t result;
+    StoError err;
+
+    // Valid input
+    err = sto_int16("32767", &result);
+    LOG_TEST_RESULT("sto_int16 valid input", err == STO_SUCCESS && result == 32767);
+
+    // Invalid input
+    err = sto_int16("abc", &result);
+    LOG_TEST_RESULT("sto_int16 invalid input", err == STO_INVALID);
+
+    // Overflow input
+    err = sto_int16("32768", &result);
+    LOG_TEST_RESULT("sto_int16 overflow input", err == STO_OVERFLOW);
+
+    // Underflow input
+    err = sto_int16("-32769", &result);
+    LOG_TEST_RESULT("sto_int16 underflow input", err == STO_OVERFLOW);
+}
+
+void test_sto_uint32(void) {
+    uint32_t result;
+    StoError err;
+
+    // Valid input
+    err = sto_uint32("4294967295", &result);
+    LOG_TEST_RESULT("sto_uint32 valid input", err == STO_SUCCESS && result == 4294967295);
+
+    // Invalid input
+    err = sto_uint32("abc", &result);
+    LOG_TEST_RESULT("sto_uint32 invalid input", err == STO_INVALID);
+
+    // Overflow input
+    err = sto_uint32("4294967296", &result);
+    LOG_TEST_RESULT("sto_uint32 overflow input", err == STO_OVERFLOW);
+
+    // Underflow input
+    err = sto_uint32("-1", &result);
+    LOG_TEST_RESULT("sto_uint32 underflow input", err == STO_OVERFLOW);
+}
+
+void test_sto_int32(void) {
+    int32_t result;
+    StoError err;
+
+    // Valid input
+    err = sto_int32("2147483647", &result);
+    LOG_TEST_RESULT("sto_int32 valid input", err == STO_SUCCESS && result == 2147483647);
+
+    // Invalid input
+    err = sto_int32("abc", &result);
+    LOG_TEST_RESULT("sto_int32 invalid input", err == STO_INVALID);
+
+    // Overflow input
+    err = sto_int32("2147483648", &result);
+    LOG_TEST_RESULT("sto_int32 overflow input", err == STO_OVERFLOW);
+
+    // Underflow input
+    err = sto_int32("-2147483649", &result);
+    LOG_TEST_RESULT("sto_int32 underflow input", err == STO_OVERFLOW);
+}
+
+void test_sto_uint64(void) {
+    uint64_t result;
+    StoError err;
+
+    // Valid input
+    err = sto_uint64("18446744073709551615", &result);
+    LOG_TEST_RESULT("sto_uint64 valid input",
+                    err == STO_SUCCESS && result == 18446744073709551615ULL);
+
+    // Invalid input
+    err = sto_uint64("abc", &result);
+    LOG_TEST_RESULT("sto_uint64 invalid input", err == STO_INVALID);
+
+    // Overflow input
+    err = sto_uint64("18446744073709551616", &result);
+    LOG_TEST_RESULT("sto_uint64 overflow input", err == STO_OVERFLOW);
+
+    // Underflow input
+    err = sto_uint64("-1", &result);
+    LOG_TEST_RESULT("sto_uint64 underflow input", err == STO_OVERFLOW);
+}
+
+void test_sto_int64(void) {
+    int64_t result;
+    StoError err;
+
+    // Valid input
+    err = sto_int64("9223372036854775807", &result);
+    LOG_TEST_RESULT("sto_int64 valid input", err == STO_SUCCESS && result == 9223372036854775807LL);
+
+    // Invalid input
+    err = sto_int64("abc", &result);
+    LOG_TEST_RESULT("sto_int64 invalid input", err == STO_INVALID);
+
+    // Overflow input
+    err = sto_int64("9223372036854775808", &result);
+    LOG_TEST_RESULT("sto_int64 overflow input", err == STO_OVERFLOW);
+
+    // Underflow input
+    err = sto_int64("-9223372036854775809", &result);
+    LOG_TEST_RESULT("sto_int64 underflow input", err == STO_OVERFLOW);
 }
