@@ -100,6 +100,8 @@ add_test(threadpool_test threadpool_test)
 set(VEC_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/vec_test.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/vec.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/arena.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
 )
 
 add_executable(vec_test ${VEC_SRCS})

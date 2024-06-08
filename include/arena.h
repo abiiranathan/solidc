@@ -1,3 +1,5 @@
+#ifndef E5F7B449_2B66_43F7_9A59_3B15792FB993
+#define E5F7B449_2B66_43F7_9A59_3B15792FB993
 // arena.h
 #ifndef ARENA_H
 #define ARENA_H
@@ -17,10 +19,11 @@
 extern "C" {
 #endif
 
+#define ARENA_DEFAULT_CHUNKSIZE (1024 * 1024)
 #define ARENA_DEFAULT_ALIGNMENT 8
-#define SYSTEM_MAX_ALIGNMENT align(max_align_t)
+#define SYSTEM_MAX_ALIGNMENT (alignof(max_align_t))
 
-// Opaque type for a memory arena allocator.
+// Arena memory block.
 typedef struct Arena Arena;
 
 // Create a new arena with a chuck size per block of chunk_size;
@@ -58,3 +61,5 @@ int* arena_alloc_int(Arena* arena, int n) __attribute__((warn_unused_result()));
 #endif
 
 #endif /* ARENA_H*/
+
+#endif /* E5F7B449_2B66_43F7_9A59_3B15792FB993 */

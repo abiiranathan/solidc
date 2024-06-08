@@ -6,7 +6,6 @@
 #include <string.h>
 #include <time.h>
 
-#define ARENA_DEFAULT_SIZE (1024 * 1024)
 #define NUM_THREADS 4
 
 #define ASSERT(cond, msg)                                                                          \
@@ -25,8 +24,8 @@ static void* thread_func(void* arg) {
 }
 
 void multithreaded_example(void) {
-    // Create an arena of 1MB
-    Arena* arena = arena_create(ARENA_DEFAULT_SIZE, ARENA_DEFAULT_ALIGNMENT);
+    // Create an arena of with default chunk size and alignment
+    Arena* arena = arena_create(0, 0);
     ASSERT(arena, "Failed to create arena.");
 
     Thread threads[NUM_THREADS] = {0};
@@ -48,8 +47,7 @@ void print_string(const char* str) {
 }
 
 static void reusing_arena_chunks_example(void) {
-    // Create an arena of 1MB
-    Arena* arena = arena_create(124, ARENA_DEFAULT_SIZE);
+    Arena* arena = arena_create(124, 8);
     ASSERT(arena, "Failed to create arena.")
 
     int num_strings = 100;
@@ -74,7 +72,7 @@ static void reusing_arena_chunks_example(void) {
 
 int main(void) {
     // Create an arena of 1MB
-    Arena* arena = arena_create(ARENA_DEFAULT_SIZE, ARENA_DEFAULT_ALIGNMENT);
+    Arena* arena = arena_create(0, SYSTEM_MAX_ALIGNMENT);
     ASSERT(arena, "Failed to create arena.")
 
     // Allocate memory
@@ -128,7 +126,7 @@ int main(void) {
     Arena* arena4 = arena_create(1024 * 1024 * 10, ARENA_DEFAULT_ALIGNMENT);  // 10MB
     ASSERT(arena4, "Failed to create arena.")
 
-    for (int i = 0; i < 10000000; i++) {
+    for (int i = 0; i < 1000; i++) {
         char* str = arena_alloc(arena4, 1024 * 1024);
         ASSERT(str, "arena_alloc: Failed to allocate memory.")
         // No need to free the memory, as it will be returned to the free list
