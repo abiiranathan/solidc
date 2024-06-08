@@ -107,6 +107,16 @@ set(VEC_SRCS
 add_executable(vec_test ${VEC_SRCS})
 add_test(vec_test vec_test)
 
+# Add the test executable for svec module
+set(SVEC_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/svec_test.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/arena.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
+)
+
+add_executable(svec_test ${VEC_SRCS})
+add_test(svec_test svec_test)
+
 
 # Add the test executable for optional module
 set(OPTIONAL_SRCS

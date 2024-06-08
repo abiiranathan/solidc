@@ -1,0 +1,8 @@
+#ifndef C0DB007E_A07F_4EE7_A96D_5B79F2CBFAC7
+#define C0DB007E_A07F_4EE7_A96D_5B79F2CBFAC7
+#include "../include/svec.h"
+
+DEFINE_VECTOR(int, intvec)
+DEFINE_VECTOR(float, floatvec)
+
+#endif /* C0DB007E_A07F_4EE7_A96D_5B79F2CBFAC7 */

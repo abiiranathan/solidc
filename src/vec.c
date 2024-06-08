@@ -1,36 +1,48 @@
 #include "../include/vec.h"
+#include "../include/arena.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define INITIAL_CAPACITY 64
+#define INITIAL_CAPACITY 1024
 
 typedef struct vec_t {
-    void** data;       // array of pointers to elements
-    size_t size;       // number of elements in the vector
-    size_t capacity;   // capacity of the vector
-    size_t elem_size;  // size of each element in bytes
-    vec_cmp_fn cmp;    // comparison function for elements
+    void** data;      // array of pointers to elements
+    size_t size;      // number of elements in the vector
+    size_t capacity;  // capacity of the vector
+    vec_cmp_fn cmp;   // comparison function for elements
+    Arena* arena;     // Memory allocation arena for vec
 } vec_t;
 
 vec_t* vec_new(size_t capacity, vec_cmp_fn cmp) {
     vec_t* vec = (vec_t*)malloc(sizeof(vec_t));
-    if (vec) {
-        vec->data = NULL;
-        vec->size = 0;
-        vec->capacity = 0;
-        vec->cmp = cmp;
+    if (!vec) {
+        perror("vec_new");
+        return NULL;
+    }
 
-        if (capacity == 0) {
-            capacity = INITIAL_CAPACITY;
-        }
+    Arena* arena = arena_create(ARENA_DEFAULT_CHUNKSIZE, SYSTEM_MAX_ALIGNMENT);
+    if (!arena) {
+        fprintf(stderr, "error creating arena allocator\n");
+        return NULL;
+    }
 
-        if (!vec_reserve(vec, capacity)) {
-            fprintf(stderr, "vec_reserve(): realloc failed\n");
-            free(vec);
-            return NULL;
-        }
+    vec->data = NULL;
+    vec->size = 0;
+    vec->capacity = 0;
+    vec->cmp = cmp;
+    vec->arena = arena;
+
+    if (capacity == 0) {
+        capacity = INITIAL_CAPACITY;
+    }
+
+    if (!vec_reserve(vec, capacity)) {
+        fprintf(stderr, "vec_reserve(): realloc failed\n");
+        arena_destroy(arena);
+        free(vec);
+        return NULL;
     }
     return vec;
 }
@@ -39,18 +51,7 @@ void vec_free(vec_t* vec) {
     if (!vec)
         return;
 
-    for (size_t i = 0; i < vec->size; i++) {
-        if (vec->data[i]) {
-            free(vec->data[i]);
-            vec->data[i] = NULL;
-        }
-    }
-
-    if (vec->data) {
-        free(vec->data);
-        vec->data = NULL;
-    }
-
+    arena_destroy(vec->arena);
     free(vec);
     vec = NULL;
 }
@@ -81,9 +82,7 @@ void* vec_get(vec_t* vec, size_t index) {
 
 void vec_set(vec_t* vec, size_t index, void* elem) {
     if (index < vec->size) {
-        // Free the old element at this index
-        free(vec->data[index]);
-
+        // we are not freeing the old element, as its allocated in the arena.
         // Insert the new element
         vec->data[index] = elem;
     }
@@ -100,10 +99,10 @@ size_t vec_capacity(vec_t* vec) {
 bool vec_reserve(vec_t* vec, size_t capacity) {
     if (capacity > vec->capacity) {
         vec->capacity = capacity * 2;
-        vec->data = (void**)realloc(vec->data, vec->capacity * sizeof(void*));
+        vec->data = (void**)arena_realloc(vec->arena, vec->data, vec->capacity * sizeof(void*));
         if (vec->data == NULL) {
-            perror("realloc");
-            return NULL;
+            fprintf(stderr, "vec_reserve(): arena_realloc failed\n");
+            return false;
         }
     }
     return true;
@@ -111,11 +110,10 @@ bool vec_reserve(vec_t* vec, size_t capacity) {
 
 void vec_shrink(vec_t* vec) {
     if (vec->size < vec->capacity) {
-        vec->data = (void**)realloc(vec->data, (vec->size + 1) * sizeof(void*));
         vec->capacity = vec->size;
-
+        vec->data = (void**)arena_realloc(vec->arena, vec->data, vec->capacity * sizeof(void*));
         if (vec->data == NULL) {
-            perror("realloc");
+            perror("arena_realloc");
             exit(EXIT_FAILURE);
         }
     }
@@ -136,7 +134,7 @@ vec_t* vec_copy(vec_t* vec) {
     vec_t* copy = vec_new(vec->capacity, vec->cmp);
     if (copy != NULL) {
         if (!vec_reserve(copy, vec->capacity)) {
-            free(copy);
+            vec_free(copy);
             return NULL;
         }
 
@@ -169,6 +167,7 @@ void vec_reverse(vec_t* vec) {
     size_t i = 0;
     size_t j = vec->size - 1;
     void* temp = NULL;
+
     while (i < j) {
         temp = vec->data[i];
         vec->data[i] = vec->data[j];

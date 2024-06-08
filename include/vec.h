@@ -17,7 +17,7 @@ typedef bool (*vec_cmp_fn)(const void*, const void*);
 typedef struct vec_t vec_t;
 
 /**
-* Creates a new vector with the specified capacity. If capacity is 0, the vector will have an initial capacity of 64.
+* Creates a new vector with the specified capacity. If capacity is 0, the vector will have an initial capacity of 1024.
 * The vector will use the specified comparison function to compare elements.
 * */
 vec_t* vec_new(size_t capacity, vec_cmp_fn cmp);
