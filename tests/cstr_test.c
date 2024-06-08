@@ -118,12 +118,19 @@ int main(void) {
     cstr* str7 = cstr_from(arena, "one,two,three");
     size_t count2;
     cstr** parts2 = cstr_split_at(arena, str7, ",", 4, &count2);
-    printf("num_splits: %ld\n", count);
 
     ASSERT(count2 == 3, "cstr_split_at(): Assertion failed");
     ASSERT(strcmp(cstr_data(parts2[0]), "one") == 0, "cstr_split_at(): Assertion failed");
     ASSERT(strcmp(cstr_data(parts2[1]), "two") == 0, "cstr_split_at(): Assertion failed");
     ASSERT(strcmp(cstr_data(parts2[2]), "three") == 0, "cstr_split_at(): Assertion failed");
+
+    size_t k = 0;
+    parts = cstr_split_at(arena, cstr_from(arena, "Host: localhost:8080"), ": ", 2, &k);
+    ASSERT(k == 2, "cstr_split_at(): Expected k=2");
+    printf("Host: %s\n", parts[0]->data);
+    printf("Host: %s\n", parts[1]->data);
+    ASSERT(strcmp(parts[0]->data, "Host") == 0, "Invalid host key");
+    ASSERT(strcmp(parts[1]->data, "localhost:8080") == 0, "Invalid host name");
 
     // Test cstr_join
     cstr* str8 = cstr_from(arena, "one");

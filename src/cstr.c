@@ -330,7 +330,6 @@ void cstr_free_array(char** substrings, size_t count) {
 // Returns an array of cstr pointers. It is not terminated by NULL.
 cstr** cstr_split_at(Arena* arena, const cstr* str, const char* delimiter, size_t initial_capacity,
                      size_t* count) {
-
     size_t capacity = initial_capacity;
     cstr** tokens = (cstr**)arena_alloc(arena, capacity * sizeof(cstr*));
     if (!tokens) {
@@ -342,31 +341,61 @@ cstr** cstr_split_at(Arena* arena, const cstr* str, const char* delimiter, size_
         return NULL;
     }
 
-    char* rest = (char*)str;
-    *count = 0;
+    char* start = copy->data;
+    size_t local_count = 0;
 
-    char* token = strtok_r(copy->data, delimiter, &rest);
-    while (token != NULL) {
-        if (*count == capacity) {
+    while (1) {
+        char* end = strstr(start, delimiter);
+        if (!end) {
+            // Add the last token to the array.
+            if (local_count == capacity) {
+                capacity *= 2;
+                cstr** new_tokens = (cstr**)arena_alloc(arena, capacity * sizeof(cstr*));
+                if (!new_tokens) {
+                    return NULL;
+                }
+                memcpy(new_tokens, tokens, local_count * sizeof(cstr*));
+                tokens = new_tokens;
+            }
+
+            tokens[local_count] = cstr_from(arena, start);
+            if (tokens[local_count] == NULL) {
+                return NULL;
+            }
+
+            tokens[local_count]->length = strlen(start);
+            local_count++;
+            break;
+        }
+
+        size_t token_length = end - start;
+        if (local_count == capacity) {
             capacity *= 2;
-            cstr** new_tokens = (cstr**)arena_realloc(arena, tokens, capacity * sizeof(cstr*));
+            cstr** new_tokens = (cstr**)arena_alloc(arena, capacity * sizeof(cstr*));
             if (!new_tokens) {
                 return NULL;
             }
+            memcpy(new_tokens, tokens, local_count * sizeof(cstr*));
             tokens = new_tokens;
         }
 
-        tokens[*count] = cstr_from(arena, token);
-        if (tokens[*count] == NULL) {
+        tokens[local_count] = (cstr*)arena_alloc(arena, sizeof(cstr));
+        if (!tokens[local_count]) {
             return NULL;
         }
+        tokens[local_count]->data = (char*)arena_alloc(arena, token_length + 1);
+        if (!tokens[local_count]->data) {
+            return NULL;
+        }
+        strncpy(tokens[local_count]->data, start, token_length);
+        tokens[local_count]->data[token_length] = '\0';
+        tokens[local_count]->length = token_length;
 
-        // update the length of the substring
-        tokens[*count]->length = strlen(token);
-
-        (*count)++;
-        token = strtok_r(NULL, delimiter, &rest);
+        local_count++;
+        start = end + strlen(delimiter);
     }
+
+    *count = local_count;  // Set the count pointer to the local count value
 
     return tokens;
 }
