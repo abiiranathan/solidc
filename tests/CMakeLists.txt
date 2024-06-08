@@ -185,6 +185,7 @@ set(FLAG_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/arena.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/strton.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/cstr.c
 )
 
 add_executable(flag_test ${FLAG_SRCS})

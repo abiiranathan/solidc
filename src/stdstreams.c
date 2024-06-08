@@ -279,7 +279,7 @@ static size_t __string_stream_write(const void* ptr, size_t size, size_t count, 
     size_t total_bytes = size * count;
     bool resized = false;
 
-    resized = cstr_ensure_capacity(ss->str, cstr_len(ss->str) + total_bytes);
+    resized = cstr_ensure_capacity(ss->arena, ss->str, cstr_len(ss->str) + total_bytes);
     if (!resized) {
         return 0;
     }
@@ -340,7 +340,7 @@ int string_stream_write(stream_t stream, const char* str) {
     // copy over the string to the stream.
     // we don't have to increment the position.
     string_stream* ss = (string_stream*)stream->handle;
-    if (!cstr_append(ss->str, str)) {
+    if (!cstr_append(ss->arena, ss->str, str)) {
         return -1;
     }
     return strlen(str);
@@ -371,15 +371,13 @@ static void __free_string_stream(stream_t stream) {
     if (stream->handle) {
         // free the underlying string
         string_stream* ss = (string_stream*)stream->handle;
-        if (ss->str) {
-            cstr_free(ss->str);
-            ss->str = NULL;
-        }
+        arena_destroy(ss->arena);
 
         // free the stream handle
         free(stream->handle);
         stream->handle = NULL;
     }
+
     free(stream);
     stream = NULL;
 }
@@ -412,8 +410,17 @@ stream_t create_string_stream(size_t initial_capacity) {
         return false;
     }
 
-    ss->str = cstr_new(initial_capacity);
+    Arena* arena = arena_create(ARENA_DEFAULT_CHUNKSIZE, ARENA_DEFAULT_ALIGNMENT);
+    if (arena == NULL) {
+        free(stream);
+        free(ss);
+        return NULL;
+    }
+
+    ss->arena = arena;
+    ss->str = cstr_new(arena, initial_capacity);
     if (ss->str == NULL) {
+        arena_destroy(arena);
         free(stream);
         free(ss);
         return false;

@@ -1,5 +1,6 @@
 #include "../include/flag.h"
 #include "../include/arena.h"
+#include "../include/cstr.h"
 #include "../include/strton.h"
 
 #include <stdio.h>
@@ -54,6 +55,10 @@ typedef struct flag_ctx {
 static const char* flagAsString(flag_type type);
 
 // Initialize a flag context and add global help flag.
+// The help flag is added automatically to the global context.
+// You can pass arguments using 3 different methods:
+// -flag "value" | --flag="value" | --flag=value | --verbose(for boolean flags)
+// Or evern "--port 8080" or "--port = 8080" (if quoted)
 flag_ctx* flag_init(void) {
     flag_ctx* ctx = (flag_ctx*)malloc(sizeof(flag_ctx));
     FLAG_ASSERT(ctx != NULL, "Unable to allocate memory for flag context\n");
@@ -254,7 +259,55 @@ static void parse_flag_helper(flag_ctx* ctx, flag_t* flags, int num_flags, int* 
                               char** argv) {
     int i = (*iptr);
     // Handle both single-dash and double-dash flag notation
-    const char* flag_name = (argv[i][1] == '-') ? &argv[i][2] : &argv[i][1];
+    char* flag_name = (argv[i][1] == '-') ? &argv[i][2] : &argv[i][1];
+
+    // Split the flag name and value if they are separated by a space around the equal sign.
+    // !!This is evil but it works for now.
+    const char* delimiter = strstr(flag_name, " = ")  ? " = "
+                            : strstr(flag_name, "=")  ? "="
+                            : strstr(flag_name, "= ") ? "= "
+                            : strstr(flag_name, " =") ? " ="
+                                                      : NULL;
+
+    // Support for flags with values separated by equal sign
+    if (delimiter) {
+        cstr* name = cstr_from(ctx->arena, flag_name);
+        FLAG_ASSERT(name != NULL, "Unable to allocate memory for flag name\n");
+
+        // Format: name= "value" with a space after equal sign when unquoted.
+        if (cstr_ends_with(name, delimiter)) {
+            // peek at next argument, if it has no - or --, then it's the value
+            if (i + 1 < argc && argv[i + 1][0] != '-') {
+                cstr_trim_chars(name, delimiter);  // remove the trailing =
+                flag_name = cstr_data(name);
+                // Skip that space and update argv
+                argv[i] = argv[i + 1];
+            } else {
+                flag_name[cstr_len(name) - 1] = '\0';
+                flag_context_destroy(ctx);
+                flag_fatalf("Missing value for flag: %s\n", flag_name);
+            }
+        } else {
+            size_t n = 0;
+            cstr** parts = cstr_split_at(ctx->arena, name, delimiter, 2, &n);
+            if (n != 2) {
+                flag_context_destroy(ctx);
+                print_help_text(ctx, argv);
+                flag_fatalf("Error: Invalid flag format: %s\n", flag_name);
+            }
+
+            // Make sure the format is name=value with no spaces
+            flag_name = cstr_data(parts[0]);
+            cstr_trim(parts[1]);
+            if (cstr_len(parts[1]) == 0) {
+                flag_fatalf("No space between flag name and value: %s\n", flag_name);
+            }
+
+            // push the value into argv, so that it can be parsed as a flag value
+            // in the next iteration.
+            argv[i--] = cstr_data(parts[1]);
+        }
+    }
 
     for (int j = 0; j < num_flags; ++j) {
         const char* actualName = flags[j].name;
@@ -279,7 +332,8 @@ static void parse_flag_helper(flag_ctx* ctx, flag_t* flags, int num_flags, int* 
             }
 
             if (err != STO_SUCCESS) {
-                flag_fatalf("Error: Invalid value(%s) for flag %s\n", argv[i], actualName);
+                flag_fatalf("Error: Invalid value '%s' for flag %s. Expected type %s\n", argv[i],
+                            actualName, flagAsString(flags[j].type));
             }
 
             // Validate the flag value if a validator is provided
@@ -301,6 +355,7 @@ subcommand* parse_flags(flag_ctx* ctx, int argc, char* argv[]) {
     subcommand* subcmd = NULL;
 
     for (int i = 1; i < argc; i++) {
+        // Parse a flag
         if (argv[i][0] == '-') {
             const char* flag_name = (argv[i][1] == '-') ? &argv[i][2] : &argv[i][1];
 

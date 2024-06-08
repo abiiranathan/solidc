@@ -29,39 +29,13 @@ extern "C" {
 #define CSTR_MIN_CAPACITY 16
 #endif
 
-// Define a structure for the custom allocator
-typedef struct cstr_allocator {
-    Arena* arena;
-    void* (*alloc)(Arena*, size_t);
-    void* (*realloc)(Arena*, void*, size_t);
-    void (*free)(Arena*, void*);
-} cstr_allocator;
-
-// Define a structure for the cstr object
+// Define a structure for the cstr object that uses Arena allocators
+// for fast string operations.
 typedef struct cstr {
-    char* data;                // Pointer to the string data
-    size_t length;             // Length of the string
-    size_t capacity;           // Capacity of the string
-    cstr_allocator allocator;  // Allocator used for this cstr
+    char* data;       // Pointer to the string data
+    size_t length;    // Length of the string
+    size_t capacity;  // Capacity of the string
 } cstr;
-
-/**
- * @brief Creates a new cstr_allocator with the given cstr_arena.
- * 
- * @param arena A pointer to the cstr_arena to use for allocation.
- * @return A cstr_allocator with the given cstr_arena.
- */
-cstr_allocator cstr_arena_allocator(Arena* arena) __attribute__((warn_unused_result()));
-
-/**
- * @brief Creates a new empty cstr with a custom allocator.
- * 
- * @param capacity The initial capacity of the cstr in bytes.
- * @param allocator The custom allocator to use for this cstr.
- * @return A pointer to the newly created cstr, or NULL if allocation fails.
- */
-cstr* cstr_new_with_allocator(size_t capacity, cstr_allocator allocator)
-    __attribute__((warn_unused_result()));
 
 /**
  * @brief Creates a new empty cstr with a initial capacity.
@@ -69,17 +43,7 @@ cstr* cstr_new_with_allocator(size_t capacity, cstr_allocator allocator)
  * 
  * @return A pointer to the newly created cstr, or NULL if allocation fails.
  */
-cstr* cstr_new(size_t initial_capacity) __attribute__((warn_unused_result()));
-
-/**
- * @brief Creates a new cstr from a C string using a custom allocator.
- * 
- * @param s The C string to create the cstr from.
- * @param allocator The custom allocator to use for this cstr.
- * @return A pointer to the newly created cstr, or NULL if allocation fails.
- */
-cstr* cstr_from_with_allocator(const char* s, cstr_allocator allocator)
-    __attribute__((warn_unused_result()));
+cstr* cstr_new(Arena* arena, size_t initial_capacity) __attribute__((warn_unused_result()));
 
 /**
  * @brief Creates a new cstr from a C string using the default allocator.
@@ -87,14 +51,7 @@ cstr* cstr_from_with_allocator(const char* s, cstr_allocator allocator)
  * @param s The C string to create the cstr from.
  * @return A pointer to the newly created cstr, or NULL if allocation fails.
  */
-cstr* cstr_from(const char* s) __attribute__((warn_unused_result()));
-
-/**
- * @brief Frees the memory associated with a cstr.
- * 
- * @param str A pointer to the cstr to free.
- */
-void cstr_free(cstr* str);
+cstr* cstr_from(Arena* arena, const char* s) __attribute__((warn_unused_result()));
 
 /**
  * @brief Ensures that the cstr has enough capacity.
@@ -103,7 +60,7 @@ void cstr_free(cstr* str);
  * @param capacity The desired minimum capacity in bytes.
  * @return true if the cstr now has enough capacity, false if reallocation fails.
  */
-bool cstr_ensure_capacity(cstr* str, size_t capacity);
+bool cstr_ensure_capacity(Arena* arena, cstr* str, size_t capacity);
 
 /**
  * @brief Appends a character to the end of a cstr.
@@ -112,7 +69,7 @@ bool cstr_ensure_capacity(cstr* str, size_t capacity);
  * @param c The character to append.
  * @return true if the character was appended successfully, false if allocation fails.
  */
-bool cstr_append_char(cstr* str, char c);
+bool cstr_append_char(Arena* arena, cstr* str, char c);
 
 /**
  * @brief Appends a string to the end of a cstr.
@@ -121,7 +78,7 @@ bool cstr_append_char(cstr* str, char c);
  * @param s The string to append.
  * @return true if the string was appended successfully, false if allocation fails.
  */
-bool cstr_append(cstr* str, const char* s);
+bool cstr_append(Arena* arena, cstr* str, const char* s);
 
 /**
  * @brief Gets the length of a cstr.
@@ -147,7 +104,8 @@ size_t cstr_capacity(const cstr* str);
  * @param ... Additional arguments to the formatted output.
  * @return true if the formatted string was appended successfully, false if allocation fails.
  */
-__attribute__((format(printf, 2, 3))) bool cstr_append_fmt(cstr* str, const char* fmt, ...);
+__attribute__((format(printf, 3, 4))) bool cstr_append_fmt(Arena* arena, cstr* str, const char* fmt,
+                                                           ...);
 
 /**
  * @brief Shrinks the cstr to remove excess capacity.
@@ -155,7 +113,7 @@ __attribute__((format(printf, 2, 3))) bool cstr_append_fmt(cstr* str, const char
  * @param str A pointer to the cstr to shrink.
  * @return true if the cstr was successfully shrunk, false if reallocation fails.
  */
-bool cstr_clip(cstr** str);
+bool cstr_clip(Arena* arena, cstr* str);
 
 /**
  * @brief Gets the C string representation of a cstr.
@@ -163,7 +121,7 @@ bool cstr_clip(cstr** str);
  * @param str A pointer to the cstr.
  * @return A pointer to the C string data within the cstr.
  */
-const char* cstr_data(const cstr* str);
+char* cstr_data(const cstr* str);
 
 /**
  * @brief Compares two cstrs.
@@ -174,6 +132,9 @@ const char* cstr_data(const cstr* str);
  */
 int cstr_compare(const cstr* str1, const cstr* str2);
 
+// Returns true if the two cstrs are equal, false otherwise.
+bool cstr_equals(const cstr* str1, const cstr* str2);
+
 /**
  * @brief Splits a cstr into an array of substrings based on a delimiter.
  * 
@@ -182,14 +143,8 @@ int cstr_compare(const cstr* str1, const cstr* str2);
  * @param count A pointer to a size_t variable that will store the number of substrings found.
  * @return A pointer to an array of cstr pointers, or NULL if allocation fails. 
  */
-cstr** cstr_split(const cstr* str, char delimiter, size_t* count)
+cstr** cstr_split(Arena* arena, const cstr* str, char delimiter, size_t* count)
     __attribute__((warn_unused_result()));
-
-// Free an array of cstr pointers, like the one returned by cstr_split.
-void cstr_free_array(cstr** strs, size_t count);
-
-// Free an array of char* pointers, like the one returned by cstr_split2.
-void cstr_free2(char** substrings, size_t count);
 
 /**
  * @brief Splits a char* into an array of substrings based on a delimiter.
@@ -199,8 +154,11 @@ void cstr_free2(char** substrings, size_t count);
  * @param count A pointer to a size_t variable that will store the number of substrings found.
  * @return A pointer to an array of char* pointers, or NULL if allocation fails. 
  */
-char** cstr_split2(const char* str, char delimiter, size_t* count)
+char** cstr_splitchar(const char* str, char delimiter, size_t* count)
     __attribute__((warn_unused_result()));
+
+// Free an array of char* pointers, like the one returned by cstr_split2.
+void cstr_free_array(char** substrings, size_t count);
 
 /**
  * @brief Splits a cstr into an array of substrings based on a delimiter.
@@ -211,8 +169,8 @@ char** cstr_split2(const char* str, char delimiter, size_t* count)
  * @param count A pointer to a size_t variable that will store the number of substrings found.
  * @return A pointer to an array of cstr pointers, or NULL if allocation fails. 
  */
-cstr** cstr_split_at(const cstr* str, const char* delimiter, size_t initial_capacity, size_t* count)
-    __attribute__((warn_unused_result()));
+cstr** cstr_split_at(Arena* arena, const cstr* str, const char* delimiter, size_t initial_capacity,
+                     size_t* count) __attribute__((warn_unused_result()));
 
 /**
  * @brief Joins an array of cstrs into a single cstr with a given separator.
@@ -222,7 +180,7 @@ cstr** cstr_split_at(const cstr* str, const char* delimiter, size_t initial_capa
  * @param separator The separator string to use between the cstrs.
  * @return A pointer to the newly created joined cstr, or NULL if allocation fails.
  */
-cstr* cstr_join(cstr** strs, size_t count, const char* separator)
+cstr* cstr_join(Arena* arena, cstr** strs, size_t count, const char* separator)
     __attribute__((warn_unused_result()));
 
 /**
@@ -233,7 +191,7 @@ cstr* cstr_join(cstr** strs, size_t count, const char* separator)
  * @param length The length of the substring.
  * @return A pointer to the newly created substring cstr, or NULL if the input is invalid or allocation fails.
  */
-cstr* cstr_substr(const cstr* str, size_t start, size_t length)
+cstr* cstr_substr(Arena* arena, const cstr* str, size_t start, size_t length)
     __attribute__((warn_unused_result()));
 
 /**
@@ -254,22 +212,14 @@ bool cstr_starts_with(const cstr* str, const char* prefix);
  */
 bool cstr_ends_with(const cstr* str, const char* suffix);
 
-/**
- * @brief Matches a cstr against a regular expression pattern.
- * 
- * @param str A pointer to the cstr to match.
- * @param pattern The regular expression pattern to match against.
- * @return true if the cstr matches the pattern, false otherwise.
- */
-bool cstr_regex_match(const cstr* str, const char* pattern);
-
-/**
- * @brief Creates a copy of a cstr.
- * 
- * @param str A pointer to the cstr to copy.
- * @return A pointer to the newly created copy of the cstr, or NULL if allocation fails.
- */
-cstr* cstr_copy(const cstr* str) __attribute__((warn_unused_result()));
+// /**
+//  * @brief Matches a cstr against a regular expression pattern.
+//  *
+//  * @param str A pointer to the cstr to match.
+//  * @param pattern The regular expression pattern to match against.
+//  * @return true if the cstr matches the pattern, false otherwise.
+//  */
+// bool cstr_regex_match(const cstr* str, const char* pattern);
 
 /**
  * @brief Prepends a string to a cstr.
@@ -278,7 +228,7 @@ cstr* cstr_copy(const cstr* str) __attribute__((warn_unused_result()));
  * @param src The string to prepend.
  * @return true if the string was prepended successfully, false if allocation fails.
  */
-bool cstr_prepend(cstr* str, const char* src);
+bool cstr_prepend(Arena* arena, cstr* str, const char* src);
 
 /**
  * @brief Converts a cstr to snake case.
@@ -286,7 +236,7 @@ bool cstr_prepend(cstr* str, const char* src);
  * @param str A pointer to the cstr to convert.
  * @return true if the conversion was successful, false if allocation fails.
  */
-bool cstr_snakecase(cstr* str);
+bool cstr_snakecase(Arena* arena, cstr* str);
 
 /**
  * @brief Converts a cstr to title case.
@@ -304,6 +254,14 @@ void cstr_titlecase(cstr* str);
 bool cstr_camelcase(cstr* str);
 
 /**
+ * @brief Converts a cstr to pascal case.
+ * 
+ * @param str A pointer to the cstr to convert.
+ * @return true if the conversion was successful, false if allocation fails.
+ */
+bool cstr_pascalcase(cstr* str);
+
+/**
  * @brief Replaces the first occurrence of a substring within a cstr with another string.
  * 
  * @param str A pointer to the cstr to perform the replacement on.
@@ -311,7 +269,7 @@ bool cstr_camelcase(cstr* str);
  * @param with The string to replace the substring with.
  * @return A pointer to the newly created cstr with the replacement performed, or NULL if allocation fails or no replacement occurred.
  */
-cstr* cstr_replace(const cstr* str, const char* old, const char* with)
+cstr* cstr_replace(Arena* arena, const cstr* str, const char* old, const char* with)
     __attribute__((warn_unused_result()));
 
 /**
@@ -322,16 +280,8 @@ cstr* cstr_replace(const cstr* str, const char* old, const char* with)
  * @param with The string to replace the substring with.
  * @return A pointer to the newly created cstr with all replacements performed, or NULL if allocation fails.
  */
-cstr* cstr_replace_all(const cstr* str, const char* old, const char* with)
+cstr* cstr_replace_all(Arena* arena, const cstr* str, const char* old, const char* with)
     __attribute__((warn_unused_result()));
-
-/**
- * @brief Converts a cstr to pascal case.
- * 
- * @param str A pointer to the cstr to convert.
- * @return true if the conversion was successful, false if allocation fails.
- */
-bool cstr_pascalcase(cstr* str);
 
 /**
  * @brief Removes leading whitespace characters from a cstr.
@@ -361,14 +311,6 @@ void cstr_trim(cstr* str);
  * @param chars The set of characters to trim.
  */
 void cstr_trim_chars(cstr* str, const char* chars);
-
-/**
- * @brief Removes leading and trailing occurrences of a given character from a cstr.
- * 
- * @param str A pointer to the cstr to trim.
- * @param c The character to trim.
- */
-void cstr_trim_char(cstr* str, char c);
 
 /**
  * @brief Counts the number of occurrences of a substring within a cstr.

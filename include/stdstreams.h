@@ -56,6 +56,7 @@ void stream_destroy(stream_t stream);
 ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size);
 
 typedef struct string_stream {
+    Arena* arena;
     cstr* str;
     size_t pos;
 } string_stream;
