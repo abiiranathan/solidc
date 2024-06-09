@@ -7,7 +7,7 @@ void task_fn(void* arg) {
 }
 
 int main(void) {
-    ThreadPool* pool = threadpool_create();
+    ThreadPool pool = threadpool_create(4);
     if (!pool) {
         printf("Failed to create thread pool.\n");
         return 1;

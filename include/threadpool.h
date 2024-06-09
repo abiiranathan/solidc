@@ -1,58 +1,38 @@
-#ifndef C489A98F_8260_4B5A_98A2_432E6DFC62C5
-#define C489A98F_8260_4B5A_98A2_432E6DFC62C5
+#ifndef __THREADPOOL_H__
+#define __THREADPOOL_H__
 
-// Must have C++ linkage. We can't put this in extern "C"
 #ifdef __cplusplus
-#include <atomic>
-typedef std::atomic_flag atomic_flag;
-#else
-#include <stdatomic.h>
-#endif
-
-#if defined(__cplusplus)
 extern "C" {
 #endif
 
-#ifdef _WIN32
-#include <process.h>
-#include <windows.h>
-#else
-#include <pthread.h>
-#endif
+// Opaque threadpool structure
+typedef struct threadpool* ThreadPool;
 
-#ifndef INITIAL_TASK_CAPACITY
-// Initial capacity of the task queue
-#define INITIAL_TASK_CAPACITY 64
-#endif
+// Create and initialize a new threadpool with the given number of threads.
+ThreadPool threadpool_create(int num_threads);
 
-#ifndef MAX_THREADS
-// Maximum number of worker threads
-#define MAX_THREADS 8
-#endif
+// Add a new task to the threadpool. The function will be executed by one of the threads in the pool.
+int threadpool_add_task(ThreadPool, void (*task)(void*), void* arg_p);
 
-// Cross-platform definition of the ThreadPool structure.
-// Contains an array of threads, a queue of tasks, and synchronization primitives
-// to coordinate the execution of tasks by the worker threads.
-// To add a task to the thread pool, the user calls threadpool_add_task, which
-// adds the task to the queue and signals one of the worker threads to execute it.
-// The default number of worker threads is 8, but this can be changed by modifying
-// the MAX_THREADS macro.
-typedef struct ThreadPool ThreadPool;
+// Wait for all threads in the threadpool to finish the queued tasks.
+void threadpool_wait(ThreadPool);
 
-// Create a thread pool with a fixed number of threads
-ThreadPool* threadpool_create(void) __attribute__((warn_unused_result()));
+// Pause all threads in the threadpool.
+// The threads will not execute any tasks until they are resumed.
+void threadpool_pause(ThreadPool);
 
-// Add a task to the thread pool. The task will be executed by one of the worker threads
-void threadpool_add_task(ThreadPool* pool, void (*function)(void*), void* argument);
+// Unpause all threads in the threadpool.
+void threadpool_resume(ThreadPool);
 
-// Wait for all tasks to be completed
-void threadpool_wait(ThreadPool* pool);
+// Destroy the threadpool and free all resources associated with it.
+// It will wait for all threads to finish their tasks before freeing them.
+void threadpool_destroy(ThreadPool);
 
-// Destroy the thread pool and free all associated memory
-void threadpool_destroy(ThreadPool* pool);
+// Get the number of active threads in the threadpool.
+int threadpool_num_threads_working(ThreadPool);
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 }
 #endif
 
-#endif /* C489A98F_8260_4B5A_98A2_432E6DFC62C5 */
+#endif  // __THREADPOOL_H__
