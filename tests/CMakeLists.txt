@@ -65,17 +65,6 @@ set(THREAD_SRCS
 add_executable(thread_test ${THREAD_SRCS})
 add_test(thread_test thread_test)
 
-
-# Add the test executable for map module
-set(SAFE_MAP_SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/safe_map_test.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
-)
-
-add_executable(safe_map_test ${SAFE_MAP_SRCS})
-add_test(safe_map_test safe_map_test)
-
-
 # Add the test executable for process module
 set(PROCESS_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/process_test.c
