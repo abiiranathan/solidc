@@ -84,6 +84,17 @@ set(THREADPOOL_SRCS
 add_executable(threadpool_test ${THREADPOOL_SRCS})
 add_test(threadpool_test threadpool_test)
 
+# Add the test executable for map module
+set(MAP_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/map_test.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/map.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/threadpool.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
+)
+
+add_executable(map_test ${MAP_SRCS})
+add_test(map_test map_test)
+
 
 # Add the test executable for vec module
 set(VEC_SRCS
