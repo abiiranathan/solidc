@@ -1,3 +1,7 @@
+// Override SAFE_MAP_SIZE to test with different number of items
+// default is only 100 items
+#define SAFE_MAP_SIZE 1000000
+
 #include "../include/safe_map.h"
 #include <assert.h>
 #include <time.h>
@@ -13,10 +17,10 @@
     } while (0)
 
 // Test function prototypes
-void test_safe_map();
-void test_int_map();
-void test_string_map();
-void test_intmap_under_load();
+void test_safe_map(void);
+void test_int_map(void);
+void test_string_map(void);
+void test_intmap_under_load(void);
 
 // Creates a type: int_map
 DEFINE_MAP(int_map, int, int)
@@ -32,15 +36,14 @@ int main() {
     return 0;
 }
 
-void test_safe_map() {
+void test_safe_map(void) {
     test_int_map();
     test_string_map();
     test_intmap_under_load();
 }
 
-#define BUCKET_COUNT 10
 void test_int_map() {
-    int_map* map = int_map_create(BUCKET_COUNT);
+    int_map* map = int_map_create();
     assert(map != NULL);
 
     int_map_insert(map, 1, 10);
@@ -70,7 +73,7 @@ void test_int_map() {
 }
 
 void test_string_map() {
-    string_map* map = string_map_create(BUCKET_COUNT);
+    string_map* map = string_map_create();
     assert(map != NULL);
 
     string_map_insert(map, "one", "1");
@@ -101,22 +104,21 @@ void test_string_map() {
 
 void test_intmap_under_load(void) {
     // Int map load test with 10 million items
-    int item_count = 10000000;
     time_t start = time(NULL);
-    int_map* map2 = int_map_create(5000);
+    int_map* map2 = int_map_create();
     assert(map2 != NULL);
 
-    for (int i = 0; i < item_count; i++) {
+    for (int i = 0; i < SAFE_MAP_SIZE; i++) {
         int_map_insert(map2, i, i * 10);
     }
 
     int* value;
-    for (int i = 0; i < item_count; i++) {
+    for (int i = 0; i < SAFE_MAP_SIZE; i++) {
         assert((value = int_map_get(map2, i)) != NULL);
         assert(*value == i * 10);
     }
 
     int_map_destroy(map2);
     time_t end = time(NULL);
-    printf("Int map load test with %d items took %ld seconds.\n", item_count, end - start);
+    printf("Int map load test with %d items took %ld seconds.\n", SAFE_MAP_SIZE, end - start);
 }
