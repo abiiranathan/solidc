@@ -425,11 +425,11 @@ void print_help_text(flag_ctx* ctx, char** argv) {
 
     for (size_t i = 0; i < ctx->num_flags; i++) {
         const char* flagTypeName = flagAsString(ctx->flags[i].type);
-        const char* required = ctx->flags[i].required ? "Required" : "Optional";
+        const char* required = ctx->flags[i].required ? "[*]" : "";
 
         // Print help message for available flags with aligned text using
         // clever *s formatting trick of printf.
-        printf("  -%-*s --%s(%s) <%s>: %s\n\n", (int)maxNameLen, ctx->flags[i].name,
+        printf("  -%-*s --%s %s [%s]: %s\n", (int)maxNameLen, ctx->flags[i].name,
                ctx->flags[i].name, required, flagTypeName, ctx->flags[i].description);
     }
 
@@ -456,13 +456,12 @@ void print_help_text(flag_ctx* ctx, char** argv) {
             printf("  %s: %s\n", ctx->subcommands[i]->name, ctx->subcommands[i]->description);
 
             for (size_t j = 0; j < ctx->subcommands[i]->num_flags; j++) {
-                const char* required =
-                    ctx->subcommands[i]->flags[j].required ? "Required" : "Optional";
+                const char* required = ctx->subcommands[i]->flags[j].required ? "[*]" : "";
                 const char* name = ctx->subcommands[i]->flags[j].name;
                 const char* desc = ctx->subcommands[i]->flags[j].description;
                 const char* subcmd = ctx->subcommands[i]->flags[j].name;
 
-                printf("    -%-*s --%s(%s) <%s>: %s\n", (int)maxNameLen, name, subcmd, required,
+                printf("    -%-*s --%s %s [%s]: %s\n", (int)maxNameLen, name, subcmd, required,
                        flagAsString(ctx->subcommands[i]->flags[j].type), desc);
             }
             printf("\n");
@@ -472,12 +471,12 @@ void print_help_text(flag_ctx* ctx, char** argv) {
 }
 
 static const char* flags_array[16] = {
-    [FLAG_BOOL] = "bool",         [FLAG_INT] = "int",           [FLAG_SIZE_T] = "size_t",
+    [FLAG_BOOL] = "boolean",      [FLAG_INT] = "int",           [FLAG_SIZE_T] = "size_t",
     [FLAG_INT8] = "int8_t",       [FLAG_INT16] = "int16_t",     [FLAG_INT32] = "int32_t",
     [FLAG_INT64] = "int64_t",     [FLAG_UINT] = "unsigned int", [FLAG_UINT8] = "uint8_t",
     [FLAG_UINT16] = "uint16_t",   [FLAG_UINT32] = "uint32_t",   [FLAG_UINT64] = "uint64_t",
     [FLAG_UINTPTR] = "uintptr_t", [FLAG_FLOAT] = "float",       [FLAG_DOUBLE] = "double",
-    [FLAG_STRING] = "char *",
+    [FLAG_STRING] = "string",
 };
 
 // Convert flag type to a string for printing
