@@ -113,7 +113,7 @@ static bool map_resize(map* m, size_t new_capacity) {
     return true;
 }
 
-void map_set(map* m, const void* key, const void* value) {
+void map_set(map* m, void* key, void* value) {
     if ((double)m->size / m->capacity > LOAD_FACTOR_THRESHOLD) {
         // Check for potential integer overflow
         if (m->capacity > SIZE_MAX / 2 || !map_resize(m, m->capacity * 2)) {
@@ -128,6 +128,9 @@ void map_set(map* m, const void* key, const void* value) {
     // Linear probing to find the next available index
     while (m->entries[index].key != NULL) {
         if (m->key_compare(m->entries[index].key, key)) {
+            // we should free the old value
+            // free((void*)m->entries[index].value);
+            // I don't know where it's allocated?
             m->entries[index].value = value;
             return;  // Key already exists with the same value
         }
@@ -141,14 +144,14 @@ void map_set(map* m, const void* key, const void* value) {
 }
 
 // Thread safe set
-void map_set_safe(map* m, const void* key, const void* value) {
+void map_set_safe(map* m, void* key, void* value) {
     lock_acquire(m->lock);
     map_set(m, key, value);
     lock_release(m->lock);
 }
 
 // Set multiple key-value pairs in the map from arrays
-void map_set_from_array(map* m, const void** keys, const void** values, size_t num_keys) {
+void map_set_from_array(map* m, void** keys, void** values, size_t num_keys) {
     // lock the map
     lock_acquire(m->lock);
     for (size_t i = 0; i < num_keys; i++) {
@@ -158,7 +161,7 @@ void map_set_from_array(map* m, const void** keys, const void** values, size_t n
     lock_release(m->lock);
 }
 
-const void* map_get(map* m, const void* key) {
+void* map_get(map* m, void* key) {
     size_t index = m->hash(key) % m->capacity;
 
     while (m->entries[index].key != NULL) {
@@ -171,14 +174,14 @@ const void* map_get(map* m, const void* key) {
 }
 
 // Thread safe get
-const void* map_get_safe(map* m, const void* key) {
+void* map_get_safe(map* m, void* key) {
     lock_acquire(m->lock);
-    const void* value = map_get(m, key);
+    void* value = map_get(m, key);
     lock_release(m->lock);
     return value;
 }
 
-void map_remove(map* m, const void* key) {
+void map_remove(map* m, void* key) {
     size_t index = m->hash(key) % m->capacity;
     while (m->entries[index].key != NULL) {
         if (m->key_compare(m->entries[index].key, key)) {
@@ -192,7 +195,7 @@ void map_remove(map* m, const void* key) {
 }
 
 // Thread safe remove
-void map_remove_safe(map* m, const void* key) {
+void map_remove_safe(map* m, void* key) {
     lock_acquire(m->lock);
     map_remove(m, key);
     lock_release(m->lock);

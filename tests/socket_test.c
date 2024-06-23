@@ -51,7 +51,7 @@ int main() {
     Socket* s = socket_create(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     assert(s != NULL);
 
-    int port = 8080;
+    int port = 9999;
     struct sockaddr_in addr;
     init_afinet_addr(&addr, port);
 

@@ -482,7 +482,7 @@ static const char* flags_array[16] = {
 
 // Convert flag type to a string for printing
 const char* flagAsString(flag_type type) {
-    if (type < FLAG_BOOL || type >= FLAG_STRING) {
+    if (type < FLAG_BOOL || type > FLAG_STRING) {
         return "Unknown";
     }
     return flags_array[type];

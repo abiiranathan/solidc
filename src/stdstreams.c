@@ -24,6 +24,14 @@ bool readline(const char* prompt, char* buffer, size_t buffer_len) {
     }
 
     buffer[strcspn(buffer, "\n")] = '\0';  // Remove trailing newline
+
+    if (strlen(buffer) >= buffer_len - 1) {
+        char c;
+        while ((c = getchar()) != EOF) {
+            if (c == '\n')
+                break;
+        }
+    }
     return true;
 }
 

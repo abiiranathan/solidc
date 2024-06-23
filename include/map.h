@@ -22,8 +22,8 @@ extern "C" {
 #endif
 
 typedef struct {
-    const void* key;    // Map key
-    const void* value;  // Map value.
+    void* key;    // Map key
+    void* value;  // Map value.
 } entry;
 
 // Function pointer type for the key comparison.
@@ -50,28 +50,28 @@ void map_destroy(map* m, bool free_entries);
 
 // Set a key-value pair in the map
 // This is idempotent.
-void map_set(map* m, const void* key, const void* value);
+void map_set(map* m, void* key, void* value);
 
 // A thread-safe version of map_set.
-void map_set_safe(map* m, const void* key, const void* value);
+void map_set_safe(map* m, void* key, void* value);
 
 // Set multiple key-value pairs in the map from arrays
 // The keys and values arrays must be of the same length.
 // Make sure that the keys and values are allocated on the heap to avoid
 // unexpected behavior.
-void map_set_from_array(map* m, const void** keys, const void** values, size_t num_keys);
+void map_set_from_array(map* m, void** keys, void** values, size_t num_keys);
 
 // Get the value for a key in the map without locking
-const void* map_get(map* m, const void* key);
+void* map_get(map* m, void* key);
 
 // Get the value for a key in the map with locking
-const void* map_get_safe(map* m, const void* key);
+void* map_get_safe(map* m, void* key);
 
 // Remove a key from the map without locking
-void map_remove(map* m, const void* key);
+void map_remove(map* m, void* key);
 
 // Remove a key from the map with locking
-void map_remove_safe(map* m, const void* key);
+void map_remove_safe(map* m, void* key);
 
 // Set the hash function for the map
 // The default hash function is djb2_hash
