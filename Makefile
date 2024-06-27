@@ -9,7 +9,8 @@ build:
 	/usr/bin/cmake --build ./build --config Debug --target all -- -j10
 
 test: build
-	cd build && ctest -j10 -C Debug -T test --output-on-failure
+	cd build && ctest -j8 -C Debug -T test --output-on-failure
+	# cd build && ctest -j8 -C Debug -T test --output-on-failure -R ^flag_test$
 
 install: test
 	cd build && sudo cmake --install . --config Debug

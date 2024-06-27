@@ -78,6 +78,7 @@ Arena* arena_create(size_t chunk_size, size_t alignment) {
         free(arena);
         return NULL;
     }
+
     arena->head->base = (char*)arena->head + sizeof(Chunk);
     arena->head->size = chunk_size - sizeof(Chunk);
     arena->head->used = 0;

@@ -375,3 +375,16 @@ StoError sto_bool(const char* str, bool* result) {
 
     return STO_INVALID;
 }
+
+const char* sto_error(StoError code) {
+    switch (code) {
+        case STO_SUCCESS:
+            return "Conversion successful";
+        case STO_INVALID:
+            return "Invalid input";
+        case STO_OVERFLOW:
+            return "Overflow or undeflow error";
+    }
+
+    return "Unknown error";
+}

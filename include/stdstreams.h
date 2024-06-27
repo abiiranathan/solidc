@@ -9,27 +9,6 @@
 // Read a line from stdin with a prompt
 bool readline(const char* prompt, char* buffer, size_t buffer_len);
 
-// Convert a string to unsigned long (base 10). Returns ULONG_MAX on error.
-unsigned long stoulong(const char* str);
-
-// Convert a string to long (base 10). Returns LONG_MAX on error.
-long stolong(const char* str);
-
-// Convert a string to double (base 10). Returns DBL_MAX on error.
-double stodouble(const char* str);
-
-// Convert a string to int (base 10). Returns INT_MAX on error.
-int stoint(const char* str);
-
-// Convert a string to unsigned long with a specified base. Returns ULONG_MAX on error.
-unsigned long stoulongb(const char* str, int base);
-
-// Convert a string to long with a specified base. Returns LONG_MAX on error.
-long stolongb(const char* str, int base);
-
-// Convert a string to int with a specified base. Returns INT_MAX on error.
-int stointb(const char* str, int base);
-
 // getpassword() reads a password from the terminal with echo disabled.
 // uses termios on Linux and Windows API on Windows.
 // The password is stored in the buffer and the function returns the number of characters read.

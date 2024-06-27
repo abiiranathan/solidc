@@ -10,7 +10,7 @@ typedef struct map {
     size_t capacity;                     // map capacity.
     unsigned long (*hash)(const void*);  // Hash.
     key_compare_fn key_compare;          // Comparison function for map keys.
-    Lock* lock;                          // Lock for thread safety.
+    Lock lock;                           // Lock for thread safety.
 } map;
 
 map* map_create(size_t initial_capacity, key_compare_fn key_compare) {
@@ -41,16 +41,7 @@ map* map_create(size_t initial_capacity, key_compare_fn key_compare) {
     m->hash = murmur_hash;  // Default hash function
     m->key_compare = key_compare;
 
-    // Initialize the lock
-    m->lock = malloc(sizeof(Lock));
-    if (m->lock == NULL) {
-        free(m->entries);
-        free(m);
-        perror("Failed to allocate memory for map lock");
-        return NULL;
-    }
-
-    lock_init(m->lock);
+    lock_init(&m->lock);
     return m;
 }
 
@@ -74,8 +65,8 @@ void map_destroy(map* m, bool free_entries) {
     // Free the entries
     free(m->entries);
 
-    lock_free(m->lock);
-    free(m->lock);
+    lock_free(&m->lock);
+
     free(m);
     m = NULL;
 }
@@ -145,20 +136,20 @@ void map_set(map* m, void* key, void* value) {
 
 // Thread safe set
 void map_set_safe(map* m, void* key, void* value) {
-    lock_acquire(m->lock);
+    lock_acquire(&m->lock);
     map_set(m, key, value);
-    lock_release(m->lock);
+    lock_release(&m->lock);
 }
 
 // Set multiple key-value pairs in the map from arrays
 void map_set_from_array(map* m, void** keys, void** values, size_t num_keys) {
     // lock the map
-    lock_acquire(m->lock);
+    lock_acquire(&m->lock);
     for (size_t i = 0; i < num_keys; i++) {
         map_set(m, keys[i], values[i]);
     }
     // unlock the map
-    lock_release(m->lock);
+    lock_release(&m->lock);
 }
 
 void* map_get(map* m, void* key) {
@@ -175,9 +166,9 @@ void* map_get(map* m, void* key) {
 
 // Thread safe get
 void* map_get_safe(map* m, void* key) {
-    lock_acquire(m->lock);
+    lock_acquire(&m->lock);
     void* value = map_get(m, key);
-    lock_release(m->lock);
+    lock_release(&m->lock);
     return value;
 }
 
@@ -196,9 +187,9 @@ void map_remove(map* m, void* key) {
 
 // Thread safe remove
 void map_remove_safe(map* m, void* key) {
-    lock_acquire(m->lock);
+    lock_acquire(&m->lock);
     map_remove(m, key);
-    lock_release(m->lock);
+    lock_release(&m->lock);
 }
 
 size_t map_length(map* m) {

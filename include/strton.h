@@ -183,4 +183,6 @@ StoError sto_int_b(const char* str, int base, int* result);
  */
 StoError sto_bool(const char* str, bool* result);
 
+const char* sto_error(StoError code);
+
 #endif /* D098E3F2_2EEB_4E1A_892A_156C7D7533C3 */
