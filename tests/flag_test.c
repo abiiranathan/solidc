@@ -47,9 +47,8 @@ void printHandler(Subcommand* cmd) {
 }
 
 static char* argv[] = {
-    "flag_test", "--int", "10",    "--float32", "3.14", "--float64", "100.5",
-    "--string",  "hello", "print", "--count",   "5",    "--verbose", "--prompt",
-
+    "flag_test", "--int", "10",      "--float32", "3.14",      "--float64", "100.5",    "--string",
+    "hello",     "print", "--count", "5",         "--verbose", "true",      "--prompt", "1",
 };
 
 #define argc (sizeof(argv) / sizeof(argv[0]))
@@ -68,7 +67,7 @@ int main(void) {
     Flag* cflag = subcommand_add_flag(print_cmd, FLAG_INT, "count", 'c', "Number of times to print",
                                       &count, true);
     subcommand_add_flag(print_cmd, FLAG_BOOL, "verbose", 'v', "Verbose output", &verbose, true);
-    subcommand_add_flag(print_cmd, FLAG_BOOL, "prompt", 'p', "Prompt for input", &prompt, true);
+    subcommand_add_flag(print_cmd, FLAG_BOOL, "prompt", 'p', "Prompt for input", &prompt, false);
 
     // add flag validator
     flag_set_validators(cflag, 1, validate_int);

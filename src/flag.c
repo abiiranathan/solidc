@@ -252,8 +252,12 @@ static void parse_flag_value(Flag* flag, const char* value) {
         case FLAG_STRING:
             *(char**)flag->value = (char*)value;
             break;
-        case FLAG_BOOL:  // we don't expect bool but non-the less we leave it here
-            *(bool*)flag->value = true;
+        case FLAG_BOOL:
+            if (value == NULL || strlen(value) == 1 || strncmp(value, "-", 1) == 0) {
+                *(bool*)flag->value = true;
+            } else {
+                code = sto_bool(value, (bool*)flag->value);
+            }
             break;
         case FLAG_FLOAT:
             code = sto_float(value, (float*)flag->value);
@@ -297,28 +301,22 @@ static void parse_flag_value(Flag* flag, const char* value) {
     }
 
     if (code != STO_SUCCESS) {
-        FATAL_ERROR("conversion error for flag: --%s: %s", flag->name, sto_error(code));
+        FATAL_ERROR("conversion error for flag: --%s: %s(%s)\n", flag->name, sto_error(code),
+                    value);
     }
 }
 
-void process_flag(Flag* flag, const char* name, size_t i, size_t nargs, char** argv) {
+void process_flag(Flag* flag, const char* name, size_t i, char** argv) {
     if (flag == NULL) {
         FATAL_ERROR("Unknown flag: --%s\n", name);
     }
 
+    parse_flag_value(flag, argv[i + 1]);
     flag->provided = true;
-    if (flag->type == FLAG_BOOL) {
-        *(bool*)flag->value = true;
-    } else {
-        if (i + 1 >= nargs) {
-            FATAL_ERROR("Missing value for flag: --%s\n", name);
-        }
-        parse_flag_value(flag, argv[i + 1]);
-    }
 }
 
 static void process_flag_name(char* name, bool is_long_flag, Subcommand* cmd, size_t i,
-                              size_t nargs, char** argv) {
+                              char** argv) {
     if (strlen(name) == 0) {
         FATAL_ERROR("Invalid flag name: %s\n", name);
     }
@@ -342,43 +340,8 @@ static void process_flag_name(char* name, bool is_long_flag, Subcommand* cmd, si
         FATAL_ERROR("Unknown flag: --%s\n", name);
     }
 
+    parse_flag_value(flag, argv[i]);
     flag->provided = true;
-    if (flag->type == FLAG_BOOL) {
-        *(bool*)flag->value = true;
-    } else {
-        // check if the next argument is a value and it does not start with -/--
-        // since this is not a bool flag
-        if (i + 1 >= nargs) {
-            FATAL_ERROR("Missing value for flag: --%s\n", name);
-        }
-
-        // Look a head to make sure the next argument is not a flag but a value
-        // otherwise the current flag would have been passed as a boolean when it's not.
-        {
-            char* name = "";
-            bool is_long_flag = strncmp(argv[i], "--", 2) == 0;
-            bool is_short_flag = strncmp(argv[i], "-", 1) == 0 && !is_long_flag;
-
-            if (is_long_flag) {
-                name = argv[i] + 2;
-            } else if (is_short_flag) {
-                name = argv[i] + 1;
-            }
-
-            Flag* nextFlag = NULL;
-            if (cmd == NULL) {
-                nextFlag = find_flag(ctx->flags, ctx->num_flags, name, is_long_flag);
-            } else {
-                nextFlag = find_flag(cmd->flags, cmd->num_flags, name, is_long_flag);
-            }
-
-            if (nextFlag) {
-                FATAL_ERROR("Missing value for non-boolean flag: --%s", flag->name);
-            }
-        }
-
-        parse_flag_value(flag, argv[i]);
-    }
 }
 
 typedef enum {
@@ -397,16 +360,16 @@ Subcommand* flag_parse(int argc, char** argv) {
     char* name = NULL;
     bool is_long_flag = false;
     Subcommand* current_subcommand = NULL;
-    size_t i = 1;
+    size_t i = 0;
     size_t nargs = (size_t)argc;
 
-    while (i < nargs) {
+    while (i < nargs - 1) {
+        i++;
         char* arg = argv[i];
         switch (state) {
             case START: {
                 is_long_flag = strncmp(arg, "--", 2) == 0;
                 bool is_short_flag = strncmp(arg, "-", 1) == 0 && !is_long_flag;
-
                 if (is_long_flag) {
                     name = arg + 2;
                     state = FLAG_NAME;
@@ -420,10 +383,9 @@ Subcommand* flag_parse(int argc, char** argv) {
                     state = FLAG_SUBCOMMAND;
                     i--;
                 }
-
             } break;
             case FLAG_NAME: {
-                process_flag_name(name, is_long_flag, current_subcommand, i, nargs, argv);
+                process_flag_name(name, is_long_flag, current_subcommand, i, argv);
                 state = START;
             } break;
             case FLAG_SUBCOMMAND: {
@@ -443,39 +405,6 @@ Subcommand* flag_parse(int argc, char** argv) {
             default:
                 FATAL_ERROR("Invalid state\n");
         }
-
-        // Process the last 2 arguments
-        if (i + 2 == nargs) {
-            for (size_t index = 0; index < 2; index++) {
-                arg = argv[i + index];
-                is_long_flag = strncmp(arg, "--", 2) == 0;
-                bool is_short_flag = strncmp(arg, "-", 1) == 0 && !is_long_flag;
-
-                if (is_long_flag || is_short_flag) {
-                    name = arg + (is_long_flag ? 2 : 1);
-                    process_flag_name(name, is_long_flag, current_subcommand, i + index, nargs,
-                                      argv);
-                } else {
-                    // could be a subcommand with no flags
-                    if (current_subcommand != NULL) {
-                        FATAL_ERROR("You can't have multiple subcommands\n");
-                    }
-
-                    for (size_t j = 0; j < ctx->num_subcommands; j++) {
-                        if (strcmp(ctx->subcommands[j].name, arg) == 0) {
-                            current_subcommand = &ctx->subcommands[j];
-                            break;
-                        }
-                    }
-                    if (current_subcommand == NULL) {
-                        FATAL_ERROR("Unknown subcommand: %s\n", arg);
-                    }
-                }
-            }
-        }
-
-        // Move to the next argument
-        i++;
     }
 
     // Check required flags

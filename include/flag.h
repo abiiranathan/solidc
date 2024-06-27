@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 typedef enum {
-    FLAG_BOOL,    // bool
+    FLAG_BOOL,    // boolean. Must have a value of a form, true/false, yes/no, on/off, 1/0
     FLAG_INT,     // int
     FLAG_SIZE_T,  // size_t
     FLAG_INT8,    // int8_t
@@ -24,11 +24,14 @@ typedef enum {
 } FlagType;
 
 typedef struct Subcommand Subcommand;
+
+// A flag struct. Each flag must have a corresponding value. e.g --verbose 1.
+// We do not support switches like --verbose --silent
 typedef struct Flag Flag;
 
 // FlagValidator is a function pointer that receives the parsed flag value, and a buffer
-// error of 512 bytes to write the error message if validation fails. Returns false
-// if the validation fails or true otherwise.
+// error of 512 bytes to write the error message if validation fails.
+// Returns false if the validation fails or true otherwise.
 typedef bool (*FlagValidator)(void* value, size_t size, char error[static size]);
 
 // Initialise global flag context.
@@ -58,7 +61,8 @@ Flag* global_add_flag(FlagType type, char* name, char short_name, char* descript
 // Print the usage information for the program.
 void flag_print_usage(const char* program_name);
 
-// Set flag one or more flag validators. count is the number of validators passed.
+// Set flag one or more flag validators.
+// count is the number of validators passed as arguments.
 void flag_set_validators(Flag* flag, size_t count, FlagValidator validators, ...);
 
 // Parse the command line arguments and return the matched subcommand if any.
