@@ -31,13 +31,11 @@ target_include_directories(solidc PUBLIC
 # Configure the target to use the C11 standard
 target_compile_options(solidc PRIVATE -Wall -Wextra -pedantic -Werror)
 
-# Install targets
-set_target_properties(solidc PROPERTIES PUBLIC_HEADER "${HEADERS}")
+# Explicitly install headers
+install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/solidc)
 
-install(TARGETS solidc 
-	LIBRARY DESTINATION lib
-	PUBLIC_HEADER DESTINATION include/solidc
-)
+# Install the target library
+install(TARGETS solidc LIBRARY DESTINATION lib)
 
 # Add the tests
 if(BUILD_TESTS)
