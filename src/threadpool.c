@@ -43,8 +43,10 @@
 /* Thread and synchronization primitives abstraction */
 #ifdef _WIN32
 #define THREAD HANDLE
-#define THREAD_CREATE(tid, func, arg) (*(tid) = (HANDLE)_beginthreadex(NULL, 0, func, arg, 0, NULL))
+#define THREAD_CREATE                                                                              \
+    (tid, func, arg)(*(tid) = (HANDLE)_beginthreadex(NULL, 0, func, arg, CREATE_SUSPENDED, NULL))
 #define THREAD_DETACH(tid) CloseHandle(tid)
+#define THREAD_RESUME(tid) ResumeThread(tid)
 
 #define MUTEX HANDLE
 #define MUTEX_INIT(m) ((*(m) = CreateMutex(NULL, FALSE, NULL)) == NULL)
@@ -68,6 +70,7 @@
 #define THREAD pthread_t
 #define THREAD_CREATE(tid, func, arg) pthread_create(tid, NULL, func, arg)
 #define THREAD_DETACH(tid) pthread_detach(tid)
+#define THREAD_RESUME(tid)
 
 #define MUTEX pthread_mutex_t
 #define MUTEX_INIT(m) pthread_mutex_init(m, NULL)
@@ -84,17 +87,6 @@
 #define SLEEP(sec) sleep(sec)
 #endif
 
-// Binary semaphore used for signaling between threads
-typedef struct bsem {
-#ifdef _WIN32
-    HANDLE v;  // Semaphore
-#else
-    pthread_mutex_t mutex;  // Mutex for the semaphore
-    pthread_cond_t cond;    // Conditional variable
-    int v;                  // Value of the semaphore
-#endif
-} bsem;
-
 // Job represents a work item that should be executed by a thread in the thread pool
 typedef struct job {
     struct job* next;             // Pointer to the next job
@@ -106,11 +98,11 @@ typedef struct job {
 // It's a linked list because we need to add jobs to the end of the queue
 // and keep track of the front of the queue to pull jobs from it
 typedef struct jobqueue {
-    MUTEX rwmutex;   // Mutex for the job queue
-    job* front;      // Pointer to the front of the queue
-    job* rear;       // Pointer to the rear of the queue
-    bsem* has_jobs;  // Semaphore to signal that there are jobs in the queue
-    int len;         // Number of jobs in the queue
+    MUTEX rwmutex;  // Mutex for the job queue
+    job* front;     // Pointer to the front of the queue
+    job* rear;      // Pointer to the rear of the queue
+    COND has_jobs;  // Semaphore to signal that there are jobs in the queue
+    int len;        // Number of jobs in the queue
 } jobqueue;
 
 // thread represents a cross-platform wrapper around a thread
@@ -151,89 +143,14 @@ static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob_p);
 static struct job* jobqueue_pull(jobqueue* jobqueue_p);
 static void jobqueue_destroy(jobqueue* jobqueue_p);
 
-static void bsem_init(struct bsem* bsem_p, int value);
-static void bsem_reset(struct bsem* bsem_p);
-static void bsem_post(struct bsem* bsem_p);
-static void bsem_post_all(struct bsem* bsem_p);
-static void bsem_wait(struct bsem* bsem_p);
-
 // ============== end ot prototypes ==========================
-
-static void bsem_init(bsem* bsem_p, int value) {
-    if (value < 0 || value > 1) {
-        err("bsem_init(): Binary semaphore can take only values 1 or 0");
-        exit(EXIT_FAILURE);
-    }
-#ifdef _WIN32
-    bsem_p->v = CreateSemaphore(NULL, value, 1, NULL);
-    if (bsem_p->v == NULL) {
-        err("bsem_init(): Could not create semaphore\n");
-        exit(EXIT_FAILURE);
-    }
-#else
-    pthread_mutex_init(&(bsem_p->mutex), NULL);
-    pthread_cond_init(&(bsem_p->cond), NULL);
-    bsem_p->v = value;
-#endif
-}
-
-static void bsem_reset(bsem* bsem_p) {
-#ifdef _WIN32
-    CloseHandle(bsem_p->v);
-    bsem_init(bsem_p, 0);
-#else
-    pthread_mutex_lock(&bsem_p->mutex);
-    bsem_p->v = 0;
-    pthread_mutex_unlock(&bsem_p->mutex);
-#endif
-}
-
-static void bsem_post(bsem* bsem_p) {
-#ifdef _WIN32
-    ReleaseSemaphore(bsem_p->v, 1, NULL);
-#else
-    pthread_mutex_lock(&bsem_p->mutex);
-    bsem_p->v = 1;
-    pthread_cond_signal(&bsem_p->cond);
-    pthread_mutex_unlock(&bsem_p->mutex);
-#endif
-}
-
-static void bsem_post_all(bsem* bsem_p) {
-#ifdef _WIN32
-    ReleaseSemaphore(bsem_p->v, 1, NULL);
-#else
-    pthread_mutex_lock(&bsem_p->mutex);
-    bsem_p->v = 1;
-    pthread_cond_broadcast(&bsem_p->cond);
-    pthread_mutex_unlock(&bsem_p->mutex);
-#endif
-}
-
-static void bsem_wait(bsem* bsem_p) {
-#ifdef _WIN32
-    WaitForSingleObject(bsem_p->v, 1000);  // Wait for 1 sec
-#else
-    pthread_mutex_lock(&bsem_p->mutex);
-    while (bsem_p->v != 1) {
-        pthread_cond_wait(&bsem_p->cond, &bsem_p->mutex);
-    }
-    bsem_p->v = 0;
-    pthread_mutex_unlock(&bsem_p->mutex);
-#endif
-}
 
 static int jobqueue_init(jobqueue* jobqueue_p) {
     jobqueue_p->len = 0;
     jobqueue_p->front = NULL;
     jobqueue_p->rear = NULL;
-    jobqueue_p->has_jobs = (bsem*)malloc(sizeof(bsem));
-    if (jobqueue_p->has_jobs == NULL) {
-        return -1;
-    }
-
     MUTEX_INIT(&jobqueue_p->rwmutex);
-    bsem_init(jobqueue_p->has_jobs, 0);
+    COND_INIT(&jobqueue_p->has_jobs);
 
     return 0;
 }
@@ -244,7 +161,6 @@ static void jobqueue_clear(jobqueue* jobqueue_p) {
     }
     jobqueue_p->front = NULL;
     jobqueue_p->rear = NULL;
-    bsem_reset(jobqueue_p->has_jobs);
     jobqueue_p->len = 0;
 }
 
@@ -261,7 +177,7 @@ static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob) {
     }
 
     jobqueue_p->len++;
-    bsem_post(jobqueue_p->has_jobs);
+    COND_SIGNAL(&jobqueue_p->has_jobs);
     MUTEX_UNLOCK(&jobqueue_p->rwmutex);
 }
 
@@ -270,22 +186,20 @@ static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob) {
  */
 static struct job* jobqueue_pull(jobqueue* jobqueue_p) {
     MUTEX_LOCK(&jobqueue_p->rwmutex);
-    job* job_p = jobqueue_p->front;
 
-    if (jobqueue_p->len == 0) {
-        job_p = NULL;
-    } else {
+    // Wait until there are jobs in the queue
+    while (jobqueue_p->len == 0 && threads_keepalive) {
+        COND_WAIT(&jobqueue_p->has_jobs, &jobqueue_p->rwmutex);
+    }
+
+    job* job_p = NULL;  // Initialize job_p
+    if (jobqueue_p->len > 0) {
+        job_p = jobqueue_p->front;
         jobqueue_p->front = job_p->next;
         jobqueue_p->len--;
         if (jobqueue_p->len == 0) {
             jobqueue_p->rear = NULL;
         }
-    }
-
-    if (jobqueue_p->len == 0) {
-        bsem_reset(jobqueue_p->has_jobs);
-    } else {
-        bsem_post(jobqueue_p->has_jobs);
     }
 
     MUTEX_UNLOCK(&jobqueue_p->rwmutex);
@@ -294,8 +208,8 @@ static struct job* jobqueue_pull(jobqueue* jobqueue_p) {
 
 static void jobqueue_destroy(jobqueue* jobqueue_p) {
     jobqueue_clear(jobqueue_p);
-    free(jobqueue_p->has_jobs);
     MUTEX_DESTROY(&jobqueue_p->rwmutex);
+    COND_DESTROY(&jobqueue_p->has_jobs);
 }
 
 static void thread_hold(int sig_id) {
@@ -321,7 +235,6 @@ static int thread_init(threadpool* pool, thread** thp, int id) {
 #else
     THREAD_CREATE(&(*thp)->pthread, (void* (*)(void*))threadWorker, (*thp));
 #endif
-    THREAD_DETACH((*thp)->pthread);
     return 0;
 }
 
@@ -330,6 +243,12 @@ static void thread_destroy(thread* thp) {
     if (thp == NULL) {
         return;
     }
+#ifdef _WIN32
+    WaitForSingleObject(thp->pthread, INFINITE);
+    CloseHandle(thp->pthread);
+#else
+    pthread_join(thp->pthread, NULL);
+#endif
     free(thp);
     thp = NULL;
 }
@@ -367,24 +286,24 @@ pthread_setname_np(thread_name);
     pool->num_threads_alive++;
     MUTEX_UNLOCK(&pool->thcount_lock);
 
+#ifdef _WIN32
+    THREAD_RESUME(thp->pthread);
+#endif
     while (threads_keepalive) {
-        bsem_wait(pool->jobqueue.has_jobs);
+        job* job_p = jobqueue_pull(&pool->jobqueue);
 
-        if (threads_keepalive) {
+        if (job_p) {
             MUTEX_LOCK(&pool->thcount_lock);
             pool->num_threads_working++;
             MUTEX_UNLOCK(&pool->thcount_lock);
 
             void (*func_buff)(void*);
             void* arg_buff;
-            job* job_p = jobqueue_pull(&pool->jobqueue);
 
-            if (job_p) {
-                func_buff = job_p->function;
-                arg_buff = job_p->arg;
-                func_buff(arg_buff);
-                free(job_p);
-            }
+            func_buff = job_p->function;
+            arg_buff = job_p->arg;
+            func_buff(arg_buff);
+            free(job_p);
 
             MUTEX_LOCK(&pool->thcount_lock);
             pool->num_threads_working--;
@@ -440,6 +359,12 @@ threadpool* threadpool_create(int num_threads) {
         thread_init(pool, &pool->threads[n], n);
     }
 
+    for (n = 0; n < num_threads; n++) {
+#ifdef _WIN32
+        THREAD_RESUME(pool->threads[n]->pthread);
+#endif
+    }
+
     while (pool->num_threads_alive != num_threads) {
         SLEEP(1);
     }
@@ -471,14 +396,14 @@ void threadpool_destroy(threadpool* pool) {
     double tpassed = 0.0;
     time(&start);
     while (tpassed < TIMEOUT && pool->num_threads_alive) {
-        bsem_post_all(pool->jobqueue.has_jobs);
+        COND_BROADCAST(&pool->jobqueue.has_jobs);
         time(&end);
         tpassed = difftime(end, start);
     }
 
     /* Poll remaining threads */
     while (pool->num_threads_alive) {
-        bsem_post_all(pool->jobqueue.has_jobs);
+        COND_BROADCAST(&pool->jobqueue.has_jobs);
         SLEEP(1);
     }
 
@@ -529,8 +454,3 @@ void threadpool_resume(threadpool* pool) {
 int threadpool_num_threads_working(threadpool* pool) {
     return pool->num_threads_working;
 }
-
-/**
-export WINEPATH="/usr/x86_64-w64-mingw32/lib;/usr/lib/gcc/x86_64-w64-mingw32/13.1.0/
-x86_64-w64-mingw32-gcc example.c threadpool.c -D threadpool_DEBUG -pthread -o example.exe -static
-*/
