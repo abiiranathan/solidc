@@ -187,3 +187,16 @@ set(FLAG_SRCS
 
 add_executable(flag_test ${FLAG_SRCS})
 add_test(flag_test flag_test)
+
+# csvparser_test module
+set(CSVPARSER_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/csvparser_test.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/csvparser.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/arena.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/file.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/filepath.c
+)
+
+add_executable(csvparser_test ${CSVPARSER_SRCS})
+add_test(csvparser_test csvparser_test)

@@ -40,3 +40,4 @@ bin
 .cache
 CMakeLists.txt.user
 Testing
+example.c
