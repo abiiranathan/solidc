@@ -129,6 +129,10 @@ bool filesize_tostring(size_t size, char* buf, size_t len) {
     return written > 0 && (size_t)written < len;
 }
 
+ssize_t file_size(file_t* file) {
+    return file->size;
+}
+
 // Return file size for a given file name
 ssize_t file_size_char(const char* filename) {
     file_t* file = file_open(filename, "r");

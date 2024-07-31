@@ -1,5 +1,11 @@
 #include "../include/unicode.h"
 
+#include <stdlib.h>
+#include <string.h>
+// #include <wchar.h>
+#include <locale.h>
+#include <wctype.h>
+
 // Data structure for a utf-8 char string
 typedef struct utf8_string {
     char* data;     // utf-8 string

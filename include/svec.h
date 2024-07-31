@@ -7,7 +7,7 @@
 // Heavily uses assertions to validate pointers. Cimpile with -DNDEBUG
 // to remove the assertions.
 
-#include "../include/arena.h"
+#include "arena.h"
 
 #include <assert.h>
 #include <stdbool.h>

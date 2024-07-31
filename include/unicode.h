@@ -13,11 +13,6 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-// #include <wchar.h>
-#include <locale.h>
-#include <wctype.h>
 
 #define UNICODE_VERSION 0x0100          // 1.0
 #define UNICODE_MAX_CODEPOINT 0x10FFFF  // 1,114,111
