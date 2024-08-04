@@ -1,5 +1,6 @@
 #include "../include/csvparser.h"
-#include <solidc/filepath.h>
+#include "../include/filepath.h"
+
 #include <stdio.h>
 #include <string.h>
 
