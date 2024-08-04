@@ -8,6 +8,7 @@ set(ARENA_SRCS
 
 add_executable(arena_test ${ARENA_SRCS})
 add_test(arena_test arena_test)
+target_link_libraries(arena_test pthread m)
 
 
 # Add the test executable for cstr module
@@ -20,7 +21,7 @@ set(CSTR_SRCS
 
 add_executable(cstr_test ${CSTR_SRCS})
 add_test(cstr_test cstr_test)
-
+target_link_libraries(cstr_test pthread m)
 
 # Add the test executable for file module
 set(FILE_SRCS
@@ -31,6 +32,7 @@ set(FILE_SRCS
 
 add_executable(file_test ${FILE_SRCS})
 add_test(file_test file_test)
+target_link_libraries(file_test pthread m)
 
 
 # Add the test executable for filepath module
@@ -42,7 +44,7 @@ set(FILEPATH_SRCS
 
 add_executable(filepath_test ${FILEPATH_SRCS})
 add_test(filepath_test filepath_test)
-
+target_link_libraries(filepath_test pthread m)
 
 # Add the test executable for lock module
 set(LOCK_SRCS
@@ -53,6 +55,7 @@ set(LOCK_SRCS
 
 add_executable(lock_test ${LOCK_SRCS})
 add_test(lock_test lock_test)
+target_link_libraries(lock_test pthread m)
 
 
 # Add the test executable for thread module
@@ -64,6 +67,7 @@ set(THREAD_SRCS
 
 add_executable(thread_test ${THREAD_SRCS})
 add_test(thread_test thread_test)
+target_link_libraries(thread_test pthread m)
 
 # Add the test executable for process module
 set(PROCESS_SRCS
@@ -73,6 +77,7 @@ set(PROCESS_SRCS
 
 add_executable(process_test ${PROCESS_SRCS})
 add_test(process_test process_test)
+target_link_libraries(process_test pthread m)
 
 
 # Add the test executable for threadpool module
@@ -85,6 +90,7 @@ set(THREADPOOL_SRCS
 
 add_executable(threadpool_test ${THREADPOOL_SRCS})
 add_test(threadpool_test threadpool_test)
+target_link_libraries(threadpool_test pthread m)
 
 # Add the test executable for map module
 set(MAP_SRCS
@@ -97,6 +103,7 @@ set(MAP_SRCS
 
 add_executable(map_test ${MAP_SRCS})
 add_test(map_test map_test)
+target_link_libraries(map_test pthread m)
 
 
 # Add the test executable for vec module
@@ -119,7 +126,6 @@ set(SVEC_SRCS
 
 add_executable(svec_test ${VEC_SRCS})
 add_test(svec_test svec_test)
-
 
 # Add the test executable for optional module
 set(OPTIONAL_SRCS
@@ -161,6 +167,7 @@ if(TEST_STDIN)
     target_compile_definitions(stdstreams_test PUBLIC TEST_STDIN=1)
 endif()
 
+target_link_libraries(stdstreams_test pthread m)
 add_test(stdstreams_test stdstreams_test)
  
 # strton_test module
@@ -203,3 +210,4 @@ set(CSVPARSER_SRCS
 
 add_executable(csvparser_test ${CSVPARSER_SRCS})
 add_test(csvparser_test csvparser_test)
+target_link_libraries(csvparser_test pthread m)
