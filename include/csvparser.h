@@ -26,9 +26,7 @@ extern "C" {
 #define _GNU_SOURCE 1
 #endif
 
-#include <solidc/arena.h>
-#include <solidc/cstr.h>
-#include <solidc/file.h>
+#include "arena.h"
 
 #include <stdbool.h>
 #include <stddef.h>

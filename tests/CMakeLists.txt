@@ -77,8 +77,10 @@ add_test(process_test process_test)
 
 # Add the test executable for threadpool module
 set(THREADPOOL_SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/threadpool_test.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/thread.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/threadpool.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/threadpool_test.c
 )
 
 add_executable(threadpool_test ${THREADPOOL_SRCS})
@@ -90,6 +92,7 @@ set(MAP_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/map.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/threadpool.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/thread.c
 )
 
 add_executable(map_test ${MAP_SRCS})

@@ -1,4 +1,5 @@
 #include "../include/csvparser.h"
+#include "../include/file.h"
 
 #include <ctype.h>
 #include <limits.h>
