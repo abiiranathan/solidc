@@ -116,6 +116,8 @@ set(VEC_SRCS
 
 add_executable(vec_test ${VEC_SRCS})
 add_test(vec_test vec_test)
+target_link_libraries(vec_test pthread m)
+
 
 # Add the test executable for svec module
 set(SVEC_SRCS
@@ -126,6 +128,7 @@ set(SVEC_SRCS
 
 add_executable(svec_test ${VEC_SRCS})
 add_test(svec_test svec_test)
+target_link_libraries(svec_test pthread m)
 
 # Add the test executable for optional module
 set(OPTIONAL_SRCS
@@ -145,6 +148,7 @@ set(SOCKET_SRCS
 
 add_executable(socket_test ${SOCKET_SRCS})
 add_test(socket_test socket_test)
+target_link_libraries(socket_test pthread m)
 
 # If you have access to stdin, turn this on
 set(TEST_STDIN OFF)
