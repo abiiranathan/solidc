@@ -21,6 +21,7 @@ file(GLOB HEADERS "include/*.h")
 # Include our main solidc library.
 # Can pass -DBUILD_SHARED_LIB to build a shared library
 add_library(solidc ${SOURCES})
+target_link_libraries(solidc PUBLIC m pthread)
 
 # Include the include directory
 target_include_directories(solidc PUBLIC
