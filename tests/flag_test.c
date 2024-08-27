@@ -5,7 +5,7 @@
 #include <string.h>
 
 static int integer_flag = 0;
-static float float32_flag = 0.0;
+static float float32_flag = 0.0f;
 static double float64_flag = 0.0;
 static char* string_flag = "";
 

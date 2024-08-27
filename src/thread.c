@@ -1,4 +1,5 @@
 #include "../include/thread.h"
+#include <stddef.h>
 #include <time.h>
 
 #ifdef _WIN32
@@ -141,7 +142,7 @@ void sleep_ms(int ms) {
 #else
     struct timespec ts;
     ts.tv_sec = ms / 1000;
-    ts.tv_nsec = (ms % 1000) * 1000000;
+    ts.tv_nsec = (__syscall_slong_t)((ms % 1000) * 1000000);
     nanosleep(&ts, NULL);
 #endif
 }
@@ -158,14 +159,14 @@ int get_pid(void) {
 // Get the current thread id
 int get_tid(void) {
 #ifdef _WIN32
-    return GetCurrentThreadId();
+    return (int)GetCurrentThreadId();
 #else
-    return pthread_self();
+    return (int)pthread_self();
 #endif
 }
 
 // Get the number of CPU cores
-int get_ncpus(void) {
+unsigned long get_ncpus(void) {
 #ifdef _WIN32
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
@@ -182,12 +183,12 @@ int get_ppid(void) {
 }
 
 // Get the current user id
-int get_uid(void) {
+unsigned int get_uid(void) {
     return getuid();
 }
 
 // Get the current group id
-int get_gid(void) {
+unsigned int get_gid(void) {
     return getgid();
 }
 

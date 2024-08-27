@@ -73,16 +73,20 @@ void test_cond_brodcast() {
     cond_init(&condition);
 
     Thread threads[NUM_THREADS];
+
+    lock_acquire(&lock);  // Acquire the lock before starting the threads
+
     for (int i = 0; i < NUM_THREADS; i++) {
         thread_create(&threads[i], add_one, &condition);
     }
 
-    for (int i = 0; i < NUM_THREADS; i++) {
-        thread_join(threads[i], NULL);
-    }
-
     while (counter < NUM_THREADS) {
         cond_wait(&condition, &lock);
+    }
+    lock_release(&lock);  // Release the lock after the condition is met
+
+    for (int i = 0; i < NUM_THREADS; i++) {
+        thread_join(threads[i], NULL);
     }
 
     cond_free(&condition);

@@ -523,7 +523,7 @@ bool cstr_snakecase(Arena* arena, cstr* str) {
     char* data = str->data;
 
     // Convert first character to lowercase
-    data[0] = tolower(data[0]);
+    data[0] = (char)tolower(data[0]);
     size_t space_count = 0;
     char prev = data[0];
 
@@ -544,7 +544,7 @@ bool cstr_snakecase(Arena* arena, cstr* str) {
         }
 
         // Convert the character to lowercase
-        data[i - space_count] = tolower(data[i]);
+        data[i - space_count] = (char)tolower(data[i]);
 
         // Insert underscore before digit if preceded by a non-digit character
         if (isdigit(data[i]) && !isdigit(prev)) {
@@ -570,10 +570,10 @@ void cstr_titlecase(cstr* str) {
         if (str->data[i] == ' ') {
             capitalize = 1;
         } else if (capitalize) {
-            str->data[i] = toupper(str->data[i]);
+            str->data[i] = (char)toupper(str->data[i]);
             capitalize = 0;
         } else {
-            str->data[i] = tolower(str->data[i]);
+            str->data[i] = (char)tolower(str->data[i]);
         }
     }
 }
@@ -594,17 +594,17 @@ bool cstr_camelcase(cstr* str) {
         if (data[dest_index] == ' ' || data[dest_index] == '_') {
             capitalize = 1;
         } else if (capitalize) {
-            data[dest_index] = toupper(data[dest_index]);
+            data[dest_index] = (char)toupper(data[dest_index]);
             capitalize = 0;
         } else {
             if (isupper(data[dest_index])) {
                 switch_to_upper = 1;
             }
             if (switch_to_upper) {
-                data[dest_index] = toupper(data[dest_index]);
+                data[dest_index] = (char)toupper(data[dest_index]);
                 switch_to_upper = 0;
             } else {
-                data[dest_index] = tolower(data[dest_index]);
+                data[dest_index] = (char)tolower(data[dest_index]);
             }
         }
         dest_index++;
@@ -619,7 +619,7 @@ bool cstr_camelcase(cstr* str) {
         }
     }
 
-    data[0] = tolower(data[0]);
+    data[0] = (char)tolower(data[0]);
     data[j] = '\0';
 
     str->length = j;
@@ -632,7 +632,7 @@ bool cstr_pascalcase(cstr* str) {
         return false;
     }
     if (str->length > 0) {
-        str->data[0] = toupper(str->data[0]);
+        str->data[0] = (char)toupper(str->data[0]);
     }
     return true;
 }

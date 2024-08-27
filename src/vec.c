@@ -157,7 +157,7 @@ bool vec_contains(vec_t* vec, void* elem) {
 int vec_find_index(vec_t* vec, void* elem) {
     for (size_t i = 0; i < vec->size; ++i) {
         if (vec->cmp(vec->data[i], elem)) {
-            return i;
+            return (int)i;
         }
     }
     return -1;

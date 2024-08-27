@@ -1,6 +1,7 @@
 #include "../include/arena.h"
 #include "../include/thread.h"
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -92,7 +93,7 @@ int main(void) {
     printf("Buffer 2: %p\n", (void*)buffer2);
 
     // Allocate a very big chunk to test arena expansion
-    char* buffer3 = arena_alloc(arena, 1024 * 1024 * 10);  // 10MB
+    char* buffer3 = arena_alloc(arena, (size_t)(1024 * 1024 * 10));  // 10MB
     ASSERT(buffer3, "arena_alloc: Failed to allocate memory.")
 
     strcpy(buffer3, "Big buffer here.");
@@ -123,18 +124,18 @@ int main(void) {
     // Create another arena and benchmark 10m allocations
     time_t start, end;
     time(&start);
-    Arena* arena4 = arena_create(1024 * 1024 * 10, ARENA_DEFAULT_ALIGNMENT);  // 10MB
+    Arena* arena4 = arena_create((size_t)(1024 * 1024 * 10), ARENA_DEFAULT_ALIGNMENT);  // 10MB
     ASSERT(arena4, "Failed to create arena.")
 
     for (int i = 0; i < 1000; i++) {
-        char* str = arena_alloc(arena4, 1024 * 1024);
+        char* str = arena_alloc(arena4, (size_t)(1024 * 1024));
         ASSERT(str, "arena_alloc: Failed to allocate memory.")
         // No need to free the memory, as it will be returned to the free list
         (void)str;
     }
 
     // Allocate a very big chunk to test arena expansion
-    char* buffer6 = arena_alloc(arena4, 1024 * 1024 * 10);  // 10MB
+    char* buffer6 = arena_alloc(arena4, (size_t)(1024 * 1024 * 10));  // 10MB
     ASSERT(buffer6, "arena_alloc: Failed to allocate memory.")
 
     strcpy(buffer6, "Big buffer here.");

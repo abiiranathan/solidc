@@ -1,4 +1,5 @@
 #include "../include/hash.h"
+#include <stddef.h>
 #include <string.h>
 
 #undef get16bits
@@ -29,20 +30,17 @@ uint32_t solidc_fnv1a_hash(const void* key) {
 }
 
 uint32_t solidc_elf_hash(const void* key) {
-    unsigned char* str = (unsigned char*)key;
-    unsigned long hash = 0;
-
-    uint_fast32_t x = 0;
+    const unsigned char* str = (const unsigned char*)key;
+    uint32_t hash = 0;
+    uint32_t x;
 
     while (*str) {
-        // same as (hash * 16 + *str++)
         hash = (hash << 4) + *str++;
-
-        // check for high-order bit set
-        if ((x = hash & 0xF0000000L) != 0) {
-            hash ^= (x >> 24);  // move high-order bit to low end of hash
+        x = hash & 0xF0000000UL;
+        if (x != 0) {
+            hash ^= (x >> 24);
         }
-        hash &= ~x;  // clear high-order bit
+        hash &= ~x;
     }
     return hash;
 }
@@ -94,7 +92,7 @@ uint32_t solidc_murmur_hash(const char* key, uint32_t len, uint32_t seed) {
     const uint32_t* chunks = NULL;
     const uint8_t* tail = NULL;  // tail - last 8 bytes
     int i = 0;
-    int l = len / 4;  // chunk length
+    uint32_t l = len / 4;  // chunk length
 
     h = seed;
 

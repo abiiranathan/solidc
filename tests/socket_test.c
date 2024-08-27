@@ -15,7 +15,7 @@ void handle_client(void* client_socket_ptr) {
     Socket* client_socket = (Socket*)client_socket_ptr;
 
     char buffer[1024];
-    int bytes_read = socket_recv(client_socket, buffer, sizeof(buffer) - 1, 0);
+    ssize_t bytes_read = socket_recv(client_socket, buffer, sizeof(buffer) - 1, 0);
     if (bytes_read > 0) {
         buffer[bytes_read] = '\0';
         printf("Received message: %s\n", buffer);

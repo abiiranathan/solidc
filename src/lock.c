@@ -1,5 +1,6 @@
 #include "../include/lock.h"
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -78,7 +79,7 @@ void lock_wait(Lock* lock, Condition* condition, int timeout) {
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     ts.tv_sec += timeout / 1000;
-    ts.tv_nsec += (timeout % 1000) * 1000000;
+    ts.tv_nsec += (__syscall_slong_t)((timeout % 1000) * 1000000);
     pthread_cond_timedwait(condition, lock, &ts);
 }
 
@@ -102,7 +103,7 @@ void cond_wait_timeout(Condition* condition, Lock* lock, int timeout) {
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     ts.tv_sec += timeout / 1000;
-    ts.tv_nsec += (timeout % 1000) * 1000000;
+    ts.tv_nsec += (__syscall_slong_t)((timeout % 1000) * 1000000);
     pthread_cond_timedwait(condition, lock, &ts);
 }
 

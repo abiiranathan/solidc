@@ -86,12 +86,16 @@ bool double_cmp(const void* a, const void* b);
 bool size_t_cmp(const void* a, const void* b);
 
 #define vec_foreach(vec, index_var)                                                                \
-    for (size_t index_var = 0; index_var < vec_size(vec); index_var++)
+    do {                                                                                           \
+        for (size_t index_var = 0; (index_var) < vec_size(vec); (index_var)++)                     \
+    } while (0)
 
 #define vec_foreach_ptr(vec, index, elem)                                                          \
-    for (size_t index = 0; index < vec_size(vec); index++)                                         \
-        for (int cont = 1; cont; cont = 0)                                                         \
-            for (void* elem = vec_get(vec, index); cont; cont = 0)
+    do {                                                                                           \
+        for (size_t index = 0; (index) < vec_size(vec); (index)++)                                 \
+            for (int cont = 1; cont; cont = 0)                                                     \
+                for (void*(elem) = vec_get(vec, index); cont; cont = 0)                            \
+    } while (0)
 
 #if defined(__cplusplus)
 }

@@ -30,7 +30,7 @@ void test_float_vector(void) {
     assert(vec);
 
     for (int i = 0; i < 10; i++) {
-        floatvec_push_back(vec, i * 2.5);
+        floatvec_push_back(vec, 2.5f * (float)i);
     }
 
     assert(vec->size == 10);

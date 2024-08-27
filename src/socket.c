@@ -89,7 +89,8 @@ int socket_bind(Socket* sock, const struct sockaddr* addr, socklen_t addrlen) {
         printLastErrorMessage("bind");
     }
 #else
-    if ((ret = bind(sock->handle, addr, addrlen)) != 0) {
+    ret = bind(sock->handle, addr, addrlen);
+    if (ret != 0) {
         perror("bind");
         ret = 0;
     }

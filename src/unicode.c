@@ -1,9 +1,11 @@
+
 #include "../include/unicode.h"
 
+#include <assert.h>
+#include <locale.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-// #include <wchar.h>
-#include <locale.h>
 #include <wctype.h>
 
 // Data structure for a utf-8 char string
@@ -38,7 +40,7 @@ void ucp_to_utf8(uint32_t codepoint, char* utf8) {
 uint32_t utf8_to_codepoint(const char* utf8) {
     uint32_t codepoint = 0;
     if ((utf8[0] & 0x80) == 0) {
-        codepoint = utf8[0];
+        codepoint = (unsigned char)utf8[0];
     } else if ((utf8[0] & 0xE0) == 0xC0) {
         codepoint = (utf8[0] & 0x1F) << 6;
         codepoint |= (utf8[1] & 0x3F);
@@ -102,7 +104,7 @@ size_t utf8_char_length(const char* str) {
     } else if (byte <= 0xF7) {
         return 4;
     } else {
-        return 1;  // Invalid UTF-8 character
+        return 0;  // Invalid UTF-8 character
     }
 }
 
@@ -200,7 +202,7 @@ void utf8_print_codepoints(const utf8_string* s) {
 int utf8_index_of(const utf8_string* s, const char* utf8) {
     char* index = strstr(s->data, utf8);
     if (index) {
-        return index - s->data;
+        return (int)(index - s->data);
     }
     return -1;
 }
@@ -208,12 +210,17 @@ int utf8_index_of(const utf8_string* s, const char* utf8) {
 void utf8_append(utf8_string* s, const char* data) {
     size_t length = utf8_byte_length(data);
     size_t count = utf8_count_codepoints(data);
-    s->data = (char*)realloc(s->data, s->length + length + 1);
-    if (s->data) {
+
+    char* new_data = (char*)realloc(s->data, s->length + length + 1);
+    if (new_data) {
+        s->data = new_data;
         memcpy(&s->data[s->length], data, length);
         s->length += length;
         s->count += count;
         s->data[s->length] = '\0';
+    } else {
+        fprintf(stderr, "realloc failed\n");
+        exit(1);
     }
 }
 
@@ -229,8 +236,9 @@ char* utf8_substr(const utf8_string* s, size_t index, size_t utf8_byte_len) {
 void utf8_insert(utf8_string* s, size_t index, const char* data) {
     size_t length = utf8_byte_length(data);
     size_t count = utf8_count_codepoints(data);
-    s->data = (char*)realloc(s->data, s->length + length + 1);
-    if (s->data) {
+    char* new_data = (char*)realloc(s->data, s->length + length + 1);
+    if (new_data) {
+        s->data = new_data;
         memmove(&s->data[index + length], &s->data[index], s->length - index + 1);
         memcpy(&s->data[index], data, length);
         s->length += length;
@@ -255,11 +263,15 @@ void utf8_replace(utf8_string* s, const char* old_str, const char* new_str) {
     size_t new_count = utf8_count_codepoints(new_str);
 
     char* index = s->data;
-    if ((index = strstr(index, old_str)) != NULL) {
+    index = strstr(index, old_str);
+    if (index != NULL) {
         size_t offset = index - s->data;
         if (old_byte_len != new_byte_len) {
-            s->data = (char*)realloc(s->data, s->length - old_byte_len + new_byte_len + 1);
+            char* new_data = (char*)realloc(s->data, s->length - old_byte_len + new_byte_len + 1);
+            assert(new_data);
+            s->data = new_data;
         }
+
         if (s->data) {
             memmove(&s->data[offset + new_byte_len], &s->data[offset + old_byte_len],
                     s->length - offset - old_byte_len + 1);
@@ -284,7 +296,9 @@ void utf8_replace_all(utf8_string* s, const char* old_str, const char* new_str) 
 
         // If new string is an empty string, then remove the old string
         if (new_byte_len > 0 && old_byte_len != new_byte_len) {
-            s->data = (char*)realloc(s->data, s->length - old_byte_len + new_byte_len + 1);
+            char* new_data = (char*)realloc(s->data, s->length - old_byte_len + new_byte_len + 1);
+            assert(new_data);
+            s->data = new_data;
         }
 
         if (s->data) {
@@ -314,10 +328,10 @@ void utf8_reverse(utf8_string* s) {
     }
 }
 
-ssize_t utf8_writeto(const utf8_string* s, const char* filename) {
+unsigned long utf8_writeto(const utf8_string* s, const char* filename) {
     FILE* file = fopen(filename, "w");
     if (file) {
-        ssize_t bytes = fwrite(s->data, 1, s->length, file);
+        unsigned long bytes = fwrite(s->data, 1, s->length, file);
         fclose(file);
         return bytes;
     }

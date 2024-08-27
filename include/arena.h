@@ -19,7 +19,7 @@
 extern "C" {
 #endif
 
-#define ARENA_DEFAULT_CHUNKSIZE (1024 * 1024)
+#define ARENA_DEFAULT_CHUNKSIZE (size_t)(1024 * 1024)
 #define ARENA_DEFAULT_ALIGNMENT 8
 #define SYSTEM_MAX_ALIGNMENT (alignof(max_align_t))
 
@@ -45,9 +45,6 @@ void* arena_alloc(Arena* arena, size_t size) __attribute__((warn_unused_result()
 // Allocate a new memory block for ptr and copy contents of ptr.
 // If there is no need for re-allocation, the ptr is returned as is.
 void* arena_realloc(Arena* arena, void* ptr, size_t size) __attribute__((warn_unused_result()));
-
-// Does nothing but allows the allocator to be used in an API that expects a fee function.
-void arena_free(Arena* arena, void* ptr);
 
 // Allocate a string from the arena. The string is copied into the arena memory.
 // Returns NULL on failure.

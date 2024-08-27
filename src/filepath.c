@@ -9,10 +9,13 @@
 // Length of the temporary directory prefix
 #define TEMP_PREF_PREFIX_LEN 12
 
-// Generate a random string of the given length.
-// str must be a buffer of at least len + 1 bytes.
 static void random_string(char* str, size_t len) {
-    srand((unsigned int)time(NULL));  // Seed the random number generator
+    static int seeded = 0;
+    if (!seeded) {
+        srand((unsigned int)time(NULL));
+        seeded = 1;
+    }
+
     const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     for (size_t i = 0; i < len; i++) {
         size_t index = rand() % (sizeof(charset) - 1);

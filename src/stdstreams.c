@@ -1,3 +1,7 @@
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 1
+#endif
+
 #include "../include/stdstreams.h"
 
 #include <float.h>
@@ -19,7 +23,7 @@ bool readline(const char* prompt, char* buffer, size_t buffer_len) {
         fflush(stdout);
     }
 
-    if (fgets(buffer, buffer_len, stdin) == NULL) {
+    if (fgets(buffer, (int)buffer_len, stdin) == NULL) {
         return false;
     }
 
@@ -27,7 +31,7 @@ bool readline(const char* prompt, char* buffer, size_t buffer_len) {
 
     if (strlen(buffer) >= buffer_len - 1) {
         char c;
-        while ((c = getchar()) != EOF) {
+        while ((c = (char)getchar()) != EOF) {
             if (c == '\n')
                 break;
         }
@@ -123,7 +127,7 @@ enum stream_type {
 // Any type can implement
 struct stream {
     // Function pointer to from the stream
-    int (*read)(void* handle, size_t size, size_t count, void* ptr);
+    unsigned long (*read)(void* handle, size_t size, size_t count, void* ptr);
 
     // Function pointer for reading a single character from the stream
     int (*read_char)(void* handle);
@@ -152,7 +156,7 @@ static size_t file_write(const void* ptr, size_t size, size_t count, void* handl
     return fwrite(ptr, size, count, (FILE*)handle);
 }
 
-static int file_read(void* handle, size_t size, size_t count, void* ptr) {
+static unsigned long file_read(void* handle, size_t size, size_t count, void* ptr) {
     return fread(ptr, size, count, (FILE*)handle);
 }
 
@@ -178,7 +182,7 @@ ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size)
     int ch;
     while ((ch = stream->read_char(stream->handle)) != EOF && ch != delim &&
            bytes_read < (int)buffer_size - 1) {
-        buffer[bytes_read++] = ch;
+        buffer[bytes_read++] = (char)ch;
     }
 
     // Handle errors (EOF or read error)
@@ -200,10 +204,10 @@ ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size)
     return bytes_read;
 }
 
-int io_copy(stream_t writer, stream_t reader) {
+unsigned long io_copy(stream_t writer, stream_t reader) {
     char buffer[4096];
-    int nread = 0;
-    int total_written = 0;
+    unsigned long nread = 0;
+    unsigned long total_written = 0;
     reader->seek(reader->handle, 0, SEEK_SET);
 
     while ((nread = reader->read(reader->handle, 1, sizeof(buffer), buffer)) > 0) {
@@ -216,16 +220,17 @@ int io_copy(stream_t writer, stream_t reader) {
 }
 
 // Copy contents of one reader into writer, writing up to n bytes into the writer.
-int io_copy_n(stream_t writer, stream_t reader, size_t n) {
+unsigned long io_copy_n(stream_t writer, stream_t reader, size_t n) {
     char buffer[4096];
-    int nread = 0;
-    int total_written = 0;
+    unsigned long nread = 0;
+    unsigned long total_written = 0;
     reader->seek(reader->handle, 0, SEEK_SET);
 
     while (n > 0 && (nread = reader->read(reader->handle, 1, sizeof(buffer), buffer)) > 0) {
-        if ((nread > (int)n)) {
+        if ((nread > n)) {
             nread = n;
         }
+
         total_written += writer->write(buffer, 1, nread, writer->handle);
         n -= nread;
     }
@@ -236,7 +241,7 @@ int io_copy_n(stream_t writer, stream_t reader, size_t n) {
 }
 
 // concrete implementation for reading from a string
-static int _string_stream_read(void* handle, size_t size, size_t count, void* ptr) {
+static unsigned long inner_string_stream_read(void* handle, size_t size, size_t count, void* ptr) {
     (void)size;  // size is always 1 for a string
 
     string_stream* ss = (string_stream*)handle;
@@ -281,7 +286,7 @@ static int string_stream_eof(void* handle) {
 }
 
 // implementation for writing to a string. For a char *, size must be 1.
-static size_t __string_stream_write(const void* ptr, size_t size, size_t count, void* handle) {
+static size_t inner__string_stream_write(const void* ptr, size_t size, size_t count, void* handle) {
     string_stream* ss = (string_stream*)handle;
     size_t bytes_written = 0;
     size_t total_bytes = size * count;
@@ -351,7 +356,7 @@ int string_stream_write(stream_t stream, const char* str) {
     if (!cstr_append(ss->arena, ss->str, str)) {
         return -1;
     }
-    return strlen(str);
+    return (int)strlen(str);
 }
 
 const char* string_stream_data(stream_t stream) {
@@ -359,7 +364,7 @@ const char* string_stream_data(stream_t stream) {
     return cstr_data(ss->str);
 }
 
-static void __free_file_stream(stream_t stream) {
+static void inner__free_file_stream(stream_t stream) {
     if (!stream)
         return;
     FILE* fp = (FILE*)stream->handle;
@@ -372,7 +377,7 @@ static void __free_file_stream(stream_t stream) {
     stream = NULL;
 }
 
-static void __free_string_stream(stream_t stream) {
+static void inner__free_string_stream(stream_t stream) {
     if (!stream)
         return;
 
@@ -393,10 +398,10 @@ static void __free_string_stream(stream_t stream) {
 void stream_destroy(stream_t stream) {
     switch (stream->type) {
         case FILE_STREAM:
-            __free_file_stream(stream);
+            inner__free_file_stream(stream);
             break;
         case STRING_STREAM:
-            __free_string_stream(stream);
+            inner__free_string_stream(stream);
             break;
         case INVALID_STREAM:
             // Should never happen
@@ -415,7 +420,7 @@ stream_t create_string_stream(size_t initial_capacity) {
     string_stream* ss = (string_stream*)malloc(sizeof(string_stream));
     if (ss == NULL) {
         free(stream);
-        return false;
+        return NULL;
     }
 
     Arena* arena = arena_create(ARENA_DEFAULT_CHUNKSIZE, ARENA_DEFAULT_ALIGNMENT);
@@ -431,15 +436,15 @@ stream_t create_string_stream(size_t initial_capacity) {
         arena_destroy(arena);
         free(stream);
         free(ss);
-        return false;
+        return NULL;
     }
 
     ss->pos = 0;
-    stream->read = _string_stream_read;
+    stream->read = inner_string_stream_read;
     stream->flush = (int (*)(void*))string_flush;
     stream->read_char = string_stream_read_char;
     stream->eof = string_stream_eof;
-    stream->write = __string_stream_write;
+    stream->write = inner__string_stream_write;
     stream->seek = string_stream_seek;
     stream->handle = ss;
     stream->type = STRING_STREAM;

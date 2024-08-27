@@ -6,11 +6,10 @@ configure:
 	cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
 build: 
-	/usr/bin/cmake --build ./build --config Debug --target all -- -j10
+	cd build && ninja
 
 test: build
-	cd build && ctest -j8 -C Debug -T test --output-on-failure
-	# cd build && ctest -j8 -C Debug -T test --output-on-failure -R ^flag_test$
+	cd build && ninja test
 
 install: test
-	cd build && sudo cmake --install . --config Debug
+	cd build && sudo ninja install

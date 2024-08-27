@@ -33,7 +33,7 @@ typedef struct Process {
     STARTUPINFO si;          // Start up info
     PROCESS_INFORMATION pi;  // Process information
 #else
-    long pid;  // Process ID(long to match DWORD on Windows)
+    unsigned long pid;  // Process ID(long to match DWORD on Windows)
 #endif
 } Process;
 

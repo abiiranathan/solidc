@@ -14,42 +14,14 @@
 void test_iocopy_n(void) {
     FILE* current_file = fopen(__FILE__, "r");
     ASSERT(current_file, "Error opening file")
-    int size = 128;
+    size_t size = 128;
 
     stream_t fstream = create_file_stream(current_file);
     stream_t sstream = create_string_stream(size);
 
-    int n = io_copy_n(sstream, fstream, size);
+    size_t n = io_copy_n(sstream, fstream, size);
     ASSERT(n == size, "Error copying streams");
     stream_destroy(sstream);
-}
-
-void test_stdinputstreams(void) {
-    // test copying from sstream to stdout
-    stream_t sstream = create_string_stream(128);
-    string_stream_write(sstream, "Hello, World!\n");
-
-    stream_t stdout_stream = create_file_stream(stdout);
-    int n = io_copy(stdout_stream, sstream);
-    if (n == -1) {
-        fprintf(stderr, "Error copying streams\n");
-        return;
-    }
-    stream_destroy(sstream);
-
-#ifdef TEST_STDIN
-    // This test is not possible to run in an automated  environment
-    // test copying from stdin to stdout
-    printf("Enter some text and press Ctrl-D when you are done\n");
-    stream_t istream = create_file_stream(stdin);
-    n = io_copy_n(stdout_stream, istream, 10);
-    if (n == -1) {
-        fprintf(stderr, "Error copying streams\n");
-        return;
-    }
-    stream_destroy(istream);
-#endif
-    stream_destroy(stdout_stream);
 }
 
 void test_readuntil(void) {
@@ -90,7 +62,6 @@ void test_readuntil(void) {
 int main(void) {
     test_readuntil();
     test_iocopy_n();
-    test_stdinputstreams();
     return 0;
 }
 

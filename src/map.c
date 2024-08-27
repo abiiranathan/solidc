@@ -105,7 +105,7 @@ static bool map_resize(map* m, size_t new_capacity) {
 }
 
 void map_set(map* m, void* key, void* value) {
-    if ((double)m->size / m->capacity > LOAD_FACTOR_THRESHOLD) {
+    if ((double)m->size / (double)m->capacity > LOAD_FACTOR_THRESHOLD) {
         // Check for potential integer overflow
         if (m->capacity > SIZE_MAX / 2 || !map_resize(m, m->capacity * 2)) {
             fprintf(stderr, "Integer overflow or out of memory\n");

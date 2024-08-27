@@ -85,12 +85,11 @@ size_t map_capacity(map* m);
 
 entry* map_get_entries(map* m);
 
-// Iterate over the map entries.
 #define map_foreach(map_ptr, e)                                                                    \
     size_t capacity = map_capacity(map_ptr);                                                       \
     entry* entries = map_get_entries(map_ptr);                                                     \
-    for (entry* e = entries; e < entries + capacity; e++)                                          \
-        if (e->key != NULL)
+    for (entry * (e) = entries; (e) < entries + capacity; (e)++)                                   \
+        if ((e)->key != NULL)
 
 // djb2 hash function.
 // http://www.cse.yorku.ca/~oz/hash.html

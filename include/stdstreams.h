@@ -54,9 +54,9 @@ const char* string_stream_data(stream_t stream);
 // Both streams must be valid. Invalid streams are checked with is_valid_stream
 // if the program is compiled with assertions enabled. Compile with -DNDEBUG to disable assertions.
 // Returns the number of bytes copied or -1 on error.
-int io_copy(stream_t writer, stream_t reader);
+unsigned long io_copy(stream_t writer, stream_t reader);
 
 // Copy contents of one reader into writer, writing up to n bytes into the writer.
-int io_copy_n(stream_t writer, stream_t reader, size_t n);
+unsigned long io_copy_n(stream_t writer, stream_t reader, size_t n);
 
 #endif /* E8CAA280_1C10_4862_B560_47F74D754175 */

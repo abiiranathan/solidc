@@ -358,31 +358,31 @@ static size_t line_count(CsvParser* self) {
 
     FILE* fp = file_fp(self->stream);
     while (!feof(fp)) {
-        char c = fgetc(fp);
+        char c = (char)fgetc(fp);
         if (c == EOF) {
             break;
         }
 
         // Ignore comment lines
         if (c == self->comment) {
-            while ((c = fgetc(fp)) != EOF && c != '\n')
+            while ((c = (char)fgetc(fp)) != EOF && c != '\n')
                 ;
 
             // read the new line character at end of comment line
-            c = fgetc(fp);
+            c = (char)fgetc(fp);
             continue;
         }
 
         // Skip the header line if it exists and hasn't been skipped yet
         if (self->has_header && self->skip_header && !headerSkipped && lines == 0) {
-            while ((c = fgetc(fp)) != EOF && c != '\n')
+            while ((c = (char)fgetc(fp)) != EOF && c != '\n')
                 ;
             headerSkipped = true;
             continue;
         }
 
         if (c == '\n' && !isspace(prevChar)) {
-            char nextChar = fgetc(fp);
+            char nextChar = (char)fgetc(fp);
             if (nextChar == EOF) {
                 break;
             }

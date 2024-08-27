@@ -39,8 +39,8 @@ static int _win32_process_create(Process* proc, const char* const argv[],
     return 0;
 }
 #else
-static int _linux_process_create(Process* proc, const char* command, const char* const argv[],
-                                 const char* const envp[]) {
+static int linux_process_create(Process* proc, const char* command, const char* const argv[],
+                                const char* const envp[]) {
 
     pid_t pid = fork();
     if (pid == -1) {
@@ -69,7 +69,7 @@ int process_create(Process* proc, const char* command, const char* const argv[],
     (void)command;  // we build the command line from argv
     return _win32_process_create(proc, argv, envp);
 #else
-    return _linux_process_create(proc, command, argv, envp);
+    return linux_process_create(proc, command, argv, envp);
 #endif
 }
 
@@ -100,7 +100,7 @@ int process_wait(Process* proc, int* status) {
 #else
     // Unix
     int stat;
-    if (waitpid(proc->pid, &stat, 0) != -1) {
+    if (waitpid((int)proc->pid, &stat, 0) != -1) {
         if (WIFEXITED(stat)) {
             if (status) {
                 *status = WEXITSTATUS(stat);
@@ -129,7 +129,7 @@ int process_kill(Process* proc) {
     CloseHandle(proc->pi.hThread);
 #else
     // Unix
-    if (kill(proc->pid, SIGKILL) == 0) {
+    if (kill((int)proc->pid, SIGKILL) == 0) {
         ret = 0;
     }
 #endif

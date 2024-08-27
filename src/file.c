@@ -33,7 +33,7 @@ FILE* file_fp(file_t* file) {
 // Get the file size. Returns -1 on error
 // On windows, use _filelength to get the file size.
 // On Unix, use fstat to get the file size
-static ssize_t _file_size(int fd) {
+static ssize_t internal_file_size(int fd) {
     ssize_t size = -1;
 #ifdef _WIN32
     size = _filelength(fd);
@@ -69,7 +69,7 @@ file_t* file_open(const char* filename, const char* mode) {
         return NULL;
     }
     file->fd = fileno(file->file);
-    file->size = _file_size(file->fd);
+    file->size = internal_file_size(file->fd);
 #ifdef _WIN32
     file->handle = (HANDLE)_get_osfhandle(file->fd);
 #endif
@@ -180,7 +180,7 @@ void* file_readall(file_t* file) {
     }
 
     // Read the entire file into the buffer
-    ssize_t bytes_read = file_read(file, buffer, 1, file->size);
+    ssize_t bytes_read = (ssize_t)file_read(file, buffer, 1, file->size);
     if (bytes_read != file->size) {
         fprintf(stderr, "Error reading file: Read %zd bytes, expected %zd\n", bytes_read,
                 file->size);
@@ -209,7 +209,8 @@ size_t file_write(file_t* file, const void* buffer, size_t size, size_t count) {
         fprintf(stderr, "File is not open\n");
         return 0;
     }
-    int n = fwrite(buffer, size, count, file->file);
+
+    ssize_t n = (ssize_t)fwrite(buffer, size, count, file->file);
     if (n > 0) {
         file->size += n;
         if (fflush(file->file) != 0) {

@@ -71,14 +71,14 @@ int get_tid(void);
 int get_ppid(void);
 
 // Get the number of CPU cores
-int get_ncpus(void);
+unsigned long get_ncpus(void);
 
 #ifndef _WIN32
 // Get the current user id
-int get_uid(void);
+unsigned int get_uid(void);
 
 // Get the current group id
-int get_gid(void);
+unsigned int get_gid(void);
 
 // Get the current user name
 char* get_username(void);

@@ -1,4 +1,5 @@
 #include "../include/thread.h"
+#include <stddef.h>
 #include <stdio.h>
 
 int fib(int n) {
@@ -24,7 +25,7 @@ void test_thread_with_attributes() {
 // run this only on posix systems
 #ifndef _WIN32
     // set the stack size to 1MB
-    pthread_attr_setstacksize(&attr, 1024 * 1024);
+    pthread_attr_setstacksize(&attr, (size_t)(1024 * 1024));
 
     // set the scheduling policy to SCHED_FIFO
     pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
@@ -64,7 +65,7 @@ void* thrd_func(void* arg) {
 void test_system_thread_ident() {
     printf("PID: %d\n", get_pid());
     printf("TID: %d\n", get_tid());
-    printf("Number of CPUs: %d\n", get_ncpus());
+    printf("Number of CPUs: %lu\n", get_ncpus());
 
 #ifndef _WIN32
     printf("PPID: %d\n", get_ppid());

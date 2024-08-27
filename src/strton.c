@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 StoError sto_uint8(const char* str, uint8_t* result) {
     char* endptr = NULL;
@@ -207,7 +208,7 @@ StoError sto_int(const char* str, int* result) {
         return STO_INVALID;
     }
 
-    *result = num;
+    *result = (int)num;
     return STO_SUCCESS;
 }
 

@@ -112,18 +112,22 @@ void* flag_global_value(const char* name) {
 
 // Register a new subcommand.
 Subcommand* flag_add_subcommand(char* name, char* description, void (*handler)(Subcommand*)) {
+    if (handler == NULL) {
+        fprintf(stderr, "subcommand handler must not be NULL\n");
+        exit(EXIT_FAILURE);
+    }
+
     ++ctx->num_subcommands;
-    ctx->subcommands = realloc(ctx->subcommands, ctx->num_subcommands * sizeof(Subcommand));
-    if (ctx->subcommands == NULL) {
+
+    Subcommand* new_subcommands =
+        realloc(ctx->subcommands, ctx->num_subcommands * sizeof(Subcommand));
+    if (new_subcommands == NULL) {
         perror("realloc");
         fprintf(stderr, "Unable to realloc ctx->subcommands array\n");
         exit(EXIT_FAILURE);
     }
 
-    if (handler == NULL) {
-        fprintf(stderr, "subcommand handler must not be NULL\n");
-        exit(EXIT_FAILURE);
-    }
+    ctx->subcommands = new_subcommands;
 
     Subcommand* subcommand = &ctx->subcommands[ctx->num_subcommands - 1];
     subcommand->name = name;
@@ -137,13 +141,15 @@ Subcommand* flag_add_subcommand(char* name, char* description, void (*handler)(S
 Flag* subcommand_add_flag(Subcommand* subcommand, FlagType type, char* name, char short_name,
                           char* description, void* value, bool required) {
     ++subcommand->num_flags;
-    subcommand->flags = realloc(subcommand->flags, subcommand->num_flags * sizeof(Flag));
-    if (subcommand->flags == NULL) {
+
+    Flag* new_flags = realloc(subcommand->flags, subcommand->num_flags * sizeof(Flag));
+    if (new_flags == NULL) {
         perror("realloc");
         fprintf(stderr, "Unable to realloc subcommand->flags array\n");
         exit(EXIT_FAILURE);
     }
 
+    subcommand->flags = new_flags;
     Flag* flag = &subcommand->flags[subcommand->num_flags - 1];
     flag->type = type;
     flag->name = name;
@@ -160,13 +166,15 @@ Flag* subcommand_add_flag(Subcommand* subcommand, FlagType type, char* name, cha
 Flag* global_add_flag(FlagType type, char* name, char short_name, char* description, void* value,
                       bool required) {
     ctx->num_flags++;
-    ctx->flags = realloc(ctx->flags, ctx->num_flags * sizeof(Flag));
-    if (ctx->flags == NULL) {
+
+    Flag* new_flags = realloc(ctx->flags, ctx->num_flags * sizeof(Flag));
+    if (new_flags == NULL) {
         perror("realloc");
         fprintf(stderr, "Unable to realloc ctx->flags array\n");
         exit(EXIT_FAILURE);
     }
 
+    ctx->flags = new_flags;
     Flag* flag = &ctx->flags[ctx->num_flags - 1];
     flag->type = type;
     flag->name = name;

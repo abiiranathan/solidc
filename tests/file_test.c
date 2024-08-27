@@ -35,7 +35,7 @@ void test_file_open_read_write() {
     fflush(file_fp(file));
 
     // write asynchronously at the end of the file
-    n = file_awrite(file, str, strlen(str), strlen(str));
+    n = file_awrite(file, str, strlen(str), (off_t)strlen(str));
     assert(n == strlen(str));
 
     // close the file
@@ -114,7 +114,7 @@ void test_fileseek() {
     // seek to the middle of the file
     file = file_open(tmpfile, "r");
     assert(file != NULL);
-    file_seek(file, len / 2, SEEK_SET);
+    file_seek(file, (long)len / 2, SEEK_SET);
 
     bytes_read = file_read(file, buffer, 1, sizeof(buffer));
     file_close(file);

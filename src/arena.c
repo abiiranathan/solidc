@@ -107,14 +107,6 @@ void arena_destroy(Arena* arena) {
     free(arena);
 }
 
-// This function is not used in the arena allocator
-// but is required to be implemented to use the allocator
-// in an API that expects a free function.
-void arena_free(Arena* arena, void* ptr) {
-    (void)arena;
-    (void)ptr;
-}
-
 void arena_reset(Arena* arena) {
     if (arena == NULL) {
         return;

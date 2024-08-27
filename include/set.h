@@ -10,7 +10,7 @@ extern "C" {
 
 #define DEFINE_SET(T)                                                                                \
     typedef struct Set_##T {                                                                         \
-        T* data;                                                                                     \
+        (T) * data;                                                                                  \
         size_t size;                                                                                 \
         size_t capacity;                                                                             \
     } Set_##T;                                                                                       \
@@ -67,7 +67,7 @@ extern "C" {
                                                                                                      \
         if (set->size == set->capacity) {                                                            \
             size_t newCapacity = set->capacity * 2;                                                  \
-            T* newData = (T*)realloc(set->data, newCapacity * sizeof(T));                            \
+            (T)* newData = (T*)realloc(set->data, newCapacity * sizeof(T));                          \
             if (newData == NULL) {                                                                   \
                 return false;                                                                        \
             }                                                                                        \
