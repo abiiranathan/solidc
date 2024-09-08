@@ -215,3 +215,20 @@ set(CSVPARSER_SRCS
 add_executable(csvparser_test ${CSVPARSER_SRCS})
 add_test(csvparser_test csvparser_test)
 target_link_libraries(csvparser_test pthread m)
+
+
+# Array test module
+set(ARRAY_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/array_test.c
+)
+
+add_executable(array_test ${ARRAY_SRCS})
+add_test(array_test array_test)
+
+# channel test module
+set(CHANNEL_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/channel_test.c
+)
+
+add_executable(channel_test ${CHANNEL_SRCS})
+add_test(channel_test channel_test)
