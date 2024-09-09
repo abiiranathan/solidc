@@ -11,6 +11,8 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 
+#define ARRAY_INIT_CAPACITY 16
+
 #define ARRAY_DEFINE(name, type)                                                                   \
     typedef struct {                                                                               \
         type* items;                                                                               \
@@ -48,7 +50,7 @@ extern "C" {
                                                                                                    \
     void name##_append(name* arr, type x) {                                                        \
         if (arr->count >= arr->capacity) {                                                         \
-            size_t new_capacity = arr->capacity == 0 ? 1 : arr->capacity * 2;                      \
+            size_t new_capacity = arr->capacity == 0 ? ARRAY_INIT_CAPACITY : arr->capacity * 2;    \
             name##_resize(arr, new_capacity);                                                      \
         }                                                                                          \
         arr->items[arr->count++] = x;                                                              \

@@ -2,6 +2,7 @@
 #define F5504749_3C28_403D_B262_31291CFCF023
 
 #include "arena.h"
+#include "array.h"
 #include "automem.h"
 #include "cstr.h"
 #include "csvparser.h"
@@ -19,10 +20,8 @@
 #include "socket.h"
 #include "stdstreams.h"
 #include "strton.h"
-#include "svec.h"
 #include "thread.h"
 #include "threadpool.h"
 #include "unicode.h"
-#include "vec.h"
 
 #endif /* F5504749_3C28_403D_B262_31291CFCF023 */
