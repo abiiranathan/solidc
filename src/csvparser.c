@@ -48,7 +48,7 @@ CsvParser* csvparser_new(const char* filename) {
         return NULL;
     }
 
-    Arena* arena = arena_create(CSV_ARENA_BLOCK_SIZE, ARENA_DEFAULT_ALIGNMENT);
+    Arena* arena = arena_create(CSV_ARENA_BLOCK_SIZE);
     if (!arena) {
         fprintf(stderr, "error creating memory arena\n");
         file_close(f);

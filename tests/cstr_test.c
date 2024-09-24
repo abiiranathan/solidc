@@ -34,7 +34,7 @@
 // Test functions
 int main(void) {
     // Create an arena with default chunk size and alignment
-    Arena* arena = arena_create(0, 0);
+    Arena* arena = arena_create(0);
 
     // Test cstr_new and cstr_free
     cstr* str1 = cstr_new(arena, 0);

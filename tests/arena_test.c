@@ -26,7 +26,7 @@ static void* thread_func(void* arg) {
 
 void multithreaded_example(void) {
     // Create an arena of with default chunk size and alignment
-    Arena* arena = arena_create(0, 0);
+    Arena* arena = arena_create(0);
     ASSERT(arena, "Failed to create arena.");
 
     Thread threads[NUM_THREADS] = {0};
@@ -48,7 +48,7 @@ void print_string(const char* str) {
 }
 
 static void reusing_arena_chunks_example(void) {
-    Arena* arena = arena_create(124, 8);
+    Arena* arena = arena_create(124);
     ASSERT(arena, "Failed to create arena.")
 
     int num_strings = 100;
@@ -73,7 +73,7 @@ static void reusing_arena_chunks_example(void) {
 
 int main(void) {
     // Create an arena of 1MB
-    Arena* arena = arena_create(0, SYSTEM_MAX_ALIGNMENT);
+    Arena* arena = arena_create(0);
     ASSERT(arena, "Failed to create arena.")
 
     // Allocate memory
@@ -112,7 +112,7 @@ int main(void) {
     reusing_arena_chunks_example();
 
     // test arena realloc
-    Arena* arena2 = arena_create(8, ARENA_DEFAULT_ALIGNMENT);
+    Arena* arena2 = arena_create(8);
     ASSERT(arena2, "Failed to create arena.")
 
     char* buffer4 = arena_alloc(arena2, 12);
@@ -124,7 +124,7 @@ int main(void) {
     // Create another arena and benchmark 10m allocations
     time_t start, end;
     time(&start);
-    Arena* arena4 = arena_create((size_t)(1024 * 1024 * 10), ARENA_DEFAULT_ALIGNMENT);  // 10MB
+    Arena* arena4 = arena_create((size_t)(1024 * 1024 * 10));  // 10MB
     ASSERT(arena4, "Failed to create arena.")
 
     for (int i = 0; i < 1000; i++) {

@@ -1,9 +1,12 @@
 #include "../include/arena.h"
 #include "../include/lock.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define CACHE_LINE_SIZE 64
 
 typedef struct Chunk {
     void* base;          // Pointer to the base of the chunk
@@ -15,9 +18,9 @@ typedef struct Chunk {
 typedef struct Arena {
     Chunk* head;        // Pointer to the head of the chunk
     size_t chunk_size;  // Size of the chunk
-    size_t alignment;   // Alignment of the chunk
     Lock lock;          // Lock for thread safety
-} Arena;
+    char padding[CACHE_LINE_SIZE - sizeof(Chunk*) - sizeof(size_t) - sizeof(Lock)];
+} Arena __attribute__((aligned(CACHE_LINE_SIZE)));
 
 #ifdef _WIN32
 static void* system_alloc(size_t size) {
@@ -29,8 +32,9 @@ static void system_free(void* ptr, size_t size) {
     VirtualFree(ptr, 0, MEM_RELEASE);
 }
 #else
+#include <sys/mman.h>
+
 static void* system_alloc(size_t size) {
-    // On Linux we use mmap with MAP_ANONYMOUS to get memory directly from the kernel.
     void* ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (ptr == MAP_FAILED) {
         perror("mmap");
@@ -40,37 +44,27 @@ static void* system_alloc(size_t size) {
 }
 
 static void system_free(void* ptr, size_t size) {
-    int ret = munmap(ptr, size);
-    if (ret == -1) {
+    if (munmap(ptr, size) == -1) {
         perror("munmap");
     }
 }
 #endif
 
-static size_t align_up(size_t size, size_t alignment) {
+static inline size_t align_up(size_t size, size_t alignment) {
     return (size + alignment - 1) & ~(alignment - 1);
 }
 
-Arena* arena_create(size_t chunk_size, size_t alignment) {
-    if (alignment == 0) {
-        alignment = ARENA_DEFAULT_ALIGNMENT;
-    } else if ((alignment & (alignment - 1)) != 0) {
-        // Check if alignment is a power of 2
-        fprintf(stderr, "arena_create: Alignment must be a power of 2\n");
-        exit(1);
-    }
-
+Arena* arena_create(size_t chunk_size) {
     if (chunk_size == 0) {
         chunk_size = ARENA_DEFAULT_CHUNKSIZE;
     }
 
-    Arena* arena = (Arena*)malloc(sizeof(Arena));
+    Arena* arena = (Arena*)aligned_alloc(CACHE_LINE_SIZE, sizeof(Arena));
     if (arena == NULL) {
         return NULL;
     }
 
     arena->chunk_size = chunk_size;
-    arena->alignment = alignment;
 
     // Allocate the first chunk
     arena->head = (Chunk*)system_alloc(chunk_size);
@@ -102,9 +96,9 @@ void arena_destroy(Arena* arena) {
         chunk = next;
     }
 
-    // Destroy the mutex
     lock_free(&arena->lock);
     free(arena);
+    arena = NULL;
 }
 
 void arena_reset(Arena* arena) {
@@ -128,48 +122,46 @@ void arena_reset(Arena* arena) {
 }
 
 void* arena_alloc(Arena* arena, size_t size) {
-    if (arena == NULL || size == 0) {
+    if (__builtin_expect(arena == NULL || size == 0, 0)) {
         return NULL;
     }
 
-    lock_acquire(&arena->lock);
-    size = align_up(size, arena->alignment);
+    size = align_up(size, ARENA_ALIGNMENT);
 
-    // Try to allocate from the current chunk
+    lock_acquire(&arena->lock);
+
+    // Fast path: try to allocate from the current chunk
     Chunk* chunk = arena->head;
-    while (chunk != NULL) {
-        if (chunk->used + size <= chunk->size) {
-            void* ptr = (char*)chunk->base + chunk->used;
-            chunk->used += size;
-            lock_release(&arena->lock);
-            return ptr;
-        }
-        chunk = chunk->next;
+    if (__builtin_expect(chunk->used + size <= chunk->size, 1)) {
+        void* ptr = (char*)chunk->base + chunk->used;
+        chunk->used += size;
+        lock_release(&arena->lock);
+        return ptr;
     }
 
-    // Allocate a new chunk
+    // Slow path: allocate a new chunk
     size_t new_chunk_size =
         arena->chunk_size > size + sizeof(Chunk) ? arena->chunk_size : size + sizeof(Chunk);
 
-    chunk = (Chunk*)system_alloc(new_chunk_size);
-    if (chunk == NULL) {
+    Chunk* new_chunk = (Chunk*)system_alloc(new_chunk_size);
+    if (__builtin_expect(new_chunk == NULL, 0)) {
         lock_release(&arena->lock);
         return NULL;
     }
 
-    chunk->base = (char*)chunk + sizeof(Chunk);
-    chunk->size = new_chunk_size - sizeof(Chunk);
-    chunk->used = size;
-    chunk->next = arena->head;
-    arena->head = chunk;
+    new_chunk->base = (char*)new_chunk + sizeof(Chunk);
+    new_chunk->size = new_chunk_size - sizeof(Chunk);
+    new_chunk->used = size;
+    new_chunk->next = arena->head;
+    arena->head = new_chunk;
 
     lock_release(&arena->lock);
-    return chunk->base;
+    return new_chunk->base;
 }
 
 void* arena_realloc(Arena* arena, void* ptr, size_t size) {
-    if (ptr == NULL) {
-        return arena_alloc(arena, size);
+    if (__builtin_expect(arena == NULL || ptr == NULL || size == 0, 0)) {
+        return NULL;
     }
 
     lock_acquire(&arena->lock);
@@ -183,7 +175,7 @@ void* arena_realloc(Arena* arena, void* ptr, size_t size) {
         chunk = chunk->next;
     }
 
-    if (chunk == NULL) {
+    if (__builtin_expect(chunk == NULL, 0)) {
         // Pointer not found in the arena
         lock_release(&arena->lock);
         return NULL;
@@ -204,12 +196,12 @@ void* arena_realloc(Arena* arena, void* ptr, size_t size) {
                 break;  // Found the previous allocation
             }
             // Move to the next potential allocation start
-            current += align_up(*(size_t*)current, arena->alignment);
+            current += align_up(*(size_t*)current, ARENA_ALIGNMENT);
         }
     }
 
     // Align the new size
-    size = align_up(size, arena->alignment);
+    size = align_up(size, ARENA_ALIGNMENT);
 
     // There is enough space in the current chunk
     if (old_size + size <= chunk->size) {
@@ -219,6 +211,7 @@ void* arena_realloc(Arena* arena, void* ptr, size_t size) {
     }
 
     // unlock the mutex as arena_alloc will lock it again
+    // Otherwise, it will cause a deadlock
     lock_release(&arena->lock);
 
     // Allocate a new block and copy the data

@@ -19,17 +19,19 @@
 extern "C" {
 #endif
 
-#define ARENA_DEFAULT_CHUNKSIZE (size_t)(1024 * 1024)
-#define ARENA_DEFAULT_ALIGNMENT 8
-#define SYSTEM_MAX_ALIGNMENT (alignof(max_align_t))
+#ifndef ARENA_DEFAULT_CHUNKSIZE
+#define ARENA_DEFAULT_CHUNKSIZE (size_t)(2 * 1024 * 1024)
+#endif
+
+#ifndef ARENA_ALIGNMENT
+#define ARENA_ALIGNMENT (alignof(max_align_t))
+#endif
 
 // Arena memory block.
 typedef struct Arena Arena;
 
 // Create a new arena with a chuck size per block of chunk_size;
-// If alignment is 0, the default implementation is used.
-// If alignment is not a power of 2, this function with exit with status 1.
-Arena* arena_create(size_t chunk_size, size_t alignment) __attribute__((warn_unused_result()));
+Arena* arena_create(size_t chunk_size) __attribute__((warn_unused_result()));
 
 // Arena destruction. Frees the memory region allocated for the arena.
 void arena_destroy(Arena* arena);

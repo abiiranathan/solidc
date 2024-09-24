@@ -423,7 +423,7 @@ stream_t create_string_stream(size_t initial_capacity) {
         return NULL;
     }
 
-    Arena* arena = arena_create(ARENA_DEFAULT_CHUNKSIZE, ARENA_DEFAULT_ALIGNMENT);
+    Arena* arena = arena_create(ARENA_DEFAULT_CHUNKSIZE);
     if (arena == NULL) {
         free(stream);
         free(ss);
