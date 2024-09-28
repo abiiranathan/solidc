@@ -1,6 +1,10 @@
 #ifndef OPTIONAL_H
 #define OPTIONAL_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -64,5 +68,9 @@ typedef Option(string) ResultString;
 #define ERR_DOUBLE(E) ERR(double, E)
 #define ERR_CHAR(E) ERR(char, E)
 #define ERR_STRING(E) ERR(string, E)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

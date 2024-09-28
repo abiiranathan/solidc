@@ -1,6 +1,10 @@
 #ifndef CB4BB606_713F_4BBD_9F44_DB223464EB5A
 #define CB4BB606_713F_4BBD_9F44_DB223464EB5A
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if !defined(_GNU_SOURCE)
 #define _GNU_SOURCE
 #define _POSIX_C_SOURCE 200809L
@@ -108,5 +112,9 @@ int file_munmap(void* addr, size_t length);
 
 // Check if the file at the given path exists.
 bool is_file(const char* path);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CB4BB606_713F_4BBD_9F44_DB223464EB5A */

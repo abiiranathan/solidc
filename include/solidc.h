@@ -3,7 +3,6 @@
 
 #include "arena.h"
 #include "array.h"
-#include "automem.h"
 #include "cstr.h"
 #include "csvparser.h"
 #include "file.h"

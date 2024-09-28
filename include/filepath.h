@@ -1,6 +1,10 @@
 #ifndef DA20B33A_06DF_4AB0_8B0A_B8874A623312
 #define DA20B33A_06DF_4AB0_8B0A_B8874A623312
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if !defined(_GNU_SOURCE)
 #define _GNU_SOURCE
 #endif
@@ -163,5 +167,9 @@ bool filepath_join_buf(const char* path1, const char* path2, char* abspath, size
 // dir_size and name_size are the size of the dir and name
 // buffers.
 void filepath_split(const char* path, char* dir, char* name, size_t dir_size, size_t name_size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DA20B33A_06DF_4AB0_8B0A_B8874A623312 */

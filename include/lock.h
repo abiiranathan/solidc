@@ -2,6 +2,10 @@
 #define AB1DC3C5_00AA_4460_BD6A_65D8301B4779
 // Cross-platform function wrapper for syncronization primitives
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -62,5 +66,9 @@ void cond_wait_timeout(Condition* condition, Lock* lock, int timeout);
 
 // Frees a condition variable
 void cond_free(Condition* condition);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* AB1DC3C5_00AA_4460_BD6A_65D8301B4779 */

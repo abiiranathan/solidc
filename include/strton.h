@@ -1,6 +1,10 @@
 #ifndef D098E3F2_2EEB_4E1A_892A_156C7D7533C3
 #define D098E3F2_2EEB_4E1A_892A_156C7D7533C3
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -184,5 +188,9 @@ StoError sto_int_b(const char* str, int base, int* result);
 StoError sto_bool(const char* str, bool* result);
 
 const char* sto_error(StoError code);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* D098E3F2_2EEB_4E1A_892A_156C7D7533C3 */

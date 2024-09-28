@@ -1,6 +1,10 @@
 #ifndef A5C26D1F_5884_4DD7_918D_080E3F1F1A0D
 #define A5C26D1F_5884_4DD7_918D_080E3F1F1A0D
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -71,4 +75,7 @@ Subcommand* flag_parse(int argc, char** argv);
 // Invoke the handler for the matched subcommand.
 void flag_invoke(Subcommand* subcommand);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* A5C26D1F_5884_4DD7_918D_080E3F1F1A0D */

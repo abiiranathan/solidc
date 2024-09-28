@@ -1,6 +1,10 @@
 #ifndef A8BA3E5B_9753_47B2_8F62_85E8A97F146F
 #define A8BA3E5B_9753_47B2_8F62_85E8A97F146F
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if !defined(_GNU_SOURCE)
 #define _GNU_SOURCE  // for nanosleep
 #endif
@@ -85,6 +89,10 @@ char* get_username(void);
 
 // Get the current group name
 char* get_groupname(void);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* A8BA3E5B_9753_47B2_8F62_85E8A97F146F */

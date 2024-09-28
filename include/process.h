@@ -1,6 +1,10 @@
 #ifndef A1A6896E_581A_42E7_8391_B3EA30D28307
 #define A1A6896E_581A_42E7_8391_B3EA30D28307
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L  // for kill in signal.h
 #endif
@@ -87,5 +91,9 @@ int process_wait(Process* proc, int* status);
 
 // Kill a process
 int process_kill(Process* proc);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* A1A6896E_581A_42E7_8391_B3EA30D28307 */

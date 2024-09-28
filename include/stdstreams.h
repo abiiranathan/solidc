@@ -1,6 +1,10 @@
 #ifndef E8CAA280_1C10_4862_B560_47F74D754175
 #define E8CAA280_1C10_4862_B560_47F74D754175
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -58,5 +62,9 @@ unsigned long io_copy(stream_t writer, stream_t reader);
 
 // Copy contents of one reader into writer, writing up to n bytes into the writer.
 unsigned long io_copy_n(stream_t writer, stream_t reader, size_t n);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* E8CAA280_1C10_4862_B560_47F74D754175 */
