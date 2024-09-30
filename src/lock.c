@@ -56,15 +56,27 @@ void cond_free(Condition* condition) {
 }
 #else
 void lock_init(Lock* lock) {
-    pthread_mutex_init(lock, NULL);
+    int ret = pthread_mutex_init(lock, NULL);
+    if (ret != 0) {
+        fprintf(stderr, "Failed to initialize mutex: %d\n", ret);
+        exit(1);
+    }
 }
 
 void lock_acquire(Lock* lock) {
-    pthread_mutex_lock(lock);
+    int ret = pthread_mutex_lock(lock);
+    if (ret != 0) {
+        fprintf(stderr, "Failed to lock mutex: %d\n", ret);
+        exit(1);
+    }
 }
 
 void lock_release(Lock* lock) {
-    pthread_mutex_unlock(lock);
+    int ret = pthread_mutex_unlock(lock);
+    if (ret != 0) {
+        fprintf(stderr, "Failed to unlock mutex: %d\n", ret);
+        exit(1);
+    }
 }
 
 void lock_free(Lock* lock) {
