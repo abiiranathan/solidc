@@ -5,7 +5,6 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
 option(BUILD_TESTS "Build the tests" ON)
 
 include(GNUInstallDirs)
@@ -74,7 +73,6 @@ configure_package_config_file(
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/solidcConfigVersion.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/solidc)
-
 
 # Generate the .pc file for pkg-config
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/solidc.pc.in

@@ -1,5 +1,6 @@
 #include "../include/lock.h"
 
+#include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,7 +67,20 @@ void lock_init(Lock* lock) {
 void lock_acquire(Lock* lock) {
     int ret = pthread_mutex_lock(lock);
     if (ret != 0) {
-        fprintf(stderr, "Failed to lock mutex: %d\n", ret);
+        switch (ret) {
+            case EDEADLK:
+                fprintf(stderr,
+                        "A deadlock condition was detected or the current thread already owns the "
+                        "mutex.\n");
+                break;
+            case EINVAL:
+                fprintf(stderr,
+                        "The value specified by mutex does not refer to an initialized mutex "
+                        "object.\n");
+                break;
+            default:
+                fprintf(stderr, "Failed to lock mutex: %d\n", ret);
+        }
         exit(1);
     }
 }

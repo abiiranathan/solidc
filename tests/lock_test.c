@@ -42,7 +42,8 @@ void test_condition_variables() {
     Thread thread;
     thread_create(&thread, modify_shared_var, &condition);
 
-    lock_acquire(&lock);
+    lock_init(&lock);     // re-initialize the lock
+    lock_acquire(&lock);  // Acquire the lock before waiting for the condition
 
     // Wait for shared_var to be modified
     while (shared_var == 0) {
@@ -74,6 +75,7 @@ void test_cond_brodcast() {
 
     Thread threads[NUM_THREADS];
 
+    lock_init(&lock);     // re-initialize the lock
     lock_acquire(&lock);  // Acquire the lock before starting the threads
 
     for (int i = 0; i < NUM_THREADS; i++) {

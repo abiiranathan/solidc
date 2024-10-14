@@ -39,6 +39,7 @@ void test_concurrent_map() {
         args[i].m = m;
         threadpool_add_task(pool, concurrent_insert, &args[i]);
     }
+
     threadpool_wait(pool);
     threadpool_destroy(pool);
 

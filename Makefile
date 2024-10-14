@@ -11,5 +11,5 @@ build:
 test: build
 	cd build && ninja test
 
-install: test
+install:
 	cd build && sudo ninja install

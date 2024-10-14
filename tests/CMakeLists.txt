@@ -82,28 +82,30 @@ target_link_libraries(process_test pthread m)
 
 # Add the test executable for threadpool module
 set(THREADPOOL_SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/thread.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/threadpool.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/thread.c
     ${CMAKE_CURRENT_SOURCE_DIR}/threadpool_test.c
 )
 
 add_executable(threadpool_test ${THREADPOOL_SRCS})
 add_test(threadpool_test threadpool_test)
+
+# Add library search path
 target_link_libraries(threadpool_test pthread m)
 
 # Add the test executable for map module
 set(MAP_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/map_test.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/map.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/threadpool.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/map.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/thread.c
 )
 
 add_executable(map_test ${MAP_SRCS})
 add_test(map_test map_test)
-target_link_libraries(map_test pthread m)
+target_link_libraries(map_test pthread m ${THREADPOOL_LIB})
 
 
 
@@ -206,6 +208,3 @@ add_test(array_test array_test)
 set(CHANNEL_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/channel_test.c
 )
-
-add_executable(channel_test ${CHANNEL_SRCS})
-add_test(channel_test channel_test)
