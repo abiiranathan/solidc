@@ -19,8 +19,7 @@ typedef struct Arena {
     Chunk* head;        // Pointer to the head of the chunk
     size_t chunk_size;  // Size of the chunk
     Lock lock;          // Lock for thread safety
-    char padding[CACHE_LINE_SIZE - sizeof(Chunk*) - sizeof(size_t) - sizeof(Lock)];
-} Arena __attribute__((aligned(CACHE_LINE_SIZE)));
+} Arena;
 
 #ifdef _WIN32
 static void* system_alloc(size_t size) {
@@ -59,7 +58,7 @@ Arena* arena_create(size_t chunk_size) {
         chunk_size = ARENA_DEFAULT_CHUNKSIZE;
     }
 
-    Arena* arena = (Arena*)aligned_alloc(CACHE_LINE_SIZE, sizeof(Arena));
+    Arena* arena = (Arena*)malloc(sizeof(Arena));
     if (arena == NULL) {
         return NULL;
     }
