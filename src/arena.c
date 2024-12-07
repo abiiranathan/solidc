@@ -1,12 +1,17 @@
 #include "../include/arena.h"
-#include "../include/lock.h"
 
+#include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define CACHE_LINE_SIZE 64
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sched.h>
+#include <unistd.h>
+#endif
 
 typedef struct Chunk {
     void* base;          // Pointer to the base of the chunk
@@ -16,9 +21,9 @@ typedef struct Chunk {
 } Chunk;
 
 typedef struct Arena {
-    Chunk* head;        // Pointer to the head of the chunk
-    size_t chunk_size;  // Size of the chunk
-    Lock lock;          // Lock for thread safety
+    Chunk* head;            // Pointer to the head of the chunk
+    size_t chunk_size;      // Size of the chunk
+    atomic_flag spin_lock;  // Spinlock for thread safety
 } Arena;
 
 #ifdef _WIN32
@@ -33,7 +38,7 @@ static void system_free(void* ptr, size_t size) {
 #else
 #include <sys/mman.h>
 
-static void* system_alloc(size_t size) {
+static inline void* system_alloc(size_t size) {
     void* ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (ptr == MAP_FAILED) {
         perror("mmap");
@@ -42,7 +47,7 @@ static void* system_alloc(size_t size) {
     return ptr;
 }
 
-static void system_free(void* ptr, size_t size) {
+static inline void system_free(void* ptr, size_t size) {
     if (munmap(ptr, size) == -1) {
         perror("munmap");
     }
@@ -51,6 +56,22 @@ static void system_free(void* ptr, size_t size) {
 
 static inline size_t align_up(size_t size, size_t alignment) {
     return (size + alignment - 1) & ~(alignment - 1);
+}
+
+// Fast spinlock implementation.
+static inline void spinlock_acquire(atomic_flag* lock) {
+    while (atomic_flag_test_and_set(lock)) {
+// yield the CPU to the OS to avoid busy waiting
+#ifdef _WIN32
+        Sleep(0);
+#else
+        sched_yield();
+#endif
+    }
+}
+
+static inline void spinlock_release(atomic_flag* lock) {
+    atomic_flag_clear(lock);
 }
 
 Arena* arena_create(size_t chunk_size) {
@@ -77,8 +98,8 @@ Arena* arena_create(size_t chunk_size) {
     arena->head->used = 0;
     arena->head->next = NULL;
 
-    // Initialize the mutex
-    lock_init(&arena->lock);
+    // Initialize the spinlock
+    atomic_flag_clear(&arena->spin_lock);
 
     return arena;
 }
@@ -95,7 +116,6 @@ void arena_destroy(Arena* arena) {
         chunk = next;
     }
 
-    lock_free(&arena->lock);
     free(arena);
     arena = NULL;
 }
@@ -105,7 +125,7 @@ void arena_reset(Arena* arena) {
         return;
     }
 
-    lock_acquire(&arena->lock);
+    spinlock_acquire(&arena->spin_lock);
 
     Chunk* chunk = arena->head->next;
     while (chunk != NULL) {
@@ -117,7 +137,7 @@ void arena_reset(Arena* arena) {
     arena->head->next = NULL;
     arena->head->used = 0;
 
-    lock_release(&arena->lock);
+    spinlock_release(&arena->spin_lock);
 }
 
 void* arena_alloc(Arena* arena, size_t size) {
@@ -127,14 +147,14 @@ void* arena_alloc(Arena* arena, size_t size) {
 
     size = align_up(size, ARENA_ALIGNMENT);
 
-    lock_acquire(&arena->lock);
+    spinlock_acquire(&arena->spin_lock);
 
     // Fast path: try to allocate from the current chunk
     Chunk* chunk = arena->head;
     if (__builtin_expect(chunk->used + size <= chunk->size, 1)) {
         void* ptr = (char*)chunk->base + chunk->used;
         chunk->used += size;
-        lock_release(&arena->lock);
+        spinlock_release(&arena->spin_lock);
         return ptr;
     }
 
@@ -144,7 +164,7 @@ void* arena_alloc(Arena* arena, size_t size) {
 
     Chunk* new_chunk = (Chunk*)system_alloc(new_chunk_size);
     if (__builtin_expect(new_chunk == NULL, 0)) {
-        lock_release(&arena->lock);
+        spinlock_release(&arena->spin_lock);
         return NULL;
     }
 
@@ -154,7 +174,7 @@ void* arena_alloc(Arena* arena, size_t size) {
     new_chunk->next = arena->head;
     arena->head = new_chunk;
 
-    lock_release(&arena->lock);
+    spinlock_release(&arena->spin_lock);
     return new_chunk->base;
 }
 
@@ -163,7 +183,7 @@ void* arena_realloc(Arena* arena, void* ptr, size_t size) {
         return NULL;
     }
 
-    lock_acquire(&arena->lock);
+    spinlock_acquire(&arena->spin_lock);
 
     // Find the chunk containing the pointer
     Chunk* chunk = arena->head;
@@ -176,7 +196,7 @@ void* arena_realloc(Arena* arena, void* ptr, size_t size) {
 
     if (__builtin_expect(chunk == NULL, 0)) {
         // Pointer not found in the arena
-        lock_release(&arena->lock);
+        spinlock_release(&arena->spin_lock);
         return NULL;
     }
 
@@ -205,13 +225,13 @@ void* arena_realloc(Arena* arena, void* ptr, size_t size) {
     // There is enough space in the current chunk
     if (old_size + size <= chunk->size) {
         chunk->used = old_size + size;
-        lock_release(&arena->lock);
+        spinlock_release(&arena->spin_lock);
         return ptr;
     }
 
     // unlock the mutex as arena_alloc will lock it again
     // Otherwise, it will cause a deadlock
-    lock_release(&arena->lock);
+    spinlock_release(&arena->spin_lock);
 
     // Allocate a new block and copy the data
     void* new_ptr = arena_alloc(arena, size);

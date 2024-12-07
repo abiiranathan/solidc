@@ -94,7 +94,15 @@ void lock_release(Lock* lock) {
 }
 
 void lock_free(Lock* lock) {
-    pthread_mutex_destroy(lock);
+    if (!lock) {
+        return;
+    }
+
+    int ret = pthread_mutex_destroy(lock);
+    if (ret != 0) {
+        fprintf(stderr, "Failed to destroy mutex: %d\n", ret);
+        exit(1);
+    }
 }
 
 int lock_try_acquire(Lock* lock) {

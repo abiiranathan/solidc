@@ -1,7 +1,6 @@
 #ifndef BENCHMARK_H
 #define BENCHMARK_H
 
-#define _GNU_SOURCE
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -72,7 +71,7 @@ double get_cpu_time() {
 // Benchmark function
 void run_benchmark(size_t num_threads, size_t iterations, size_t workload) {
     Benchmark bench = {0};
-    ThreadPool* pool = threadpool_create(num_threads);
+    ThreadPool pool = threadpool_create(num_threads);
     if (!pool) {
         fprintf(stderr, "Failed to create thread pool\n");
         return;

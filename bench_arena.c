@@ -23,7 +23,7 @@ void* thread_arena_alloc(void* arg) {
         void* ptr = arena_alloc(data->arena, data->size);
         if (ptr == NULL) {
             fprintf(stderr, "arena_alloc failed in thread\n");
-            pthread_exit((void*)-1);  // Indicate failure
+            pthread_exit(NULL);
         }
     }
 
@@ -42,7 +42,7 @@ void* thread_malloc(void* arg) {
         void* ptr = malloc(data->size);
         if (ptr == NULL) {
             fprintf(stderr, "malloc failed in thread, errno: %d\n", errno);
-            pthread_exit((void*)-1);  // Indicate failure
+            pthread_exit(NULL);
         }
     }
 
@@ -118,6 +118,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     }
+
     for (int i = 0; i < num_threads; i++) {
         void* result;
         if (pthread_join(threads[i], &result) != 0) {
