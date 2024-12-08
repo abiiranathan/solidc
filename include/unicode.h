@@ -2,7 +2,7 @@
 #define D8710AAF_01A7_49B2_A3EC_1299EE6E9702
 
 /**
-Header-only library for Unicode handling in C.
+Unicode handling in C.
 Supports UTF-8 encoding and Unicode version 1.0.
 */
 
@@ -43,6 +43,7 @@ void utf8_print(const utf8_string* s);
 const char* utf8_data(const utf8_string* s);
 void utf8_print_info(const utf8_string* s);
 void utf8_print_codepoints(const utf8_string* s);
+
 int utf8_index_of(const utf8_string* s, const char* utf8);
 void utf8_append(utf8_string* s, const char* data);
 char* utf8_substr(const utf8_string* s, size_t index, size_t utf8_byte_len);
@@ -83,6 +84,7 @@ void utf8_array_remove(utf8_string** array, size_t size, size_t index);
 bool utf8_starts_with(const char* str, const char* prefix);
 bool utf8_ends_with(const char* str, const char* suffix);
 bool utf8_contains(const char* str, const char* substr);
+
 // regex_match returns true if str matches the pattern, otherwise false.
 bool regex_match(const char* str, const char* pattern);
 

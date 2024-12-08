@@ -22,6 +22,7 @@ void test_iocopy_n(void) {
     size_t n = io_copy_n(sstream, fstream, size);
     ASSERT(n == size, "Error copying streams");
     stream_destroy(sstream);
+    stream_destroy(fstream);
 }
 
 void test_readuntil(void) {

@@ -76,6 +76,10 @@ bool is_dir(const char* path);
 bool filepath_makedirs(const char* path);
 
 // Get path to platform's TEMP directory.
+// On Windows, the TEMP environment variable tried first,
+// then TMP, and finally C:\Windows\Temp
+// On Unix, /tmp is returned.
+// The caller is responsible for freeing the memory
 char* get_tempdir(void) __attribute__((warn_unused_result));
 
 // Create a temporary file.

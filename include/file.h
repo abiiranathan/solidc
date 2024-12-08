@@ -25,6 +25,9 @@ extern "C" {
 #include <unistd.h>
 #endif
 
+// file_t structure that encapsulates file operations
+// in a platform-independent way.
+// Adds support for locking, unlocking, asyncronous read and write etc.
 typedef struct file_t file_t;
 
 // Open a file with the given mode.
@@ -91,7 +94,10 @@ ssize_t file_aread(file_t* file, void* buffer, size_t size, off_t offset);
 // Read the entire file into a buffer. This may be inefficient for large files.
 void* file_readall(file_t* file);
 
-// Lock the file.
+// Lock a file. Returns true if successful, false otherwise.
+// If the file is already locked, it returns true.
+// On Windows, it uses LockFile to lock the file.
+// On Unix, it uses fcntl to lock the file.
 bool file_lock(file_t* file);
 
 // Unlock the file.
@@ -110,7 +116,7 @@ void* file_mmap(file_t* file, size_t length);
 // unmap the file from memory
 int file_munmap(void* addr, size_t length);
 
-// Check if the file at the given path exists.
+// Returns true is path is a regular file.
 bool is_file(const char* path);
 
 #ifdef __cplusplus

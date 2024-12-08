@@ -35,7 +35,7 @@ void test_thread_with_attributes() {
     param.sched_priority = 99;
     pthread_attr_setschedparam(&attr, &param);
 
-    // // set as detached
+    // set as detached
     // pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
     // pthread_attr_getdetachstate(&attr, &detached);

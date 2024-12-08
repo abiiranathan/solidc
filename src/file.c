@@ -6,8 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// file_t structure that encapsulates file operations
-// in a platform-independent way.
 typedef struct file_t {
     FILE* file;      // file pointer
     int fd;          // file descriptor
@@ -154,10 +152,6 @@ ssize_t file_size_char(const char* filename) {
 // char buffer[1024];
 // file_read(file, buffer, 1, 1024);
 size_t file_read(file_t* file, void* buffer, size_t size, size_t count) {
-    if (!file->is_open) {
-        fprintf(stderr, "File is not open\n");
-        return 0;
-    }
     size_t n = fread(buffer, size, count, file->file);
     if (n == 0 && ferror(file->file)) {
         perror("fread");
@@ -169,10 +163,6 @@ size_t file_read(file_t* file, void* buffer, size_t size, size_t count) {
 // Returns a pointer to the buffer or NULL on error
 // remember to free the buffer after use
 void* file_readall(file_t* file) {
-    if (!file->is_open) {
-        return 0;
-    }
-
     void* buffer = malloc(file->size);
     if (!buffer) {
         perror("malloc");
@@ -205,11 +195,6 @@ file_write(file, buffer, 1, strlen(buffer));
 After a write operation, the file is flushed to disk and the file size is updated.
 */
 size_t file_write(file_t* file, const void* buffer, size_t size, size_t count) {
-    if (!file->is_open) {
-        fprintf(stderr, "File is not open\n");
-        return 0;
-    }
-
     ssize_t n = (ssize_t)fwrite(buffer, size, count, file->file);
     if (n > 0) {
         file->size += n;
@@ -223,10 +208,6 @@ size_t file_write(file_t* file, const void* buffer, size_t size, size_t count) {
 
 // Write a string to a file
 size_t file_write_string(file_t* file, const char* str) {
-    if (!file->is_open) {
-        fprintf(stderr, "file %s is not open\n", file->filename);
-        return 0;
-    }
     return fwrite(str, 1, strlen(str), file->file);
 }
 
@@ -265,9 +246,6 @@ bool file_lock(file_t* file) {
 // On Windows, it uses UnlockFile to unlock the file.
 // On Unix, it uses fcntl to unlock the file.
 bool file_unlock(file_t* file) {
-    if (!file->is_open) {
-        return false;
-    }
     if (!file->is_locked) {
         return true;
     }
@@ -355,10 +333,6 @@ int file_copy(file_t* file, file_t* dst) {
 // Memory map a file. Returns a pointer to the mapped memory
 // The caller is responsible for unmapping the memory
 void* file_mmap(file_t* file, size_t length) {
-    if (!file->is_open) {
-        fprintf(stderr, "File is not open\n");
-        return NULL;
-    }
     void* addr = NULL;
 #ifdef _WIN32
     HANDLE hMapFile = CreateFileMapping(file->handle, NULL, PAGE_READWRITE, 0, length, NULL);
@@ -398,10 +372,6 @@ DWORD file_aread(file_t* file, void* buffer, size_t size, off_t offset) {
     OVERLAPPED overlapped;
     BOOL bResult;
 
-    if (!file->is_open) {
-        return -1;
-    }
-
     ZeroMemory(&overlapped, sizeof(overlapped));
     overlapped.Offset = (DWORD)offset;
     overlapped.OffsetHigh = (DWORD)((DWORDLONG)offset >> 32);  // Set the high part of offset
@@ -427,10 +397,6 @@ DWORD file_aread(file_t* file, void* buffer, size_t size, off_t offset) {
 // Read from a file asynchronously
 // Returns the number of bytes read or -1 on error
 ssize_t file_aread(file_t* file, void* buffer, size_t size, off_t offset) {
-    if (!file->is_open) {
-        fprintf(stderr, "File is not open\n");
-        return -1;
-    }
     ssize_t bytes = -1;
     bytes = pread(file->fd, buffer, size, offset);
     return bytes;
@@ -442,10 +408,6 @@ DWORD file_awrite(file_t* file, const void* buffer, size_t size, off_t offset) {
     DWORD dwBytesWritten = 0;
     OVERLAPPED overlapped;
     BOOL bResult;
-
-    if (!file->is_open) {
-        return (DWORD)-1;
-    }
 
     ZeroMemory(&overlapped, sizeof(overlapped));
     overlapped.Offset = (DWORD)offset;

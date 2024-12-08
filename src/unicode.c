@@ -132,6 +132,7 @@ bool is_utf8_whitespace(const char* utf8) {
 bool is_codepoint_digit(uint32_t codepoint) {
     return iswdigit(codepoint);
 }
+
 bool is_utf8_digit(const char* utf8) {
     return is_codepoint_digit(utf8_to_codepoint(utf8));
 }
@@ -186,8 +187,8 @@ void utf8_print(const utf8_string* s) {
 }
 
 void utf8_print_info(const utf8_string* s) {
-    printf("Length: %zu\n", s->length);
-    printf("Count: %zu\n", s->count);
+    printf("Byte Length: %zu\n", s->length);
+    printf("Code Points: %zu\n", s->count);
 }
 
 void utf8_print_codepoints(const utf8_string* s) {
@@ -237,6 +238,7 @@ void utf8_insert(utf8_string* s, size_t index, const char* data) {
     size_t length = utf8_byte_length(data);
     size_t count = utf8_count_codepoints(data);
     char* new_data = (char*)realloc(s->data, s->length + length + 1);
+
     if (new_data) {
         s->data = new_data;
         memmove(&s->data[index + length], &s->data[index], s->length - index + 1);
@@ -251,6 +253,7 @@ void utf8_remove(utf8_string* s, size_t index, size_t count) {
     for (size_t j = 0; j < count; j++) {
         i += utf8_byte_length(&s->data[i]);
     }
+
     memmove(&s->data[index], &s->data[i], s->length - i + 1);
     s->length -= i - index;
     s->count -= count;

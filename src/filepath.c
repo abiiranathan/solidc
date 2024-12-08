@@ -376,10 +376,6 @@ bool filepath_makedirs(const char* path) {
     return true;
 }
 
-// Get path to platform's TEMP directory.
-// On Windows, the TEMP environment variable tried first, then TMP, and finally C:\Windows\Temp
-// On Unix, /tmp is returned.
-// The caller is responsible for freeing the memory
 char* get_tempdir(void) {
 #ifdef _WIN32
     char* temp = getenv("TEMP");  // Get the TEMP environment variable
@@ -497,7 +493,7 @@ bool path_exists(const char* path) {
     if (stat(path, &st) != 0) {
         return false;
     }
-    return true;
+    return S_ISREG(st.st_mode);
 #endif
 }
 
@@ -526,7 +522,6 @@ void filepath_dirname(const char* path, char* dirname, size_t size) {
     } else {
         size_t len = base - path;
         if (len >= size) {
-            printf("Warning: dirname buffer is too small\n");
             return;
         }
 
@@ -620,6 +615,11 @@ const char* user_home_dir(void) {
 
     // expand user home directory
     char* filepath_expanduser(const char* path) {
+        // If the path is not a home directory path, return it as is
+        if (path[0] != '~') {
+            return strdup(path);
+        }
+
 #ifdef _WIN32
         char* home = getenv("USERPROFILE");
 #else
@@ -628,11 +628,6 @@ const char* user_home_dir(void) {
         if (!home) {
             fprintf(stderr, "USERPROFILE/HOME environment variable not set\n");
             return NULL;
-        }
-
-        // If the path is not a home directory path, return it as is
-        if (path[0] != '~') {
-            return strdup(path);
         }
 
         // If path is just "~" or ~/, return the home directory
