@@ -204,7 +204,11 @@ set(ARRAY_SRCS
 add_executable(array_test ${ARRAY_SRCS})
 add_test(array_test array_test)
 
-# channel test module
-set(CHANNEL_SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/channel_test.c
+# Memorypool test module
+set(MEMORYPOOL_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory_pool_test.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/memory_pool.c
 )
+
+add_executable(memory_pool_test ${MEMORYPOOL_SRCS})
+add_test(memory_pool_test memory_pool_test)
