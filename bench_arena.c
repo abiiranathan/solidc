@@ -5,9 +5,10 @@
 #include <strings.h>
 #include <time.h>
 #include "include/arena.h"
-#include "include/memory.h"
+#include "include/memory_pool.h"
 
-#define NUM_ITERATIONS 5  // Number of iterations for each benchmark
+// Number of iterations for each benchmark
+#define NUM_ITERATIONS 5
 
 // Structure to pass data to threads
 typedef struct ThreadData {
@@ -28,7 +29,7 @@ void* malloc_allocator(ThreadData* data) {
 }
 
 void* memory_pool_allocator(ThreadData* data) {
-    return memory_pool_alloc(data->pool, data->size);
+    return mpool_alloc(data->pool, data->size);
 }
 
 // Function to run in each thread
@@ -115,7 +116,7 @@ int main(int argc, char* argv[]) {
     Arena* arena = arena_create(ARENA_DEFAULT_CHUNKSIZE * 100);
 
     // Benchmark memory_pool_alloc
-    MemoryPool* pool = memory_pool_create(400 * 1024 * 1024);
+    MemoryPool* pool = mpool_create(500 * 1024 * 1024);
     if (pool == NULL) {
         fprintf(stderr, "memory_pool_create failed\n");
         return 1;
@@ -151,7 +152,7 @@ int main(int argc, char* argv[]) {
     }
 
     arena_destroy(arena);
-    memory_pool_destroy(pool);
+    mpool_destroy(pool);
 
     // Print average results
     printf("arena_alloc (average over %d runs): %.6f ms\n", NUM_ITERATIONS,

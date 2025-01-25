@@ -11,7 +11,7 @@ typedef struct {
     atomic_flag lock;
 } ThreadLocalStorage __attribute__((aligned(CACHE_LINE_SIZE)));
 
-static _Thread_local ThreadLocalStorage tls = {0};
+static _Thread_local ThreadLocalStorage tls = {};
 
 // Allocate a batch of memory blocks with a given block size.
 // The blocks are linked together and the memory is aligned to the cache line size.
@@ -21,15 +21,16 @@ static MemoryBlock* allocate_block_batch(MemoryPool* pool, size_t block_size, si
 
     void* memory = aligned_alloc(CACHE_LINE_SIZE, total_size);
     if (!memory) {
-        return NULL;
+        return nullptr;
     }
 
     // Create a new batch entry
     Batch* batch = malloc(sizeof(Batch));
     if (!batch) {
         free(memory);
-        return NULL;
+        return nullptr;
     }
+
     batch->memory = memory;
     batch->next = pool->batches;
     pool->batches = batch;
@@ -48,39 +49,37 @@ static MemoryBlock* allocate_block_batch(MemoryPool* pool, size_t block_size, si
     return head;
 }
 
-MemoryPool* memory_pool_create(size_t block_size) {
+MemoryPool* mpool_create(size_t block_size) {
     block_size = block_size ? block_size : MEMORY_POOL_BLOCK_SIZE;
 
     MemoryPool* pool = malloc(sizeof(MemoryPool));
     if (!pool) {
-        return NULL;
+        return nullptr;
     }
 
     atomic_init(&pool->current_block, (uintptr_t)NULL);
     atomic_init(&pool->free_list, (uintptr_t)NULL);
     pool->block_size = block_size;
-    pool->batches = NULL;
+    pool->batches = nullptr;
 
     // Allocate the initial batch
     MemoryBlock* initial_block = allocate_block_batch(pool, block_size, 8);
     if (!initial_block) {
         free(pool);
-        return NULL;
+        return nullptr;
     }
 
     atomic_store(&pool->current_block, (uintptr_t)initial_block);
     return pool;
 }
 
-void* memory_pool_alloc(MemoryPool* pool, size_t size) {
-    // Align size to pointer size.
-    size = (size + sizeof(uintptr_t) - 1) & ~(sizeof(uintptr_t) - 1);
+void* mpool_alloc(MemoryPool* pool, size_t size) {
+    size = (size + sizeof(uintptr_t) - 1) & ~(sizeof(uintptr_t) - 1);  // Align size
 
-    // Quick thread-local allocation path
+    // Try thread-local allocation first
     ThreadLocalStorage* tls_ptr = &tls;
 
     if (tls_ptr->block) {
-        // Attempt to allocate from thread-local block without atomic operations
         if (tls_ptr->block->used + size <= pool->block_size) {
             size_t offset = tls_ptr->block->used;
             tls_ptr->block->used += size;
@@ -88,33 +87,37 @@ void* memory_pool_alloc(MemoryPool* pool, size_t size) {
         }
     }
 
-    // Lock-free block acquisition
-    MemoryBlock* new_block = NULL;
+    // Prefetch the global free list to reduce cache misses
     uintptr_t free_list = atomic_load(&pool->free_list);
 
+    // NOLINTNEXTLINE(performance-no-int-to-ptr)
+    __builtin_prefetch((void*)free_list);
+
+    // Batch allocation from global free list
+    MemoryBlock* batch_head = nullptr;
     do {
-        // Try to pop a block from the free list
         if (!free_list) {
-            // Allocate a new batch if free list is empty
-            new_block = allocate_block_batch(pool, pool->block_size, 4);
-            if (!new_block)
+            batch_head = allocate_block_batch(pool, pool->block_size, 8);  // Fetch a batch
+            if (!batch_head)
                 return NULL;
             break;
         }
 
         // NOLINTNEXTLINE(performance-no-int-to-ptr): uintptr_t is used for atomic operations
-        new_block = (MemoryBlock*)free_list;
+        batch_head = (MemoryBlock*)free_list;
     } while (
-        !atomic_compare_exchange_weak(&pool->free_list, &free_list, (uintptr_t)new_block->next));
+        !atomic_compare_exchange_weak(&pool->free_list, &free_list, (uintptr_t)batch_head->next));
 
-    // Reset block usage and update thread-local storage
+    // Use the first block from the batch
+    MemoryBlock* new_block = batch_head;
     new_block->used = size;
-    tls_ptr->block = new_block;
 
+    // Store the rest of the batch in thread-local storage
+    tls_ptr->block = batch_head->next;
     return new_block->data;
 }
 
-void memory_pool_destroy(MemoryPool* pool) {
+void mpool_destroy(MemoryPool* pool) {
     // Free all batches
     Batch* batch = pool->batches;
     while (batch) {

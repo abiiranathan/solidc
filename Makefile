@@ -1,4 +1,4 @@
-.PHONY: configure build test install
+.PHONY: configure build test install numa
 
 configure:
 	rm -rf build .cache
@@ -15,5 +15,6 @@ install:
 	cd build && sudo ninja install
 
 bench:
-	gcc -D_GNU_SOURCE bench_arena.c src/arena.c src/lock.c -lpthread -O3 -std=c11 -Wall -Wextra -Wpedantic
-	./a.out 4096 1000000 4
+	gcc -D_GNU_SOURCE bench_arena.c src/arena.c src/lock.c src/memory_pool.c \
+	 -lpthread -O3 -fopt-info-vec-optimized -fopt-info -ffast-math -std=c23 -Wall -Wextra -Wpedantic -march=native
+	./a.out 1024 10000000 8

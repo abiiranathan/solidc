@@ -10,30 +10,35 @@
 #define CACHE_LINE_SIZE 64
 
 typedef struct Batch {
-    struct Batch* next;  // Next batch in the list
-    void* memory;        // Pointer to the allocated batch memory
-} Batch;
+    struct Batch* next;  // Pointer to the next batch
+    void* memory;        // Allocated memory for this batch
+    char padding[CACHE_LINE_SIZE - sizeof(struct Batch*) - sizeof(void*)];
+} Batch __attribute__((aligned(CACHE_LINE_SIZE)));
 
 typedef struct MemoryBlock {
-    struct MemoryBlock* next;  // Next block in the pool
-    atomic_size_t used;        // Used memory in the block
-    char* data;                // Flexible array member
+    struct MemoryBlock* next;  // Pointer to the next block
+    char* data;                // Data pointer (should be closer to used)
+    atomic_size_t used;        // Used memory (frequently updated, align with data)
+    char padding[CACHE_LINE_SIZE - sizeof(struct MemoryBlock*) - sizeof(char*) -
+                 sizeof(atomic_size_t)];
 } MemoryBlock __attribute__((aligned(CACHE_LINE_SIZE)));
 
 typedef struct MemoryPool {
-    atomic_uintptr_t current_block;  // Atomic pointer to current global block
-    size_t block_size;               // Size of each block
+    atomic_uintptr_t current_block;  // Atomic pointer to the current block
     atomic_uintptr_t free_list;      // Atomic pointer to the free list
+    size_t block_size;               // Size of each block (read-only, infrequent)
     Batch* batches;                  // List of all allocated batches
+    char padding[CACHE_LINE_SIZE - sizeof(atomic_uintptr_t) * 2 - sizeof(size_t) - sizeof(Batch*)];
 } MemoryPool __attribute__((aligned(CACHE_LINE_SIZE)));
 
-// Create a new memory pool
-MemoryPool* memory_pool_create(size_t initial_size);
+// Create a new memory pool with block_size.
+// If block_size is 0, a default of MEMORY_POOL_BLOCK_SIZE is used.
+MemoryPool* mpool_create(size_t block_size);
 
 // Allocate memory from the pool
-void* memory_pool_alloc(MemoryPool* pool, size_t size);
+void* mpool_alloc(MemoryPool* pool, size_t size);
 
-// Destroy the memory pool
-void memory_pool_destroy(MemoryPool* pool);
+// Destroy the memory pool.
+void mpool_destroy(MemoryPool* pool);
 
 #endif /* LOCK_FREE_MEMORY_POOL_H */
