@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.30.0)
 project(solidc VERSION 0.1.0 LANGUAGES C)
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -28,8 +28,8 @@ target_include_directories(solidc PUBLIC
     $<INSTALL_INTERFACE:include/solidc>
 )
 
-# Configure the target to use the C11 standard
-target_compile_options(solidc PRIVATE -Wall -Wextra -pedantic -Werror)
+# Configure the target to use the CC23 standard
+target_compile_options(solidc PRIVATE -Wall -Wextra -pedantic -Werror -std=c23)
 
 # Explicitly install headers
 install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/solidc)

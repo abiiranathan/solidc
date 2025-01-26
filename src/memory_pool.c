@@ -1,130 +1,153 @@
-
 #include "../include/memory_pool.h"
-#include <stdatomic.h>
+
+#include <stdalign.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/cdefs.h>
 
-typedef struct {
-    MemoryBlock* volatile block;
-    atomic_flag lock;
-} ThreadLocalStorage __attribute__((aligned(CACHE_LINE_SIZE)));
+#define CACHE_LINE_SIZE 64
+#define CHUNK_MIN_SIZE 4096
 
-static _Thread_local ThreadLocalStorage tls = {};
+// Struct to represent a memory chunk
+typedef struct MemoryChunk {
+    void* memory;              // Pointer to the start of the chunk
+    void* free_ptr;            // Pointer to the next free block
+    size_t capacity;           // Total size of the chunk
+    size_t used;               // Amount of memory used in the chunk
+    struct MemoryChunk* next;  // Pointer to the next chunk
+} MemoryChunk __attribute__((aligned(CACHE_LINE_SIZE)));
 
-// Allocate a batch of memory blocks with a given block size.
-// The blocks are linked together and the memory is aligned to the cache line size.
-static MemoryBlock* allocate_block_batch(MemoryPool* pool, size_t block_size, size_t batch_size) {
-    size_t total_size = sizeof(MemoryBlock) * batch_size + block_size * batch_size;
-    total_size = (total_size + CACHE_LINE_SIZE - 1) & ~(CACHE_LINE_SIZE - 1);
+// Struct to represent the memory pool
+typedef struct MemoryPool {
+    MemoryChunk* head;  // Pointer to the first chunk
+    MemoryChunk* mru;   // Pointer to the most recently used chunk
+    size_t chunk_size;  // Default size of new chunks
+} MemoryPool __attribute__((aligned(CACHE_LINE_SIZE)));
 
-    void* memory = aligned_alloc(CACHE_LINE_SIZE, total_size);
-    if (!memory) {
-        return nullptr;
-    }
-
-    // Create a new batch entry
-    Batch* batch = malloc(sizeof(Batch));
-    if (!batch) {
-        free(memory);
-        return nullptr;
-    }
-
-    batch->memory = memory;
-    batch->next = pool->batches;
-    pool->batches = batch;
-
-    // Initialize blocks within the batch
-    MemoryBlock* head = (MemoryBlock*)memory;
-    char* data_area = (char*)memory + sizeof(MemoryBlock) * batch_size;
-
-    for (size_t i = 0; i < batch_size; i++) {
-        MemoryBlock* current = &head[i];
-        current->data = data_area + i * block_size;
-        current->used = 0;
-        current->next = (i < batch_size - 1) ? &head[i + 1] : NULL;
-    }
-
-    return head;
+// Align a size to the next multiple of CACHE_LINE_SIZE
+static inline size_t align_size(size_t size) {
+    return (size + CACHE_LINE_SIZE - 1) & ~(CACHE_LINE_SIZE - 1);
 }
 
-MemoryPool* mpool_create(size_t block_size) {
-    block_size = block_size ? block_size : MEMORY_POOL_BLOCK_SIZE;
+// Create a new memory chunk
+static inline MemoryChunk* chunk_create(size_t size) {
+    size = align_size(size);  // Align the size
+    MemoryChunk* chunk = malloc(sizeof(MemoryChunk));
+    if (!chunk) {
+        perror("Failed to allocate memory for chunk");
+        return NULL;
+    }
+
+    chunk->memory = aligned_alloc(CACHE_LINE_SIZE, size);
+    if (!chunk->memory) {
+        perror("Failed to allocate aligned memory for chunk");
+        free(chunk);
+        return NULL;
+    }
+
+    chunk->free_ptr = chunk->memory;
+    chunk->capacity = size;
+    chunk->used = 0;
+    chunk->next = NULL;
+
+    return chunk;
+}
+
+// Destroy a memory chunk
+static inline void chunk_destroy(MemoryChunk* chunk) {
+    if (chunk) {
+        free(chunk->memory);
+        free(chunk);
+    }
+}
+
+// Create a memory pool
+MemoryPool* mpool_create(size_t chunk_size) {
+    if (chunk_size < CHUNK_MIN_SIZE) {
+        chunk_size = CHUNK_MIN_SIZE;  // Ensure a reasonable minimum chunk size
+    }
 
     MemoryPool* pool = malloc(sizeof(MemoryPool));
     if (!pool) {
-        return nullptr;
+        perror("Failed to allocate memory for pool");
+        return NULL;
     }
 
-    atomic_init(&pool->current_block, (uintptr_t)NULL);
-    atomic_init(&pool->free_list, (uintptr_t)NULL);
-    pool->block_size = block_size;
-    pool->batches = nullptr;
-
-    // Allocate the initial batch
-    MemoryBlock* initial_block = allocate_block_batch(pool, block_size, 8);
-    if (!initial_block) {
+    pool->head = chunk_create(chunk_size);
+    if (!pool->head) {
         free(pool);
-        return nullptr;
+        return NULL;
     }
 
-    atomic_store(&pool->current_block, (uintptr_t)initial_block);
+    pool->mru = pool->head;
+    pool->chunk_size = chunk_size;
+
     return pool;
 }
 
+// Allocate memory from the pool
 void* mpool_alloc(MemoryPool* pool, size_t size) {
-    size = (size + sizeof(uintptr_t) - 1) & ~(sizeof(uintptr_t) - 1);  // Align size
-
-    // Try thread-local allocation first
-    ThreadLocalStorage* tls_ptr = &tls;
-
-    if (tls_ptr->block) {
-        if (tls_ptr->block->used + size <= pool->block_size) {
-            size_t offset = tls_ptr->block->used;
-            tls_ptr->block->used += size;
-            return tls_ptr->block->data + offset;
-        }
+    if (!pool || size == 0) {
+        return NULL;
     }
 
-    // Prefetch the global free list to reduce cache misses
-    uintptr_t free_list = atomic_load(&pool->free_list);
+    size = align_size(size);
 
-    // NOLINTNEXTLINE(performance-no-int-to-ptr)
-    __builtin_prefetch((void*)free_list);
+    // First, try allocating from the most recently used chunk
+    MemoryChunk* chunk = pool->mru;
+    if (chunk->used + size <= chunk->capacity) {
+        void* block = chunk->free_ptr;
+        chunk->free_ptr = (char*)chunk->free_ptr + size;
+        chunk->used += size;
+        return block;
+    }
 
-    // Batch allocation from global free list
-    MemoryBlock* batch_head = nullptr;
-    do {
-        if (!free_list) {
-            batch_head = allocate_block_batch(pool, pool->block_size, 8);  // Fetch a batch
-            if (!batch_head)
-                return NULL;
-            break;
+    // If MRU chunk doesn't have enough space, search other chunks
+    chunk = pool->head;
+    while (chunk) {
+        if (chunk->used + size <= chunk->capacity) {
+            pool->mru = chunk;  // Update MRU to this chunk
+            void* block = chunk->free_ptr;
+            chunk->free_ptr = (char*)chunk->free_ptr + size;
+            chunk->used += size;
+            return block;
         }
+        chunk = chunk->next;
+    }
 
-        // NOLINTNEXTLINE(performance-no-int-to-ptr): uintptr_t is used for atomic operations
-        batch_head = (MemoryBlock*)free_list;
-    } while (
-        !atomic_compare_exchange_weak(&pool->free_list, &free_list, (uintptr_t)batch_head->next));
+    // If no chunk has enough space, create a new chunk
+    size_t new_chunk_size = pool->chunk_size > size ? pool->chunk_size : size;
+    MemoryChunk* new_chunk = chunk_create(new_chunk_size);
+    if (!new_chunk) {
+        return NULL;  // Allocation failed
+    }
 
-    // Use the first block from the batch
-    MemoryBlock* new_block = batch_head;
-    new_block->used = size;
+    // Add the new chunk to the pool
+    new_chunk->next = pool->head;
+    pool->head = new_chunk;
+    pool->mru = new_chunk;
 
-    // Store the rest of the batch in thread-local storage
-    tls_ptr->block = batch_head->next;
-    return new_block->data;
+    // Allocate from the new chunk
+    void* block = new_chunk->free_ptr;
+    new_chunk->free_ptr = (char*)new_chunk->free_ptr + size;
+    new_chunk->used += size;
+
+    return block;
 }
 
+// Destroy the memory pool
 void mpool_destroy(MemoryPool* pool) {
-    // Free all batches
-    Batch* batch = pool->batches;
-    while (batch) {
-        Batch* next = batch->next;
-        free(batch->memory);
-        free(batch);
-        batch = next;
+    if (!pool)
+        return;
+
+    MemoryChunk* chunk = pool->head;
+    while (chunk) {
+        MemoryChunk* next = chunk->next;
+        chunk_destroy(chunk);
+        chunk = next;
     }
+
     free(pool);
 }
