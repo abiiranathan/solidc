@@ -137,6 +137,23 @@ void* mpool_alloc(MemoryPool* pool, size_t size) {
     return block;
 }
 
+void mpool_reset(MemoryPool* pool) {
+    if (!pool) {
+        return;
+    }
+
+    // Reset all chunks to their initial state
+    MemoryChunk* chunk = pool->head;
+    while (chunk) {
+        chunk->free_ptr = chunk->memory;
+        chunk->used = 0;
+        chunk = chunk->next;
+    }
+
+    // Reset most recently used chunk to the head
+    pool->mru = pool->head;
+}
+
 // Destroy the memory pool
 void mpool_destroy(MemoryPool* pool) {
     if (!pool)

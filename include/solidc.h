@@ -12,6 +12,7 @@
 #include "list.h"
 #include "lock.h"
 #include "map.h"
+#include "memory_pool.h"
 #include "optional.h"
 #include "process.h"
 #include "set.h"

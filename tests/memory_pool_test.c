@@ -29,6 +29,24 @@ void test_memory_pool_alloc(void) {
         assert(*(arr[j]) == (int)j);
     }
 
+    // test reset
+    mpool_reset(pool);
+
+    arr = (int**)mpool_alloc(pool, 600 * sizeof(int*));
+    assert(arr);
+
+    // try re-allocating
+    for (size_t i = 0; i < 600; i++) {
+        arr[i] = mpool_alloc(pool, sizeof(int*));
+        assert(arr[i] != NULL);
+        *(arr[i]) = i;
+    }
+
+    // Validate that ints are correctly allocated
+    for (size_t j = 0; j < 600; j++) {
+        assert(*(arr[j]) == (int)j);
+    }
+
     mpool_destroy(pool);
     printf("test_memory_pool_alloc passed\n");
 }

@@ -300,7 +300,7 @@ char** cstr_splitchar(const char* str, char delimiter, size_t* num_splits) {
                 for (size_t j = 0; j < substring_index; j++) {
                     free(substrings[j]);
                 }
-                free(substrings);
+                free((void*)substrings);
                 return NULL;
             }
 
@@ -323,7 +323,7 @@ void cstr_free_array(char** substrings, size_t count) {
     for (size_t i = 0; i < count; i++) {
         free(substrings[i]);
     }
-    free(substrings);
+    free((void*)substrings);
 }
 
 // Split a cstr into an array of cstrs by a given delimiter.
@@ -354,7 +354,7 @@ cstr** cstr_split_at(Arena* arena, const cstr* str, const char* delimiter, size_
                 if (!new_tokens) {
                     return NULL;
                 }
-                memcpy(new_tokens, tokens, local_count * sizeof(cstr*));
+                memcpy((void*)new_tokens, (void*)tokens, local_count * sizeof(cstr*));
                 tokens = new_tokens;
             }
 
@@ -375,7 +375,7 @@ cstr** cstr_split_at(Arena* arena, const cstr* str, const char* delimiter, size_
             if (!new_tokens) {
                 return NULL;
             }
-            memcpy(new_tokens, tokens, local_count * sizeof(cstr*));
+            memcpy((void*)new_tokens, (void*)tokens, local_count * sizeof(cstr*));
             tokens = new_tokens;
         }
 

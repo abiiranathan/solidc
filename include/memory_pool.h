@@ -13,6 +13,9 @@ MemoryPool* mpool_create(size_t block_size);
 // Allocate memory from the pool
 void* mpool_alloc(MemoryPool* pool, size_t size);
 
+// Reset the memory pool without de-allocating the memory already allocated.
+void mpool_reset(MemoryPool* pool);
+
 // Destroy the memory pool.
 void mpool_destroy(MemoryPool* pool);
 
