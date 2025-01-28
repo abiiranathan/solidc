@@ -22,7 +22,7 @@ void concurrent_insert(void* arg) {
 }
 
 void test_concurrent_map() {
-    ThreadPool pool = threadpool_create(4);
+    ThreadPool* pool = threadpool_create(4);
     assert(pool);
 
     map* m = map_create(MAP_SIZE, key_compare_int);
@@ -40,7 +40,6 @@ void test_concurrent_map() {
         threadpool_add_task(pool, concurrent_insert, &args[i]);
     }
 
-    threadpool_wait(pool);
     threadpool_destroy(pool);
 
     // check if all values are inserted

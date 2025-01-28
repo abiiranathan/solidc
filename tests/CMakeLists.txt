@@ -83,6 +83,7 @@ target_link_libraries(process_test pthread m)
 # Add the test executable for threadpool module
 set(THREADPOOL_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/threadpool.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/lfqueue.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/thread.c
     ${CMAKE_CURRENT_SOURCE_DIR}/threadpool_test.c
@@ -98,6 +99,7 @@ target_link_libraries(threadpool_test pthread m)
 set(MAP_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/map_test.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/threadpool.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/lfqueue.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/map.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/thread.c
@@ -212,3 +214,13 @@ set(MEMORYPOOL_SRCS
 
 add_executable(memory_pool_test ${MEMORYPOOL_SRCS})
 add_test(memory_pool_test memory_pool_test)
+
+
+# LfQueue test module
+set(LFQUEUE_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/lfqueue_test.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/lfqueue.c
+)
+
+add_executable(lfqueue_test ${LFQUEUE_SRCS})
+add_test(lfqueue_test lfqueue_test)
