@@ -1,10 +1,8 @@
-#include <pthread.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 #include "../include/lfqueue.h"
+#include "../include/lock.h"
+#include "../include/thread.h"
 #include "../include/threadpool.h"
 
 #define DEFAULT_TASK_CAPACITY 1024
@@ -17,11 +15,11 @@ typedef struct {
 
 // ThreadPool structure
 typedef struct ThreadPool {
-    pthread_mutex_t mutex;     // Mutex to protect shared resources
-    pthread_cond_t cond;       // Condition variable for task availability
-    pthread_cond_t idle_cond;  // Condition variable for idle threads
+    Lock mutex;           // Mutex to protect shared resources
+    Condition cond;       // Condition variable for task availability
+    Condition idle_cond;  // Condition variable for idle threads
     LfQueue* queue;
-    pthread_t* threads;     // Array of threads
+    Thread* threads;        // Array of threads
     size_t num_threads;     // Number of threads in the pool
     size_t active_threads;  // Count of currently active threads
     int stop;               // Flag to indicate the pool is stopping
@@ -32,11 +30,11 @@ void* threadpool_worker(void* arg) {
     ThreadPool* pool = (ThreadPool*)arg;
 
     while (1) {
-        pthread_mutex_lock(&pool->mutex);
+        lock_acquire(&pool->mutex);
 
         // Wait until there are tasks or the pool is stopping
         while (queue_size(pool->queue) == 0 && !pool->stop) {
-            pthread_cond_wait(&pool->cond, &pool->mutex);
+            cond_wait(&pool->cond, &pool->mutex);
         }
 
         // If stop is set and no tasks remain, exit the loop
@@ -46,14 +44,14 @@ void* threadpool_worker(void* arg) {
             // otherwise threadpool_destroy will wait forever.
             queue_clear(pool->queue);
 
-            pthread_cond_signal(&pool->idle_cond);
-            pthread_mutex_unlock(&pool->mutex);
+            cond_signal(&pool->idle_cond);
+            lock_release(&pool->mutex);
             break;
         }
 
         // Increment active thread count to track busy threads
         pool->active_threads++;
-        pthread_mutex_unlock(&pool->mutex);
+        lock_release(&pool->mutex);
 
         // Fetch the next task from the queue
         Task task;
@@ -62,15 +60,15 @@ void* threadpool_worker(void* arg) {
             task.task(task.arg);
         }
 
-        pthread_mutex_lock(&pool->mutex);
+        lock_acquire(&pool->mutex);
         pool->active_threads--;
 
         // Signal idle condition if no tasks are left and all threads are idle
         if (queue_size(pool->queue) == 0 && pool->active_threads == 0) {
-            pthread_cond_signal(&pool->idle_cond);
+            cond_signal(&pool->idle_cond);
         }
 
-        pthread_mutex_unlock(&pool->mutex);
+        lock_release(&pool->mutex);
         printf("Active threads: %zu\n", pool->active_threads);
     }
 
@@ -102,9 +100,9 @@ ThreadPool* threadpool_create(size_t num_threads) {
     pool->stop = 0;
 
     // Initialize mutex and condition variables
-    pthread_mutex_init(&pool->mutex, NULL);
-    pthread_cond_init(&pool->cond, NULL);
-    pthread_cond_init(&pool->idle_cond, NULL);
+    lock_init(&pool->mutex);
+    cond_init(&pool->cond);
+    cond_init(&pool->idle_cond);
 
     pool->threads = malloc(num_threads * sizeof(pthread_t));
     if (!pool->threads) {
@@ -116,7 +114,7 @@ ThreadPool* threadpool_create(size_t num_threads) {
 
     // Create threads
     for (size_t i = 0; i < num_threads; i++) {
-        if (pthread_create(&pool->threads[i], NULL, threadpool_worker, pool) != 0) {
+        if (thread_create(&pool->threads[i], threadpool_worker, pool) != 0) {
             perror("Failed to create thread");
             // Free resources and return NULL if thread creation fails
             free(pool->threads);
@@ -133,9 +131,9 @@ bool threadpool_add_task(ThreadPool* pool, void (*task)(void*), void* arg) {
     Task t = {.task = task, .arg = arg};
     if (queue_enqueue(pool->queue, &t)) {
         // Signal one waiting thread to pick up the task
-        pthread_mutex_lock(&pool->mutex);
-        pthread_cond_signal(&pool->cond);
-        pthread_mutex_unlock(&pool->mutex);
+        lock_acquire(&pool->mutex);
+        cond_signal(&pool->cond);
+        lock_release(&pool->mutex);
     };
 
     return true;
@@ -148,31 +146,31 @@ void threadpool_stop(ThreadPool* pool) {
 
 // Destroy the thread pool
 void threadpool_destroy(ThreadPool* pool) {
-    pthread_mutex_lock(&pool->mutex);
+    lock_acquire(&pool->mutex);
 
     // Wait until no tasks remain(or pool was stopped) and all threads are idle
     while (pool->active_threads > 0 || queue_size(pool->queue) > 0) {
-        pthread_cond_wait(&pool->idle_cond, &pool->mutex);
+        cond_wait(&pool->idle_cond, &pool->mutex);
     }
 
     // Set stop flag and wake up all threads
     pool->stop = 1;
-    pthread_cond_broadcast(&pool->cond);
+    cond_broadcast(&pool->cond);
 
-    pthread_mutex_unlock(&pool->mutex);
+    lock_release(&pool->mutex);
 
     // Join all threads
     for (size_t i = 0; i < pool->num_threads; i++) {
-        pthread_join(pool->threads[i], NULL);
+        thread_join(pool->threads[i], NULL);
     }
 
     // Free allocated resources
     free(pool->threads);
     queue_destroy(pool->queue);
 
-    pthread_mutex_destroy(&pool->mutex);
-    pthread_cond_destroy(&pool->cond);
-    pthread_cond_destroy(&pool->idle_cond);
+    lock_free(&pool->mutex);
+    cond_free(&pool->cond);
+    cond_free(&pool->idle_cond);
 
     free(pool);
 }
