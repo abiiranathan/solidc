@@ -1,4 +1,5 @@
 #include "../include/csvparser.h"
+#include "../include/arena.h"
 #include "../include/file.h"
 
 #include <ctype.h>
@@ -68,7 +69,7 @@ CsvParser* csvparser_new(const char* filename) {
 
 // Allocate memory for rows and set num_rows.
 static CsvRow** csv_allocate_rows(Arena* arena, size_t num_rows) {
-    CsvRow** rows = arena_alloc(arena, num_rows * sizeof(CsvRow*));
+    CsvRow** rows = (CsvRow**)arena_alloc(arena, num_rows * sizeof(CsvRow*));
     if (!rows) {
         fprintf(stderr, "csv_allocate_rows(): error allocating memory for CsvRow*\n");
         return NULL;
@@ -295,7 +296,7 @@ static bool parse_csv_line(LineArgs* args) {
     char field[MAX_FIELD_SIZE] = {0};
     int insideQuotes = 0;
 
-    args->row->fields = arena_alloc(args->arena, args->num_fields * sizeof(char*));
+    args->row->fields = (char**)arena_alloc(args->arena, args->num_fields * sizeof(char*));
     if (!args->row->fields) {
         fprintf(stderr, "ERROR: unable to allocate memory for row->fields\n");
         return false;

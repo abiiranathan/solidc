@@ -26,8 +26,6 @@ extern "C" {
 #define _GNU_SOURCE 1
 #endif
 
-#include "arena.h"
-
 #include <stdbool.h>
 #include <stddef.h>
 
