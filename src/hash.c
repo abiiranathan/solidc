@@ -132,6 +132,8 @@ uint32_t solidc_murmur_hash(const char* key, uint32_t len, uint32_t seed) {
             k = (k << r1) | (k >> (32 - r1));
             k *= c2;
             h ^= k;
+        default:
+            // ignore
     }
 
     h ^= len;

@@ -276,7 +276,7 @@ int file_seek(file_t* file, long offset, int origin) {
 
 // rewind file
 void file_rewind(file_t* file) {
-    rewind(file->file);
+    fseek(file->file, 0, SEEK_SET);
 }
 
 // file remove
@@ -323,7 +323,7 @@ int file_copy(file_t* file, file_t* dst) {
 
     // flush the file
     fflush(dst->file);
-    rewind(dst->file);
+    file_rewind(dst);
 
     // update the file size
     dst->size = file->size;

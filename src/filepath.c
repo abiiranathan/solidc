@@ -163,7 +163,7 @@ char** dir_list(const char* path, size_t* count) {
     while ((name = dir_next(dir)) != NULL) {
         if (size >= capacity) {
             capacity *= 2;
-            char** tmp = (char**)realloc(list, capacity * sizeof(char*));
+            char** tmp = (char**)realloc((void*)list, capacity * sizeof(char*));
             if (!tmp) {
                 perror("realloc");
                 goto cleanup;
@@ -190,8 +190,9 @@ cleanup:
         for (size_t i = 0; i < size; i++) {
             free(list[i]);
         }
-        free(list);
+        free((void*)list);
     }
+
     dir_close(dir);
     return NULL;
 }
