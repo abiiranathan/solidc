@@ -1,3 +1,4 @@
 Diagnostics:
   Suppress:
     - modernize-use-nullptr
+    - bugprone-multi-level-implicit-pointer-conversion
