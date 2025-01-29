@@ -1,136 +1,121 @@
 #include "../include/lfqueue.h"
+#include <stdalign.h>
 #include <stdatomic.h>
 #include <stddef.h>
 #include <string.h>
 
-// Define the queue node structure
 typedef struct Node {
     void* data;
-    _Atomic(struct Node*) next;
+    alignas(64) _Atomic(struct Node*) next;  // Prevent false sharing
 } Node;
 
-// Lock-free Queue structure.
 typedef struct LfQueue {
-    _Atomic(Node*) head;  // Head pointer for dequeue
-    _Atomic(Node*) tail;  // Tail pointer for enqueue
-    size_t element_size;  // Size of each element
-    size_t capacity;      // Maximum number of elements
-    atomic_size_t size;   // Current number of elements
+    alignas(64) _Atomic(Node*) head;  // Cache line alignment
+    alignas(64) _Atomic(Node*) tail;
+    size_t element_size;
+    size_t capacity;
+    alignas(64) atomic_size_t size;  // Separate cache line
 } LfQueue;
 
-// Initialize a new lock-free queue
 LfQueue* queue_init(size_t element_size, size_t capacity) {
-    LfQueue* queue = (LfQueue*)malloc(sizeof(LfQueue));
+    LfQueue* queue = malloc(sizeof(LfQueue));
     if (!queue)
         return NULL;
 
-    // Create sentinel node
-    Node* sentinel = (Node*)malloc(sizeof(Node));
+    Node* sentinel = malloc(sizeof(Node));
     if (!sentinel) {
         free(queue);
         return NULL;
     }
 
     sentinel->data = NULL;
-    sentinel->next = NULL;
+    atomic_init(&sentinel->next, NULL);
 
-    // Initialize atomic pointers
     atomic_init(&queue->head, sentinel);
     atomic_init(&queue->tail, sentinel);
     atomic_init(&queue->size, 0);
-
     queue->element_size = element_size;
     queue->capacity = capacity;
 
     return queue;
 }
 
-// Enqueue an element (producer)
 bool queue_enqueue(LfQueue* queue, const void* element) {
     if (!queue || !element)
         return false;
 
-    // Check if queue is full
-    size_t current_size = atomic_load(&queue->size);
-    if (current_size >= queue->capacity)
-        return false;
+    // Reserve slot atomically
+    size_t current_size;
+    do {
+        current_size = atomic_load_explicit(&queue->size, memory_order_relaxed);
+        if (current_size >= queue->capacity)
+            return false;
+    } while (!atomic_compare_exchange_weak_explicit(&queue->size, &current_size, current_size + 1,
+                                                    memory_order_acquire, memory_order_relaxed));
 
-    // Create new node
-    Node* new_node = (Node*)malloc(sizeof(Node));
-    if (!new_node)
+    Node* new_node = malloc(sizeof(Node));
+    if (!new_node) {
+        atomic_fetch_sub_explicit(&queue->size, 1, memory_order_relaxed);
         return false;
+    }
 
-    // Allocate and copy data
     new_node->data = malloc(queue->element_size);
     if (!new_node->data) {
         free(new_node);
+        atomic_fetch_sub_explicit(&queue->size, 1, memory_order_relaxed);
         return false;
     }
     memcpy(new_node->data, element, queue->element_size);
-    new_node->next = NULL;
+    atomic_init(&new_node->next, NULL);
 
-    // Add node to the queue
     Node* tail;
-    while (true) {
-        tail = atomic_load(&queue->tail);
-        Node* next = atomic_load(&tail->next);
+    while (1) {
+        tail = atomic_load_explicit(&queue->tail, memory_order_acquire);
+        Node* next = atomic_load_explicit(&tail->next, memory_order_acquire);
 
-        if (next == NULL) {
-            // Try to link the new node
-            if (atomic_compare_exchange_weak(&tail->next, &next, new_node)) {
+        if (!next) {
+            if (atomic_compare_exchange_weak_explicit(&tail->next, &next, new_node,
+                                                      memory_order_release, memory_order_acquire))
                 break;
-            }
         } else {
-            // advance the tail pointer
-            atomic_compare_exchange_weak(&queue->tail, &tail, next);
+            atomic_compare_exchange_weak_explicit(&queue->tail, &tail, next, memory_order_release,
+                                                  memory_order_acquire);
         }
     }
 
-    // Advance tail pointer
-    atomic_compare_exchange_weak(&queue->tail, &tail, new_node);
-    atomic_fetch_add(&queue->size, 1);
-
+    atomic_compare_exchange_weak_explicit(&queue->tail, &tail, new_node, memory_order_release,
+                                          memory_order_acquire);
     return true;
 }
 
-// Dequeue an element (consumer)
 bool queue_dequeue(LfQueue* queue, void* element) {
     if (!queue || !element)
         return false;
 
-    // Check if queue is empty
-    if (atomic_load(&queue->size) == 0)
-        return false;
-
-    while (true) {
-        Node* head = atomic_load(&queue->head);
-        Node* tail = atomic_load(&queue->tail);
-        Node* next = atomic_load(&head->next);
+    while (1) {
+        Node* head = atomic_load_explicit(&queue->head, memory_order_acquire);
+        Node* tail = atomic_load_explicit(&queue->tail, memory_order_acquire);
+        Node* next = atomic_load_explicit(&head->next, memory_order_acquire);
 
         if (head == tail) {
-            if (next == NULL) {
-                return false;  // Queue is empty
-            }
-
-            // Help advance the tail pointer
-            atomic_compare_exchange_weak(&queue->tail, &tail, next);
-            continue;
-        }
-
-        if (next) {
-            // Copy data and advance head
+            if (!next)
+                return false;
+            atomic_compare_exchange_weak_explicit(&queue->tail, &tail, next, memory_order_release,
+                                                  memory_order_acquire);
+        } else {
             memcpy(element, next->data, queue->element_size);
-            if (atomic_compare_exchange_weak(&queue->head, &head, next)) {
-                // Free the dequeued node
+            if (atomic_compare_exchange_weak_explicit(&queue->head, &head, next,
+                                                      memory_order_release, memory_order_acquire)) {
                 free(head->data);
                 free(head);
-                atomic_fetch_sub(&queue->size, 1);
+                atomic_fetch_sub_explicit(&queue->size, 1, memory_order_release);
                 return true;
             }
         }
     }
 }
 
+// Other functions remain similar with memory_order adjustments
 // Free the queue and all remaining elements.
 // This is not thread-safe.
 void queue_destroy(LfQueue* queue) {
