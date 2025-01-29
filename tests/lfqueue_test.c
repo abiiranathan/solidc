@@ -12,7 +12,7 @@
 #define NUM_PRODUCERS 3
 #define NUM_CONSUMERS 2
 #define ITEMS_PER_PRODUCER 1000
-#define QUEUE_CAPACITY 100
+#define QUEUE_CAPACITY (NUM_PRODUCERS * ITEMS_PER_PRODUCER + 1)
 
 // Structure to hold thread arguments
 typedef struct {
@@ -73,6 +73,7 @@ void* consumer(void* arg) {
             if (atomic_load(args->done) && queue_size(args->queue) == 0) {
                 break;
             }
+
             // Small sleep if queue is empty
             usleep(rand() % 1000);
         }

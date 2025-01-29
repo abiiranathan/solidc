@@ -7,7 +7,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Lock-free Queue.
+/**
+This is a bounded, lock-free, multi-producer, multi-consumer (MPMC) queue.
+Uses a circular buffer with atomic indices.
+One slot is always left empty to distinguish full/empty states.
+Memory ordering ensures safe access across threads.
+ */
 typedef struct LfQueue LfQueue;
 
 // Initialize a new lock-free queue
