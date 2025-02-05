@@ -16,7 +16,7 @@ typedef struct Task {
     struct Task* next;            // Pointer to the next job
     void (*function)(void* arg);  // Function to be executed
     void* arg;                    // Argument to be passed to the function
-} Task;
+} Task __attribute__((aligned(64)));
 
 // Job queue is a linked list of jobs that are waiting to be executed
 typedef struct Taskqueue {

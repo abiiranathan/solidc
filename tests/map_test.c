@@ -22,7 +22,7 @@ void concurrent_insert(void* arg) {
 }
 
 void test_concurrent_map() {
-    ThreadPool pool = threadpool_create(4);
+    ThreadPool* pool = threadpool_create(4);
     assert(pool);
 
     map* m = map_create(MAP_SIZE, key_compare_int);
