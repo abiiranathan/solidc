@@ -1,14 +1,19 @@
+#define _GNU_SOURCE
+
+#include <errno.h>  // Required for errno
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>  // Required for srand and time
 
 #include "../include/lock.h"
 #include "../include/thread.h"
 #include "../include/threadpool.h"
 
 #ifdef _WIN32
-#define SLEEP(sec) Sleep((sec) * 1000)
+#include <windows.h>
+#define usleep(microSec) Sleep(microSec / 1e6);
 #else
-#define SLEEP(sec) sleep(sec)
+#include <unistd.h>
 #endif
 
 // Job represents a work item that should be executed by a thread in the thread pool
@@ -69,6 +74,7 @@ static int jobqueue_init(TaskQueue* jobqueue_p) {
     jobqueue_p->rear = NULL;
     lock_init(&jobqueue_p->rwmutex);
     cond_init(&jobqueue_p->has_jobs);
+    jobqueue_p->pool = NULL;
     return 0;
 }
 
@@ -111,17 +117,19 @@ static int has_tasks_in_thread_queues(threadpool* pool) {
 }
 
 static Task* jobqueue_pull(TaskQueue* q) {
-    if (q->pool->shutdown) {
-        return NULL;
-    }
-
+    Task* task = NULL;
     lock_acquire(&q->rwmutex);
-    while (q->len == 0 && !q->pool->shutdown) {
+    while (q->len == 0 && q->pool->queue.len == 0 && !q->pool->shutdown) {
         // Wait for a signal that there are jobs in the queue
         cond_wait(&q->has_jobs, &q->rwmutex);
     }
 
-    Task* task = q->front;
+    if (q->pool->shutdown && q->len == 0) {
+        lock_release(&q->rwmutex);
+        return NULL;  // Exit if shutting down and no tasks
+    }
+
+    task = q->front;
     if (task) {
         q->front = task->next;
         q->len--;
@@ -150,10 +158,14 @@ static int thread_init(threadpool* pool, thread** t, int id) {
 
     (*t)->pool = pool;
     (*t)->id = id;
-    (*t)->queue.pool = pool;
+    (*t)->queue.pool = pool;  // Set pool for per-thread queue
 
     // Initialize the per-thread queue
-    jobqueue_init(&(*t)->queue);
+    if (jobqueue_init(&(*t)->queue) != 0) {
+        free(*t);
+        return -1;
+    }
+    (*t)->queue.pool = pool;  // Redundant but ensures pool is set
 
     return thread_create(&(*t)->pthread, threadWorker, (void*)*t);
 }
@@ -164,7 +176,42 @@ static void thread_destroy(thread* thp) {
     }
 
     thread_join(thp->pthread, NULL);
+    jobqueue_destroy(&thp->queue);  // Destroy per-thread queue
     free(thp);
+}
+
+static Task* thread_steal_task(threadpool* pool, thread* thief) {
+    int start_idx = rand() % pool->num_threads;
+
+    for (int i = 0; i < pool->num_threads; i++) {
+        int index = (start_idx + i) % pool->num_threads;
+        thread* target = pool->threads[index];
+
+        if (target == thief)
+            continue;  // Skip self
+
+        lock_acquire(&target->queue.rwmutex);
+        if (target->queue.len == 0) {
+            lock_release(&target->queue.rwmutex);
+            continue;
+        }
+
+        Task* task = target->queue.front;
+        if (task) {
+            target->queue.front = task->next;
+            target->queue.len--;
+            if (target->queue.len == 0) {
+                target->queue.rear = NULL;
+            }
+        }
+        lock_release(&target->queue.rwmutex);
+
+        if (task) {
+            printf("Stole task from thread: %d\n", index);
+            return task;  // Successfully stole a task
+        }
+    }
+    return NULL;  // No tasks to steal
 }
 
 void* threadWorker(void* arg) {
@@ -186,7 +233,9 @@ void* threadWorker(void* arg) {
 
         Task* task = NULL;
 
-        // try jobs from local queue first
+        // try jobs from local queue first.
+        // If there are no jobs & global pool is empty, it will block until
+        // a new job arrives.
         task = jobqueue_pull(&thp->queue);
 
         // otherwise, try to steal from the global queue
@@ -194,22 +243,26 @@ void* threadWorker(void* arg) {
             task = jobqueue_pull(&pool->queue);
         }
 
+        // Try stealing from other threads if both local and global queues are empty
+        if (task == NULL) {
+            task = thread_steal_task(pool, thp);
+        }
+
         if (task) {
-            // We have some work to do
             lock_acquire(&pool->thcount_lock);
             pool->num_threads_working++;
             lock_release(&pool->thcount_lock);
 
-            // Execute the task function, passing in the argument
             task->function(task->arg);
             free(task);
 
             lock_acquire(&pool->thcount_lock);
             pool->num_threads_working--;
-            int no_tasks = (pool->num_threads_working == 0 && !has_tasks_in_thread_queues(pool));
+            int no_tasks = (pool->num_threads_working == 0 && !has_tasks_in_thread_queues(pool) &&
+                            pool->queue.len == 0);
+
             lock_release(&pool->thcount_lock);
 
-            // If we are done, wake up all threads for a clean exit.
             if (no_tasks) {
                 cond_broadcast(&pool->threads_all_idle);
             }
@@ -269,11 +322,6 @@ threadpool* threadpool_create(int num_threads) {
             return NULL;
         }
     }
-
-    // Wait for all threads to boot up
-    while (pool->num_threads_alive != num_threads) {
-        SLEEP(1);
-    }
     return pool;
 }
 
@@ -281,6 +329,7 @@ void threadpool_wait(threadpool* pool) {
     if (pool == NULL)
         return;
 
+    printf("Waiting for all threads to exit\n");
     lock_acquire(&pool->thcount_lock);
     while (pool->queue.len > 0 || pool->num_threads_working > 0 ||
            has_tasks_in_thread_queues(pool)) {
@@ -297,22 +346,27 @@ void threadpool_destroy(threadpool* pool) {
     pool->shutdown = 1;
     lock_release(&pool->thcount_lock);
 
-    // Signal all waiting threads
+    // Signal all waiting threads - signal both global and local queues
+    // Wake up threads waiting in threadpool_wait
     cond_broadcast(&pool->threads_all_idle);
 
     for (int i = 0; i < pool->num_threads; i++) {
         lock_acquire(&pool->threads[i]->queue.rwmutex);
-        cond_signal(&pool->threads[i]->queue.has_jobs);
+
+        // Wake up threads waiting on local queues
+        cond_broadcast(&pool->threads[i]->queue.has_jobs);
         lock_release(&pool->threads[i]->queue.rwmutex);
     }
 
     lock_acquire(&pool->queue.rwmutex);
-    cond_signal(&pool->queue.has_jobs);
+
+    // Wake up threads waiting on global queue
+    cond_broadcast(&pool->queue.has_jobs);
     lock_release(&pool->queue.rwmutex);
 
     // Wait for all threads to exit
     while (pool->num_threads_alive > 0) {
-        SLEEP(1);
+        usleep(100);
     }
 
     // Clean up thread resources
@@ -342,7 +396,7 @@ int threadpool_add_task(threadpool* pool, void (*function)(void*), void* arg) {
     int thread_id = rand() % pool->num_threads;
     thread* thp = pool->threads[thread_id];
 
-    // Check if the thread's queue is full
+    // Check if the thread's queue is "full" - based on length, not actual capacity
     lock_acquire(&thp->queue.rwmutex);
     int is_full = thp->queue.len >= THREADLOCAL_QUEUE_SIZE;
     lock_release(&thp->queue.rwmutex);

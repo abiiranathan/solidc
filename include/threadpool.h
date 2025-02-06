@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 #ifndef THREADLOCAL_QUEUE_SIZE
-#define THREADLOCAL_QUEUE_SIZE 1024
+#define THREADLOCAL_QUEUE_SIZE 4096
 #endif
 
 // Opaque threadpool structure

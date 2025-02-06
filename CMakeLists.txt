@@ -42,6 +42,7 @@ if(BUILD_TESTS)
 	add_subdirectory(tests)
 endif()
 
+add_subdirectory(benchmarks)
 
 # # ========== Installations ==========
 install(TARGETS solidc
@@ -51,7 +52,6 @@ install(TARGETS solidc
 
 install(EXPORT solidc_export
         FILE solidcTargets.cmake
-        NAMESPACE solidc::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/solidc)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/solidcConfig.cmake
