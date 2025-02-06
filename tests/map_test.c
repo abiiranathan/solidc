@@ -6,7 +6,6 @@
 
 // Uncomment this to test with 100m rows
 // Be sure to have enough memory and storage space > 2GB
-// #define MAP_SIZE 100000000  // 100m rows
 #define MAP_SIZE 1000000  // 1m rows
 
 typedef struct {
@@ -18,14 +17,13 @@ typedef struct {
 void concurrent_insert(void* arg) {
     Arg* a = (Arg*)arg;
     map_set_safe(a->m, a->key, a->value);
-    printf("Inserted key: %d, value: %d\n", *a->key, *a->value);
 }
 
 void test_concurrent_map() {
     ThreadPool* pool = threadpool_create(4);
     assert(pool);
 
-    map* m = map_create(MAP_SIZE, key_compare_int);
+    map* m = map_create(MAP_SIZE, key_compare_int, true);
     assert(m);
 
     Arg args[MAX_THREADS];
@@ -44,19 +42,19 @@ void test_concurrent_map() {
 
     // check if all values are inserted
     for (int i = 0; i < MAX_THREADS; ++i) {
-        const int* value = map_get_safe(m, args[i].key);
+        const int* value = map_get(m, args[i].key);
         assert(value);
         assert(*value == i);
     }
 
-    map_destroy(m, true);
+    map_destroy(m);
 }
 
 int main(void) {
     int* arr = malloc(MAP_SIZE * sizeof(int));
     assert(arr);
 
-    map* m = map_create(MAP_SIZE, key_compare_int);
+    map* m = map_create(MAP_SIZE, key_compare_int, false);
     assert(m);
 
     for (int i = 0; i < MAP_SIZE; ++i) {
@@ -66,25 +64,21 @@ int main(void) {
 
     const int* one = map_get(m, &arr[1]);
     assert(one);
+
     // test map_get_safe
     const int* two = map_get_safe(m, &arr[2]);
     assert(two);
 
-    FILE* fp = fopen("map_test.txt", "w");
-    assert(fp);
-
     // print all map values with map_for_each
     map_foreach(m, e) {
-        fprintf(fp, "Key: %d, Value: %d\n", *(int*)e->key, *(int*)e->value);
+        assert(e->key && e->value && *(int*)e->key == *(int*)e->value);
     }
-
-    fclose(fp);
 
     // free array
     free(arr);
 
     // free map
     // entries are not freed because they are allocated on the stack
-    map_destroy(m, false);
+    map_destroy(m);
     test_concurrent_map();
 }

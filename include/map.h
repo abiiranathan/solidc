@@ -14,16 +14,20 @@ extern "C" {
 
 // Allow user to customize initial map size and load factor threshold
 #ifndef INITIAL_MAP_SIZE
-#define INITIAL_MAP_SIZE 64
+#define INITIAL_MAP_SIZE 16
 #endif
 
 #ifndef LOAD_FACTOR_THRESHOLD
 #define LOAD_FACTOR_THRESHOLD 0.75
 #endif
 
-typedef struct {
-    void* key;    // Map key
-    void* value;  // Map value.
+// Define alignment for cache line optimization
+#define CACHE_LINE_SIZE 64
+
+// Entry structure with cache line alignment
+typedef struct __attribute__((aligned(CACHE_LINE_SIZE))) entry {
+    const void* key;
+    void* value;
 } entry;
 
 // Function pointer type for the key comparison.
@@ -32,21 +36,18 @@ typedef struct {
 // memcmp can be used for byte-wise comparison of keys if they are of a known size.
 typedef bool (*key_compare_fn)(const void*, const void*);
 
-// Generic map implementation.
+// Generic map implementation using xxhash as the hash function.
 typedef struct map map;
 
 // Create a new map and initialize it. If the initial capacity is 0, a default
 // capacity is used, otherwise its used as it.
 // key_compare is a function pointer used to compare 2 keys for equality.
-map* map_create(size_t initial_capacity, key_compare_fn key_compare)
+// If free_entries is true, the keys and values are also freed.
+map* map_create(size_t initial_capacity, key_compare_fn key_compare, bool free_entries)
     __attribute__((warn_unused_result()));
 
 // Destroy the map and free the memory.
-// If free_entries is true, the keys and values are also freed.
-// This is useful when the keys and values are allocated on the heap.
-// Pass false if the keys and values are allocated on the stack or you want to manage
-// their memory yourself.
-void map_destroy(map* m, bool free_entries);
+void map_destroy(map* m);
 
 // Set a key-value pair in the map
 // This is idempotent.
@@ -74,7 +75,8 @@ void map_remove(map* m, void* key);
 void map_remove_safe(map* m, void* key);
 
 // Set the hash function for the map
-// The default hash function is djb2_hash
+// The default hash function is xxhash.
+// See https://github.com/Cyan4973/xxHash and https://xxhash.com/
 void map_set_hash(map* m, unsigned long (*hash)(const void*));
 
 // Get the number of key-value pairs in the map
@@ -90,32 +92,6 @@ entry* map_get_entries(map* m);
     entry* entries = map_get_entries(map_ptr);                                                     \
     for (entry * (e) = entries; (e) < entries + capacity; (e)++)                                   \
         if ((e)->key != NULL)
-
-// djb2 hash function.
-// http://www.cse.yorku.ca/~oz/hash.html
-unsigned long djb2_hash(const void* key);
-
-// Simple DataBase Manager hash.
-// http://www.cse.yorku.ca/~oz/hash.html
-unsigned long sdbm_hash(const void* key);
-
-// Murmur hash function. Uses the 32-bit version for Little Endian architectures.
-// This is a non-cryptographic hash function suitable for general hash-based lookup.
-// and performs better than MD5, SHA-1, and SHA-2 while maintaining a good distribution.
-// This is a wrapper around murmur3_32 function.
-// This is the default hash function for the map.
-unsigned long murmur_hash(const void* key);
-
-/*
-* MurmurHash3 was written by Austin Appleby in 2008[Wikipedia], and is placed in the public domain.
-* The author hereby disclaims copyright to this source code.
-* This is a portable ANSI C implementation of MurmurHash3_x86_32.
-* MurmurHash3 is a non-cryptographic hash function suitable for general hash-based lookup.
-* that is faster than MD5, SHA-1, and SHA-2 while maintaining a good distribution.
-* It's works on x86 and x64 architectures.
-* See https://en.wikipedia.org/wiki/MurmurHash for more details.
-* */
-uint32_t murmur3_32(const uint8_t* key, size_t len, uint32_t seed);
 
 // Function pointer for comparing 2 integers
 bool key_compare_int(const void* a, const void* b);

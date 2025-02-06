@@ -1,4 +1,3 @@
-#include "../include/map.h"
 #include <limits.h>
 #include <pthread.h>
 #include <stdalign.h>
@@ -12,6 +11,19 @@
 #define XXH_INLINE_ALL
 #include <xxhash.h>
 
+// Define initial map size and load factor threshold
+#define INITIAL_MAP_SIZE 16
+#define LOAD_FACTOR_THRESHOLD 0.75
+
+// Define alignment for cache line optimization
+#define CACHE_LINE_SIZE 64
+
+// Entry structure with cache line alignment
+typedef struct __attribute__((aligned(CACHE_LINE_SIZE))) entry {
+    const void* key;
+    void* value;
+} entry;
+
 // Map structure
 typedef struct map {
     entry* entries;                                 // Map entries
@@ -24,8 +36,29 @@ typedef struct map {
     bool free_entries;                              // Free keys and values (if heap-allocated)
 } map;
 
+// Function prototypes
+map* map_create(size_t initial_capacity, bool (*key_compare)(const void*, const void*),
+                bool free_entries);
+
+void map_destroy(map* m);
+bool map_resize(map* m, size_t new_capacity);
+void map_set(map* m, void* key, void* value);
+void* map_get(map* m, void* key);
+void map_remove(map* m, void* key);
+size_t map_length(map* m);
+size_t map_capacity(map* m);
+
+// Thread-safe versions
+void map_set_safe(map* m, void* key, void* value);
+void* map_get_safe(map* m, void* key);
+void map_remove_safe(map* m, void* key);
+
+// Key comparison functions
+bool key_compare_int(const void* a, const void* b);
+bool key_compare_char_ptr(const void* a, const void* b);
+
 // Hash functions
-static inline unsigned long xxhash(const void* key);
+unsigned long xxhash(const void* key);
 
 // Map creation
 map* map_create(size_t initial_capacity, bool (*key_compare)(const void*, const void*),
@@ -70,10 +103,6 @@ map* map_create(size_t initial_capacity, bool (*key_compare)(const void*, const 
     return m;
 }
 
-entry* map_get_entries(map* m) {
-    return m->entries;
-}
-
 // Map destruction
 void map_destroy(map* m) {
     if (!m)
@@ -92,11 +121,6 @@ void map_destroy(map* m) {
     free(m->deleted_bitmap);
     pthread_mutex_destroy(&m->lock);
     free(m);
-}
-
-// Set the hash function for the map
-void map_set_hash(map* m, unsigned long (*hash)(const void*)) {
-    m->hash = hash;
 }
 
 // Resize the map
@@ -233,15 +257,99 @@ bool key_compare_char_ptr(const void* a, const void* b) {
     return a && b && strcmp((char*)a, (char*)b) == 0;
 }
 
-bool key_compare_float(const void* a, const void* b) {
-    return a && b && *(float*)a == *(float*)b;
-}
-
-bool key_compare_double(const void* a, const void* b) {
-    return a && b && *(double*)a == *(double*)b;
-}
-
-// xxHash implementation using XXH64.
+// xxHash implementation
 unsigned long xxhash(const void* key) {
     return XXH64(key, sizeof(int), 0);
+}
+
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#define NUM_THREADS 4
+#define NUM_ENTRIES 64
+
+// Shared map
+map* shared_map;
+
+// Worker function for inserting elements
+void* insert_worker(void* arg) {
+    int thread_id = *(int*)arg;
+    for (int i = thread_id * NUM_ENTRIES; i < (thread_id + 1) * NUM_ENTRIES; i++) {
+        int* key = malloc(sizeof(int));
+        int* value = malloc(sizeof(int));
+        *key = i;
+        *value = i * 10;
+        map_set_safe(shared_map, key, value);
+    }
+    return NULL;
+}
+
+// Worker function for retrieving elements
+void* retrieve_worker(void* arg) {
+    int thread_id = *(int*)arg;
+    for (int i = thread_id * NUM_ENTRIES; i < (thread_id + 1) * NUM_ENTRIES; i++) {
+        int key = i;
+        int* value = (int*)map_get_safe(shared_map, &key);
+        if (value) {
+            printf("Thread %d: Key %d => Value %d\n", thread_id, key, *value);
+        }
+    }
+    return NULL;
+}
+
+// Worker function for removing elements
+void* remove_worker(void* arg) {
+    int thread_id = *(int*)arg;
+    for (int i = thread_id * NUM_ENTRIES; i < (thread_id + 1) * NUM_ENTRIES; i++) {
+        int key = i;
+        map_remove_safe(shared_map, &key);
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t threads[NUM_THREADS];
+    int thread_ids[NUM_THREADS];
+
+    // Create the shared map
+    shared_map = map_create(128, key_compare_int, true);
+    if (!shared_map) {
+        fprintf(stderr, "Failed to create map\n");
+        return EXIT_FAILURE;
+    }
+
+    // Insert elements concurrently
+    for (int i = 0; i < NUM_THREADS; i++) {
+        thread_ids[i] = i;
+        pthread_create(&threads[i], NULL, insert_worker, &thread_ids[i]);
+    }
+    for (int i = 0; i < NUM_THREADS; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    printf("Insertion complete. Map size: %zu\n", map_length(shared_map));
+
+    // Retrieve elements concurrently
+    for (int i = 0; i < NUM_THREADS; i++) {
+        pthread_create(&threads[i], NULL, retrieve_worker, &thread_ids[i]);
+    }
+    for (int i = 0; i < NUM_THREADS; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    // Remove elements concurrently
+    for (int i = 0; i < NUM_THREADS; i++) {
+        pthread_create(&threads[i], NULL, remove_worker, &thread_ids[i]);
+    }
+    for (int i = 0; i < NUM_THREADS; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    printf("Removal complete. Map size: %zu\n", map_length(shared_map));
+
+    // Destroy the map
+    map_destroy(shared_map);
+    return EXIT_SUCCESS;
 }
