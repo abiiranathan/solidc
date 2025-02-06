@@ -41,3 +41,4 @@ bin
 CMakeLists.txt.user
 Testing
 example.c
+perf.data*

@@ -1,6 +1,7 @@
-#include <solidc/threadpool.h>
 #include <stdio.h>
 #include "include/threadpool.h"
+
+#define TASKS 10000
 
 void task(void* arg) {
     printf("Got: %d\n", *(int*)arg);
@@ -9,10 +10,12 @@ void task(void* arg) {
 int main(void) {
     ThreadPool* pool = threadpool_create(8);
 
-    int arr[1024];
-    for (int i = 0; i < 1024; i++) {
+    int arr[TASKS];
+    for (int i = 0; i < TASKS; i++) {
         arr[i] = i;
-        threadpool_submit(pool, task, &arr[i]);
+        if (threadpool_submit(pool, task, &arr[i]) != 0) {
+            printf("Threadpool full\n");
+        }
     }
 
     threadpool_destroy(pool);

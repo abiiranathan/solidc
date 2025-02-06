@@ -1,9 +1,9 @@
 #define _GNU_SOURCE
 
-#include <errno.h>  // Required for errno
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>  // Required for srand and time
+#include <time.h>
 
 #include "../include/lock.h"
 #include "../include/thread.h"
@@ -16,257 +16,187 @@
 #include <unistd.h>
 #endif
 
-// Job represents a work item that should be executed by a thread in the thread pool
+#define RING_BUFFER_SIZE 4096  // Must be power of 2
+#define RING_BUFFER_MASK (RING_BUFFER_SIZE - 1)
+
+// Task represents a work item that should be executed by a thread
 typedef struct Task {
-    struct Task* next;            // Pointer to the next job
     void (*function)(void* arg);  // Function to be executed
     void* arg;                    // Argument to be passed to the function
-} Task __attribute__((aligned(64)));
+} Task;
 
-// Job queue is a linked list of jobs that are waiting to be executed
-typedef struct Taskqueue {
-    Lock rwmutex;             // Mutex for the job queue
-    Task* front;              // Pointer to the front of the queue
-    Task* rear;               // Pointer to the rear of the queue
-    Condition has_jobs;       // Semaphore to signal that there are jobs in the queue
-    volatile int len;         // Number of jobs in the queue
-    struct threadpool* pool;  // Pointer to owning threadpool
-} TaskQueue;
+// Ring buffer for tasks
+typedef struct TaskRingBuffer {
+    Task tasks[RING_BUFFER_SIZE];
+    volatile unsigned int head;  // Producer index
+    volatile unsigned int tail;  // Consumer index
+    Lock mutex;                  // Protects ring buffer access
+    Condition not_empty;         // Signaled when items are added
+    Condition not_full;          // Signaled when items are removed
+    struct threadpool* pool;     // Pointer to owning threadpool
+} TaskRingBuffer;
 
 // Thread represents a cross-platform wrapper around a thread
 typedef struct thread {
     int id;                   // Thread ID
     struct threadpool* pool;  // Pointer to the thread pool
     Thread pthread;           // Thread handle
-
-    // per-thread queue
-    TaskQueue queue;
+    TaskRingBuffer queue;     // Per-thread ring buffer
 } thread;
 
 // Threadpool represents a thread pool that manages a group of threads
 typedef struct threadpool {
     thread** threads;                  // Array of threads
-    int num_threads;                   // The total number of threads
-    volatile int num_threads_alive;    // Number of threads that are currently alive
-    volatile int num_threads_working;  // Number of threads that are currently working
-    Lock thcount_lock;                 // Mutex for num_threads_alive
-    Condition threads_all_idle;        // Condition variable for signaling idle threads
-    TaskQueue queue;                   // Linked list for the queue of jobs
-    volatile int shutdown;             // Flag to indicate that the thread pool should be shut down
+    int num_threads;                   // Total number of threads
+    volatile int num_threads_alive;    // Number of threads currently alive
+    volatile int num_threads_working;  // Number of threads currently working
+    Lock thcount_lock;                 // Protects thread counts
+    Condition threads_all_idle;        // Signaled when all threads are idle
+    TaskRingBuffer queue;              // Global task queue
+    volatile int shutdown;             // Shutdown flag
 } threadpool;
 
-// ================ static functions declarations ====================
-static int thread_init(threadpool* pool, thread** thp, int id);
-
-static void* threadWorker(void* arg);
-static void thread_destroy(thread* thp);
-static int jobqueue_init(TaskQueue* jobqueue_p);
-static void jobqueue_clear(TaskQueue* jobqueue_p);
-static void jobqueue_push(TaskQueue* jobqueue_p, Task* newjob);
-static Task* jobqueue_pull(TaskQueue* jobqueue_p);
-static void jobqueue_destroy(TaskQueue* jobqueue_p);
-
-// ============== end of prototypes ==========================
-
-static int jobqueue_init(TaskQueue* jobqueue_p) {
-    jobqueue_p->len = 0;
-    jobqueue_p->front = NULL;
-    jobqueue_p->rear = NULL;
-    lock_init(&jobqueue_p->rwmutex);
-    cond_init(&jobqueue_p->has_jobs);
-    jobqueue_p->pool = NULL;
+// Initialize ring buffer
+static int ringbuffer_init(TaskRingBuffer* rb) {
+    rb->head = rb->tail = 0;
+    lock_init(&rb->mutex);
+    cond_init(&rb->not_empty);
+    cond_init(&rb->not_full);
+    rb->pool = NULL;
     return 0;
 }
 
-// Clear all tasks from the job queue
-static void jobqueue_clear(TaskQueue* jobqueue_p) {
-    Task* task;
-    while ((task = jobqueue_pull(jobqueue_p)) != NULL) {
-        free(task);
-    }
-    jobqueue_p->front = NULL;
-    jobqueue_p->rear = NULL;
-    jobqueue_p->len = 0;
-}
+// Push task to ring buffer
+static int ringbuffer_push(TaskRingBuffer* rb, Task* task) {
+    lock_acquire(&rb->mutex);
 
-static void jobqueue_push(TaskQueue* jobqueue_p, Task* newjob) {
-    lock_acquire(&jobqueue_p->rwmutex);
-    newjob->next = NULL;
-
-    if (jobqueue_p->rear == NULL) {
-        jobqueue_p->front = newjob;
-        jobqueue_p->rear = newjob;
-    } else {
-        jobqueue_p->rear->next = newjob;
-        jobqueue_p->rear = newjob;
+    while (((rb->head + 1) & RING_BUFFER_MASK) == rb->tail) {
+        // Buffer is full
+        if (rb->pool->shutdown) {
+            lock_release(&rb->mutex);
+            return -1;
+        }
+        cond_wait(&rb->not_full, &rb->mutex);
     }
 
-    jobqueue_p->len++;
-    cond_signal(&jobqueue_p->has_jobs);  // Notify waiting threads
-    lock_release(&jobqueue_p->rwmutex);  // Release the lock
+    rb->tasks[rb->head] = *task;
+    rb->head = (rb->head + 1) & RING_BUFFER_MASK;
+
+    cond_signal(&rb->not_empty);
+    lock_release(&rb->mutex);
+    return 0;
 }
 
-// Add this helper function
+// Pull task from ring buffer
+static int ringbuffer_pull(TaskRingBuffer* rb, Task* task) {
+    lock_acquire(&rb->mutex);
+
+    while (rb->head == rb->tail) {
+        // Buffer is empty
+        if (rb->pool->shutdown) {
+            lock_release(&rb->mutex);
+            return -1;
+        }
+        cond_wait(&rb->not_empty, &rb->mutex);
+    }
+
+    *task = rb->tasks[rb->tail];
+    rb->tail = (rb->tail + 1) & RING_BUFFER_MASK;
+
+    cond_signal(&rb->not_full);
+    lock_release(&rb->mutex);
+    return 0;
+}
+
+// Destroy ring buffer
+static void ringbuffer_destroy(TaskRingBuffer* rb) {
+    lock_free(&rb->mutex);
+    cond_free(&rb->not_empty);
+    cond_free(&rb->not_full);
+}
+
+// Check if any thread queues have tasks
 static int has_tasks_in_thread_queues(threadpool* pool) {
     for (int i = 0; i < pool->num_threads; i++) {
-        if (pool->threads[i]->queue.len > 0) {
+        if (pool->threads[i]->queue.head != pool->threads[i]->queue.tail) {
             return 1;
         }
     }
     return 0;
 }
 
-static Task* jobqueue_pull(TaskQueue* q) {
-    Task* task = NULL;
-    lock_acquire(&q->rwmutex);
-    while (q->len == 0 && q->pool->queue.len == 0 && !q->pool->shutdown) {
-        // Wait for a signal that there are jobs in the queue
-        cond_wait(&q->has_jobs, &q->rwmutex);
-    }
-
-    if (q->pool->shutdown && q->len == 0) {
-        lock_release(&q->rwmutex);
-        return NULL;  // Exit if shutting down and no tasks
-    }
-
-    task = q->front;
-    if (task) {
-        q->front = task->next;
-        q->len--;
-
-        if (q->len == 0) {
-            q->rear = NULL;
-        }
-    }
-
-    lock_release(&q->rwmutex);
-    return task;
-}
-
-static void jobqueue_destroy(TaskQueue* jobqueue_p) {
-    jobqueue_clear(jobqueue_p);
-    lock_free(&jobqueue_p->rwmutex);
-    cond_free(&jobqueue_p->has_jobs);
-}
-
-static int thread_init(threadpool* pool, thread** t, int id) {
-    *t = (thread*)malloc(sizeof(thread));
-    if (*t == NULL) {
-        fprintf(stderr, "thread_init(): Could not allocate memory for thread\n");
-        return -1;
-    }
-
-    (*t)->pool = pool;
-    (*t)->id = id;
-    (*t)->queue.pool = pool;  // Set pool for per-thread queue
-
-    // Initialize the per-thread queue
-    if (jobqueue_init(&(*t)->queue) != 0) {
-        free(*t);
-        return -1;
-    }
-    (*t)->queue.pool = pool;  // Redundant but ensures pool is set
-
-    return thread_create(&(*t)->pthread, threadWorker, (void*)*t);
-}
-
-static void thread_destroy(thread* thp) {
-    if (thp == NULL) {
-        return;
-    }
-
-    thread_join(thp->pthread, NULL);
-    jobqueue_destroy(&thp->queue);  // Destroy per-thread queue
-    free(thp);
-}
-
-static Task* thread_steal_task(threadpool* pool, thread* thief) {
+// Try to steal a task from another thread's queue
+static int thread_steal_task(threadpool* pool, thread* thief, Task* task) {
     int start_idx = rand() % pool->num_threads;
 
     for (int i = 0; i < pool->num_threads; i++) {
-        int index = (start_idx + i) % pool->num_threads;
-        thread* target = pool->threads[index];
+        int idx = (start_idx + i) % pool->num_threads;
+        thread* target = pool->threads[idx];
 
         if (target == thief)
-            continue;  // Skip self
+            continue;
 
-        lock_acquire(&target->queue.rwmutex);
-        if (target->queue.len == 0) {
-            lock_release(&target->queue.rwmutex);
+        lock_acquire(&target->queue.mutex);
+        if (target->queue.head == target->queue.tail) {
+            lock_release(&target->queue.mutex);
             continue;
         }
 
-        Task* task = target->queue.front;
-        if (task) {
-            target->queue.front = task->next;
-            target->queue.len--;
-            if (target->queue.len == 0) {
-                target->queue.rear = NULL;
-            }
-        }
-        lock_release(&target->queue.rwmutex);
+        *task = target->queue.tasks[target->queue.tail];
+        target->queue.tail = (target->queue.tail + 1) & RING_BUFFER_MASK;
 
-        if (task) {
-            printf("Stole task from thread: %d\n", index);
-            return task;  // Successfully stole a task
-        }
+        cond_signal(&target->queue.not_full);
+        lock_release(&target->queue.mutex);
+        return 0;
     }
-    return NULL;  // No tasks to steal
+    return -1;
 }
 
-void* threadWorker(void* arg) {
+// Thread worker function
+static void* thread_worker(void* arg) {
     thread* thp = (thread*)arg;
     threadpool* pool = thp->pool;
+    Task task;
 
     lock_acquire(&pool->thcount_lock);
     pool->num_threads_alive++;
     lock_release(&pool->thcount_lock);
 
     while (1) {
+        if (pool->shutdown)
+            break;
+
+        // Try local queue first
+        if (ringbuffer_pull(&thp->queue, &task) == 0) {
+            goto execute;
+        }
+
+        // Try global queue
+        if (ringbuffer_pull(&pool->queue, &task) == 0) {
+            goto execute;
+        }
+
+        // Try stealing
+        if (thread_steal_task(pool, thp, &task) == 0) {
+            goto execute;
+        }
+
+        continue;
+
+    execute:
         lock_acquire(&pool->thcount_lock);
-        int should_shutdown = pool->shutdown;
+        pool->num_threads_working++;
         lock_release(&pool->thcount_lock);
 
-        if (should_shutdown) {
-            break;
+        task.function(task.arg);
+
+        lock_acquire(&pool->thcount_lock);
+        pool->num_threads_working--;
+        if (pool->num_threads_working == 0 && !has_tasks_in_thread_queues(pool) &&
+            pool->queue.head == pool->queue.tail) {
+            cond_broadcast(&pool->threads_all_idle);
         }
-
-        Task* task = NULL;
-
-        // try jobs from local queue first.
-        // If there are no jobs & global pool is empty, it will block until
-        // a new job arrives.
-        task = jobqueue_pull(&thp->queue);
-
-        // otherwise, try to steal from the global queue
-        if (task == NULL) {
-            task = jobqueue_pull(&pool->queue);
-        }
-
-        // Try stealing from other threads if both local and global queues are empty
-        if (task == NULL) {
-            task = thread_steal_task(pool, thp);
-        }
-
-        if (task) {
-            lock_acquire(&pool->thcount_lock);
-            pool->num_threads_working++;
-            lock_release(&pool->thcount_lock);
-
-            task->function(task->arg);
-            free(task);
-
-            lock_acquire(&pool->thcount_lock);
-            pool->num_threads_working--;
-            int no_tasks = (pool->num_threads_working == 0 && !has_tasks_in_thread_queues(pool) &&
-                            pool->queue.len == 0);
-
-            lock_release(&pool->thcount_lock);
-
-            if (no_tasks) {
-                cond_broadcast(&pool->threads_all_idle);
-            }
-        }
+        lock_release(&pool->thcount_lock);
     }
 
     lock_acquire(&pool->thcount_lock);
@@ -278,133 +208,119 @@ void* threadWorker(void* arg) {
     return NULL;
 }
 
-threadpool* threadpool_create(int num_threads) {
-    if (num_threads <= 0) {
-        num_threads = 1;
+// Initialize thread
+static int thread_init(threadpool* pool, thread** t, int id) {
+    *t = (thread*)malloc(sizeof(thread));
+    if (*t == NULL)
+        return -1;
+
+    (*t)->pool = pool;
+    (*t)->id = id;
+
+    if (ringbuffer_init(&(*t)->queue) != 0) {
+        free(*t);
+        return -1;
     }
+    (*t)->queue.pool = pool;
+
+    return thread_create(&(*t)->pthread, thread_worker, *t);
+}
+
+// Create thread pool
+threadpool* threadpool_create(int num_threads) {
+    if (num_threads <= 0)
+        num_threads = 1;
 
     srand(time(NULL));
 
     threadpool* pool = (threadpool*)malloc(sizeof(threadpool));
-    if (pool == NULL) {
-        fprintf(stderr, "threadpool_create(): Could not allocate memory for thread pool\n");
+    if (pool == NULL)
         return NULL;
-    }
 
     pool->num_threads_alive = 0;
     pool->num_threads_working = 0;
     pool->shutdown = 0;
     pool->num_threads = num_threads;
 
-    if (jobqueue_init(&pool->queue) == -1) {
+    if (ringbuffer_init(&pool->queue) != 0) {
         free(pool);
         return NULL;
     }
-
-    // Store the pool on Queue
     pool->queue.pool = pool;
 
     pool->threads = (thread**)malloc(num_threads * sizeof(thread*));
     if (pool->threads == NULL) {
-        fprintf(stderr, "threadpool_create(): Could not allocate memory for threads\n");
-        jobqueue_destroy(&pool->queue);
+        ringbuffer_destroy(&pool->queue);
         free(pool);
         return NULL;
     }
 
-    // Initialize the mutex and condition variables.
     lock_init(&pool->thcount_lock);
     cond_init(&pool->threads_all_idle);
 
-    for (int n = 0; n < num_threads; n++) {
-        if (thread_init(pool, &pool->threads[n], n) != 0) {
+    for (int i = 0; i < num_threads; i++) {
+        if (thread_init(pool, &pool->threads[i], i) != 0) {
             threadpool_destroy(pool);
             return NULL;
         }
     }
+
     return pool;
 }
 
+// Submit task to thread pool
 int threadpool_submit(threadpool* pool, void (*function)(void*), void* arg) {
-    Task* task = (Task*)malloc(sizeof(Task));
-    if (task == NULL) {
-        perror("threadpool_submit");
-        return -1;
-    }
+    Task task = {function, arg};
 
-    task->function = function;
-    task->arg = arg;
-    task->next = NULL;
-
-    // Get a random thread to add the task to
+    // Try random thread's queue first
     int thread_id = rand() % pool->num_threads;
     thread* thp = pool->threads[thread_id];
 
-    // Check if the thread's queue is "full" - based on length, not actual capacity
-    lock_acquire(&thp->queue.rwmutex);
-    int is_full = thp->queue.len >= THREADLOCAL_QUEUE_SIZE;
-    lock_release(&thp->queue.rwmutex);
-
-    if (!is_full) {
-        // Add the task to the thread's queue
-        jobqueue_push(&thp->queue, task);
-    } else {
-        // Add the task to the global queue
-        jobqueue_push(&pool->queue, task);
+    if (ringbuffer_push(&thp->queue, &task) == 0) {
+        return 0;
     }
 
-    return 0;
+    // If local queue is full, try global queue
+    return ringbuffer_push(&pool->queue, &task);
 }
 
+// Destroy thread pool
 void threadpool_destroy(threadpool* pool) {
     if (pool == NULL)
         return;
 
-    // Wait for all threads threads to exit
     lock_acquire(&pool->thcount_lock);
-    while (pool->queue.len > 0 || pool->num_threads_working > 0 ||
+    while (pool->queue.head != pool->queue.tail || pool->num_threads_working > 0 ||
            has_tasks_in_thread_queues(pool)) {
         cond_wait(&pool->threads_all_idle, &pool->thcount_lock);
     }
-    lock_release(&pool->thcount_lock);
-
-    // All threads are done and can be shutdown
-    lock_acquire(&pool->thcount_lock);
     pool->shutdown = 1;
     lock_release(&pool->thcount_lock);
 
-    // Signal all waiting threads - signal both global and local queues
-    // Wake up threads waiting in threadpool_wait
-    cond_broadcast(&pool->threads_all_idle);
-
+    // Wake up all threads
     for (int i = 0; i < pool->num_threads; i++) {
-        lock_acquire(&pool->threads[i]->queue.rwmutex);
-
-        // Wake up threads waiting on local queues
-        cond_broadcast(&pool->threads[i]->queue.has_jobs);
-        lock_release(&pool->threads[i]->queue.rwmutex);
+        cond_broadcast(&pool->threads[i]->queue.not_empty);
+        cond_broadcast(&pool->threads[i]->queue.not_full);
     }
+    cond_broadcast(&pool->queue.not_empty);
+    cond_broadcast(&pool->queue.not_full);
 
-    lock_acquire(&pool->queue.rwmutex);
-
-    // Wake up threads waiting on global queue
-    cond_broadcast(&pool->queue.has_jobs);
-    lock_release(&pool->queue.rwmutex);
-
-    // Wait for all threads to exit
+    // Wait for threads to exit
     while (pool->num_threads_alive > 0) {
         usleep(100);
     }
 
-    // Clean up thread resources
-    for (int i = 0; i < pool->num_threads; ++i) {
-        thread_destroy(pool->threads[i]);
+    // Clean up
+    for (int i = 0; i < pool->num_threads; i++) {
+        thread* thp = pool->threads[i];
+        thread_join(thp->pthread, NULL);
+        ringbuffer_destroy(&thp->queue);
+        free(thp);
     }
 
     free(pool->threads);
-    jobqueue_destroy(&pool->queue);
+    ringbuffer_destroy(&pool->queue);
     lock_free(&pool->thcount_lock);
     cond_free(&pool->threads_all_idle);
     free(pool);
-    pool = NULL;
 }
