@@ -31,14 +31,14 @@ int main() {
 
     // Submit tasks
     for (int i = 0; i < NUM_TASKS; i++) {
-        if (threadpool_add_task(pool, dummy_task, NULL) != 0) {
+        if (threadpool_submit(pool, dummy_task, NULL) != 0) {
             fprintf(stderr, "Failed to add task after %d\n", i);
             break;
         }
     }
 
-    // Wait for all tasks to complete
-    threadpool_wait(pool);
+    // Wait for threads and clean up
+    threadpool_destroy(pool);
 
     // Stop timing
     clock_gettime(CLOCK_MONOTONIC, &end);
@@ -51,8 +51,6 @@ int main() {
     printf("Throughput: %.2f tasks/sec\n", throughput);
     printf("Average Latency: %.2f µs/task\n", avg_latency);
 
-    // Clean up
-    threadpool_destroy(pool);
     return 0;
 }
 

@@ -15,10 +15,9 @@ int main(void) {
 
     int values[8] = {1, 2, 3, 4, 5, 6, 7, 8};
     for (int i = 0; i < 8; ++i) {
-        threadpool_add_task(pool, task_fn, &values[i]);
+        threadpool_submit(pool, task_fn, &values[i]);
     }
 
-    threadpool_wait(pool);
     threadpool_destroy(pool);
     return 0;
 }

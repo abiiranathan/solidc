@@ -325,23 +325,50 @@ threadpool* threadpool_create(int num_threads) {
     return pool;
 }
 
-void threadpool_wait(threadpool* pool) {
-    if (pool == NULL)
-        return;
-
-    printf("Waiting for all threads to exit\n");
-    lock_acquire(&pool->thcount_lock);
-    while (pool->queue.len > 0 || pool->num_threads_working > 0 ||
-           has_tasks_in_thread_queues(pool)) {
-        cond_wait(&pool->threads_all_idle, &pool->thcount_lock);
+int threadpool_submit(threadpool* pool, void (*function)(void*), void* arg) {
+    Task* task = (Task*)malloc(sizeof(Task));
+    if (task == NULL) {
+        perror("threadpool_submit");
+        return -1;
     }
-    lock_release(&pool->thcount_lock);
+
+    task->function = function;
+    task->arg = arg;
+    task->next = NULL;
+
+    // Get a random thread to add the task to
+    int thread_id = rand() % pool->num_threads;
+    thread* thp = pool->threads[thread_id];
+
+    // Check if the thread's queue is "full" - based on length, not actual capacity
+    lock_acquire(&thp->queue.rwmutex);
+    int is_full = thp->queue.len >= THREADLOCAL_QUEUE_SIZE;
+    lock_release(&thp->queue.rwmutex);
+
+    if (!is_full) {
+        // Add the task to the thread's queue
+        jobqueue_push(&thp->queue, task);
+    } else {
+        // Add the task to the global queue
+        jobqueue_push(&pool->queue, task);
+    }
+
+    return 0;
 }
 
 void threadpool_destroy(threadpool* pool) {
     if (pool == NULL)
         return;
 
+    // Wait for all threads threads to exit
+    lock_acquire(&pool->thcount_lock);
+    while (pool->queue.len > 0 || pool->num_threads_working > 0 ||
+           has_tasks_in_thread_queues(pool)) {
+        cond_wait(&pool->threads_all_idle, &pool->thcount_lock);
+    }
+    lock_release(&pool->thcount_lock);
+
+    // All threads are done and can be shutdown
     lock_acquire(&pool->thcount_lock);
     pool->shutdown = 1;
     lock_release(&pool->thcount_lock);
@@ -379,35 +406,5 @@ void threadpool_destroy(threadpool* pool) {
     lock_free(&pool->thcount_lock);
     cond_free(&pool->threads_all_idle);
     free(pool);
-}
-
-int threadpool_add_task(threadpool* pool, void (*function)(void*), void* arg) {
-    Task* task = (Task*)malloc(sizeof(Task));
-    if (task == NULL) {
-        fprintf(stderr, "threadpool_add_task(): Could not allocate memory for task\n");
-        return -1;
-    }
-
-    task->function = function;
-    task->arg = arg;
-    task->next = NULL;
-
-    // Get a random thread to add the task to
-    int thread_id = rand() % pool->num_threads;
-    thread* thp = pool->threads[thread_id];
-
-    // Check if the thread's queue is "full" - based on length, not actual capacity
-    lock_acquire(&thp->queue.rwmutex);
-    int is_full = thp->queue.len >= THREADLOCAL_QUEUE_SIZE;
-    lock_release(&thp->queue.rwmutex);
-
-    if (!is_full) {
-        // Add the task to the thread's queue
-        jobqueue_push(&thp->queue, task);
-    } else {
-        // Add the task to the global queue
-        jobqueue_push(&pool->queue, task);
-    }
-
-    return 0;
+    pool = NULL;
 }

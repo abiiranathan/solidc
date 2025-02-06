@@ -37,10 +37,9 @@ void test_concurrent_map() {
         *args[i].key = i;
         *args[i].value = i;
         args[i].m = m;
-        threadpool_add_task(pool, concurrent_insert, &args[i]);
+        threadpool_submit(pool, concurrent_insert, &args[i]);
     }
 
-    threadpool_wait(pool);
     threadpool_destroy(pool);
 
     // check if all values are inserted

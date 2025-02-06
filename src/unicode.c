@@ -426,7 +426,7 @@ void utf8_tolower(char* str) {
     for (size_t i = 0; str[i] != '\0';) {
         uint32_t codepoint = utf8_to_codepoint(&str[i]);
         if (iswupper(codepoint)) {
-            char utf8[5];
+            char utf8[5] = {0};
             ucp_to_utf8(towlower(codepoint), utf8);
             size_t len = utf8_byte_length(utf8);
             memmove(&str[i], utf8, len);
@@ -441,7 +441,7 @@ void utf8_toupper(char* str) {
     for (size_t i = 0; str[i] != '\0';) {
         uint32_t codepoint = utf8_to_codepoint(&str[i]);
         if (iswlower(codepoint)) {
-            char utf8[5];
+            char utf8[5] = {0};
             ucp_to_utf8(towupper(codepoint), utf8);
             size_t len = utf8_byte_length(utf8);
             memmove(&str[i], utf8, len);
