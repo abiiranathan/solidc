@@ -24,12 +24,21 @@ target_link_libraries(solidc PUBLIC m pthread)
 
 # Include the include directory
 target_include_directories(solidc PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include/solidc>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include/solidc>
 )
 
 # Configure the target to use the CC23 standard
-target_compile_options(solidc PRIVATE -Wall -Wextra -pedantic -Werror -std=c23)
+target_compile_options(solidc PRIVATE -Wall -Wextra -pedantic -Werror -std=c23 -Wl,--no-warn-execstack)
+
+if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+        target_compile_options(solidc PUBLIC -Wno-gnu-zero-variadic-macro-arguments -fblocks)
+        target_link_libraries(solidc PUBLIC BlocksRuntime)
+elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+        if(CMAKE_BUILD_TYPE STREQUAL "Release")
+                target_compile_options(epollix PUBLIC -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE -fPIC)
+        endif()
+endif()
 
 # Explicitly install headers
 install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/solidc)
@@ -39,7 +48,7 @@ install(TARGETS solidc LIBRARY DESTINATION lib)
 
 # Add the tests
 if(BUILD_TESTS)
-	add_subdirectory(tests)
+        add_subdirectory(tests)
 endif()
 
 add_subdirectory(benchmarks)
@@ -60,15 +69,15 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/solidcConfig.cmake
 # Generate the configuration file for the library
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/solidcConfigVersion.cmake
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY AnyNewerVersion
+        ${CMAKE_CURRENT_BINARY_DIR}/solidcConfigVersion.cmake
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY AnyNewerVersion
 )
 
 configure_package_config_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/solidcConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/solidcConfig.cmake
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/solidc
+        ${CMAKE_CURRENT_SOURCE_DIR}/solidcConfig.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/solidcConfig.cmake
+        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/solidc
 )
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/solidcConfigVersion.cmake
@@ -76,9 +85,9 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/solidcConfigVersion.cmake
 
 # Generate the .pc file for pkg-config
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/solidc.pc.in
-${CMAKE_CURRENT_BINARY_DIR}/solidc.pc
-@ONLY)
+        ${CMAKE_CURRENT_BINARY_DIR}/solidc.pc
+        @ONLY)
 
 # Install the .pc file
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/solidc.pc
-DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)

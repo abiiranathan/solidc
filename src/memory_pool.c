@@ -1,6 +1,7 @@
 #include "../include/memory_pool.h"
 
 #include <stdalign.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -167,4 +168,15 @@ void mpool_destroy(MemoryPool* pool) {
     }
 
     free(pool);
+}
+
+char* mpool_copy_str(MemoryPool* pool, const char* src) {
+    size_t len = strlen(src);
+    char* dest = mpool_alloc(pool, len + 1);
+    if (!dest)
+        return NULL;
+
+    dest[len] = '\0';
+    strcpy(dest, src);
+    return dest;
 }

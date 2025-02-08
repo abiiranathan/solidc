@@ -19,4 +19,7 @@ void mpool_reset(MemoryPool* pool);
 // Destroy the memory pool.
 void mpool_destroy(MemoryPool* pool);
 
+// Allocate a new char * a null terminated src to it.
+char* mpool_copy_str(MemoryPool* pool, const char* src);
+
 #endif /* LOCK_FREE_MEMORY_POOL_H */
