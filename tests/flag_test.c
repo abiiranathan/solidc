@@ -4,20 +4,21 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int integer_flag = 0;
-static float float32_flag = 0.0f;
+static int integer_flag    = 0;
+static float float32_flag  = 0.0f;
 static double float64_flag = 0.0;
-static char* string_flag = "";
-
-int count = 0;
-bool verbose = true;
-bool prompt = false;
+static char* string_flag   = "";
+int count                  = 0;
+bool verbose               = false;
+bool prompt                = false;
 
 #define FLAG_ASSERT(cond, msg)                                                                     \
-    if (!(cond)) {                                                                                 \
-        fprintf(stderr, "Assertion failed: %s\n", msg);                                            \
-        exit(1);                                                                                   \
-    }
+    do {                                                                                           \
+        if (!(cond)) {                                                                             \
+            fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, msg);                                \
+            exit(EXIT_FAILURE);                                                                    \
+        }                                                                                          \
+    } while (0)
 
 bool validate_int(void* value, size_t size, char* error) {
     int num = *(int*)value;
@@ -28,10 +29,10 @@ bool validate_int(void* value, size_t size, char* error) {
     return true;
 }
 
-void printHandler(Subcommand* cmd) {
-    int* count = flag_value(cmd, "count");
-    bool* verbose = flag_value(cmd, "verbose");
-    bool* prompt = flag_value(cmd, "prompt");
+void printHandler(Command* cmd) {
+    int* count    = FlagValue(cmd, "count");
+    bool* verbose = FlagValue(cmd, "verbose");
+    bool* prompt  = FlagValue(cmd, "prompt");
 
     FLAG_ASSERT(count, "count should not be NULL");
     FLAG_ASSERT(verbose, "verbose should not be NULL");
@@ -41,52 +42,43 @@ void printHandler(Subcommand* cmd) {
     FLAG_ASSERT(*verbose, "verbose should be true");
     FLAG_ASSERT(*prompt, "prompt should be true");
 
-    // ctx will provide you with access to global flags
-    double float64 = *(double*)flag_global_value("float64");
+    double float64 = *(double*)FlagValueG("float64");
     FLAG_ASSERT(float64 == 100.5, "float64 should be 100.5");
 }
 
+static void assertions(void) {
+    FLAG_ASSERT(integer_flag == 10, "int should be 10");
+    FLAG_ASSERT(float32_flag == 3.14f, "float32 should be 3.14");
+    FLAG_ASSERT(float64_flag == 100.5, "float64 should be 100.5");
+    FLAG_ASSERT(verbose, "verbose should be true");
+    FLAG_ASSERT(strcmp(string_flag, "hello") == 0, "string should be hello");
+}
+
 static char* argv[] = {
-    "flag_test", "--int", "10",      "--float32", "3.14",      "--float64", "100.5",    "--string",
-    "hello",     "print", "--count", "5",         "--verbose", "true",      "--prompt", "1",
+    "flag_test", "--int", "10",      "--float32", "3.14",      "--float64", "100.5", "--string",
+    "hello",     "print", "--count", "5",         "--verbose", "--prompt",  "1",
 };
 
 #define argc (sizeof(argv) / sizeof(argv[0]))
 
 int main(void) {
-    flag_init();
+    AddFlag_INT("int", 'i', "Integer flag", &integer_flag, true);
+    AddFlag_FLOAT("float32", 'f', "Float32 flag", &float32_flag, true);
+    AddFlag_STRING("string", 's', "String flag", &string_flag, true);
+    AddFlag(FLAG_DOUBLE, "float64", 'd', "Float64 flag", &float64_flag, true);
 
-    // register global flags
-    global_add_flag(FLAG_INT, "int", 'i', "Integer flag", &integer_flag, true);
-    global_add_flag(FLAG_FLOAT, "float32", 'f', "Float32 flag", &float32_flag, true);
-    global_add_flag(FLAG_STRING, "string", 's', "String flag", &string_flag, true);
-    global_add_flag(FLAG_DOUBLE, "float64", 'd', "Float64 flag", &float64_flag, true);
+    Command* printCmd;
+    Flag* countFlag;
 
-    // register subcommands
-    Subcommand* print_cmd = flag_add_subcommand("print", "Prints a message", printHandler);
-    Flag* cflag = subcommand_add_flag(print_cmd, FLAG_INT, "count", 'c', "Number of times to print",
-                                      &count, true);
-    subcommand_add_flag(print_cmd, FLAG_BOOL, "verbose", 'v', "Verbose output", &verbose, true);
-    subcommand_add_flag(print_cmd, FLAG_BOOL, "prompt", 'p', "Prompt for input", &prompt, false);
+    printCmd  = AddCommand("print", "Prints a message", printHandler);
+    countFlag = AddFlagCmd_INT(printCmd, "count", 'c', "No times to print", &count, true);
 
-    // add flag validator
-    flag_set_validators(cflag, 1, validate_int);
+    AddFlagCmd(printCmd, FLAG_BOOL, "verbose", 'v', "Verbose output", &verbose, true);
+    AddFlagCmd(printCmd, FLAG_BOOL, "prompt", 'p', "Prompt for input", &prompt, false);
 
-    // Parse flags
-    Subcommand* matched_cmd = flag_parse(argc, argv);
-    FLAG_ASSERT(matched_cmd, "expected a print subcommand to match, got NULL");
+    SetValidators(countFlag, 1, validate_int);
 
-    FLAG_ASSERT(integer_flag == 10, "int should be 10");
-    FLAG_ASSERT(float32_flag == 3.14f, "float32 should be 3.14");
-
-    FLAG_ASSERT(float64_flag == 100.5, "float64 should be 100.5");
-    FLAG_ASSERT(verbose, "verbose should be true");
-    FLAG_ASSERT(strcmp(string_flag, "hello") == 0, "string should be hello");
-
-    flag_invoke(matched_cmd);
-
-    // Clean up allocated memory
-    flag_destroy();
-
+    FlagParse(argc, argv, NULL, NULL);
+    assertions();
     return 0;
 }

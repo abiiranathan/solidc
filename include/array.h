@@ -21,8 +21,8 @@ extern "C" {
     }(name);                                                                                       \
                                                                                                    \
     void name##_init(name* arr) {                                                                  \
-        arr->items = NULL;                                                                         \
-        arr->count = 0;                                                                            \
+        arr->items    = NULL;                                                                      \
+        arr->count    = 0;                                                                         \
         arr->capacity = 0;                                                                         \
     }                                                                                              \
                                                                                                    \
@@ -38,7 +38,7 @@ extern "C" {
             exit(1);                                                                               \
         }                                                                                          \
                                                                                                    \
-        arr->items = new_items;                                                                    \
+        arr->items    = new_items;                                                                 \
         arr->capacity = new_capacity;                                                              \
     }                                                                                              \
                                                                                                    \
@@ -97,7 +97,7 @@ extern "C" {
             free(arr->items);                                                                      \
             arr->items = NULL;                                                                     \
         }                                                                                          \
-        arr->count = 0;                                                                            \
+        arr->count    = 0;                                                                         \
         arr->capacity = 0;                                                                         \
     }                                                                                              \
                                                                                                    \
@@ -108,13 +108,13 @@ extern "C" {
     }                                                                                              \
     void name##_swap(name* arr1, name* arr2) {                                                     \
         name temp = *arr1;                                                                         \
-        *arr1 = *arr2;                                                                             \
-        *arr2 = temp;                                                                              \
+        *arr1     = *arr2;                                                                         \
+        *arr2     = temp;                                                                          \
     }                                                                                              \
     void name##_reverse(name* arr) {                                                               \
         for (size_t i = 0; i < arr->count / 2; ++i) {                                              \
-            type temp = arr->items[i];                                                             \
-            arr->items[i] = arr->items[arr->count - i - 1];                                        \
+            type temp                      = arr->items[i];                                        \
+            arr->items[i]                  = arr->items[arr->count - i - 1];                       \
             arr->items[arr->count - i - 1] = temp;                                                 \
         }                                                                                          \
     }                                                                                              \

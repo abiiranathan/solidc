@@ -19,7 +19,7 @@ static void random_string(char* str, size_t len) {
     const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     for (size_t i = 0; i < len; i++) {
         size_t index = rand() % (sizeof(charset) - 1);
-        str[i] = charset[index];
+        str[i]       = charset[index];
     }
     str[len] = '\0';
 }
@@ -149,10 +149,10 @@ char** dir_list(const char* path, size_t* count) {
         return NULL;
     }
 
-    char** list = NULL;
-    size_t size = 0;       // Number of files in the list so far
+    char** list     = NULL;
+    size_t size     = 0;   // Number of files in the list so far
     size_t capacity = 10;  // Initial capacity to minimize reallocations
-    list = (char**)malloc(capacity * sizeof(char*));
+    list            = (char**)malloc(capacity * sizeof(char*));
     if (!list) {
         perror("malloc");
         dir_close(dir);
@@ -258,9 +258,9 @@ int dir_walk(const char* path, WalkDirCallback callback, void* data) {
         return -1;
     }
 
-    char* name = NULL;
+    char* name        = NULL;
     WalkDirOption ret = DirContinue;
-    int success = -1;
+    int success       = -1;
 
     while ((name = dir_next(dir)) != NULL) {
         if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
@@ -310,7 +310,7 @@ static WalkDirOption dir_size_callback(const char* path, const char* name, void*
 // Warning: This function may be slow for large directories
 ssize_t dir_size(const char* path) {
     ssize_t size = 0;
-    int ret = dir_walk(path, dir_size_callback, &size);
+    int ret      = dir_walk(path, dir_size_callback, &size);
     if (ret != 0) {
         return -1;
     }
@@ -344,7 +344,7 @@ bool filepath_makedirs(const char* path) {
 
         // Temporarily terminate the string here
         char old = *p;
-        *p = '\0';
+        *p       = '\0';
 
         // Create the directory
         if (strlen(temp_path) > 0) {
@@ -632,7 +632,7 @@ const char* user_home_dir(void) {
 
         // If path is just "~" or ~/, return the home directory
         size_t pathLen = strlen(path);
-        bool isHome = pathLen == 1 || (pathLen == 2 && path[1] == '/');
+        bool isHome    = pathLen == 1 || (pathLen == 2 && path[1] == '/');
         if (isHome) {
             return strdup(home);
         }
@@ -680,7 +680,7 @@ const char* user_home_dir(void) {
 
         // If path is just "~" or ~/, return the home directory
         size_t pathLen = strlen(path);
-        bool isHome = pathLen == 1 || (pathLen == 2 && path[1] == '/');
+        bool isHome    = pathLen == 1 || (pathLen == 2 && path[1] == '/');
         if (isHome) {
             strncpy(expanded, home, len);
             expanded[len - 1] = '\0';

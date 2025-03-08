@@ -262,7 +262,7 @@ int socket_type(Socket* sock) {
 
 // Get the socket domain or type(address family, SOCK_STREAM or SOCK_DGRAM, for example).)
 int socket_family(Socket* sock) {
-    int domain = -1;
+    int domain    = -1;
     socklen_t len = sizeof(domain);
 #ifdef _WIN32
     domain = socket_get_option(sock, SOL_SOCKET, SO_TYPE, &domain, &len);
@@ -317,7 +317,7 @@ int Accept() {
 }
 */
 int socket_epoll_ctl_add(int epoll_fd, int sock_fd, struct epoll_event* event, uint32_t events) {
-    event->events = events;
+    event->events  = events;
     event->data.fd = sock_fd;
     if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, sock_fd, event) == -1) {
         perror("epoll_ctl");
@@ -328,7 +328,7 @@ int socket_epoll_ctl_add(int epoll_fd, int sock_fd, struct epoll_event* event, u
 
 // Modify an existing file descriptor in the epoll instance.
 int socket_epoll_ctl_mod(int epoll_fd, int sock_fd, struct epoll_event* event, uint32_t events) {
-    event->events = events;
+    event->events  = events;
     event->data.fd = sock_fd;
     if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, sock_fd, event) == -1) {
         perror("epoll_ctl");
@@ -365,8 +365,8 @@ struct sockaddr_in* socket_ipv4_address(const char* ip, int port) {
         return NULL;
     }
     memset(addr, 0, sizeof(struct sockaddr_in));
-    addr->sin_family = AF_INET;
-    addr->sin_port = htons(port);
+    addr->sin_family      = AF_INET;
+    addr->sin_port        = htons(port);
     addr->sin_addr.s_addr = inet_addr(ip);
     return addr;
 }
@@ -381,7 +381,7 @@ struct sockaddr_in6* socket_ipv6_address(const char* ip, int port) {
     }
     memset(addr, 0, sizeof(struct sockaddr_in6));
     addr->sin6_family = AF_INET6;
-    addr->sin6_port = htons(port);
+    addr->sin6_port   = htons(port);
     inet_pton(AF_INET6, ip, &addr->sin6_addr);
     return addr;
 }

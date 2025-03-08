@@ -26,7 +26,7 @@ void test_file_open_read_write() {
 
     // write to the file
     const char* str = "Hello, World!";
-    size_t n = file_write_string(file, str);
+    size_t n        = file_write_string(file, str);
     assert(n == strlen(str));
 
     // flush the file before attempting to write asynchronously
@@ -75,7 +75,7 @@ void test_fileseek() {
     file_t* file = file_open(tmpfile, "w+");
     assert(file != NULL);
     const char* sonnet18 = "Shall I compare thee to a summer's day?\n";
-    size_t len = strlen(sonnet18);
+    size_t len           = strlen(sonnet18);
 
     size_t n = file_write_string(file, sonnet18);
     assert(n == len);
@@ -159,7 +159,7 @@ void test_getfile_size() {
     // If this ends in \n, the file size will be 1 byte larger than strlen(sonnet18)
     // because of the newline character on windows being \r\n
     const char* sonnet18 = "Shall I compare thee to a summer's day?";
-    size_t len = strlen(sonnet18);
+    size_t len           = strlen(sonnet18);
 
     size_t n = file_write_string(file, sonnet18);
     assert(n == len);
@@ -182,7 +182,7 @@ void test_async_io() {
     assert(file != NULL);
 
     const char* sonnet18 = "Shall I compare thee to a summer's day?\n";
-    size_t len = strlen(sonnet18);
+    size_t len           = strlen(sonnet18);
 
     // write asynchronously at the end of the file
     size_t n = file_awrite(file, sonnet18, len, 0);

@@ -10,7 +10,7 @@ typedef struct {
 
 DWORD WINAPI thread_start_wrapper(LPVOID lpParameter) {
     ThreadParams* params = (ThreadParams*)lpParameter;
-    void* result = params->start_routine(params->data);
+    void* result         = params->start_routine(params->data);
 
     free(params);  // Free the parameter
     // Use uintptr_t to ensure proper casting
@@ -27,11 +27,11 @@ int thread_create(Thread* thread, ThreadStartRoutine start_routine, void* data) 
         return -1;
     }
     params->start_routine = start_routine;
-    params->data = data;
-    HANDLE t = CreateThread(NULL, 0, thread_start_wrapper, params, 0, NULL);
+    params->data          = data;
+    HANDLE t              = CreateThread(NULL, 0, thread_start_wrapper, params, 0, NULL);
     if (t) {
         *thread = t;
-        ret = 0;
+        ret     = 0;
     }
 #else
     ret = pthread_create(thread, NULL, start_routine, data);
@@ -43,11 +43,11 @@ int thread_create(Thread* thread, ThreadStartRoutine start_routine, void* data) 
 int thread_attr_init(ThreadAttr* attr) {
     int ret = -1;
 #ifdef _WIN32
-    attr->stackSize = 0;
-    attr->sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+    attr->stackSize               = 0;
+    attr->sa.nLength              = sizeof(SECURITY_ATTRIBUTES);
     attr->sa.lpSecurityDescriptor = NULL;
-    attr->sa.bInheritHandle = TRUE;
-    ret = 0;
+    attr->sa.bInheritHandle       = TRUE;
+    ret                           = 0;
 #else
     ret = pthread_attr_init(attr);
 #endif
@@ -78,11 +78,11 @@ int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine star
         return -1;
     }
     params->start_routine = start_routine;
-    params->data = data;
+    params->data          = data;
     HANDLE t = CreateThread(&attr->sa, attr->stackSize, thread_start_wrapper, params, 0, NULL);
     if (t) {
         *thread = t;
-        ret = 0;
+        ret     = 0;
     }
 #else
     ret = pthread_create(thread, attr, start_routine, data);
@@ -141,7 +141,7 @@ void sleep_ms(int ms) {
     Sleep(ms);
 #else
     struct timespec ts;
-    ts.tv_sec = ms / 1000;
+    ts.tv_sec  = ms / 1000;
     ts.tv_nsec = (__syscall_slong_t)((ms % 1000) * 1000000);
     nanosleep(&ts, NULL);
 #endif

@@ -27,7 +27,7 @@ extern "C" {
             return NULL;                                                                             \
         }                                                                                            \
                                                                                                      \
-        set->size = 0;                                                                               \
+        set->size     = 0;                                                                           \
         set->capacity = initialCapacity;                                                             \
         return set;                                                                                  \
     }                                                                                                \
@@ -67,11 +67,11 @@ extern "C" {
                                                                                                      \
         if (set->size == set->capacity) {                                                            \
             size_t newCapacity = set->capacity * 2;                                                  \
-            (T)* newData = (T*)realloc(set->data, newCapacity * sizeof(T));                          \
+            (T)* newData       = (T*)realloc(set->data, newCapacity * sizeof(T));                    \
             if (newData == NULL) {                                                                   \
                 return false;                                                                        \
             }                                                                                        \
-            set->data = newData;                                                                     \
+            set->data     = newData;                                                                 \
             set->capacity = newCapacity;                                                             \
         }                                                                                            \
                                                                                                      \
@@ -178,7 +178,7 @@ extern "C" {
      * also in setB but setA and setB are not equal. */ \
     bool set_isProperSubset_##T(Set_##T* setA, Set_##T* setB) {                                      \
         bool issubset = set_isSubset_##T(setA, setB);                                                \
-        bool isequal = setA->size == setB->size;                                                     \
+        bool isequal  = setA->size == setB->size;                                                    \
         if (isequal) {                                                                               \
             for (size_t i = 0; i < setA->size; i++) {                                                \
                 if (setA->data[i] != setB->data[i]) {                                                \

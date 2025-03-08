@@ -13,7 +13,7 @@ WalkDirOption walk(const char* path, const char* name, void* data) {
 int main(void) {
     // test makedirs
     const char* dirname = "./temp/tests/arena";
-    bool ok = filepath_makedirs(dirname);
+    bool ok             = filepath_makedirs(dirname);
     assert(ok);
 
     // test is_dir

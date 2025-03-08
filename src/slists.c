@@ -7,8 +7,8 @@ slist_t* slist_new(size_t elem_size) {
     if (list == NULL) {
         return NULL;
     }
-    list->head = NULL;
-    list->size = 0;
+    list->head      = NULL;
+    list->size      = 0;
     list->elem_size = elem_size;
     return list;
 }
@@ -76,7 +76,7 @@ void slist_push(slist_t* list, void* elem) {
         return;
     }
     new_node->next = list->head;
-    list->head = new_node;
+    list->head     = new_node;
     list->size++;
 }
 
@@ -85,7 +85,7 @@ void slist_pop(slist_t* list) {
         return;
     }
     slist_node_t* temp = list->head;
-    list->head = list->head->next;
+    list->head         = list->head->next;
     slist_node_free(temp);
     list->size--;
 }
@@ -115,7 +115,7 @@ void slist_insert(slist_t* list, size_t index, void* elem) {
         return;
     }
     new_node->next = current->next;
-    current->next = new_node;
+    current->next  = new_node;
     list->size++;
 }
 
@@ -133,7 +133,7 @@ void slist_remove(slist_t* list, size_t index) {
         current = current->next;
     }
     slist_node_t* temp = current->next;
-    current->next = temp->next;
+    current->next      = temp->next;
     slist_node_free(temp);
     list->size--;
 }
@@ -159,7 +159,7 @@ int slist_index_of(slist_t* list, void* elem) {
     }
 
     slist_node_t* current = list->head;
-    int index = 0;
+    int index             = 0;
     while (current) {
         if (memcmp(current->data, elem, list->elem_size) == 0) {
             return index;

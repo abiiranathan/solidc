@@ -5,18 +5,32 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../include/arena.h"
 #include "../include/flag.h"
 #include "../include/strton.h"
 
-typedef struct Flag {
-    char* name;         // flag identifier
-    char short_name;    // short letter
-    char* description;  // Description of the flag
-    FlagType type;      // Type of the flag
-    void* value;        // Pointer to the flag value
-    bool required;      // Whether this flag must be passed
+#define LOG_ASSERT(cond, msg)                                                                      \
+    do {                                                                                           \
+        if (!(cond)) {                                                                             \
+            fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, msg);                                \
+            exit(EXIT_FAILURE);                                                                    \
+        }                                                                                          \
+    } while (0)
 
-    bool provided;              //Internal flag to keep track of provided flag
+// Arena for flag allocations
+Arena* FLAG_ARENA = NULL;
+
+#define FLAG_ALLOC(size) arena_alloc(FLAG_ARENA, size)
+#define FLAG_REALLOC(ptr, size) arena_realloc(FLAG_ARENA, ptr, size)
+
+typedef struct Flag {
+    char* name;                 // flag identifier
+    char short_name;            // short letter
+    char* description;          // Description of the flag
+    FlagType type;              // Type of the flag
+    void* value;                // Pointer to the flag value
+    bool required;              // Whether this flag must be passed
+    bool is_provided;           // Internal flag to keep track of provided flag
     size_t num_validators;      // Number of registered validators
     FlagValidator* validators;  // Registered array of flag validation callbacks
 } Flag;
@@ -27,71 +41,42 @@ typedef struct Subcommand {
     void (*handler)(struct Subcommand*);  // The handler function
     size_t num_flags;                     // Subcommand flags
     Flag* flags;                          // Array of flags registered for this subcommand
-} Subcommand;
+} Command;
 
 // Global flag context.
 typedef struct FlagCtx {
-    size_t num_subcommands;   // Number of subcommands on registered.
-    Subcommand* subcommands;  // Array of subcommands registered
-
-    size_t num_flags;  // Number of global flags.
-    Flag* flags;       // Array of global flags.
+    size_t num_subcommands;  // Number of subcommands on registered.
+    Command* subcommands;    // Array of subcommands registered
+    size_t num_flags;        // Number of global flags.
+    Flag* flags;             // Array of global flags.
 } FlagCtx;
 
-// Global context
-static FlagCtx* ctx = NULL;
-char* program_name = NULL;
+static FlagCtx* ctx       = NULL;  // Global context
+static char* PROGRAM_NAME = NULL;  // Program name, argv[0]
 
 // Initialize the global flag context.
-void flag_init(void) {
-    ctx = malloc(sizeof(FlagCtx));
-    if (ctx == NULL) {
-        perror("malloc");
-        fprintf(stderr, "unable to initialize global flag context\n");
-        exit(EXIT_FAILURE);
-    }
+__attribute__((constructor())) static void flag_init(void) {
+    FLAG_ARENA = arena_create(ARENA_DEFAULT_CHUNKSIZE);
+    LOG_ASSERT(FLAG_ARENA, "arena allocation failed");
+
+    ctx = FLAG_ALLOC(sizeof(FlagCtx));
+    LOG_ASSERT(ctx, "context allocation failed");
 
     ctx->num_subcommands = 0;
-    ctx->subcommands = NULL;
-    ctx->num_flags = 0;
-    ctx->flags = NULL;
+    ctx->subcommands     = NULL;
+    ctx->num_flags       = 0;
+    ctx->flags           = NULL;
 }
 
 // Free memory used by the global flag context.
-void flag_destroy(void) {
-    if (ctx == NULL) {
-        return;
+__attribute__((destructor())) static void flag_destroy(void) {
+    if (FLAG_ARENA) {
+        arena_destroy(FLAG_ARENA);
     }
-
-    for (size_t i = 0; i < ctx->num_subcommands; i++) {
-        Subcommand* subcommand = &ctx->subcommands[i];
-
-        // Free subcommand flag validators if any
-        for (size_t j = 0; j < subcommand->num_flags; j++) {
-            Flag* flag = &subcommand->flags[j];
-            if (flag->num_validators > 0 && flag->validators != NULL) {
-                free(flag->validators);
-            }
-        }
-        free(subcommand->flags);
-    }
-    free(ctx->subcommands);
-
-    // Free global flag validators if any
-    for (size_t i = 0; i < ctx->num_flags; i++) {
-        Flag* flag = &ctx->flags[i];
-        if (flag->num_validators > 0 && flag->validators != NULL) {
-            free(flag->validators);
-        }
-    }
-
-    free(ctx->flags);
-    free(ctx);
-    ctx = NULL;
 }
 
 // Returns the flag value from the subcommand or NULL if None exists.
-void* flag_value(Subcommand* subcommand, const char* name) {
+void* FlagValue(Command* subcommand, const char* name) {
     for (size_t i = 0; i < subcommand->num_flags; i++) {
         if (strcmp(subcommand->flags[i].name, name) == 0) {
             return subcommand->flags[i].value;
@@ -101,7 +86,7 @@ void* flag_value(Subcommand* subcommand, const char* name) {
 }
 
 // Returns the flag value for a global flag.
-void* flag_global_value(const char* name) {
+void* FlagValueG(const char* name) {
     for (size_t i = 0; i < ctx->num_flags; i++) {
         if (strcmp(ctx->flags[i].name, name) == 0) {
             return ctx->flags[i].value;
@@ -111,103 +96,123 @@ void* flag_global_value(const char* name) {
 }
 
 // Register a new subcommand.
-Subcommand* flag_add_subcommand(char* name, char* description, void (*handler)(Subcommand*)) {
-    if (handler == NULL) {
-        fprintf(stderr, "subcommand handler must not be NULL\n");
-        exit(EXIT_FAILURE);
-    }
-
+Command* AddCommand(char* name, char* description, void (*handler)(Command*)) {
     ++ctx->num_subcommands;
+    size_t new_capacity      = ctx->num_subcommands * sizeof(Command);
+    Command* new_subcommands = FLAG_REALLOC(ctx->subcommands, new_capacity);
 
-    Subcommand* new_subcommands =
-        realloc(ctx->subcommands, ctx->num_subcommands * sizeof(Subcommand));
-    if (new_subcommands == NULL) {
-        perror("realloc");
-        fprintf(stderr, "Unable to realloc ctx->subcommands array\n");
-        exit(EXIT_FAILURE);
-    }
+    LOG_ASSERT(new_subcommands, "FLAG_REALLOC failed");
+    LOG_ASSERT(handler, "handler must a valid function pointer");
 
     ctx->subcommands = new_subcommands;
 
-    Subcommand* subcommand = &ctx->subcommands[ctx->num_subcommands - 1];
-    subcommand->name = name;
+    Command* subcommand = &ctx->subcommands[ctx->num_subcommands - 1];
+
+    subcommand->name        = name;
     subcommand->description = description;
-    subcommand->handler = handler;
-    subcommand->num_flags = 0;
-    subcommand->flags = NULL;
+    subcommand->handler     = handler;
+    subcommand->num_flags   = 0;
+    subcommand->flags       = NULL;
     return subcommand;
 }
 
-Flag* subcommand_add_flag(Subcommand* subcommand, FlagType type, char* name, char short_name,
-                          char* description, void* value, bool required) {
+Flag* AddFlagCmd(Command* subcommand, FlagType type, char* name, char short_name, char* description,
+                 void* value, bool required) {
     ++subcommand->num_flags;
 
-    Flag* new_flags = realloc(subcommand->flags, subcommand->num_flags * sizeof(Flag));
-    if (new_flags == NULL) {
-        perror("realloc");
-        fprintf(stderr, "Unable to realloc subcommand->flags array\n");
-        exit(EXIT_FAILURE);
-    }
+    Flag* new_flags = FLAG_REALLOC(subcommand->flags, subcommand->num_flags * sizeof(Flag));
+    LOG_ASSERT(new_flags, "subcommand->flags realloc failed");
 
-    subcommand->flags = new_flags;
-    Flag* flag = &subcommand->flags[subcommand->num_flags - 1];
-    flag->type = type;
-    flag->name = name;
-    flag->short_name = short_name;
-    flag->description = description;
-    flag->value = value;
-    flag->required = required;
-    flag->provided = false;
+    subcommand->flags    = new_flags;
+    Flag* flag           = &subcommand->flags[subcommand->num_flags - 1];
+    flag->type           = type;
+    flag->name           = name;
+    flag->short_name     = short_name;
+    flag->description    = description;
+    flag->value          = value;
+    flag->required       = required;
+    flag->is_provided    = false;
     flag->num_validators = 0;
-    flag->validators = NULL;
+    flag->validators     = NULL;
     return flag;
 }
 
-Flag* global_add_flag(FlagType type, char* name, char short_name, char* description, void* value,
-                      bool required) {
+Flag* AddFlag(FlagType type, char* name, char short_name, char* description, void* value,
+              bool required) {
     ctx->num_flags++;
 
-    Flag* new_flags = realloc(ctx->flags, ctx->num_flags * sizeof(Flag));
-    if (new_flags == NULL) {
-        perror("realloc");
-        fprintf(stderr, "Unable to realloc ctx->flags array\n");
-        exit(EXIT_FAILURE);
-    }
+    Flag* new_flags = FLAG_REALLOC(ctx->flags, ctx->num_flags * sizeof(Flag));
+    LOG_ASSERT(new_flags, "ctx->flags realloc failed");
 
-    ctx->flags = new_flags;
-    Flag* flag = &ctx->flags[ctx->num_flags - 1];
-    flag->type = type;
-    flag->name = name;
-    flag->short_name = short_name;
-    flag->description = description;
-    flag->value = value;
-    flag->required = required;
-    flag->provided = false;
+    ctx->flags           = new_flags;
+    Flag* flag           = &ctx->flags[ctx->num_flags - 1];
+    flag->type           = type;
+    flag->name           = name;
+    flag->short_name     = short_name;
+    flag->description    = description;
+    flag->value          = value;
+    flag->required       = required;
+    flag->is_provided    = false;
     flag->num_validators = 0;
-    flag->validators = NULL;
+    flag->validators     = NULL;
     return flag;
 }
 
-void flag_print_usage(const char* program_name) {
+void FlagUsage(const char* program_name) {
     printf("Usage: %s [global flags] <subcommand> [flags]\n", program_name);
-    if (ctx->num_flags > 0) {
-        printf("Global Flags:\n");
+
+    // Calculate maximum length for global flags, including "--help | -h"
+    size_t max_global_flag_len = 7 + strlen("help");  // "--help | -h"
+    for (size_t i = 0; i < ctx->num_flags; i++) {
+        size_t len = 7 + strlen(ctx->flags[i].name);  // "--%s | -%c"
+        if (len > max_global_flag_len) {
+            max_global_flag_len = len;
+        }
     }
 
-    printf("  --%s | -%c: %s\n", "help", 'h', "Print help text and exit");
+    // Print global flags, including the help flag
+    printf("Global Flags:\n");
+    char help_str[256];
+    snprintf(help_str, sizeof(help_str), "--%s | -%c", "help", 'h');
+    printf("  %-*s: %s\n", (int)max_global_flag_len, help_str, "Print help text and exit");
     for (size_t i = 0; i < ctx->num_flags; i++) {
         Flag* flag = &ctx->flags[i];
-        printf("  --%s | -%c: %s\n", flag->name, flag->short_name, flag->description);
+        char flag_str[256];
+        snprintf(flag_str, sizeof(flag_str), "--%s | -%c", flag->name, flag->short_name);
+        printf("  %-*s: %s\n", (int)max_global_flag_len, flag_str, flag->description);
     }
 
-    printf("\nSubcommands:");
+    // Calculate maximum subcommand name length
+    size_t max_subcmd_len = 0;
     for (size_t i = 0; i < ctx->num_subcommands; i++) {
-        Subcommand* subcommand = &ctx->subcommands[i];
-        printf("\n  %s: %s\n", subcommand->name, subcommand->description);
+        size_t len = strlen(ctx->subcommands[i].name);
+        if (len > max_subcmd_len) {
+            max_subcmd_len = len;
+        }
+    }
 
-        for (size_t j = 0; j < subcommand->num_flags; j++) {
-            Flag* flag = &subcommand->flags[j];
-            printf("    --%s | -%c: %s\n", flag->name, flag->short_name, flag->description);
+    // Print subcommands
+    printf("\nSubcommands:\n");
+    for (size_t i = 0; i < ctx->num_subcommands; i++) {
+        Command* subcmd = &ctx->subcommands[i];
+        printf("  %-*s: %s\n", (int)max_subcmd_len, subcmd->name, subcmd->description);
+        if (subcmd->num_flags > 0) {
+            // Calculate maximum flag length for this subcommand
+            size_t max_flag_len = 0;
+            for (size_t j = 0; j < subcmd->num_flags; j++) {
+                size_t len = 7 + strlen(subcmd->flags[j].name);  // "--%s | -%c"
+                if (len > max_flag_len) {
+                    max_flag_len = len;
+                }
+            }
+
+            // Print flags for this subcommand
+            for (size_t j = 0; j < subcmd->num_flags; j++) {
+                Flag* flag = &subcmd->flags[j];
+                char flag_str[256];
+                snprintf(flag_str, sizeof(flag_str), "--%s | -%c", flag->name, flag->short_name);
+                printf("    %-*s: %s\n", (int)max_flag_len, flag_str, flag->description);
+            }
         }
     }
 }
@@ -223,10 +228,7 @@ __attribute__((format(printf, 1, 2))) void FATAL_ERROR(char* fmt, ...) {
 // validated a flag using the registered flag validators,
 // calling each callback in the order they were registered.
 static void validate_flag(Flag* flag) {
-    if (!flag)
-        return;
-
-    if (flag->num_validators == 0 || flag->validators == NULL) {
+    if (!flag || flag->num_validators == 0 || flag->validators == NULL) {
         return;
     }
 
@@ -320,24 +322,22 @@ void process_flag(Flag* flag, const char* name, size_t i, char** argv) {
     }
 
     parse_flag_value(flag, argv[i + 1]);
-    flag->provided = true;
+    flag->is_provided = true;
 }
 
-static void process_flag_name(char* name, bool is_long_flag, Subcommand* cmd, size_t i,
-                              char** argv) {
-    if (strlen(name) == 0) {
+static void process_flag_name(char* name, bool is_long_flag, Command* cmd, size_t* i, char** argv,
+                              size_t argc) {
+    if (name == NULL || strlen(name) == 0) {
         FATAL_ERROR("Invalid flag name: %s\n", name);
     }
 
+    // Handle help command.
     if (strcmp(name, "help") == 0 || name[0] == 'h') {
-        flag_print_usage(program_name);
-        flag_destroy();
+        FlagUsage(PROGRAM_NAME);
         exit(EXIT_SUCCESS);
     }
 
     Flag* flag = NULL;
-
-    // We have to check if the flag is a subcommand
     if (cmd == NULL) {
         flag = find_flag(ctx->flags, ctx->num_flags, name, is_long_flag);
     } else {
@@ -348,8 +348,21 @@ static void process_flag_name(char* name, bool is_long_flag, Subcommand* cmd, si
         FATAL_ERROR("Unknown flag: --%s\n", name);
     }
 
-    parse_flag_value(flag, argv[i]);
-    flag->provided = true;
+    // Check if there's a next argument
+    if (*i < argc && strncmp(argv[*i], "-", 1) != 0) {
+        // Next argument exists and doesn’t start with "-", so it’s the value
+        parse_flag_value(flag, argv[*i]);
+        (*i)++;  // Consume the value
+    } else {
+        // No value provided
+        if (flag->type == FLAG_BOOL) {
+            *(bool*)flag->value = true;  // Set boolean to true if no value
+        } else {
+            FATAL_ERROR("Flag --%s requires a value\n", flag->name);
+        }
+    }
+
+    flag->is_provided = true;
 }
 
 typedef enum {
@@ -358,57 +371,55 @@ typedef enum {
     FLAG_SUBCOMMAND,
 } ParseState;
 
-Subcommand* flag_parse(int argc, char** argv) {
+void FlagParse(int argc, char** argv, void (*pre_exec)(void* user_data), void* user_data) {
     if (argc < 2) {
-        FATAL_ERROR("Missing subcommand\n");
+        return;
     }
 
-    program_name = argv[0];
-    ParseState state = START;
-    char* name = NULL;
+    PROGRAM_NAME      = argv[0];
+    ParseState state  = START;
+    char* name        = NULL;
     bool is_long_flag = false;
-    Subcommand* current_subcommand = NULL;
-    size_t i = 0;
-    size_t nargs = (size_t)argc;
+    Command* subcmd   = NULL;
 
-    while (i < nargs - 1) {
-        i++;
+    for (size_t i = 1; i < (size_t)argc;) {
         char* arg = argv[i];
         switch (state) {
             case START: {
-                is_long_flag = strncmp(arg, "--", 2) == 0;
+                is_long_flag       = strncmp(arg, "--", 2) == 0;
                 bool is_short_flag = strncmp(arg, "-", 1) == 0 && !is_long_flag;
                 if (is_long_flag) {
-                    name = arg + 2;
+                    name  = arg + 2;
                     state = FLAG_NAME;
+                    i++;
                 } else if (is_short_flag) {
-                    name = arg + 1;
+                    name  = arg + 1;
                     state = FLAG_NAME;
+                    i++;
                 } else {
-                    if (current_subcommand != NULL) {
+                    if (subcmd != NULL) {
                         FATAL_ERROR("You can't have multiple subcommands\n");
                     }
                     state = FLAG_SUBCOMMAND;
-                    i--;
                 }
             } break;
             case FLAG_NAME: {
-                process_flag_name(name, is_long_flag, current_subcommand, i, argv);
+                process_flag_name(name, is_long_flag, subcmd, &i, argv, (size_t)argc);
                 state = START;
             } break;
             case FLAG_SUBCOMMAND: {
-                current_subcommand = NULL;
+                subcmd = NULL;
                 for (size_t j = 0; j < ctx->num_subcommands; j++) {
                     if (strcmp(ctx->subcommands[j].name, arg) == 0) {
-                        current_subcommand = &ctx->subcommands[j];
+                        subcmd = &ctx->subcommands[j];
                         break;
                     }
                 }
-
-                if (current_subcommand == NULL) {
+                if (subcmd == NULL) {
                     FATAL_ERROR("Unknown subcommand: %s\n", arg);
                 }
                 state = START;
+                i++;
             } break;
             default:
                 FATAL_ERROR("Invalid state\n");
@@ -417,16 +428,16 @@ Subcommand* flag_parse(int argc, char** argv) {
 
     // Check required flags
     for (size_t i = 0; i < ctx->num_flags; i++) {
-        if (ctx->flags[i].required && !ctx->flags[i].provided) {
+        if (ctx->flags[i].required && !ctx->flags[i].is_provided) {
             FATAL_ERROR("Missing required global flag: --%s\n", ctx->flags[i].name);
         }
     }
 
-    if (current_subcommand != NULL) {
-        for (size_t i = 0; i < current_subcommand->num_flags; i++) {
-            if (current_subcommand->flags[i].required && !current_subcommand->flags[i].provided) {
-                FATAL_ERROR("Missing required flag for subcommand %s: --%s\n",
-                            current_subcommand->name, current_subcommand->flags[i].name);
+    if (subcmd != NULL) {
+        for (size_t i = 0; i < subcmd->num_flags; i++) {
+            if (subcmd->flags[i].required && !subcmd->flags[i].is_provided) {
+                FATAL_ERROR("Missing required flag for subcommand %s: --%s\n", subcmd->name,
+                            subcmd->flags[i].name);
             }
         }
     }
@@ -436,32 +447,39 @@ Subcommand* flag_parse(int argc, char** argv) {
         validate_flag(&ctx->flags[i]);
     }
 
-    if (current_subcommand != NULL) {
-        for (size_t i = 0; i < current_subcommand->num_flags; i++) {
-            validate_flag(&current_subcommand->flags[i]);
+    if (subcmd != NULL) {
+        for (size_t i = 0; i < subcmd->num_flags; i++) {
+            validate_flag(&subcmd->flags[i]);
         }
     }
-    return current_subcommand;
+
+    if (pre_exec != NULL) {
+        pre_exec(user_data);
+    }
+
+    if (subcmd != NULL) {
+        subcmd->handler(subcmd);
+    }
 }
 
-void flag_invoke(Subcommand* subcommand) {
+void FlagInvoke(Command* subcommand) {
     subcommand->handler(subcommand);
 }
 
-void flag_set_validators(Flag* flag, size_t count, FlagValidator validator, ...) {
+void SetValidators(Flag* flag, size_t count, FlagValidator validator, ...) {
     if (count == 0) {
         return;
     }
 
     flag->num_validators = count;
-    flag->validators = malloc(count * sizeof(FlagValidator));
-    assert(flag->validators != NULL);
+    flag->validators     = FLAG_ALLOC(count * sizeof(FlagValidator));
+    LOG_ASSERT(flag->validators != NULL, "unable to allocate flag validators");
 
     va_list args;
     va_start(args, validator);
     for (size_t i = 0; i < count; i++) {
         flag->validators[i] = validator;
-        validator = va_arg(args, FlagValidator);
+        validator           = va_arg(args, FlagValidator);
     }
     va_end(args);
 }

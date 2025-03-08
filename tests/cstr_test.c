@@ -125,7 +125,7 @@ int main(void) {
     ASSERT(strcmp(cstr_data(parts2[2]), "three") == 0, "cstr_split_at(): Assertion failed");
 
     size_t k = 0;
-    parts = cstr_split_at(arena, cstr_from(arena, "Host: localhost:8080"), ": ", 2, &k);
+    parts    = cstr_split_at(arena, cstr_from(arena, "Host: localhost:8080"), ": ", 2, &k);
     ASSERT(k == 2, "cstr_split_at(): Expected k=2");
     printf("Host: %s\n", parts[0]->data);
     printf("Host: %s\n", parts[1]->data);
@@ -133,19 +133,19 @@ int main(void) {
     ASSERT(strcmp(parts[1]->data, "localhost:8080") == 0, "Invalid host name");
 
     // Test cstr_join
-    cstr* str8 = cstr_from(arena, "one");
-    cstr* str9 = cstr_from(arena, "two");
+    cstr* str8  = cstr_from(arena, "one");
+    cstr* str9  = cstr_from(arena, "two");
     cstr* str10 = cstr_from(arena, "three");
 
-    cstr** strs = arena_alloc(arena, 3 * sizeof(cstr*));
-    strs[0] = str8;
-    strs[1] = str9;
-    strs[2] = str10;
+    cstr** strs  = arena_alloc(arena, 3 * sizeof(cstr*));
+    strs[0]      = str8;
+    strs[1]      = str9;
+    strs[2]      = str10;
     cstr* joined = cstr_join(arena, strs, 3, ",");
     ASSERT(strcmp(cstr_data(joined), "one,two,three") == 0, "cstr_join(): Assertion failed");
 
     // Test cstr_substr
-    cstr* str11 = cstr_from(arena, "Hello, world!");
+    cstr* str11  = cstr_from(arena, "Hello, world!");
     cstr* substr = cstr_substr(arena, str11, 7, 5);
     ASSERT(strcmp(cstr_data(substr), "world") == 0, "cstr_substr(): Assertion failed");
 
@@ -180,14 +180,14 @@ int main(void) {
     ASSERT(strcmp(cstr_data(str17), "HelloWorld") == 0, "Assertion failed");
 
     // Test cstr_replace
-    cstr* str18 = cstr_from(arena, "Hello, world!");
+    cstr* str18    = cstr_from(arena, "Hello, world!");
     cstr* replaced = cstr_replace(arena, str18, "world", "universe!!!!!!!!!!!!!!!!!!!!!");
     printf("%s\n", cstr_data(replaced));
     ASSERT(strcmp(cstr_data(replaced), "Hello, universe!!!!!!!!!!!!!!!!!!!!!!") == 0,
            "Assertion failed");
 
     // Test cstr_replace_all
-    cstr* str19 = cstr_from(arena, "Hello, world! Hello, world!");
+    cstr* str19        = cstr_from(arena, "Hello, world! Hello, world!");
     cstr* replaced_all = cstr_replace_all(arena, str19, "world", "universe");
     printf("%s\n", cstr_data(replaced_all));
     ASSERT(strcmp(cstr_data(replaced_all), "Hello, universe! Hello, universe!") == 0,
@@ -214,7 +214,7 @@ int main(void) {
     ASSERT(strcmp(cstr_data(str23), "Hello, world!") == 0, "Assertion failed");
 
     // Test cstr_count_substr
-    cstr* str25 = cstr_from(arena, "Hello, world! Hello, world!");
+    cstr* str25   = cstr_from(arena, "Hello, world! Hello, world!");
     size_t count3 = cstr_count_substr(str25, "world");
     ASSERT(count3 == 2, "Assertion failed");
 

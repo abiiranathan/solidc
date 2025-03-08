@@ -23,10 +23,10 @@
         name##_t* ch = (name##_t*)malloc(sizeof(name##_t));                                        \
         if (ch == NULL)                                                                            \
             return NULL;                                                                           \
-        ch->read_index = 0;                                                                        \
+        ch->read_index  = 0;                                                                       \
         ch->write_index = 0;                                                                       \
-        ch->count = 0;                                                                             \
-        ch->is_closed = false;                                                                     \
+        ch->count       = 0;                                                                       \
+        ch->is_closed   = false;                                                                   \
         pthread_mutex_init(&ch->mutex, NULL);                                                      \
         sem_init(&ch->empty, 0, CHANNEL_BUFFER_SIZE);                                              \
         sem_init(&ch->full, 0, 0);                                                                 \
@@ -44,7 +44,7 @@
             return false;                                                                          \
         }                                                                                          \
         ch->buffer[ch->write_index] = data;                                                        \
-        ch->write_index = (ch->write_index + 1) % CHANNEL_BUFFER_SIZE;                             \
+        ch->write_index             = (ch->write_index + 1) % CHANNEL_BUFFER_SIZE;                 \
         ch->count++;                                                                               \
         pthread_mutex_unlock(&ch->mutex);                                                          \
         sem_post(&ch->full);                                                                       \
@@ -59,7 +59,7 @@
             sem_post(&ch->full);                                                                   \
             return (type){0}; /* Return default value of the type */                               \
         }                                                                                          \
-        type data = ch->buffer[ch->read_index];                                                    \
+        type data      = ch->buffer[ch->read_index];                                               \
         ch->read_index = (ch->read_index + 1) % CHANNEL_BUFFER_SIZE;                               \
         ch->count--;                                                                               \
         pthread_mutex_unlock(&ch->mutex);                                                          \

@@ -31,12 +31,12 @@ uint32_t solidc_fnv1a_hash(const void* key) {
 
 uint32_t solidc_elf_hash(const void* key) {
     const unsigned char* str = (const unsigned char*)key;
-    uint32_t hash = 0;
+    uint32_t hash            = 0;
     uint32_t x;
 
     while (*str) {
         hash = (hash << 4) + *str++;
-        x = hash & 0xF0000000UL;
+        x    = hash & 0xF0000000UL;
         if (x != 0) {
             hash ^= (x >> 24);
         }
@@ -68,7 +68,7 @@ uint32_t solidc_sdbm_hash(const void* key) {
 // CRC32 hash function
 uint32_t solidc_crc32_hash(const void* key, size_t len) {
     unsigned char* data = (unsigned char*)key;
-    unsigned long crc = 0xFFFFFFFF;
+    unsigned long crc   = 0xFFFFFFFF;
     while (len--) {
         crc ^= *data++;
         for (int k = 0; k < 8; k++) {
@@ -80,24 +80,24 @@ uint32_t solidc_crc32_hash(const void* key, size_t len) {
 
 // https://en.wikipedia.org/wiki/MurmurHash
 uint32_t solidc_murmur_hash(const char* key, uint32_t len, uint32_t seed) {
-    uint32_t c1 = 0xcc9e2d51;
-    uint32_t c2 = 0x1b873593;
-    uint32_t r1 = 15;
-    uint32_t r2 = 13;
-    uint32_t m = 5;
-    uint32_t n = 0xe6546b64;
-    uint32_t h = 0;
-    uint32_t k = 0;
-    uint8_t* d = (uint8_t*)key;  // 32 bit extract from `key'
+    uint32_t c1            = 0xcc9e2d51;
+    uint32_t c2            = 0x1b873593;
+    uint32_t r1            = 15;
+    uint32_t r2            = 13;
+    uint32_t m             = 5;
+    uint32_t n             = 0xe6546b64;
+    uint32_t h             = 0;
+    uint32_t k             = 0;
+    uint8_t* d             = (uint8_t*)key;  // 32 bit extract from `key'
     const uint32_t* chunks = NULL;
-    const uint8_t* tail = NULL;  // tail - last 8 bytes
-    int i = 0;
-    uint32_t l = len / 4;  // chunk length
+    const uint8_t* tail    = NULL;  // tail - last 8 bytes
+    int i                  = 0;
+    uint32_t l             = len / 4;  // chunk length
 
     h = seed;
 
     chunks = (const uint32_t*)(d + l * 4);  // body
-    tail = (const uint8_t*)(d + l * 4);     // last 8 byte chunk of `key'
+    tail   = (const uint8_t*)(d + l * 4);   // last 8 byte chunk of `key'
 
     // for each 4 byte chunk of `key'
     for (i = -l; i != 0; ++i) {
@@ -171,16 +171,16 @@ static uint32_t XXH32_round(uint32_t seed, uint32_t input) {
 
 // https://github.com/Cyan4973/xxHash
 uint32_t solidc_XXH32(const void* input, size_t len, uint32_t seed) {
-    const uint8_t* p = (const uint8_t*)input;
+    const uint8_t* p          = (const uint8_t*)input;
     const uint8_t* const bEnd = p + len;
     uint32_t h32;
 
     if (len >= 16) {
         const uint8_t* const limit = bEnd - 16;
-        uint32_t v1 = seed + XXH_PRIME32_1 + XXH_PRIME32_2;
-        uint32_t v2 = seed + XXH_PRIME32_2;
-        uint32_t v3 = seed + 0;
-        uint32_t v4 = seed - XXH_PRIME32_1;
+        uint32_t v1                = seed + XXH_PRIME32_1 + XXH_PRIME32_2;
+        uint32_t v2                = seed + XXH_PRIME32_2;
+        uint32_t v3                = seed + 0;
+        uint32_t v4                = seed - XXH_PRIME32_1;
 
         do {
             v1 = XXH32_round(v1, XXH_readLE32(p));

@@ -147,10 +147,10 @@ typedef struct CsvWriterConfig CsvWriterConfig;
 void csvparser_setconfig(CsvParser* parser, CsvParserConfig config);
 
 #define CsvParserConfigure(parser, ...)                                                            \
-    csvparser_setconfig(parser, (CsvParserConfig){.delim = ',',                                    \
-                                                  .quote = '"',                                    \
-                                                  .comment = '#',                                  \
-                                                  .has_header = true,                              \
+    csvparser_setconfig(parser, (CsvParserConfig){.delim       = ',',                              \
+                                                  .quote       = '"',                              \
+                                                  .comment     = '#',                              \
+                                                  .has_header  = true,                             \
                                                   .skip_header = true,                             \
                                                   __VA_ARGS__})
 
@@ -173,11 +173,11 @@ csvwriter_free(writer);
 typedef struct CsvWriter CsvWriter;
 
 #define CsvWriterConfigure(writer, ...)                                                            \
-    csvwriter_setconfig(writer, (CsvWriterConfig){.delim = ',',                                    \
-                                                  .quote = '"',                                    \
-                                                  .newline = '\n',                                 \
+    csvwriter_setconfig(writer, (CsvWriterConfig){.delim     = ',',                                \
+                                                  .quote     = '"',                                \
+                                                  .newline   = '\n',                               \
                                                   .quote_all = false,                              \
-                                                  .flush = false,                                  \
+                                                  .flush     = false,                              \
                                                   .first_row = false,                              \
                                                   __VA_ARGS__})
 

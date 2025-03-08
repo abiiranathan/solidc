@@ -80,7 +80,7 @@ static int ringbuffer_push(TaskRingBuffer* rb, Task* task) {
     }
 
     rb->tasks[rb->head] = *task;
-    rb->head = (rb->head + 1) & RING_BUFFER_MASK;
+    rb->head            = (rb->head + 1) & RING_BUFFER_MASK;
 
     cond_signal(&rb->not_empty);
     lock_release(&rb->mutex);
@@ -100,7 +100,7 @@ static int ringbuffer_pull(TaskRingBuffer* rb, Task* task) {
         cond_wait(&rb->not_empty, &rb->mutex);
     }
 
-    *task = rb->tasks[rb->tail];
+    *task    = rb->tasks[rb->tail];
     rb->tail = (rb->tail + 1) & RING_BUFFER_MASK;
 
     cond_signal(&rb->not_full);
@@ -130,7 +130,7 @@ static int thread_steal_task(threadpool* pool, thread* thief, Task* task) {
     int start_idx = rand() % pool->num_threads;
 
     for (int i = 0; i < pool->num_threads; i++) {
-        int idx = (start_idx + i) % pool->num_threads;
+        int idx        = (start_idx + i) % pool->num_threads;
         thread* target = pool->threads[idx];
 
         if (target == thief)
@@ -142,7 +142,7 @@ static int thread_steal_task(threadpool* pool, thread* thief, Task* task) {
             continue;
         }
 
-        *task = target->queue.tasks[target->queue.tail];
+        *task              = target->queue.tasks[target->queue.tail];
         target->queue.tail = (target->queue.tail + 1) & RING_BUFFER_MASK;
 
         cond_signal(&target->queue.not_full);
@@ -154,7 +154,7 @@ static int thread_steal_task(threadpool* pool, thread* thief, Task* task) {
 
 // Thread worker function
 static void* thread_worker(void* arg) {
-    thread* thp = (thread*)arg;
+    thread* thp      = (thread*)arg;
     threadpool* pool = thp->pool;
     Task task;
 
@@ -215,7 +215,7 @@ static int thread_init(threadpool* pool, thread** t, int id) {
         return -1;
 
     (*t)->pool = pool;
-    (*t)->id = id;
+    (*t)->id   = id;
 
     if (ringbuffer_init(&(*t)->queue) != 0) {
         free(*t);
@@ -237,10 +237,10 @@ threadpool* threadpool_create(int num_threads) {
     if (pool == NULL)
         return NULL;
 
-    pool->num_threads_alive = 0;
+    pool->num_threads_alive   = 0;
     pool->num_threads_working = 0;
-    pool->shutdown = 0;
-    pool->num_threads = num_threads;
+    pool->shutdown            = 0;
+    pool->num_threads         = num_threads;
 
     if (ringbuffer_init(&pool->queue) != 0) {
         free(pool);
@@ -274,7 +274,7 @@ int threadpool_submit(threadpool* pool, void (*function)(void*), void* arg) {
 
     // Try random thread's queue first
     int thread_id = rand() % pool->num_threads;
-    thread* thp = pool->threads[thread_id];
+    thread* thp   = pool->threads[thread_id];
 
     if (ringbuffer_push(&thp->queue, &task) == 0) {
         return 0;

@@ -56,9 +56,9 @@ CsvParser* csvparser_new(const char* filename) {
         return NULL;
     }
 
-    parser->arena = arena;
+    parser->arena    = arena;
     parser->num_rows = 0;
-    parser->stream = f;
+    parser->stream   = f;
 
     // Set default configuration
     CsvParserConfigure(parser, .delim = ',');
@@ -87,15 +87,15 @@ static CsvRow** csv_allocate_rows(Arena* arena, size_t num_rows) {
 CsvRow** csvparser_parse(CsvParser* self) {
     // read num_rows and allocate them on heap.
     self->num_rows = line_count(self);
-    self->rows = csv_allocate_rows(self->arena, self->num_rows);
+    self->rows     = csv_allocate_rows(self->arena, self->num_rows);
     if (!self->rows) {
         return NULL;
     }
 
     char line[MAX_FIELD_SIZE] = {0};
-    size_t rowIndex = 0;
-    bool headerSkipped = false;
-    FILE* fp = file_fp(self->stream);
+    size_t rowIndex           = 0;
+    bool headerSkipped        = false;
+    FILE* fp                  = file_fp(self->stream);
 
     // Read one line to determine the number of fields in the CSV file
     if (!fgets(line, MAX_FIELD_SIZE, fp)) {
@@ -140,12 +140,12 @@ CsvRow** csvparser_parse(CsvParser* self) {
         }
 
         LineArgs args = {
-            .arena = self->arena,
-            .line = line,
-            .rowIndex = rowIndex,
-            .row = self->rows[rowIndex],
-            .delim = self->delim,
-            .quote = self->quote,
+            .arena      = self->arena,
+            .line       = line,
+            .rowIndex   = rowIndex,
+            .row        = self->rows[rowIndex],
+            .delim      = self->delim,
+            .quote      = self->quote,
             .num_fields = num_fields,
         };
 
@@ -163,13 +163,13 @@ CsvRow** csvparser_parse(CsvParser* self) {
 void csvparser_parse_async(CsvParser* self, RowCallback callback, size_t maxrows) {
     self->num_rows = line_count(self);
 
-    size_t rowIndex = 0;
-    bool headerSkipped = false;
+    size_t rowIndex           = 0;
+    bool headerSkipped        = false;
     char line[MAX_FIELD_SIZE] = {0};
 
     // Limit the number of rows to parse if maxrows is set
     self->num_rows = (maxrows > 0 && maxrows < self->num_rows) ? maxrows : self->num_rows;
-    self->rows = csv_allocate_rows(self->arena, self->num_rows);
+    self->rows     = csv_allocate_rows(self->arena, self->num_rows);
     if (!self->rows) {
         return;
     }
@@ -217,12 +217,12 @@ void csvparser_parse_async(CsvParser* self, RowCallback callback, size_t maxrows
         }
 
         LineArgs args = {
-            .arena = self->arena,
-            .line = line,
-            .rowIndex = rowIndex,
-            .row = self->rows[rowIndex],
-            .delim = self->delim,
-            .quote = self->quote,
+            .arena      = self->arena,
+            .line       = line,
+            .rowIndex   = rowIndex,
+            .row        = self->rows[rowIndex],
+            .delim      = self->delim,
+            .quote      = self->quote,
             .num_fields = num_fields,
         };
 
@@ -266,7 +266,7 @@ void csvparser_setconfig(CsvParser* parser, CsvParserConfig config) {
         parser->comment = config.comment;
     }
 
-    parser->has_header = config.has_header;
+    parser->has_header  = config.has_header;
     parser->skip_header = config.skip_header;
 }
 
@@ -293,7 +293,7 @@ static size_t get_num_fields(const char* line, char delim, char quote) {
 // Function to parse a CSV line and split it into fields
 static bool parse_csv_line(LineArgs* args) {
     char field[MAX_FIELD_SIZE] = {0};
-    int insideQuotes = 0;
+    int insideQuotes           = 0;
 
     args->row->fields = arena_alloc(args->arena, args->num_fields * sizeof(char*));
     if (!args->row->fields) {
@@ -301,14 +301,14 @@ static bool parse_csv_line(LineArgs* args) {
         return false;
     }
 
-    int fieldIndex = 0;
+    int fieldIndex       = 0;
     args->row->numFields = 0;
 
     for (int i = 0; args->line[i] != '\0'; i++) {
         if (args->line[i] == args->quote) {
             insideQuotes = !insideQuotes;
         } else if (args->line[i] == args->delim && !insideQuotes) {
-            field[fieldIndex] = '\0';
+            field[fieldIndex]                       = '\0';
             args->row->fields[args->row->numFields] = arena_alloc_string(args->arena, field);
             if (!args->row->fields[args->row->numFields]) {
                 fprintf(stderr, "ERROR: unable to allocate memory for args->row->fields[%zu]\n",
@@ -331,7 +331,7 @@ static bool parse_csv_line(LineArgs* args) {
     }
 
     // Add the last field.
-    field[fieldIndex] = '\0';
+    field[fieldIndex]                       = '\0';
     args->row->fields[args->row->numFields] = arena_alloc_string(args->arena, field);
     if (!args->row->fields[args->row->numFields]) {
         fprintf(stderr, "ERROR: unable to allocate memory for args->row->fields[%zu]\n",
@@ -352,8 +352,8 @@ static bool parse_csv_line(LineArgs* args) {
 // count the number of lines in a csv file.
 // ignore comments. Optionally skip header.
 static size_t line_count(CsvParser* self) {
-    size_t lines = 0;
-    char prevChar = '\n';
+    size_t lines       = 0;
+    char prevChar      = '\n';
     bool headerSkipped = false;
 
     FILE* fp = file_fp(self->stream);
@@ -431,11 +431,11 @@ CsvWriter* csvwriter_new(const char* filename) {
         return NULL;
     }
 
-    writer->delim = ',';
-    writer->quote = '"';
-    writer->newline = '\n';
+    writer->delim     = ',';
+    writer->quote     = '"';
+    writer->newline   = '\n';
     writer->quote_all = false;
-    writer->flush = false;
+    writer->flush     = false;
     return writer;
 }
 
@@ -489,5 +489,5 @@ void csvwriter_setconfig(CsvWriter* writer, CsvWriterConfig config) {
     }
 
     writer->quote_all = config.quote_all;
-    writer->flush = config.flush;
+    writer->flush     = config.flush;
 }

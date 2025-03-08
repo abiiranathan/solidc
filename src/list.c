@@ -12,9 +12,9 @@ list_t* list_new(size_t elem_size) {
     list_t* list = (list_t*)malloc(sizeof(list_t));
     if (!list)
         return NULL;
-    list->head = NULL;
-    list->tail = NULL;
-    list->size = 0;
+    list->head      = NULL;
+    list->tail      = NULL;
+    list->size      = 0;
     list->elem_size = elem_size;
     return list;
 }
@@ -61,9 +61,9 @@ void list_push_back(list_t* list, void* elem) {
     if (!new_node)
         return;
     if (list->tail) {
-        new_node->prev = list->tail;
+        new_node->prev   = list->tail;
         list->tail->next = new_node;
-        list->tail = new_node;
+        list->tail       = new_node;
     } else {
         list->head = new_node;
         list->tail = new_node;
@@ -76,7 +76,7 @@ void list_pop_back(list_t* list) {
     if (!list || !list->tail)
         return;
     list_node_t* to_remove = list->tail;
-    list->tail = to_remove->prev;
+    list->tail             = to_remove->prev;
     if (list->tail) {
         list->tail->next = NULL;
     } else {
@@ -92,9 +92,9 @@ void list_push_front(list_t* list, void* elem) {
     if (!new_node)
         return;
     if (list->head) {
-        new_node->next = list->head;
+        new_node->next   = list->head;
         list->head->prev = new_node;
-        list->head = new_node;
+        list->head       = new_node;
     } else {
         list->head = new_node;
         list->tail = new_node;
@@ -107,7 +107,7 @@ void list_pop_front(list_t* list) {
     if (!list || !list->head)
         return;
     list_node_t* to_remove = list->head;
-    list->head = to_remove->next;
+    list->head             = to_remove->next;
     if (list->head) {
         list->head->prev = NULL;
     } else {
@@ -136,7 +136,7 @@ int list_index_of(list_t* list, void* elem) {
         return -1;
 
     list_node_t* current = list->head;
-    int index = 0;
+    int index            = 0;
     while (current) {
         if (memcmp(current->data, elem, list->elem_size) == 0) {
             return index;
@@ -195,7 +195,7 @@ void list_insert(list_t* list, size_t index, void* elem) {
     new_node->next = current;
     new_node->prev = NULL;
     if (current->prev) {
-        new_node->prev = current->prev;
+        new_node->prev      = current->prev;
         current->prev->next = new_node;
     } else {
         list->head = new_node;

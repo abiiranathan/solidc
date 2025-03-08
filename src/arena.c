@@ -172,15 +172,19 @@ void* arena_alloc(Arena* arena, size_t size) {
     new_chunk->size = new_chunk_size - sizeof(Chunk);
     new_chunk->used = size;
     new_chunk->next = arena->head;
-    arena->head = new_chunk;
+    arena->head     = new_chunk;
 
     spinlock_release(&arena->spin_lock);
     return new_chunk->base;
 }
 
 void* arena_realloc(Arena* arena, void* ptr, size_t size) {
-    if (__builtin_expect(arena == NULL || ptr == NULL || size == 0, 0)) {
+    if (__builtin_expect(arena == NULL || size == 0, 0)) {
         return NULL;
+    }
+
+    if (ptr == NULL) {
+        return arena_alloc(arena, size);
     }
 
     spinlock_acquire(&arena->spin_lock);
@@ -251,7 +255,7 @@ char* arena_alloc_string(Arena* arena, const char* str) {
         return NULL;
     }
 
-    size_t len = strlen(str) + 1;
+    size_t len    = strlen(str) + 1;
     char* new_str = (char*)arena_alloc(arena, len);
     if (new_str == NULL) {
         return NULL;

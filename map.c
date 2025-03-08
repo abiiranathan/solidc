@@ -93,10 +93,10 @@ map* map_create(size_t initial_capacity, bool (*key_compare)(const void*, const 
         return NULL;
     }
 
-    m->size = 0;
-    m->capacity = initial_capacity;
-    m->hash = xxhash;  // Use xxHash for faster hashing
-    m->key_compare = key_compare;
+    m->size         = 0;
+    m->capacity     = initial_capacity;
+    m->hash         = xxhash;  // Use xxHash for faster hashing
+    m->key_compare  = key_compare;
     m->free_entries = free_entries;
 
     pthread_mutex_init(&m->lock, NULL);
@@ -141,7 +141,7 @@ bool map_resize(map* m, size_t new_capacity) {
     for (size_t i = 0; i < m->capacity; i++) {
         if (m->entries[i].key && !(m->deleted_bitmap[i / 8] & (1 << (i % 8)))) {
             size_t index = m->hash(m->entries[i].key) % new_capacity;
-            size_t j = 0;
+            size_t j     = 0;
             while (new_entries[index].key) {
                 j++;
                 index = (index + j * j) % new_capacity;  // Quadratic probing
@@ -153,9 +153,9 @@ bool map_resize(map* m, size_t new_capacity) {
     free(m->entries);
     free(m->deleted_bitmap);
 
-    m->entries = new_entries;
+    m->entries        = new_entries;
     m->deleted_bitmap = new_deleted_bitmap;
-    m->capacity = new_capacity;
+    m->capacity       = new_capacity;
 
     return true;
 }
@@ -170,7 +170,7 @@ void map_set(map* m, void* key, void* value) {
     }
 
     size_t index = m->hash(key) % m->capacity;
-    size_t i = 0;
+    size_t i     = 0;
     while (m->entries[index].key && !m->key_compare(m->entries[index].key, key)) {
         i++;
         index = (index + i * i) % m->capacity;  // Quadratic probing
@@ -178,7 +178,7 @@ void map_set(map* m, void* key, void* value) {
 
     if (!m->entries[index].key)
         m->size++;
-    m->entries[index].key = key;
+    m->entries[index].key   = key;
     m->entries[index].value = value;
     m->deleted_bitmap[index / 8] &= ~(1 << (index % 8));  // Clear deleted flag
 }
@@ -186,7 +186,7 @@ void map_set(map* m, void* key, void* value) {
 // Get a value by key
 void* map_get(map* m, void* key) {
     size_t index = m->hash(key) % m->capacity;
-    size_t i = 0;
+    size_t i     = 0;
     while (m->entries[index].key || (m->deleted_bitmap[index / 8] & (1 << (index % 8)))) {
         if (m->entries[index].key && m->key_compare(m->entries[index].key, key)) {
             return m->entries[index].value;
@@ -208,7 +208,7 @@ size_t map_capacity(map* m) {
 // Remove a key-value pair
 void map_remove(map* m, void* key) {
     size_t index = m->hash(key) % m->capacity;
-    size_t i = 0;
+    size_t i     = 0;
 
     while (m->entries[index].key || (m->deleted_bitmap[index / 8] & (1 << (index % 8)))) {
         if (m->entries[index].key && m->key_compare(m->entries[index].key, key)) {
@@ -217,7 +217,7 @@ void map_remove(map* m, void* key) {
                 free((void*)m->entries[index].value);
             }
 
-            m->entries[index].key = NULL;
+            m->entries[index].key   = NULL;
             m->entries[index].value = NULL;
             m->deleted_bitmap[index / 8] |= (1 << (index % 8));  // Mark as deleted
             m->size--;
@@ -277,10 +277,10 @@ map* shared_map;
 void* insert_worker(void* arg) {
     int thread_id = *(int*)arg;
     for (int i = thread_id * NUM_ENTRIES; i < (thread_id + 1) * NUM_ENTRIES; i++) {
-        int* key = malloc(sizeof(int));
+        int* key   = malloc(sizeof(int));
         int* value = malloc(sizeof(int));
-        *key = i;
-        *value = i * 10;
+        *key       = i;
+        *value     = i * 10;
         map_set_safe(shared_map, key, value);
     }
     return NULL;
@@ -290,7 +290,7 @@ void* insert_worker(void* arg) {
 void* retrieve_worker(void* arg) {
     int thread_id = *(int*)arg;
     for (int i = thread_id * NUM_ENTRIES; i < (thread_id + 1) * NUM_ENTRIES; i++) {
-        int key = i;
+        int key    = i;
         int* value = (int*)map_get_safe(shared_map, &key);
         if (value) {
             printf("Thread %d: Key %d => Value %d\n", thread_id, key, *value);

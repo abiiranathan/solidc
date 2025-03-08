@@ -32,9 +32,9 @@ void test_concurrent_map() {
         assert(args[i].key);
         args[i].value = malloc(sizeof(int));
         assert(args[i].value);
-        *args[i].key = i;
+        *args[i].key   = i;
         *args[i].value = i;
-        args[i].m = m;
+        args[i].m      = m;
         threadpool_submit(pool, concurrent_insert, &args[i]);
     }
 

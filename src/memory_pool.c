@@ -34,7 +34,7 @@ static inline size_t align_size(size_t size) {
 
 // Create a new memory chunk
 static inline MemoryChunk* chunk_create(size_t size) {
-    size = align_size(size);  // Align the size
+    size               = align_size(size);  // Align the size
     MemoryChunk* chunk = malloc(sizeof(MemoryChunk));
     if (!chunk) {
         perror("Failed to allocate memory for chunk");
@@ -50,8 +50,8 @@ static inline MemoryChunk* chunk_create(size_t size) {
 
     chunk->free_ptr = chunk->memory;
     chunk->capacity = size;
-    chunk->used = 0;
-    chunk->next = NULL;
+    chunk->used     = 0;
+    chunk->next     = NULL;
 
     return chunk;
 }
@@ -82,7 +82,7 @@ MemoryPool* mpool_create(size_t chunk_size) {
         return NULL;
     }
 
-    pool->mru = pool->head;
+    pool->mru        = pool->head;
     pool->chunk_size = chunk_size;
 
     return pool;
@@ -99,7 +99,7 @@ void* mpool_alloc(MemoryPool* pool, size_t size) {
     // First, try allocating from the most recently used chunk
     MemoryChunk* chunk = pool->mru;
     if (chunk->used + size <= chunk->capacity) {
-        void* block = chunk->free_ptr;
+        void* block     = chunk->free_ptr;
         chunk->free_ptr = (char*)chunk->free_ptr + size;
         chunk->used += size;
         return block;
@@ -109,8 +109,8 @@ void* mpool_alloc(MemoryPool* pool, size_t size) {
     chunk = pool->head;
     while (chunk) {
         if (chunk->used + size <= chunk->capacity) {
-            pool->mru = chunk;  // Update MRU to this chunk
-            void* block = chunk->free_ptr;
+            pool->mru       = chunk;  // Update MRU to this chunk
+            void* block     = chunk->free_ptr;
             chunk->free_ptr = (char*)chunk->free_ptr + size;
             chunk->used += size;
             return block;
@@ -119,7 +119,7 @@ void* mpool_alloc(MemoryPool* pool, size_t size) {
     }
 
     // If no chunk has enough space, create a new chunk
-    size_t new_chunk_size = pool->chunk_size > size ? pool->chunk_size : size;
+    size_t new_chunk_size  = pool->chunk_size > size ? pool->chunk_size : size;
     MemoryChunk* new_chunk = chunk_create(new_chunk_size);
     if (!new_chunk) {
         return NULL;  // Allocation failed
@@ -127,11 +127,11 @@ void* mpool_alloc(MemoryPool* pool, size_t size) {
 
     // Add the new chunk to the pool
     new_chunk->next = pool->head;
-    pool->head = new_chunk;
-    pool->mru = new_chunk;
+    pool->head      = new_chunk;
+    pool->mru       = new_chunk;
 
     // Allocate from the new chunk
-    void* block = new_chunk->free_ptr;
+    void* block         = new_chunk->free_ptr;
     new_chunk->free_ptr = (char*)new_chunk->free_ptr + size;
     new_chunk->used += size;
 
@@ -147,8 +147,8 @@ void mpool_reset(MemoryPool* pool) {
     MemoryChunk* chunk = pool->head;
     while (chunk) {
         chunk->free_ptr = chunk->memory;
-        chunk->used = 0;
-        chunk = chunk->next;
+        chunk->used     = 0;
+        chunk           = chunk->next;
     }
 
     // Reset most recently used chunk to the head

@@ -6,8 +6,8 @@
 #include <string.h>
 
 static void init_afinet_addr(struct sockaddr_in* addr, int port) {
-    addr->sin_family = AF_INET;
-    addr->sin_port = htons(port);
+    addr->sin_family      = AF_INET;
+    addr->sin_port        = htons(port);
     addr->sin_addr.s_addr = INADDR_ANY;  // inet_addr("127.0.0.1")
 }
 

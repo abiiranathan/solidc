@@ -23,6 +23,22 @@ add_executable(cstr_test ${CSTR_SRCS})
 add_test(cstr_test cstr_test)
 target_link_libraries(cstr_test pthread m)
 
+
+
+# Add the test executable for flag module
+set(FLAG_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/flag_test.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/flag.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/arena.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/strton.c
+)
+
+add_executable(flag_test ${FLAG_SRC})
+add_test(flag_test flag_test)
+target_link_libraries(flag_test pthread m)
+
+
 # Add the test executable for file module
 set(FILE_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/file_test.c
@@ -152,7 +168,7 @@ endif()
 
 target_link_libraries(stdstreams_test pthread m)
 add_test(stdstreams_test stdstreams_test)
- 
+
 # strton_test module
 set(STRTON_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/strton_test.c
@@ -171,15 +187,6 @@ set(HASH_SRCS
 add_executable(hash_test ${HASH_SRCS})
 add_test(hash_test hash_test)
 
-
-set(FLAG_SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/flag_test.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/flag.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/strton.c
-)
-
-add_executable(flag_test ${FLAG_SRCS})
-add_test(flag_test flag_test)
 
 # csvparser_test module
 set(CSVPARSER_SRCS

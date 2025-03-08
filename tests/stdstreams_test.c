@@ -53,7 +53,7 @@ void test_readuntil(void) {
     fseek(fp, 0, SEEK_SET);
 
     stream_t fstream = create_file_stream(fp);
-    n = read_until(fstream, '\n', buf, sizeof(buf));
+    n                = read_until(fstream, '\n', buf, sizeof(buf));
     ASSERT(n == 13, "n != 13: Error reading stream");
     ASSERT(strcmp(buf, "Hello, World!") == 0, "string mismatch: Error reading stream");
 

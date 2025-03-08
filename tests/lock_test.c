@@ -105,7 +105,7 @@ int main(void) {
 
     for (int i = 0; i < NUM_THREADS; i++) {
         summers[i].sum = &sum;
-        summers[i].i = i;
+        summers[i].i   = i;
         thread_create(&threads[i], thread_func, &summers[i]);
     }
 

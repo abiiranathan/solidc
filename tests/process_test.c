@@ -3,7 +3,7 @@
 int main(void) {
     Process proc;
 #ifdef _WIN32
-    const char* command = "ping";
+    const char* command      = "ping";
     const char* const argv[] = {"ping", "google.com", NULL};
 #else
     const char* command = "ls";

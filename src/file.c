@@ -58,15 +58,15 @@ file_t* file_open(const char* filename, const char* mode) {
         return NULL;
     }
 
-    file->file = fp;
-    file->is_open = true;
+    file->file      = fp;
+    file->is_open   = true;
     file->is_locked = false;
-    file->filename = strdup(filename);
+    file->filename  = strdup(filename);
     if (file->filename == NULL) {
         perror("strdup() failed: unable to copy filename");
         return NULL;
     }
-    file->fd = fileno(file->file);
+    file->fd   = fileno(file->file);
     file->size = internal_file_size(file->fd);
 #ifdef _WIN32
     file->handle = (HANDLE)_get_osfhandle(file->fd);
@@ -106,9 +106,9 @@ void file_close(file_t* file) {
 // The size is stored in the buf parameter.
 bool filesize_tostring(size_t size, char* buf, size_t len) {
     const char* suffixes[] = {"B", "KB", "MB", "GB", "TB"};
-    size_t suffixCount = sizeof(suffixes) / sizeof(suffixes[0]);
-    size_t suffixIndex = 0;
-    double readableSize = (double)size;
+    size_t suffixCount     = sizeof(suffixes) / sizeof(suffixes[0]);
+    size_t suffixIndex     = 0;
+    double readableSize    = (double)size;
 
     while (readableSize >= 1024 && suffixIndex < suffixCount - 1) {
         // Can't avoid floating-point division here for precision
@@ -229,10 +229,10 @@ bool file_lock(file_t* file) {
     }
 #else
     struct flock fl;
-    fl.l_type = F_WRLCK;
+    fl.l_type   = F_WRLCK;
     fl.l_whence = SEEK_SET;
-    fl.l_start = 0;
-    fl.l_len = 0;
+    fl.l_start  = 0;
+    fl.l_len    = 0;
     if (fcntl(file->fd, F_SETLK, &fl) == 0) {
         file->is_locked = true;
         return true;
@@ -256,10 +256,10 @@ bool file_unlock(file_t* file) {
     }
 #else
     struct flock fl;
-    fl.l_type = F_UNLCK;
+    fl.l_type   = F_UNLCK;
     fl.l_whence = SEEK_SET;
-    fl.l_start = 0;
-    fl.l_len = 0;
+    fl.l_start  = 0;
+    fl.l_len    = 0;
     if (fcntl(file->fd, F_SETLK, &fl) == 0) {
         file->is_locked = false;
         return true;
@@ -373,7 +373,7 @@ DWORD file_aread(file_t* file, void* buffer, size_t size, off_t offset) {
     BOOL bResult;
 
     ZeroMemory(&overlapped, sizeof(overlapped));
-    overlapped.Offset = (DWORD)offset;
+    overlapped.Offset     = (DWORD)offset;
     overlapped.OffsetHigh = (DWORD)((DWORDLONG)offset >> 32);  // Set the high part of offset
 
     overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -398,7 +398,7 @@ DWORD file_aread(file_t* file, void* buffer, size_t size, off_t offset) {
 // Returns the number of bytes read or -1 on error
 ssize_t file_aread(file_t* file, void* buffer, size_t size, off_t offset) {
     ssize_t bytes = -1;
-    bytes = pread(file->fd, buffer, size, offset);
+    bytes         = pread(file->fd, buffer, size, offset);
     return bytes;
 }
 #endif
@@ -410,7 +410,7 @@ DWORD file_awrite(file_t* file, const void* buffer, size_t size, off_t offset) {
     BOOL bResult;
 
     ZeroMemory(&overlapped, sizeof(overlapped));
-    overlapped.Offset = (DWORD)offset;
+    overlapped.Offset     = (DWORD)offset;
     overlapped.OffsetHigh = (DWORD)((DWORDLONG)offset >> 32);
 
     overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);

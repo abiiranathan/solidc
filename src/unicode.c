@@ -147,7 +147,7 @@ bool is_utf8_alpha(const char* utf8) {
 
 char* utf8_copy(const char* data) {
     size_t length = utf8_byte_length(data);
-    char* copy = (char*)malloc(length + 1);
+    char* copy    = (char*)malloc(length + 1);
     if (copy) {
         memcpy(copy, data, length);
         copy[length] = '\0';
@@ -166,9 +166,9 @@ utf8_string* utf8_new(const char* data) {
         return NULL;
     }
 
-    s->data = utf8_copy(data);
+    s->data   = utf8_copy(data);
     s->length = utf8_byte_length(data);
-    s->count = utf8_count_codepoints(data);
+    s->count  = utf8_count_codepoints(data);
     return s;
 }
 
@@ -210,7 +210,7 @@ int utf8_index_of(const utf8_string* s, const char* utf8) {
 
 void utf8_append(utf8_string* s, const char* data) {
     size_t length = utf8_byte_length(data);
-    size_t count = utf8_count_codepoints(data);
+    size_t count  = utf8_count_codepoints(data);
 
     char* new_data = (char*)realloc(s->data, s->length + length + 1);
     if (new_data) {
@@ -235,8 +235,8 @@ char* utf8_substr(const utf8_string* s, size_t index, size_t utf8_byte_len) {
 }
 
 void utf8_insert(utf8_string* s, size_t index, const char* data) {
-    size_t length = utf8_byte_length(data);
-    size_t count = utf8_count_codepoints(data);
+    size_t length  = utf8_byte_length(data);
+    size_t count   = utf8_count_codepoints(data);
     char* new_data = (char*)realloc(s->data, s->length + length + 1);
 
     if (new_data) {
@@ -262,11 +262,11 @@ void utf8_remove(utf8_string* s, size_t index, size_t count) {
 void utf8_replace(utf8_string* s, const char* old_str, const char* new_str) {
     size_t old_byte_len = utf8_byte_length(old_str);
     size_t new_byte_len = utf8_byte_length(new_str);
-    size_t old_count = utf8_count_codepoints(old_str);
-    size_t new_count = utf8_count_codepoints(new_str);
+    size_t old_count    = utf8_count_codepoints(old_str);
+    size_t new_count    = utf8_count_codepoints(new_str);
 
     char* index = s->data;
-    index = strstr(index, old_str);
+    index       = strstr(index, old_str);
     if (index != NULL) {
         size_t offset = index - s->data;
         if (old_byte_len != new_byte_len) {
@@ -280,7 +280,7 @@ void utf8_replace(utf8_string* s, const char* old_str, const char* new_str) {
                     s->length - offset - old_byte_len + 1);
             memcpy(&s->data[offset], new_str, new_byte_len);
             s->length = s->length - old_byte_len + new_byte_len;
-            s->count = s->count - old_count + new_count;
+            s->count  = s->count - old_count + new_count;
             index += new_byte_len;
         }
     }
@@ -290,8 +290,8 @@ void utf8_replace(utf8_string* s, const char* old_str, const char* new_str) {
 void utf8_replace_all(utf8_string* s, const char* old_str, const char* new_str) {
     size_t old_byte_len = utf8_byte_length(old_str);
     size_t new_byte_len = utf8_byte_length(new_str);
-    size_t old_count = utf8_count_codepoints(old_str);
-    size_t new_count = utf8_count_codepoints(new_str);
+    size_t old_count    = utf8_count_codepoints(old_str);
+    size_t new_count    = utf8_count_codepoints(new_str);
 
     char* index = s->data;
     while ((index = strstr(index, old_str)) != NULL) {
@@ -309,7 +309,7 @@ void utf8_replace_all(utf8_string* s, const char* old_str, const char* new_str) 
                     s->length - offset - old_byte_len + 1);
             memcpy(&s->data[offset], new_str, new_byte_len);
             s->length = s->length - old_byte_len + new_byte_len;
-            s->count = s->count - old_count + new_count;
+            s->count  = s->count - old_count + new_count;
             index += new_byte_len;
         }
     }
@@ -349,8 +349,8 @@ utf8_string* utf8_readfrom(const char* filename) {
         fseek(file, 0, SEEK_SET);
         char* data = (char*)malloc(length + 1);
         if (data) {
-            size_t bytes = fread(data, 1, length, file);
-            data[bytes] = '\0';
+            size_t bytes   = fread(data, 1, length, file);
+            data[bytes]    = '\0';
             utf8_string* s = utf8_new(data);
             free(data);
             fclose(file);
@@ -364,7 +364,7 @@ utf8_string* utf8_readfrom(const char* filename) {
 // string_ltrim removes leading whitespace from str.
 void utf8_ltrim(char* str) {
     size_t len = utf8_byte_length(str);
-    size_t i = 0;
+    size_t i   = 0;
     while (i < len && is_utf8_whitespace(&str[i])) {
         // IMPORTANT: we use utf8_char_length here to skip over the entire character
         // Don't use utf8_byte_length since it will calculate entire length of the string
@@ -377,7 +377,7 @@ void utf8_ltrim(char* str) {
 // utf8_rtrim removes trailing whitespace from str.
 void utf8_rtrim(char* str) {
     size_t len = utf8_byte_length(str);
-    size_t i = len;
+    size_t i   = len;
     while (i > 0 && is_utf8_whitespace(&str[i - 1])) {
         i -= utf8_char_length(&str[i - 1]);
     }
@@ -393,13 +393,13 @@ void utf8_trim(char* str) {
 // utf8_trim_chars removes leading and trailing characters c from str.
 void utf8_trim_chars(char* str, const char* c) {
     size_t len = utf8_byte_length(str);
-    size_t i = 0;
+    size_t i   = 0;
     while (i < len && strchr(c, str[i]) != NULL) {
         i += utf8_char_length(&str[i]);
     }
     memmove(str, &str[i], len - i + 1);
     len = utf8_byte_length(str);
-    i = len;
+    i   = len;
     while (i > 0 && strchr(c, str[i - 1]) != NULL) {
         i -= utf8_char_length(&str[i - 1]);
     }
@@ -409,13 +409,13 @@ void utf8_trim_chars(char* str, const char* c) {
 // utf8_trim_char removes leading and trailing character c from str.
 void utf8_trim_char(char* str, char c) {
     size_t len = utf8_byte_length(str);
-    size_t i = 0;
+    size_t i   = 0;
     while (i < len && str[i] == c) {
         i += utf8_char_length(&str[i]);
     }
     memmove(str, &str[i], len - i + 1);
     len = utf8_byte_length(str);
-    i = len;
+    i   = len;
     while (i > 0 && str[i - 1] == c) {
         i -= utf8_char_length(&str[i - 1]);
     }
@@ -457,8 +457,8 @@ void utf8_toupper(char* str) {
 // The last element of the array is NULL.
 utf8_string** utf8_split(const utf8_string* str, const char* delim, size_t* num_parts) {
     size_t count = 0;
-    *num_parts = 0;
-    size_t len = utf8_byte_length(str->data);
+    *num_parts   = 0;
+    size_t len   = utf8_byte_length(str->data);
     for (size_t i = 0; i < len;) {
         if (utf8_starts_with(&str->data[i], delim)) {
             count++;
@@ -478,10 +478,10 @@ utf8_string** utf8_split(const utf8_string* str, const char* delim, size_t* num_
     size_t start = 0;
     for (size_t i = 0; i < len;) {
         if (utf8_starts_with(&str->data[i], delim)) {
-            parts[index] = utf8_new(&str->data[start]);
+            parts[index]                  = utf8_new(&str->data[start]);
             parts[index]->data[i - start] = '\0';
-            parts[index]->length = i - start;
-            parts[index]->count = utf8_count_codepoints(parts[index]->data);
+            parts[index]->length          = i - start;
+            parts[index]->count           = utf8_count_codepoints(parts[index]->data);
             index++;
             i += utf8_byte_length(delim);
             start = i;
@@ -490,10 +490,10 @@ utf8_string** utf8_split(const utf8_string* str, const char* delim, size_t* num_
         }
     }
 
-    parts[index] = utf8_new(&str->data[start]);
+    parts[index]                    = utf8_new(&str->data[start]);
     parts[index]->data[len - start] = '\0';
-    parts[index]->length = len - start;
-    parts[index]->count = utf8_count_codepoints(parts[index]->data);
+    parts[index]->length            = len - start;
+    parts[index]->count             = utf8_count_codepoints(parts[index]->data);
 
     *num_parts = count;
     return parts;
@@ -528,7 +528,7 @@ bool utf8_starts_with(const char* str, const char* prefix) {
 }
 
 bool utf8_ends_with(const char* str, const char* suffix) {
-    size_t len = utf8_byte_length(str);
+    size_t len  = utf8_byte_length(str);
     size_t len2 = utf8_byte_length(suffix);
     if (len2 > len) {
         return false;
