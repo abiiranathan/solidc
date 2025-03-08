@@ -372,15 +372,16 @@ typedef enum {
 } ParseState;
 
 void FlagParse(int argc, char** argv, void (*pre_exec)(void* user_data), void* user_data) {
-    if (argc < 2) {
-        return;
-    }
 
     PROGRAM_NAME      = argv[0];
     ParseState state  = START;
     char* name        = NULL;
     bool is_long_flag = false;
     Command* subcmd   = NULL;
+
+    if (argc < 2) {
+        goto validation;
+    }
 
     for (size_t i = 1; i < (size_t)argc;) {
         char* arg = argv[i];
@@ -430,6 +431,7 @@ void FlagParse(int argc, char** argv, void (*pre_exec)(void* user_data), void* u
         }
     }
 
+validation:
     // Check required flags
     for (size_t i = 0; i < ctx->num_flags; i++) {
         if (ctx->flags[i].required && !ctx->flags[i].is_provided) {
