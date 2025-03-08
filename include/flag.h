@@ -44,15 +44,15 @@ typedef struct Flag Flag;
 typedef bool (*FlagValidator)(void* value, size_t buffer_size, char* error_buffer);
 
 // Register a new subcommand.
-Command* AddCommand(char* name, char* description, void (*handler)(Command*));
+Command* AddCommand(const char* name, const char* description, void (*handler)(Command*));
 
 // Register a new flag for a subcommand.
-Flag* AddFlagCmd(Command* subcommand, FlagType type, char* name, char short_name, char* description,
-                 void* value, bool required);
+Flag* AddFlagCmd(Command* subcommand, FlagType type, const char* name, char short_name,
+                 const char* description, void* value, bool required);
 
 //  Register a new global flag.
-Flag* AddFlag(FlagType type, char* name, char short_name, char* description, void* value,
-              bool required);
+Flag* AddFlag(FlagType type, const char* name, char short_name, const char* description,
+              void* value, bool required);
 
 // Print the usage information for the program.
 void FlagUsage(const char* program_name);

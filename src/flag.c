@@ -24,9 +24,9 @@ Arena* FLAG_ARENA = NULL;
 #define FLAG_REALLOC(ptr, size) arena_realloc(FLAG_ARENA, ptr, size)
 
 typedef struct Flag {
-    char* name;                 // flag identifier
+    const char* name;           // flag identifier
     char short_name;            // short letter
-    char* description;          // Description of the flag
+    const char* description;    // Description of the flag
     FlagType type;              // Type of the flag
     void* value;                // Pointer to the flag value
     bool required;              // Whether this flag must be passed
@@ -36,8 +36,8 @@ typedef struct Flag {
 } Flag;
 
 typedef struct Subcommand {
-    char* name;                           // Name of the subcommand
-    char* description;                    // Description
+    const char* name;                     // Name of the subcommand
+    const char* description;              // Description
     void (*handler)(struct Subcommand*);  // The handler function
     size_t num_flags;                     // Subcommand flags
     Flag* flags;                          // Array of flags registered for this subcommand
@@ -96,7 +96,7 @@ void* FlagValueG(const char* name) {
 }
 
 // Register a new subcommand.
-Command* AddCommand(char* name, char* description, void (*handler)(Command*)) {
+Command* AddCommand(const char* name, const char* description, void (*handler)(Command*)) {
     ++ctx->num_subcommands;
     size_t new_capacity      = ctx->num_subcommands * sizeof(Command);
     Command* new_subcommands = FLAG_REALLOC(ctx->subcommands, new_capacity);
@@ -116,8 +116,8 @@ Command* AddCommand(char* name, char* description, void (*handler)(Command*)) {
     return subcommand;
 }
 
-Flag* AddFlagCmd(Command* subcommand, FlagType type, char* name, char short_name, char* description,
-                 void* value, bool required) {
+Flag* AddFlagCmd(Command* subcommand, FlagType type, const char* name, char short_name,
+                 const char* description, void* value, bool required) {
     ++subcommand->num_flags;
 
     Flag* new_flags = FLAG_REALLOC(subcommand->flags, subcommand->num_flags * sizeof(Flag));
@@ -137,8 +137,8 @@ Flag* AddFlagCmd(Command* subcommand, FlagType type, char* name, char short_name
     return flag;
 }
 
-Flag* AddFlag(FlagType type, char* name, char short_name, char* description, void* value,
-              bool required) {
+Flag* AddFlag(FlagType type, const char* name, char short_name, const char* description,
+              void* value, bool required) {
     ctx->num_flags++;
 
     Flag* new_flags = FLAG_REALLOC(ctx->flags, ctx->num_flags * sizeof(Flag));
