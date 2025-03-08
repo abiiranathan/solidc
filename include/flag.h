@@ -75,12 +75,13 @@ void* FlagValueG(const char* name);
 
 // Generate helper functions for adding flags with concrete types
 #define X(name, type)                                                                              \
-    static inline Flag* AddFlag_##name(char* flag_name, char short_name, char* description,        \
-                                       type* value, bool required) {                               \
+    static inline Flag* AddFlag_##name(const char* flag_name, char short_name,                     \
+                                       const char* description, type* value, bool required) {      \
         return AddFlag(FLAG_##name, flag_name, short_name, description, value, required);          \
     }                                                                                              \
-    static inline Flag* AddFlagCmd_##name(Command* subcommand, char* flag_name, char short_name,   \
-                                          char* description, type* value, bool required) {         \
+    static inline Flag* AddFlagCmd_##name(Command* subcommand, const char* flag_name,              \
+                                          char short_name, const char* description, type* value,   \
+                                          bool required) {                                         \
         return AddFlagCmd(subcommand, FLAG_##name, flag_name, short_name, description, value,      \
                           required);                                                               \
     }
