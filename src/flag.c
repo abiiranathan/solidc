@@ -384,6 +384,7 @@ void FlagParse(int argc, char** argv, void (*pre_exec)(void* user_data), void* u
 
     for (size_t i = 1; i < (size_t)argc;) {
         char* arg = argv[i];
+
         switch (state) {
             case START: {
                 is_long_flag       = strncmp(arg, "--", 2) == 0;
@@ -402,10 +403,13 @@ void FlagParse(int argc, char** argv, void (*pre_exec)(void* user_data), void* u
                     }
                     state = FLAG_SUBCOMMAND;
                 }
-            } break;
-            case FLAG_NAME: {
-                process_flag_name(name, is_long_flag, subcmd, &i, argv, (size_t)argc);
-                state = START;
+
+                // Process flag immediately without changing state, otherwise
+                // for loop will exit be4 last argument is processed!
+                if (state == FLAG_NAME) {
+                    process_flag_name(name, is_long_flag, subcmd, &i, argv, (size_t)argc);
+                    state = START;
+                }
             } break;
             case FLAG_SUBCOMMAND: {
                 subcmd = NULL;
