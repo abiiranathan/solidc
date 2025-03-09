@@ -1,5 +1,3 @@
-#include "../include/arena.h"
-
 #include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -13,22 +11,32 @@
 #include <unistd.h>
 #endif
 
+#include "../include/arena.h"
+#include "../include/lock.h"
+
 typedef struct Chunk {
     void* base;          // Pointer to the base of the chunk
     size_t size;         // Size of the chunk
     size_t used;         // Amount of memory used in the chunk
     struct Chunk* next;  // Pointer to the next chunk
-} Chunk;
+} Chunk __attribute__((aligned(64)));
 
 typedef struct Arena {
-    Chunk* head;            // Pointer to the head of the chunk
-    size_t chunk_size;      // Size of the chunk
-    atomic_flag spin_lock;  // Spinlock for thread safety
+    Chunk* head;        // Pointer to the head of the chunk
+    size_t chunk_size;  // Size of the chunk
+    Lock lock;
 } Arena;
 
 typedef struct AllocHeader {
     size_t size;  // Size of the allocation (excluding header)
 } AllocHeader;
+
+_Thread_local Arena* thread_arena = NULL;
+
+// Set thread-local arena.
+void arena_threadlocal(Arena* arena) {
+    thread_arena = arena;
+}
 
 #ifdef _WIN32
 static void* system_alloc(size_t size) {
@@ -58,25 +66,7 @@ static inline void system_free(void* ptr, size_t size) {
 }
 #endif
 
-static inline size_t align_up(size_t size, size_t alignment) {
-    return (size + alignment - 1) & ~(alignment - 1);
-}
-
-// Fast spinlock implementation.
-static inline void spinlock_acquire(atomic_flag* lock) {
-    while (atomic_flag_test_and_set(lock)) {
-// yield the CPU to the OS to avoid busy waiting
-#ifdef _WIN32
-        Sleep(0);
-#else
-        sched_yield();
-#endif
-    }
-}
-
-static inline void spinlock_release(atomic_flag* lock) {
-    atomic_flag_clear(lock);
-}
+#define align_up(size, alignment) ((size + alignment - 1) & ~(alignment - 1))
 
 Arena* arena_create(size_t chunk_size) {
     if (chunk_size == 0) {
@@ -100,15 +90,11 @@ Arena* arena_create(size_t chunk_size) {
     arena->head->used = 0;
     arena->head->next = NULL;
 
-    atomic_flag_clear(&arena->spin_lock);
+    lock_init(&arena->lock);
     return arena;
 }
 
 void arena_destroy(Arena* arena) {
-    if (arena == NULL) {
-        return;
-    }
-
     Chunk* chunk = arena->head;
     while (chunk != NULL) {
         Chunk* next = chunk->next;
@@ -121,11 +107,7 @@ void arena_destroy(Arena* arena) {
 }
 
 void arena_reset(Arena* arena) {
-    if (arena == NULL) {
-        return;
-    }
-
-    spinlock_acquire(&arena->spin_lock);
+    lock_acquire(&arena->lock);
 
     Chunk* chunk = arena->head->next;
     while (chunk != NULL) {
@@ -137,54 +119,76 @@ void arena_reset(Arena* arena) {
     arena->head->next = NULL;
     arena->head->used = 0;
 
-    spinlock_release(&arena->spin_lock);
+    lock_release(&arena->lock);
 }
 
 void* arena_alloc(Arena* arena, size_t size) {
-    if (__builtin_expect(arena == NULL || size == 0, 0)) {
+    if (arena == NULL) {
+        arena = thread_arena;
+    }
+
+    if (arena == NULL) {
         return NULL;
     }
 
-    // Include space for the header and align the total size
     size_t header_size = align_up(sizeof(AllocHeader), ARENA_ALIGNMENT);
     size_t total_size  = header_size + align_up(size, ARENA_ALIGNMENT);
 
-    spinlock_acquire(&arena->spin_lock);
+    lock_acquire(&arena->lock);
 
     Chunk* chunk = arena->head;
-    if (__builtin_expect(chunk->used + total_size <= chunk->size, 1)) {
+
+    // Prefetch the chunk metadata to bring it into cache
+    __builtin_prefetch(chunk, 0, 3);
+
+    if (chunk->used + total_size <= chunk->size) {
         // Fast path: allocate from current chunk
-        void* ptr           = (char*)chunk->base + chunk->used;
+
+        // Prefetch the memory location where data will be written
+        void* ptr = (char*)chunk->base + chunk->used;
+        __builtin_prefetch(ptr, 1, 3);
+
         AllocHeader* header = (AllocHeader*)ptr;
         header->size        = size;  // Store the requested size
         void* user_ptr      = (char*)ptr + header_size;
         chunk->used += total_size;
-        spinlock_release(&arena->spin_lock);
+
+        lock_release(&arena->lock);
         return user_ptr;
     }
 
     // Slow path: allocate a new chunk
     size_t new_chunk_size = arena->chunk_size > total_size ? arena->chunk_size : total_size;
     Chunk* new_chunk      = (Chunk*)system_alloc(new_chunk_size);
-    if (__builtin_expect(new_chunk == NULL, 0)) {
-        spinlock_release(&arena->spin_lock);
+    if (!new_chunk) {
+        lock_release(&arena->lock);
         return NULL;
     }
 
-    new_chunk->base     = (char*)new_chunk + sizeof(Chunk);
-    new_chunk->size     = new_chunk_size - sizeof(Chunk);
-    new_chunk->used     = total_size;
-    new_chunk->next     = arena->head;
-    AllocHeader* header = (AllocHeader*)new_chunk->base;
-    header->size        = size;
-    void* user_ptr      = (char*)new_chunk->base + header_size;
-    arena->head         = new_chunk;
+    char* base      = (char*)new_chunk + sizeof(Chunk);
+    new_chunk->base = base;
+    new_chunk->size = new_chunk_size - sizeof(Chunk);
+    new_chunk->used = total_size;
+    new_chunk->next = arena->head;
 
-    spinlock_release(&arena->spin_lock);
+    // Prefetch new chunk base before writing
+    __builtin_prefetch(base, 1, 3);
+
+    AllocHeader* header = (AllocHeader*)base;
+    header->size        = size;
+    void* user_ptr      = base + header_size;
+
+    arena->head = new_chunk;
+
+    lock_release(&arena->lock);
     return user_ptr;
 }
 
 void* arena_realloc(Arena* arena, void* ptr, size_t size) {
+    if (arena == NULL) {
+        arena = thread_arena;
+    }
+
     if (arena == NULL || size == 0) {
         return NULL;
     }
@@ -200,7 +204,7 @@ void* arena_realloc(Arena* arena, void* ptr, size_t size) {
     AllocHeader* header = (AllocHeader*)((char*)ptr - header_size);
     size_t old_size     = header->size;
 
-    spinlock_acquire(&arena->spin_lock);
+    lock_acquire(&arena->lock);
 
     // Find the chunk containing ptr
     Chunk* chunk = arena->head;
@@ -212,7 +216,7 @@ void* arena_realloc(Arena* arena, void* ptr, size_t size) {
     }
 
     if (chunk == NULL) {
-        spinlock_release(&arena->spin_lock);
+        lock_release(&arena->lock);
         return NULL;  // Invalid pointer
     }
 
@@ -233,20 +237,20 @@ void* arena_realloc(Arena* arena, void* ptr, size_t size) {
                     if (size > 1 && *new_end != '\0')
                         *new_end = '\0';
                 }
-                spinlock_release(&arena->spin_lock);
+                lock_release(&arena->lock);
                 return ptr;
             } else if (chunk->used + (new_total_size - old_total_size) <= chunk->size) {
                 // Enlarging in place
                 header->size = size;
                 chunk->used += (new_total_size - old_total_size);
-                spinlock_release(&arena->spin_lock);
+                lock_release(&arena->lock);
                 return ptr;
             }
         }
     }
 
     // Allocate a new block and copy data
-    spinlock_release(&arena->spin_lock);
+    lock_release(&arena->lock);
     void* new_ptr = arena_alloc(arena, size);
     if (new_ptr == NULL) {
         return NULL;

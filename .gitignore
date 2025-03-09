@@ -42,3 +42,4 @@ CMakeLists.txt.user
 Testing
 example.c
 perf.data*
+*_new.c

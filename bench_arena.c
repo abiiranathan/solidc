@@ -22,7 +22,11 @@ typedef struct ThreadData {
 } ThreadData;
 
 void* arena_allocator(ThreadData* data) {
-    return arena_alloc(data->arena, data->size);
+    // use thread-local arena.
+    arena_threadlocal(data->arena);
+    void* ptr = arena_alloc(NULL, data->size);
+    arena_reset(data->arena);
+    return ptr;
 }
 
 void* malloc_allocator(ThreadData* data) {
@@ -52,9 +56,9 @@ void* thread_runner(void* arg) {
     }
 
     clock_gettime(CLOCK_MONOTONIC, &end);
-    double elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+    double elapsed        = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
     *(data->elapsed_time) = elapsed;
-    *(data->throughput) = data->n / elapsed;  // Allocations per second
+    *(data->throughput)   = data->n / elapsed;  // Allocations per second
 
     return NULL;
 }
@@ -71,8 +75,8 @@ double benchmark(int num_threads, ThreadData* thread_data, void* (*allocator_fun
 
     // Run threads
     for (int i = 0; i < num_threads; i++) {
-        thread_data[i].elapsed_time = &elapsed_times[i];
-        thread_data[i].throughput = &throughputs[i];
+        thread_data[i].elapsed_time   = &elapsed_times[i];
+        thread_data[i].throughput     = &throughputs[i];
         thread_data[i].allocator_func = allocator_func;
         if (pthread_create(&threads[i], NULL, (void* (*)(void*))thread_runner, &thread_data[i]) !=
             0) {
@@ -92,7 +96,7 @@ double benchmark(int num_threads, ThreadData* thread_data, void* (*allocator_fun
 
     // Calculate total elapsed time and throughput
     double total_elapsed = 0;
-    *total_throughput = 0;
+    *total_throughput    = 0;
     for (int i = 0; i < num_threads; i++) {
         total_elapsed += elapsed_times[i];
         *total_throughput += throughputs[i];
@@ -106,8 +110,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    size_t size = atoi(argv[1]);
-    size_t n = atoi(argv[2]);
+    size_t size     = atoi(argv[1]);
+    size_t n        = atoi(argv[2]);
     int num_threads = atoi(argv[3]);
 
     if (num_threads <= 0) {
@@ -118,14 +122,22 @@ int main(int argc, char* argv[]) {
     ThreadData thread_data[num_threads];
 
     // Benchmark configurations
-    double total_arena_time = 0;
-    double total_malloc_time = 0;
-    double total_pool_time = 0;
-    double total_arena_throughput = 0;
+    double total_arena_time        = 0;
+    double total_malloc_time       = 0;
+    double total_pool_time         = 0;
+    double total_arena_throughput  = 0;
     double total_malloc_throughput = 0;
-    double total_pool_throughput = 0;
+    double total_pool_throughput   = 0;
 
-    Arena* arena = arena_create(ARENA_DEFAULT_CHUNKSIZE * 500);
+    Arena* arenas[num_threads];
+
+    for (int i = 0; i < num_threads; i++) {
+        arenas[i] = arena_create(ARENA_DEFAULT_CHUNKSIZE * 5);
+        if (arenas[i] == NULL) {
+            printf("Error allocating arenas\n");
+            return 1;
+        }
+    }
 
     // Benchmark memory_pool_alloc
     MemoryPool* pool = mpool_create(500 * 1024 * 1024);
@@ -135,15 +147,10 @@ int main(int argc, char* argv[]) {
     }
 
     for (int iter = 0; iter < NUM_ITERATIONS; iter++) {
-        // Benchmark arena_alloc
-        if (arena == NULL) {
-            fprintf(stderr, "arena_create failed\n");
-            return 1;
-        }
         for (int i = 0; i < num_threads; i++) {
-            thread_data[i].arena = arena;
-            thread_data[i].size = size;
-            thread_data[i].n = n / num_threads;  // Distribute allocations among threads
+            thread_data[i].arena = arenas[i];
+            thread_data[i].size  = size;
+            thread_data[i].n     = n / num_threads;  // Distribute allocations among threads
         }
         total_arena_time +=
             benchmark(num_threads, thread_data, arena_allocator, &total_arena_throughput);
@@ -151,8 +158,8 @@ int main(int argc, char* argv[]) {
         // Benchmark malloc
         for (int i = 0; i < num_threads; i++) {
             thread_data[i].arena = NULL;  // Not used for malloc
-            thread_data[i].size = size;
-            thread_data[i].n = n / num_threads;
+            thread_data[i].size  = size;
+            thread_data[i].n     = n / num_threads;
         }
         total_malloc_time +=
             benchmark(num_threads, thread_data, malloc_allocator, &total_malloc_throughput);
@@ -160,13 +167,16 @@ int main(int argc, char* argv[]) {
         for (int i = 0; i < num_threads; i++) {
             thread_data[i].pool = pool;
             thread_data[i].size = size;
-            thread_data[i].n = n / num_threads;
+            thread_data[i].n    = n / num_threads;
         }
         total_pool_time +=
             benchmark(num_threads, thread_data, memory_pool_allocator, &total_pool_throughput);
     }
 
-    arena_destroy(arena);
+    for (int i = 0; i < num_threads; i++) {
+        arena_destroy(arenas[i]);
+    }
+
     mpool_destroy(pool);
 
     // Print average results

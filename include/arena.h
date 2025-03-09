@@ -20,7 +20,7 @@ extern "C" {
 #endif
 
 #ifndef ARENA_DEFAULT_CHUNKSIZE
-#define ARENA_DEFAULT_CHUNKSIZE (size_t)(2 * 1024 * 1024)
+#define ARENA_DEFAULT_CHUNKSIZE (size_t)(1 << 20)
 #endif
 
 #ifndef ARENA_ALIGNMENT
@@ -55,6 +55,9 @@ char* arena_alloc_string(Arena* arena, const char* str) __attribute__((warn_unus
 
 // Allocate and assign an integer.
 int* arena_alloc_int(Arena* arena, int n) __attribute__((warn_unused_result()));
+
+// Set thread-local arena.
+void arena_threadlocal(Arena* arena);
 
 #ifdef __cplusplus
 }

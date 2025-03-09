@@ -17,4 +17,4 @@ install:
 bench:
 	gcc -D_GNU_SOURCE bench_arena.c src/arena.c src/lock.c src/memory_pool.c \
 	 -lpthread -O3 -std=c23 -Wall -Wextra -Wpedantic -march=native
-	./a.out 4096 10000 2
+	./a.out 4096 10000 8

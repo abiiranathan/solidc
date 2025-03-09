@@ -6,8 +6,8 @@ extern "C" {
 #endif
 
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdio.h>
+#include <sys/types.h>
 #include "cstr.h"
 
 // Read a line from stdin with a prompt

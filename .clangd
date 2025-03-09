@@ -13,3 +13,5 @@ CompileFlags:
 Diagnostics:
   Suppress:
     - modernize-use-nullptr
+    - gnu-statement-expression-from-macro-expansion
+    - unused-function
