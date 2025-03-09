@@ -1,3 +1,15 @@
+CompileFlags:
+  Add:
+    [
+      "-xc",
+      "-Wall",
+      "-Werror",
+      "-Wextra",
+      "-std=c2x",
+      "-ferror-limit=0",
+      "-fblocks",
+    ]
+
 Diagnostics:
   Suppress:
     - modernize-use-nullptr

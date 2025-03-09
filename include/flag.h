@@ -88,6 +88,26 @@ void* FlagValueG(const char* name);
 FLAG_TYPES
 #undef X
 
+// Generate helper functions for adding flags with concrete types
+#define X(name, type)                                                                              \
+    static inline type FlagValue_##name(Command* subcommand, const char* flag_name,                \
+                                        type defaultValue) {                                       \
+        type* value = (type*)FlagValue(subcommand, flag_name);                                     \
+        if (value != NULL) {                                                                       \
+            return *value;                                                                         \
+        }                                                                                          \
+        return defaultValue;                                                                       \
+    }                                                                                              \
+    static inline type FlagValueG_##name(const char* flag_name, type defaultValue) {               \
+        type* value = (type*)FlagValueG(flag_name);                                                \
+        if (value != NULL) {                                                                       \
+            return *value;                                                                         \
+        }                                                                                          \
+        return defaultValue;                                                                       \
+    }
+FLAG_TYPES
+#undef X
+
 #ifdef __cplusplus
 }
 #endif
