@@ -22,6 +22,7 @@ Arena* FLAG_ARENA = NULL;
 
 #define FLAG_ALLOC(size) arena_alloc(FLAG_ARENA, size)
 #define FLAG_REALLOC(ptr, size) arena_realloc(FLAG_ARENA, ptr, size)
+#define FLAG_ALLOC_STR(str) arena_alloc_string(FLAG_ARENA, str)
 
 typedef struct Flag {
     const char* name;           // flag identifier
@@ -97,8 +98,7 @@ void* FlagValueG(const char* name) {
 
 // Register a new subcommand.
 Command* AddCommand(const char* name, const char* description, void (*handler)(Command*)) {
-    ++ctx->num_subcommands;
-    size_t new_capacity      = ctx->num_subcommands * sizeof(Command);
+    size_t new_capacity      = (ctx->num_subcommands + 1) * sizeof(Command);
     Command* new_subcommands = FLAG_REALLOC(ctx->subcommands, new_capacity);
 
     LOG_ASSERT(new_subcommands, "FLAG_REALLOC failed");
@@ -106,10 +106,10 @@ Command* AddCommand(const char* name, const char* description, void (*handler)(C
 
     ctx->subcommands = new_subcommands;
 
-    Command* subcommand = &ctx->subcommands[ctx->num_subcommands - 1];
+    Command* subcommand = &ctx->subcommands[ctx->num_subcommands++];
 
-    subcommand->name        = name;
-    subcommand->description = description;
+    subcommand->name        = FLAG_ALLOC_STR(name);
+    subcommand->description = FLAG_ALLOC_STR(description);
     subcommand->handler     = handler;
     subcommand->num_flags   = 0;
     subcommand->flags       = NULL;
@@ -118,17 +118,15 @@ Command* AddCommand(const char* name, const char* description, void (*handler)(C
 
 Flag* AddFlagCmd(Command* subcommand, FlagType type, const char* name, char short_name,
                  const char* description, void* value, bool required) {
-    ++subcommand->num_flags;
-
-    Flag* new_flags = FLAG_REALLOC(subcommand->flags, subcommand->num_flags * sizeof(Flag));
+    Flag* new_flags = FLAG_REALLOC(subcommand->flags, (subcommand->num_flags + 1) * sizeof(Flag));
     LOG_ASSERT(new_flags, "subcommand->flags realloc failed");
 
     subcommand->flags    = new_flags;
-    Flag* flag           = &subcommand->flags[subcommand->num_flags - 1];
+    Flag* flag           = &subcommand->flags[subcommand->num_flags++];
     flag->type           = type;
-    flag->name           = name;
+    flag->name           = FLAG_ALLOC_STR(name);
     flag->short_name     = short_name;
-    flag->description    = description;
+    flag->description    = FLAG_ALLOC_STR(description);
     flag->value          = value;
     flag->required       = required;
     flag->is_provided    = false;
@@ -139,17 +137,15 @@ Flag* AddFlagCmd(Command* subcommand, FlagType type, const char* name, char shor
 
 Flag* AddFlag(FlagType type, const char* name, char short_name, const char* description,
               void* value, bool required) {
-    ctx->num_flags++;
-
-    Flag* new_flags = FLAG_REALLOC(ctx->flags, ctx->num_flags * sizeof(Flag));
+    Flag* new_flags = FLAG_REALLOC(ctx->flags, (ctx->num_flags + 1) * sizeof(Flag));
     LOG_ASSERT(new_flags, "ctx->flags realloc failed");
 
     ctx->flags           = new_flags;
-    Flag* flag           = &ctx->flags[ctx->num_flags - 1];
+    Flag* flag           = &ctx->flags[ctx->num_flags++];
     flag->type           = type;
-    flag->name           = name;
+    flag->name           = FLAG_ALLOC_STR(name);
     flag->short_name     = short_name;
-    flag->description    = description;
+    flag->description    = FLAG_ALLOC_STR(description);
     flag->value          = value;
     flag->required       = required;
     flag->is_provided    = false;
@@ -372,7 +368,6 @@ typedef enum {
 } ParseState;
 
 void FlagParse(int argc, char** argv, void (*pre_exec)(void* user_data), void* user_data) {
-
     PROGRAM_NAME      = argv[0];
     ParseState state  = START;
     char* name        = NULL;
@@ -403,6 +398,7 @@ void FlagParse(int argc, char** argv, void (*pre_exec)(void* user_data), void* u
                         FATAL_ERROR("You can't have multiple subcommands\n");
                     }
                     state = FLAG_SUBCOMMAND;
+                    break;
                 }
 
                 // Process flag immediately without changing state, otherwise
@@ -413,13 +409,13 @@ void FlagParse(int argc, char** argv, void (*pre_exec)(void* user_data), void* u
                 }
             } break;
             case FLAG_SUBCOMMAND: {
-                subcmd = NULL;
                 for (size_t j = 0; j < ctx->num_subcommands; j++) {
                     if (strcmp(ctx->subcommands[j].name, arg) == 0) {
                         subcmd = &ctx->subcommands[j];
                         break;
                     }
                 }
+
                 if (subcmd == NULL) {
                     FATAL_ERROR("Unknown subcommand: %s\n", arg);
                 }

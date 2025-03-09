@@ -26,6 +26,10 @@ typedef struct Arena {
     atomic_flag spin_lock;  // Spinlock for thread safety
 } Arena;
 
+typedef struct AllocHeader {
+    size_t size;  // Size of the allocation (excluding header)
+} AllocHeader;
+
 #ifdef _WIN32
 static void* system_alloc(size_t size) {
     return VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -85,9 +89,7 @@ Arena* arena_create(size_t chunk_size) {
     }
 
     arena->chunk_size = chunk_size;
-
-    // Allocate the first chunk
-    arena->head = (Chunk*)system_alloc(chunk_size);
+    arena->head       = (Chunk*)system_alloc(chunk_size);
     if (arena->head == NULL) {
         free(arena);
         return NULL;
@@ -98,9 +100,7 @@ Arena* arena_create(size_t chunk_size) {
     arena->head->used = 0;
     arena->head->next = NULL;
 
-    // Initialize the spinlock
     atomic_flag_clear(&arena->spin_lock);
-
     return arena;
 }
 
@@ -145,41 +145,47 @@ void* arena_alloc(Arena* arena, size_t size) {
         return NULL;
     }
 
-    size = align_up(size, ARENA_ALIGNMENT);
+    // Include space for the header and align the total size
+    size_t header_size = align_up(sizeof(AllocHeader), ARENA_ALIGNMENT);
+    size_t total_size  = header_size + align_up(size, ARENA_ALIGNMENT);
 
     spinlock_acquire(&arena->spin_lock);
 
-    // Fast path: try to allocate from the current chunk
     Chunk* chunk = arena->head;
-    if (__builtin_expect(chunk->used + size <= chunk->size, 1)) {
-        void* ptr = (char*)chunk->base + chunk->used;
-        chunk->used += size;
+    if (__builtin_expect(chunk->used + total_size <= chunk->size, 1)) {
+        // Fast path: allocate from current chunk
+        void* ptr           = (char*)chunk->base + chunk->used;
+        AllocHeader* header = (AllocHeader*)ptr;
+        header->size        = size;  // Store the requested size
+        void* user_ptr      = (char*)ptr + header_size;
+        chunk->used += total_size;
         spinlock_release(&arena->spin_lock);
-        return ptr;
+        return user_ptr;
     }
 
     // Slow path: allocate a new chunk
-    size_t new_chunk_size =
-        arena->chunk_size > size + sizeof(Chunk) ? arena->chunk_size : size + sizeof(Chunk);
-
-    Chunk* new_chunk = (Chunk*)system_alloc(new_chunk_size);
+    size_t new_chunk_size = arena->chunk_size > total_size ? arena->chunk_size : total_size;
+    Chunk* new_chunk      = (Chunk*)system_alloc(new_chunk_size);
     if (__builtin_expect(new_chunk == NULL, 0)) {
         spinlock_release(&arena->spin_lock);
         return NULL;
     }
 
-    new_chunk->base = (char*)new_chunk + sizeof(Chunk);
-    new_chunk->size = new_chunk_size - sizeof(Chunk);
-    new_chunk->used = size;
-    new_chunk->next = arena->head;
-    arena->head     = new_chunk;
+    new_chunk->base     = (char*)new_chunk + sizeof(Chunk);
+    new_chunk->size     = new_chunk_size - sizeof(Chunk);
+    new_chunk->used     = total_size;
+    new_chunk->next     = arena->head;
+    AllocHeader* header = (AllocHeader*)new_chunk->base;
+    header->size        = size;
+    void* user_ptr      = (char*)new_chunk->base + header_size;
+    arena->head         = new_chunk;
 
     spinlock_release(&arena->spin_lock);
-    return new_chunk->base;
+    return user_ptr;
 }
 
 void* arena_realloc(Arena* arena, void* ptr, size_t size) {
-    if (__builtin_expect(arena == NULL || size == 0, 0)) {
+    if (arena == NULL || size == 0) {
         return NULL;
     }
 
@@ -187,63 +193,59 @@ void* arena_realloc(Arena* arena, void* ptr, size_t size) {
         return arena_alloc(arena, size);
     }
 
+    size = align_up(size, ARENA_ALIGNMENT);
+
+    // Calculate the header position
+    size_t header_size  = align_up(sizeof(AllocHeader), ARENA_ALIGNMENT);
+    AllocHeader* header = (AllocHeader*)((char*)ptr - header_size);
+    size_t old_size     = header->size;
+
     spinlock_acquire(&arena->spin_lock);
 
-    // Find the chunk containing the pointer
+    // Find the chunk containing ptr
     Chunk* chunk = arena->head;
     while (chunk != NULL) {
-        if (ptr >= chunk->base && (char*)ptr < (char*)chunk->base + chunk->used) {
+        if (ptr >= chunk->base && (char*)ptr <= (char*)chunk->base + chunk->used) {
             break;
         }
         chunk = chunk->next;
     }
 
-    if (__builtin_expect(chunk == NULL, 0)) {
-        // Pointer not found in the arena
+    if (chunk == NULL) {
         spinlock_release(&arena->spin_lock);
-        return NULL;
+        return NULL;  // Invalid pointer
     }
 
-    // Lets find the size of the previous allocation(for ptr)
-    size_t old_size = 0;
-    if (ptr == chunk->base) {
-        // ptr is at the beginning of the chunk
-        old_size = chunk->used;
-    } else {
-        // Iterate through free space to find the previous allocation
-        char* current = (char*)chunk->base;
-        while (current < (char*)ptr) {
-            // Check if current points to the start of an allocation
-            if (current == chunk->base || *(size_t*)current != 0) {
-                old_size = (char*)ptr - current;
-                break;  // Found the previous allocation
+    // Check if ptr is the last allocation and can be resized in place
+    char* alloc_end = (char*)ptr + align_up(old_size, ARENA_ALIGNMENT);
+    if (alloc_end == (char*)chunk->base + chunk->used) {
+        size_t new_total_size = header_size + size;
+        size_t old_total_size = header_size + align_up(old_size, ARENA_ALIGNMENT);
+        if (new_total_size <= chunk->size) {
+            if (new_total_size <= old_total_size) {
+                // Shrinking in place
+                header->size = size;
+                chunk->used  = ((char*)ptr - (char*)chunk->base) + size;
+                spinlock_release(&arena->spin_lock);
+                return ptr;
+            } else if (chunk->used + (new_total_size - old_total_size) <= chunk->size) {
+                // Enlarging in place
+                header->size = size;
+                chunk->used += (new_total_size - old_total_size);
+                spinlock_release(&arena->spin_lock);
+                return ptr;
             }
-            // Move to the next potential allocation start
-            current += align_up(*(size_t*)current, ARENA_ALIGNMENT);
         }
     }
 
-    // Align the new size
-    size = align_up(size, ARENA_ALIGNMENT);
-
-    // There is enough space in the current chunk
-    if (old_size + size <= chunk->size) {
-        chunk->used = old_size + size;
-        spinlock_release(&arena->spin_lock);
-        return ptr;
-    }
-
-    // unlock the mutex as arena_alloc will lock it again
-    // Otherwise, it will cause a deadlock
+    // Allocate a new block and copy data
     spinlock_release(&arena->spin_lock);
-
-    // Allocate a new block and copy the data
     void* new_ptr = arena_alloc(arena, size);
     if (new_ptr == NULL) {
         return NULL;
     }
 
-    // if old_size > size, copy only the allocated memory
+    // Copy the minimum of old_size and size (standard realloc behavior)
     size_t copy_size = old_size < size ? old_size : size;
     memcpy(new_ptr, ptr, copy_size);
 

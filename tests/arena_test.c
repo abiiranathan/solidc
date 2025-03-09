@@ -71,6 +71,84 @@ static void reusing_arena_chunks_example(void) {
     arena_destroy(arena);
 }
 
+// Simple function to print test results
+void print_test_result(const char* test_name, int success) {
+    printf("%-30s: %s\n", test_name, success ? "PASS" : "FAIL");
+}
+
+int test_arena_realloc(void) {
+    // Create an arena with a small chunk size for testing
+    Arena* arena = arena_create(4096);  // 4 KB chunks
+    if (arena == NULL) {
+        printf("Failed to create arena\n");
+        return 1;
+    }
+
+    // Test 1: Allocate and realloc to a larger size
+    char* str1 = arena_alloc_string(arena, "Hello");
+    if (str1 == NULL) {
+        printf("Initial allocation failed\n");
+        arena_destroy(arena);
+        return 1;
+    }
+    strcpy(str1, "Hello");  // Ensure data is written
+    char* str1_realloc = arena_realloc(arena, str1, 20);
+    int test1_pass     = (str1_realloc != NULL && strcmp(str1, "Hello") == 0);
+    print_test_result("Realloc to larger size", test1_pass);
+    if (test1_pass) {
+        strcpy(str1_realloc, "Hello, World!");  // Test writing to new size
+        test1_pass = (strcmp(str1_realloc, "Hello, World!") == 0);
+        print_test_result("Write to larger realloc", test1_pass);
+    }
+
+    // Test 2: Realloc with NULL pointer (should act like alloc)
+    char* str2     = arena_realloc(arena, NULL, 10);
+    int test2_pass = (str2 != NULL);
+    print_test_result("Realloc with NULL", test2_pass);
+    if (test2_pass) {
+        strcpy(str2, "Test");
+        test2_pass = (strcmp(str2, "Test") == 0);
+        print_test_result("Write to NULL realloc", test2_pass);
+    }
+
+    // Test 3: Multiple allocations followed by realloc
+    int* num1 = arena_alloc(arena, sizeof(int));
+    int* num2 = arena_alloc(arena, sizeof(int));
+
+    if (num1 == NULL || num2 == NULL) {
+        printf("Multiple allocations failed\n");
+        arena_destroy(arena);
+        return 1;
+    }
+    *num1             = 42;
+    *num2             = 99;
+    int* num1_realloc = arena_realloc(arena, num1, sizeof(int) * 2);
+    int test3_pass    = (num1_realloc != NULL && *num1_realloc == 42);
+    print_test_result("Realloc after multiple allocs", test3_pass);
+    if (test3_pass) {
+        num1_realloc[1] = 100;  // Test writing to new space
+        test3_pass      = (num1_realloc[1] == 100);
+        print_test_result("Write to extended array", test3_pass);
+    }
+
+    // Test 4: Realloc to a smaller size
+    char* str3 = arena_alloc_string(arena, "LongStringHere");
+    if (str3 == NULL) {
+        printf("Allocation for shrink test failed\n");
+        arena_destroy(arena);
+        return 1;
+    }
+    char* str3_realloc = arena_realloc(arena, str3, 5);
+    int test4_pass     = (str3_realloc != NULL && strncmp(str3_realloc, "LongStringHere", 4) == 0);
+    print_test_result("Realloc to smaller size", test4_pass);
+
+    // Clean up
+    arena_destroy(arena);
+    printf("All tests completed.\n");
+
+    return 0;
+}
+
 int main(void) {
     // Create an arena of 1MB
     Arena* arena = arena_create(0);
@@ -142,8 +220,10 @@ int main(void) {
     printf("Buffer6: %p\n", (void*)buffer6);
 
     arena_destroy(arena4);
-    time(&end);
 
+    int status = test_arena_realloc();
+
+    time(&end);
     printf("Time taken: %f seconds\n", difftime(end, start));
-    return 0;
+    return status;
 }

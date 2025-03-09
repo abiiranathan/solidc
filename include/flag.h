@@ -8,6 +8,7 @@ extern "C" {
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #define FLAG_TYPES                                                                                 \
     X(BOOL, bool)                                                                                  \
@@ -92,16 +93,20 @@ FLAG_TYPES
 #define X(name, type)                                                                              \
     static inline type FlagValue_##name(Command* subcommand, const char* flag_name,                \
                                         const type defaultValue) {                                 \
-        type* value = (type*)FlagValue(subcommand, flag_name);                                     \
+        const char* FLAG_TYPE = #name;                                                             \
+        type* value           = (type*)FlagValue(subcommand, flag_name);                           \
         if (value != NULL) {                                                                       \
-            return *value;                                                                         \
+            return strcmp(FLAG_TYPE, "STRING") == 0 ? (*value ? *value : (type)defaultValue)       \
+                                                    : *value;                                      \
         }                                                                                          \
         return (type)defaultValue;                                                                 \
     }                                                                                              \
     static inline type FlagValueG_##name(const char* flag_name, const type defaultValue) {         \
-        type* value = (type*)FlagValueG(flag_name);                                                \
+        const char* FLAG_TYPE = #name;                                                             \
+        type* value           = (type*)FlagValueG(flag_name);                                      \
         if (value != NULL) {                                                                       \
-            return *value;                                                                         \
+            return strcmp(FLAG_TYPE, "STRING") == 0 ? (*value ? *value : (type)defaultValue)       \
+                                                    : *value;                                      \
         }                                                                                          \
         return (type)defaultValue;                                                                 \
     }
