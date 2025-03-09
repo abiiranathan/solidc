@@ -226,6 +226,13 @@ void* arena_realloc(Arena* arena, void* ptr, size_t size) {
                 // Shrinking in place
                 header->size = size;
                 chunk->used  = ((char*)ptr - (char*)chunk->base) + size;
+
+                // Ensure null termination if shrinking past original data
+                if (size < old_size) {
+                    char* new_end = (char*)ptr + size - 1;
+                    if (size > 1 && *new_end != '\0')
+                        *new_end = '\0';
+                }
                 spinlock_release(&arena->spin_lock);
                 return ptr;
             } else if (chunk->used + (new_total_size - old_total_size) <= chunk->size) {

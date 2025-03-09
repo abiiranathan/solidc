@@ -146,6 +146,48 @@ int test_arena_realloc(void) {
     arena_destroy(arena);
     printf("All tests completed.\n");
 
+    // Arena with small blocks
+    arena = arena_create(16);
+    if (arena == NULL) {
+        printf("Failed to create arena\n");
+        return 1;
+    }
+
+    char* s1 = arena_alloc_string(arena, "Hello World my dear friends!");
+    if (s1 == NULL) {
+        printf("Failed to allocate string\n");
+        return 1;
+    }
+
+    s1 = arena_realloc(arena, s1, 32);
+    if (s1 == NULL) {
+        printf("Failed to re-allocate string\n");
+        return 1;
+    }
+
+    if (strcmp(s1, "Hello World my dear friends!") != 0) {
+        printf("Strings do not match after re-allocation\n");
+        return 1;
+    }
+
+    s1 = arena_realloc(arena, s1, 16);
+    if (s1 == NULL) {
+        printf("Failed to re-allocate(shrink) string\n");
+        return 1;
+    }
+
+    // allocate something after shrinking to overwrite shrunk memory.
+    char* s2 = arena_alloc_string(arena, "Allocate new string");
+    if (s2 == NULL) {
+        printf("Failed to allocate string\n");
+        return 1;
+    }
+
+    if (strlen(s1) != 15) {
+        printf("Expected shrunk string to be of len 15, got %ld\n", strlen(s1));
+        return 1;
+    }
+
     return 0;
 }
 
