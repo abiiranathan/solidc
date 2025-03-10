@@ -132,6 +132,7 @@ int main(int argc, char* argv[]) {
     Arena* arenas[num_threads];
 
     for (int i = 0; i < num_threads; i++) {
+        // 50MB per arena
         arenas[i] = arena_create(ARENA_DEFAULT_CHUNKSIZE * 5);
         if (arenas[i] == NULL) {
             printf("Error allocating arenas\n");

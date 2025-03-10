@@ -27,6 +27,10 @@ extern "C" {
 #define ARENA_ALIGNMENT (alignof(max_align_t))
 #endif
 
+#ifndef ARENA_NOLOCK
+#define ARENA_NOLOCK 0
+#endif
+
 // Arena memory block.
 typedef struct Arena Arena;
 
@@ -36,9 +40,12 @@ Arena* arena_create(size_t chunk_size) __attribute__((warn_unused_result()));
 // Arena destruction. Frees the memory region allocated for the arena.
 void arena_destroy(Arena* arena);
 
-// Reset the arena and merge the chunks into one block to avoid fragmentation
-// such that arena.used = 0 and arena.head->size = total size of all chunks.
+// Reset used memory to zero for all chunks.
+// Individual chunks are preserved.
 void arena_reset(Arena* arena);
+
+// Clear arena and free allocated chunks.
+void arena_clear(Arena* arena);
 
 // Allocate a memory block from the arena.
 // Returns NULL on failure.
