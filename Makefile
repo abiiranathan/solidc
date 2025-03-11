@@ -14,9 +14,12 @@ test: build
 install:
 	cd build && sudo ninja install
 
+format:
+	clang-format -i *.c src/*.c include/*.h tests/*.c
+
 bench:
-	gcc -D_GNU_SOURCE bench_arena.c src/arena.c src/lock.c src/memory_pool.c \
-	 -lpthread -O2 -std=c23 -Wall -Wextra -Wpedantic -march=native -DARENA_NOLOCK=1
+	gcc -D_GNU_SOURCE bench_arena.c src/arena.c src/lock.c \
+	 -lpthread -O3 -std=c23 -Wall -Wextra -Wpedantic -march=native -flto -DARENA_NOLOCK=1
 	./a.out 4096 100000 8
 
 # sudo wget -O /usr/share/d3-flame-graph/d3-flamegraph-base.html https://cdn.jsdelivr.net/npm/d3-flame-graph@4/dist/templates/d3-flamegraph-base.html

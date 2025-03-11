@@ -6,15 +6,14 @@
 
 #include "../include/hash.h"
 
-void test_hash_function(const char* name, uint32_t (*hash_func)(const void*), const char* input,
-                        uint32_t expected) {
+void test_hash_function(const char* name, uint32_t (*hash_func)(const void*), const char* input, uint32_t expected) {
     uint32_t result = hash_func(input);
     printf("Testing %s, result: %u, expected: %u\n", name, result, expected);
     assert(result == expected);
 }
 
-void test_hash_function_with_length(const char* name, uint32_t (*hash_func)(const void*, size_t),
-                                    const char* input, uint32_t expected) {
+void test_hash_function_with_length(const char* name, uint32_t (*hash_func)(const void*, size_t), const char* input,
+                                    uint32_t expected) {
     uint32_t result = hash_func(input, strlen(input));
     printf("Testing %s, result: %u, expected: %u\n", name, result, expected);
     assert(result == expected);
@@ -36,8 +35,10 @@ int main() {
     test_hash_function("elf", solidc_elf_hash, "hello", 7258927);
     test_hash_function("djb2a", solidc_djb2a_hash, "hello", 178056679);
 
-    test_hash_function_with_length("crc32", solidc_crc32_hash, "hello", 907060870);  // done
-    test_hash_function("murmur", murmur_hash_wrapper, "kinkajou", 3067714808);       // done
+    test_hash_function_with_length("crc32", solidc_crc32_hash, "hello",
+                                   907060870);  // done
+    test_hash_function("murmur", murmur_hash_wrapper, "kinkajou",
+                       3067714808);  // done
     // test_hash_function("xxhash", XXH32Wrapper, "hello", 4211111929);  // done
 
     printf("All tests passed!\n");

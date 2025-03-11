@@ -18,7 +18,7 @@ static void random_string(char* str, size_t len) {
 
     const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     for (size_t i = 0; i < len; i++) {
-        size_t index = rand() % (sizeof(charset) - 1);
+        size_t index = (unsigned int)rand() % (sizeof(charset) - 1);
         str[i]       = charset[index];
     }
     str[len] = '\0';
@@ -137,11 +137,10 @@ int dir_chdir(const char* path) {
     return chdir(path);
 }
 
-// List files in a directory, returns a pointer to a list of file names or NULL on error
-// The caller is responsible for freeing the memory.
-// The number of files is stored in the count parameter.
-// Note: This algorithm walks the directory tree recursively
-// and may be slow for large directories.
+// List files in a directory, returns a pointer to a list of file names or NULL
+// on error The caller is responsible for freeing the memory. The number of
+// files is stored in the count parameter. Note: This algorithm walks the
+// directory tree recursively and may be slow for large directories.
 char** dir_list(const char* path, size_t* count) {
     // Uses the dir_open and dir_next functions which are defined above
     Directory* dir = dir_open(path);
@@ -242,16 +241,16 @@ bool is_symlink(const char* path) {
 #endif
 }
 
-// Walk a directory tree recursively and call the callback function for each file
-// The callback function should return 0 to continue or non-zero to stop the walk.
-// dir_walk skips the "." and ".." directories.
+// Walk a directory tree recursively and call the callback function for each
+// file The callback function should return 0 to continue or non-zero to stop
+// the walk. dir_walk skips the "." and ".." directories.
 //
 // @param path: The directory to walk
 // @param callback: The callback function to call for each file
 // @param data: User data pointer to pass to the callback function
-// Warning: The path is allocated on the stack and there for should not be stored beyound
-// the scope of the callback function.
-// Returns 0 if successful, -1 otherwise
+// Warning: The path is allocated on the stack and there for should not be
+// stored beyound the scope of the callback function. Returns 0 if successful,
+// -1 otherwise
 int dir_walk(const char* path, WalkDirCallback callback, void* data) {
     Directory* dir = dir_open(path);
     if (!dir) {
@@ -290,8 +289,9 @@ int dir_walk(const char* path, WalkDirCallback callback, void* data) {
     return 0;
 }
 
-// dir_size_callback is a callback function for dir_walk to sum the size of all files in a directory.
-// The data parameter is a pointer to a ssize_t variable that stores the size of the directory.
+// dir_size_callback is a callback function for dir_walk to sum the size of all
+// files in a directory. The data parameter is a pointer to a ssize_t variable
+// that stores the size of the directory.
 static WalkDirOption dir_size_callback(const char* path, const char* name, void* data) {
     (void)name;  // Suppress unused variable warning
 
@@ -520,7 +520,7 @@ void filepath_dirname(const char* path, char* dirname, size_t size) {
     if (!base) {
         dirname[0] = '\0';
     } else {
-        size_t len = base - path;
+        size_t len = (size_t)(base - path);
         if (len >= size) {
             return;
         }
@@ -548,7 +548,7 @@ void filepath_nameonly(const char* path, char* name, size_t size) {
     if (!dot) {
         strncpy(name, base, size);
     } else {
-        size_t len = dot - base;
+        size_t len = (size_t)(dot - base);
         strncpy(name, base, len);
         name[len] = '\0';
     }
@@ -709,8 +709,7 @@ const char* user_home_dir(void) {
 
     // join path
     char* filepath_join(const char* path1, const char* path2) {
-        size_t len =
-            strlen(path1) + strlen(path2) + 2;  // 1 for the separator and 1 for the null terminator
+        size_t len   = strlen(path1) + strlen(path2) + 2;  // 1 for the separator and 1 for the null terminator
         char* joined = (char*)malloc(len);
         if (!joined) {
             perror("malloc");
@@ -731,12 +730,12 @@ const char* user_home_dir(void) {
     }
 
     /**
- Join path1 and path2 using standard os specific separator.
+  Join path1 and path2 using standard os specific separator.
     @param path1: The first path
     @param path2: The second path
     @param abspath: The buffer to store the joined path
     @param len: The size of the buffer
-*/
+  */
     bool filepath_join_buf(const char* path1, const char* path2, char* abspath, size_t len) {
         size_t newlen = strlen(path1) + strlen(path2) + 2;
         if (newlen > len) {
@@ -758,12 +757,12 @@ const char* user_home_dir(void) {
     }
 
     /*
- * Split a file path into directory and file name.
- * The dir and name parameters must be pre-allocated buffers or pointers to pre-allocated
- * buffers. dir_size and name_size are the size of the dir and name buffers.
- */
-    void filepath_split(const char* path, char* dir, char* name, size_t dir_size,
-                        size_t name_size) {
+     * Split a file path into directory and file name.
+     * The dir and name parameters must be pre-allocated buffers or pointers to
+     * pre-allocated buffers. dir_size and name_size are the size of the dir and
+     * name buffers.
+     */
+    void filepath_split(const char* path, char* dir, char* name, size_t dir_size, size_t name_size) {
         const char* p = strrchr(path, '/');
         if (!p) {
             p = strrchr(path, '\\');
@@ -774,7 +773,7 @@ const char* user_home_dir(void) {
             strncpy(name, path, name_size);
             name[name_size - 1] = '\0';  // Ensure null-termination
         } else {
-            size_t len = p - path;
+            size_t len = (size_t)(p - path);
             if (len >= dir_size) {
                 len = dir_size - 1;
             }

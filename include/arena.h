@@ -56,8 +56,8 @@ void* arena_alloc(Arena* arena, size_t size) __attribute__((warn_unused_result()
 // If there is no need for re-allocation, the ptr is returned as is.
 void* arena_realloc(Arena* arena, void* ptr, size_t size) __attribute__((warn_unused_result()));
 
-// Allocate a string from the arena. The string is copied into the arena memory.
-// Returns NULL on failure.
+// Allocate a string from the arena. The string is copied into the arena
+// memory. Returns NULL on failure.
 char* arena_alloc_string(Arena* arena, const char* str) __attribute__((warn_unused_result()));
 
 // Allocate and assign an integer.

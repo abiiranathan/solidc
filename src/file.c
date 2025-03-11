@@ -11,7 +11,7 @@ typedef struct file_t {
     int fd;          // file descriptor
     bool is_open;    // is the file open?
     bool is_locked;  // is the file locked?
-    ssize_t size;    // file size
+    size_t size;     // file size
     char* filename;  // file name
 #ifdef _WIN32
     HANDLE handle;  // file handle
@@ -28,11 +28,11 @@ FILE* file_fp(file_t* file) {
     return file->file;
 }
 
-// Get the file size. Returns -1 on error
+// Get the file size. Returns 0 on error
 // On windows, use _filelength to get the file size.
 // On Unix, use fstat to get the file size
-static ssize_t internal_file_size(int fd) {
-    ssize_t size = -1;
+static size_t internal_file_size(int fd) {
+    long size = 0;
 #ifdef _WIN32
     size = _filelength(fd);
 #else
@@ -41,7 +41,7 @@ static ssize_t internal_file_size(int fd) {
         size = st.st_size;
     }
 #endif
-    return size;
+    return (size_t)size;
 }
 
 // Open a file in a given mode (r, w, a, etc)
@@ -116,8 +116,11 @@ bool filesize_tostring(size_t size, char* buf, size_t len) {
         suffixIndex++;
     }
 
-    // if readableSize has no fractions, print it as an integer
-    if (readableSize == (int)readableSize) {
+// if readableSize has no fractions, print it as an integer
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+    if ((double)readableSize == (int)readableSize) {
+#pragma GCC diagnostic pop
         int written = snprintf(buf, len, "%d %s", (int)readableSize, suffixes[suffixIndex]);
         return written > 0 && (size_t)written < len;
     }
@@ -127,18 +130,18 @@ bool filesize_tostring(size_t size, char* buf, size_t len) {
     return written > 0 && (size_t)written < len;
 }
 
-ssize_t file_size(file_t* file) {
+size_t file_size(file_t* file) {
     return file->size;
 }
 
 // Return file size for a given file name
-ssize_t file_size_char(const char* filename) {
+size_t file_size_char(const char* filename) {
     file_t* file = file_open(filename, "r");
     if (!file) {
-        return -1;
+        return 0;
     }
 
-    ssize_t size = file->size;
+    size_t size = file->size;
     file_close(file);
     return size;
 }
@@ -170,10 +173,9 @@ void* file_readall(file_t* file) {
     }
 
     // Read the entire file into the buffer
-    ssize_t bytes_read = (ssize_t)file_read(file, buffer, 1, file->size);
+    size_t bytes_read = file_read(file, buffer, 1, file->size);
     if (bytes_read != file->size) {
-        fprintf(stderr, "Error reading file: Read %zd bytes, expected %zd\n", bytes_read,
-                file->size);
+        fprintf(stderr, "Error reading file: Read %zd bytes, expected %zd\n", bytes_read, file->size);
         free(buffer);
         return NULL;
     }
@@ -192,10 +194,11 @@ Example:
 char *buffer = "Hello, World!";
 file_write(file, buffer, 1, strlen(buffer));
 
-After a write operation, the file is flushed to disk and the file size is updated.
+After a write operation, the file is flushed to disk and the file size is
+updated.
 */
 size_t file_write(file_t* file, const void* buffer, size_t size, size_t count) {
-    ssize_t n = (ssize_t)fwrite(buffer, size, count, file->file);
+    size_t n = fwrite(buffer, size, count, file->file);
     if (n > 0) {
         file->size += n;
         if (fflush(file->file) != 0) {

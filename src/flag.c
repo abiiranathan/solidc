@@ -9,12 +9,12 @@
 #include "../include/flag.h"
 #include "../include/strton.h"
 
-#define LOG_ASSERT(cond, msg)                                                                      \
-    do {                                                                                           \
-        if (!(cond)) {                                                                             \
-            fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, msg);                                \
-            exit(EXIT_FAILURE);                                                                    \
-        }                                                                                          \
+#define LOG_ASSERT(cond, msg)                                                                                          \
+    do {                                                                                                               \
+        if (!(cond)) {                                                                                                 \
+            fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, msg);                                                    \
+            exit(EXIT_FAILURE);                                                                                        \
+        }                                                                                                              \
     } while (0)
 
 // Arena for flag allocations
@@ -116,8 +116,8 @@ Command* AddCommand(const char* name, const char* description, void (*handler)(C
     return subcommand;
 }
 
-Flag* AddFlagCmd(Command* subcommand, FlagType type, const char* name, char short_name,
-                 const char* description, void* value, bool required) {
+Flag* AddFlagCmd(Command* subcommand, FlagType type, const char* name, char short_name, const char* description,
+                 void* value, bool required) {
     Flag* new_flags = FLAG_REALLOC(subcommand->flags, (subcommand->num_flags + 1) * sizeof(Flag));
     LOG_ASSERT(new_flags, "subcommand->flags realloc failed");
 
@@ -135,8 +135,7 @@ Flag* AddFlagCmd(Command* subcommand, FlagType type, const char* name, char shor
     return flag;
 }
 
-Flag* AddFlag(FlagType type, const char* name, char short_name, const char* description,
-              void* value, bool required) {
+Flag* AddFlag(FlagType type, const char* name, char short_name, const char* description, void* value, bool required) {
     Flag* new_flags = FLAG_REALLOC(ctx->flags, (ctx->num_flags + 1) * sizeof(Flag));
     LOG_ASSERT(new_flags, "ctx->flags realloc failed");
 
@@ -307,8 +306,7 @@ static void parse_flag_value(Flag* flag, const char* value) {
     }
 
     if (code != STO_SUCCESS) {
-        FATAL_ERROR("conversion error for flag: --%s: %s(%s)\n", flag->name, sto_error(code),
-                    value);
+        FATAL_ERROR("conversion error for flag: --%s: %s(%s)\n", flag->name, sto_error(code), value);
     }
 }
 
@@ -321,8 +319,7 @@ void process_flag(Flag* flag, const char* name, size_t i, char** argv) {
     flag->is_provided = true;
 }
 
-static void process_flag_name(char* name, bool is_long_flag, Command* cmd, size_t* i, char** argv,
-                              size_t argc) {
+static void process_flag_name(char* name, bool is_long_flag, Command* cmd, size_t* i, char** argv, size_t argc) {
     if (name == NULL || strlen(name) == 0) {
         FATAL_ERROR("Invalid flag name: %s\n", name);
     }
@@ -438,8 +435,7 @@ validation:
     if (subcmd != NULL) {
         for (size_t i = 0; i < subcmd->num_flags; i++) {
             if (subcmd->flags[i].required && !subcmd->flags[i].is_provided) {
-                FATAL_ERROR("Missing required flag for subcommand %s: --%s\n", subcmd->name,
-                            subcmd->flags[i].name);
+                FATAL_ERROR("Missing required flag for subcommand %s: --%s\n", subcmd->name, subcmd->flags[i].name);
             }
         }
     }

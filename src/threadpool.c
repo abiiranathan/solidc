@@ -16,7 +16,6 @@
 #include <unistd.h>
 #endif
 
-#define RING_BUFFER_SIZE 4096  // Must be power of 2
 #define RING_BUFFER_MASK (RING_BUFFER_SIZE - 1)
 
 // Task represents a work item that should be executed by a thread
@@ -231,7 +230,7 @@ threadpool* threadpool_create(int num_threads) {
     if (num_threads <= 0)
         num_threads = 1;
 
-    srand(time(NULL));
+    srand((unsigned int)time(NULL));
 
     threadpool* pool = (threadpool*)malloc(sizeof(threadpool));
     if (pool == NULL)
@@ -248,7 +247,7 @@ threadpool* threadpool_create(int num_threads) {
     }
     pool->queue.pool = pool;
 
-    pool->threads = (thread**)malloc(num_threads * sizeof(thread*));
+    pool->threads = (thread**)malloc((size_t)num_threads * sizeof(thread*));
     if (pool->threads == NULL) {
         ringbuffer_destroy(&pool->queue);
         free(pool);
@@ -290,8 +289,7 @@ void threadpool_destroy(threadpool* pool) {
         return;
 
     lock_acquire(&pool->thcount_lock);
-    while (pool->queue.head != pool->queue.tail || pool->num_threads_working > 0 ||
-           has_tasks_in_thread_queues(pool)) {
+    while (pool->queue.head != pool->queue.tail || pool->num_threads_working > 0 || has_tasks_in_thread_queues(pool)) {
         cond_wait(&pool->threads_all_idle, &pool->thcount_lock);
     }
     pool->shutdown = 1;
@@ -302,6 +300,7 @@ void threadpool_destroy(threadpool* pool) {
         cond_broadcast(&pool->threads[i]->queue.not_empty);
         cond_broadcast(&pool->threads[i]->queue.not_full);
     }
+
     cond_broadcast(&pool->queue.not_empty);
     cond_broadcast(&pool->queue.not_full);
 

@@ -1,11 +1,11 @@
 #ifndef E3BD52A6_7A93_4758_8633_F1005A651260
 #define E3BD52A6_7A93_4758_8633_F1005A651260
 
+#include <stdio.h>
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-#include <stdio.h>
 
 // A node in a singly-linked list.
 typedef struct slist_node {

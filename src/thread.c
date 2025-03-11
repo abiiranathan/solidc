@@ -67,8 +67,7 @@ int thread_attr_destroy(ThreadAttr* attr) {
 }
 
 // Create a new thread with attributes
-int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine start_routine,
-                       void* data) {
+int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine start_routine, void* data) {
     int ret = -1;
 
 #ifdef _WIN32
@@ -79,7 +78,7 @@ int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine star
     }
     params->start_routine = start_routine;
     params->data          = data;
-    HANDLE t = CreateThread(&attr->sa, attr->stackSize, thread_start_wrapper, params, 0, NULL);
+    HANDLE t              = CreateThread(&attr->sa, attr->stackSize, thread_start_wrapper, params, 0, NULL);
     if (t) {
         *thread = t;
         ret     = 0;
@@ -166,7 +165,7 @@ int get_tid(void) {
 }
 
 // Get the number of CPU cores
-unsigned long get_ncpus(void) {
+long get_ncpus(void) {
 #ifdef _WIN32
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);

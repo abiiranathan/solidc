@@ -156,8 +156,8 @@ void test_getfile_size() {
     file_t* file = file_open(tmpfile, "w");
     assert(file != NULL);
 
-    // If this ends in \n, the file size will be 1 byte larger than strlen(sonnet18)
-    // because of the newline character on windows being \r\n
+    // If this ends in \n, the file size will be 1 byte larger than
+    // strlen(sonnet18) because of the newline character on windows being \r\n
     const char* sonnet18 = "Shall I compare thee to a summer's day?";
     size_t len           = strlen(sonnet18);
 

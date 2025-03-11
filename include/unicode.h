@@ -6,13 +6,13 @@ Unicode handling in C.
 Supports UTF-8 encoding and Unicode version 1.0.
 */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define UNICODE_VERSION 0x0100          // 1.0
 #define UNICODE_MAX_CODEPOINT 0x10FFFF  // 1,114,111
@@ -53,12 +53,12 @@ void utf8_replace(utf8_string* s, const char* old_str, const char* new_str);
 void utf8_replace_all(utf8_string* s, const char* old_str, const char* new_str);
 void utf8_reverse(utf8_string* s);
 
-unsigned long utf8_writeto(const utf8_string* s, const char* filename);
+long utf8_writeto(const utf8_string* s, const char* filename);
 utf8_string* utf8_readfrom(const char* filename);
 
 // Split a string into parts using a delimiter.
-// Returns an array of utf8_string pointers that need to be freed with utf8_split_free.
-// The last element of the array is NULL.
+// Returns an array of utf8_string pointers that need to be freed with
+// utf8_split_free. The last element of the array is NULL.
 utf8_string** utf8_split(const utf8_string* str, const char* delim, size_t* num_parts);
 void utf8_split_free(utf8_string** str, size_t size);
 

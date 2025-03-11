@@ -4,13 +4,13 @@
 #include <stdio.h>
 
 // Utility macro for logging
-#define LOG_TEST_RESULT(test_name, condition)                                                      \
-    do {                                                                                           \
-        if (condition) {                                                                           \
-            printf("[PASS] %s\n", test_name);                                                      \
-        } else {                                                                                   \
-            printf("[FAIL] %s\n", test_name);                                                      \
-        }                                                                                          \
+#define LOG_TEST_RESULT(test_name, condition)                                                                          \
+    do {                                                                                                               \
+        if (condition) {                                                                                               \
+            printf("[PASS] %s\n", test_name);                                                                          \
+        } else {                                                                                                       \
+            printf("[FAIL] %s\n", test_name);                                                                          \
+        }                                                                                                              \
     } while (0)
 
 // Test function prototypes
@@ -347,8 +347,7 @@ void test_sto_uint64(void) {
 
     // Valid input
     err = sto_uint64("18446744073709551615", &result);
-    LOG_TEST_RESULT("sto_uint64 valid input",
-                    err == STO_SUCCESS && result == 18446744073709551615ULL);
+    LOG_TEST_RESULT("sto_uint64 valid input", err == STO_SUCCESS && result == 18446744073709551615ULL);
 
     // Invalid input
     err = sto_uint64("abc", &result);

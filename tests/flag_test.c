@@ -13,12 +13,12 @@ bool verbose               = false;
 bool prompt                = false;
 static char* greeting      = "";
 
-#define FLAG_ASSERT(cond, msg)                                                                     \
-    do {                                                                                           \
-        if (!(cond)) {                                                                             \
-            fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, msg);                                \
-            exit(EXIT_FAILURE);                                                                    \
-        }                                                                                          \
+#define FLAG_ASSERT(cond, msg)                                                                                         \
+    do {                                                                                                               \
+        if (!(cond)) {                                                                                                 \
+            fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, msg);                                                    \
+            exit(EXIT_FAILURE);                                                                                        \
+        }                                                                                                              \
     } while (0)
 
 bool validate_int(void* value, size_t size, char* error) {
@@ -59,9 +59,23 @@ static void assertions(void) {
     FLAG_ASSERT(strcmp(string_flag, "hello") == 0, "string should be hello");
 }
 
-static char* argv[] = {"flag_test", "--int",    "10",    "--float32",  "3.14",        "--float64",
-                       "100.5",     "--string", "hello", "print",      "--count",     "5",
-                       "--verbose", "--prompt", "1",     "--greeting", "Hello World!"};
+static char* argv[] = {"flag_test",
+                       "--int",
+                       "10",
+                       "--float32",
+                       "3.14",
+                       "--float64",
+                       "100.5",
+                       "--string",
+                       "hello",
+                       "print",
+                       "--count",
+                       "5",
+                       "--verbose",
+                       "--prompt",
+                       "1",
+                       "--greeting",
+                       "Hello World!"};
 
 #define argc (sizeof(argv) / sizeof(argv[0]))
 

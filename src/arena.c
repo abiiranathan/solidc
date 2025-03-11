@@ -234,7 +234,7 @@ void* arena_realloc(Arena* arena, void* ptr, size_t size) {
             if (new_total_size <= old_total_size) {
                 // Shrinking in place
                 header->size = size;
-                chunk->used  = ((char*)ptr - (char*)chunk->base) + size;
+                chunk->used  = (size_t)((char*)ptr - (char*)chunk->base) + size;
 
                 // Ensure null termination if shrinking past original data
                 if (size < old_size) {
@@ -244,7 +244,9 @@ void* arena_realloc(Arena* arena, void* ptr, size_t size) {
                 }
                 LOCK_RELEASE(&arena->lock);
                 return ptr;
-            } else if (chunk->used + (new_total_size - old_total_size) <= chunk->size) {
+            }
+
+            if (chunk->used + (new_total_size - old_total_size) <= chunk->size) {
                 // Enlarging in place
                 header->size = size;
                 chunk->used += (new_total_size - old_total_size);

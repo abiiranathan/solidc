@@ -124,16 +124,6 @@ add_test(map_test map_test)
 target_link_libraries(map_test pthread m ${THREADPOOL_LIB})
 
 
-
-# Add the test executable for optional module
-set(OPTIONAL_SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/optional_test.c
-)
-
-add_executable(optional_test ${OPTIONAL_SRCS})
-add_test(optional_test optional_test)
-
-
 # Add the test executable for socket module
 set(SOCKET_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/socket_test.c
@@ -176,6 +166,7 @@ set(STRTON_SRCS
 )
 
 add_executable(strton_test ${STRTON_SRCS})
+target_link_libraries(strton_test pthread m)
 add_test(strton_test strton_test)
 
 # hash test module
@@ -211,11 +202,3 @@ set(ARRAY_SRCS
 add_executable(array_test ${ARRAY_SRCS})
 add_test(array_test array_test)
 
-# Memorypool test module
-set(MEMORYPOOL_SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/memory_pool_test.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/memory_pool.c
-)
-
-add_executable(memory_pool_test ${MEMORYPOOL_SRCS})
-add_test(memory_pool_test memory_pool_test)

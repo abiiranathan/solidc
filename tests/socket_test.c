@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void init_afinet_addr(struct sockaddr_in* addr, int port) {
+static void init_afinet_addr(struct sockaddr_in* addr, uint16_t port) {
     addr->sin_family      = AF_INET;
     addr->sin_port        = htons(port);
     addr->sin_addr.s_addr = INADDR_ANY;  // inet_addr("127.0.0.1")
@@ -26,7 +26,7 @@ void handle_client(void* client_socket_ptr) {
 }
 
 void* send_message_to_server(void* arg) {
-    int port = *(int*)arg;
+    uint16_t port = *(uint16_t*)arg;
     sleep_ms(1000);  // wait for server to start
 
     Socket* s = socket_create(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -51,7 +51,7 @@ int main() {
     Socket* s = socket_create(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     assert(s != NULL);
 
-    int port = 9999;
+    uint16_t port = 9999;
     struct sockaddr_in addr;
     init_afinet_addr(&addr, port);
 

@@ -10,12 +10,11 @@
 uint32_t solidc_djb2_hash(const void* key) {
     unsigned char* str = (unsigned char*)key;
     unsigned long hash = 5381;
-    int c;
-
+    unsigned long c;
     while ((c = *str++) != '\0') {
         hash = ((hash << 5) + hash) + c;  // hash * 33 + c
     }
-    return hash;
+    return (uint32_t)hash;
 }
 
 // FNV-1a hash function
@@ -26,7 +25,7 @@ uint32_t solidc_fnv1a_hash(const void* key) {
         hash ^= (unsigned long)(unsigned char)*str++;
         hash *= 1099511628211UL;
     }
-    return hash;
+    return (uint32_t)hash;
 }
 
 uint32_t solidc_elf_hash(const void* key) {
@@ -52,7 +51,7 @@ uint32_t solidc_djb2a_hash(const void* key) {
     while (*str) {
         hash = ((hash << 5) + hash) ^ *str++;
     }
-    return hash;
+    return (uint32_t)hash;
 }
 
 // SDBM hash function
@@ -62,7 +61,7 @@ uint32_t solidc_sdbm_hash(const void* key) {
     while (*str) {
         hash = *str++ + (hash << 6) + (hash << 16) - hash;
     }
-    return hash;
+    return (uint32_t)hash;
 }
 
 // CRC32 hash function
@@ -75,7 +74,7 @@ uint32_t solidc_crc32_hash(const void* key, size_t len) {
             crc = (crc >> 1) ^ (0xEDB88320 & (-(crc & 1)));
         }
     }
-    return ~crc;
+    return (uint32_t)~crc;
 }
 
 // https://en.wikipedia.org/wiki/MurmurHash
@@ -100,7 +99,7 @@ uint32_t solidc_murmur_hash(const char* key, uint32_t len, uint32_t seed) {
     tail   = (const uint8_t*)(d + l * 4);   // last 8 byte chunk of `key'
 
     // for each 4 byte chunk of `key'
-    for (i = -l; i != 0; ++i) {
+    for (i = (int)-l; i != 0; ++i) {
         // next 4 byte chunk of `key'
         k = chunks[i];
 
@@ -120,10 +119,10 @@ uint32_t solidc_murmur_hash(const char* key, uint32_t len, uint32_t seed) {
     // tail - last 8 byte
     switch (len & 3) {  // `len % 4'
         case 3:
-            k ^= (tail[2] << 16);
+            k ^= ((uint32_t)tail[2] << 16);
             // fall through
         case 2:
-            k ^= (tail[1] << 8);
+            k ^= ((uint32_t)tail[1] << 8);
             // fall through
 
         case 1:
@@ -158,8 +157,7 @@ static uint32_t XXH_rotl32(uint32_t x, int r) {
 
 static uint32_t XXH_readLE32(const void* ptr) {
     const uint8_t* p = (const uint8_t*)ptr;
-    return ((uint32_t)p[0] << 0) | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) |
-           ((uint32_t)p[3] << 24);
+    return ((uint32_t)p[0] << 0) | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
 }
 
 static uint32_t XXH32_round(uint32_t seed, uint32_t input) {

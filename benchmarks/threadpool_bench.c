@@ -44,8 +44,8 @@ int main() {
     clock_gettime(CLOCK_MONOTONIC, &end);
 
     // Calculate throughput and latency
-    double elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
-    double throughput = NUM_TASKS / elapsed;
+    double elapsed     = (double)(end.tv_sec - start.tv_sec) + (double)(end.tv_nsec - start.tv_nsec) / 1e9;
+    double throughput  = NUM_TASKS / elapsed;
     double avg_latency = elapsed / NUM_TASKS * 1e6;  // in microseconds
 
     printf("Throughput: %.2f tasks/sec\n", throughput);

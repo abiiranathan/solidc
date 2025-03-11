@@ -154,7 +154,7 @@ void list_insert_after(list_t* list, void* elem, void* after) {
         printf("Element not found\n");
         return;
     }
-    list_insert(list, index + 1, elem);
+    list_insert(list, (size_t)index + 1, elem);
 }
 
 // Insert element before the given element
@@ -164,7 +164,7 @@ void list_insert_before(list_t* list, void* elem, void* before) {
         printf("Element not found\n");
         return;
     }
-    list_insert(list, index, elem);
+    list_insert(list, (size_t)index, elem);
 }
 
 // Set the element at the given index

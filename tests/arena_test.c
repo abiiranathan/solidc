@@ -9,10 +9,10 @@
 
 #define NUM_THREADS 4
 
-#define ASSERT(cond, msg)                                                                          \
-    if (!(cond)) {                                                                                 \
-        printf("%s\n", msg);                                                                       \
-        exit(1);                                                                                   \
+#define ASSERT(cond, msg)                                                                                              \
+    if (!(cond)) {                                                                                                     \
+        printf("%s\n", msg);                                                                                           \
+        exit(1);                                                                                                       \
     }
 
 static void* thread_func(void* arg) {

@@ -1,18 +1,14 @@
 #ifndef CB4BB606_713F_4BBD_9F44_DB223464EB5A
 #define CB4BB606_713F_4BBD_9F44_DB223464EB5A
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
 
 #if !defined(_GNU_SOURCE)
 #define _GNU_SOURCE
 #define _POSIX_C_SOURCE 200809L
 #endif
-
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdio.h>
 
 #ifdef _WIN32
 #include <direct.h>
@@ -23,6 +19,10 @@ extern "C" {
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 // file_t structure that encapsulates file operations
@@ -50,10 +50,10 @@ void file_flush(file_t* file);
 bool filesize_tostring(size_t size, char* buf, size_t len);
 
 // Get the file size in bytes for the given filename.
-ssize_t file_size_char(const char* filename);
+size_t file_size_char(const char* filename);
 
 // Get the file size of the file.
-ssize_t file_size(file_t* file);
+size_t file_size(file_t* file);
 
 // Seek to the given offset in the file.
 int file_seek(file_t* file, long offset, int origin);
@@ -72,9 +72,10 @@ size_t file_write_string(file_t* file, const char* str);
 #if defined(_WIN32)
 // Write to a file asynchronously
 // Returns the number of bytes written or -1 on error.
-// You should call file_flush to ensure the data is written to disk before reading or before
-// multiple writes.
-DWORD file_awrite(file_t* file, const void* buffer, size_t size, off_t offset);
+// You should call file_flush to ensure the data is written to disk before
+// reading or before multiple writes.
+DWORD
+file_awrite(file_t* file, const void* buffer, size_t size, off_t offset);
 #else
 // Write to a file asynchronously
 // Returns the number of bytes written or -1 on error

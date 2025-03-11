@@ -1,4 +1,3 @@
-#include "../include/map.h"
 #include <limits.h>
 #include <pthread.h>
 #include <stdalign.h>
@@ -8,9 +7,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Include xxHash for faster hashing
-#define XXH_INLINE_ALL
+#define XXH_INLINE_ALL  // Include xxHash for faster hashing
 #include <xxhash.h>
+
+#include "../include/cmp.h"
+#include "../include/map.h"
 
 // Map structure
 typedef struct map {
@@ -28,8 +29,7 @@ typedef struct map {
 static inline unsigned long xxhash(const void* key);
 
 // Map creation
-map* map_create(size_t initial_capacity, bool (*key_compare)(const void*, const void*),
-                bool free_entries) {
+map* map_create(size_t initial_capacity, bool (*key_compare)(const void*, const void*), bool free_entries) {
     if (initial_capacity == 0) {
         initial_capacity = INITIAL_MAP_SIZE;
     }
@@ -234,11 +234,11 @@ bool key_compare_char_ptr(const void* a, const void* b) {
 }
 
 bool key_compare_float(const void* a, const void* b) {
-    return a && b && *(float*)a == *(float*)b;
+    return a && b && FLOAT_EQUAL(*(float*)a, *(float*)b);
 }
 
 bool key_compare_double(const void* a, const void* b) {
-    return a && b && *(double*)a == *(double*)b;
+    return a && b && FLOAT_EQUAL(*(double*)a, *(double*)b);
 }
 
 // xxHash implementation using XXH64.

@@ -1,5 +1,5 @@
-#ifndef F5504749_3C28_403D_B262_31291CFCF023
-#define F5504749_3C28_403D_B262_31291CFCF023
+#ifndef __SOLIDC_H__
+#define __SOLIDC_H__
 
 #include "arena.h"
 #include "array.h"
@@ -13,8 +13,7 @@
 #include "list.h"
 #include "lock.h"
 #include "map.h"
-#include "memory_pool.h"
-#include "optional.h"
+#include "pipeline.h"
 #include "process.h"
 #include "set.h"
 #include "slist.h"
@@ -25,4 +24,4 @@
 #include "threadpool.h"
 #include "unicode.h"
 
-#endif /* F5504749_3C28_403D_B262_31291CFCF023 */
+#endif /* __SOLIDC_H__ */

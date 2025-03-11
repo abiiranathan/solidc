@@ -1,10 +1,6 @@
 #ifndef DA20B33A_06DF_4AB0_8B0A_B8874A623312
 #define DA20B33A_06DF_4AB0_8B0A_B8874A623312
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #if !defined(_GNU_SOURCE)
 #define _GNU_SOURCE
 #endif
@@ -27,6 +23,10 @@ extern "C" {
 #include <sys/random.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 //  ===== Directory related function declarations =====
@@ -62,11 +62,10 @@ int dir_rename(const char* oldpath, const char* newpath);
 // Change the current working directory
 int dir_chdir(const char* path);
 
-// List files in a directory, returns a pointer to a list of file names or NULL on error
-// The caller is responsible for freeing the memory.
-// The number of files is stored in the count parameter.
-// Note: This algorithm walks the directory tree recursively
-// and may be slow for large directories.
+// List files in a directory, returns a pointer to a list of file names or
+// NULL on error The caller is responsible for freeing the memory. The number
+// of files is stored in the count parameter. Note: This algorithm walks the
+// directory tree recursively and may be slow for large directories.
 char** dir_list(const char* path, size_t* count) __attribute__((warn_unused_result));
 
 // Returns true if the path is a directory
@@ -161,8 +160,8 @@ bool filepath_expanduser_buf(const char* path, char* expanded, size_t len);
 // Returns a pointer to the joined path or NULL on error.
 char* filepath_join(const char* path1, const char* path2) __attribute__((warn_unused_result));
 
-// Join path1 and path2 using standard os specific separator and store in abspath buffer.
-// Returns true if successful, false otherwise.
+// Join path1 and path2 using standard os specific separator and store in
+// abspath buffer. Returns true if successful, false otherwise.
 bool filepath_join_buf(const char* path1, const char* path2, char* abspath, size_t len);
 
 // Split a file path into directory and basename.

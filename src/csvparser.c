@@ -1,5 +1,4 @@
 #include "../include/csvparser.h"
-#include "../include/file.h"
 
 #include <ctype.h>
 #include <limits.h>
@@ -9,7 +8,7 @@
 #include <string.h>
 
 typedef struct CsvParser {
-    file_t* stream;    // file_t pointer corresponding to the file stream.
+    FILE* stream;      // file_t pointer corresponding to the file stream.
     CsvRow** rows;     // Array of row pointers
     size_t num_rows;   // Number of rows in csv, excluding empty lines
     char delim;        // Delimiter character
@@ -41,8 +40,8 @@ CsvParser* csvparser_new(const char* filename) {
         return NULL;
     }
 
-    file_t* f = file_open(filename, "r");
-    if (!f) {
+    FILE* stream = fopen(filename, "r");
+    if (!stream) {
         fprintf(stderr, "error opening file %s\n", filename);
         free(parser);
         return NULL;
@@ -51,14 +50,14 @@ CsvParser* csvparser_new(const char* filename) {
     Arena* arena = arena_create(CSV_ARENA_BLOCK_SIZE);
     if (!arena) {
         fprintf(stderr, "error creating memory arena\n");
-        file_close(f);
+        fclose(stream);
         free(parser);
         return NULL;
     }
 
     parser->arena    = arena;
     parser->num_rows = 0;
-    parser->stream   = f;
+    parser->stream   = stream;
 
     // Set default configuration
     CsvParserConfigure(parser, .delim = ',');
@@ -77,7 +76,10 @@ static CsvRow** csv_allocate_rows(Arena* arena, size_t num_rows) {
     for (size_t i = 0; i < num_rows; i++) {
         rows[i] = arena_alloc(arena, sizeof(CsvRow));
         if (!rows[i]) {
-            fprintf(stderr, "csv_allocate_rows(): error allocating memory for CsvRow: %zu\n", i);
+            fprintf(stderr,
+                    "csv_allocate_rows(): error allocating memory for CsvRow: "
+                    "%zu\n",
+                    i);
             return NULL;
         }
     }
@@ -95,26 +97,25 @@ CsvRow** csvparser_parse(CsvParser* self) {
     char line[MAX_FIELD_SIZE] = {0};
     size_t rowIndex           = 0;
     bool headerSkipped        = false;
-    FILE* fp                  = file_fp(self->stream);
 
     // Read one line to determine the number of fields in the CSV file
-    if (!fgets(line, MAX_FIELD_SIZE, fp)) {
-        file_close(self->stream);
+    if (!fgets(line, MAX_FIELD_SIZE, self->stream)) {
+        fclose(self->stream);
         return NULL;
     }
 
     // Reset the file pointer to the beginning of the file
-    file_seek(self->stream, 0, SEEK_SET);
+    fseek(self->stream, 0, SEEK_SET);
 
     // Get the number of fields in the CSV file
     size_t num_fields = get_num_fields(line, self->delim, self->quote);
     if (num_fields == 0) {
         fprintf(stderr, "Error: no fields found in CSV file\n");
-        file_close(self->stream);
+        fclose(self->stream);
         return NULL;
     }
 
-    while (fgets(line, MAX_FIELD_SIZE, fp) && rowIndex < self->num_rows) {
+    while (fgets(line, MAX_FIELD_SIZE, self->stream) && rowIndex < self->num_rows) {
         // trim white space from end of line and skip empty lines
         char* end = line + strlen(line) - 1;
         while (end > line && isspace(*end)) {
@@ -156,7 +157,7 @@ CsvRow** csvparser_parse(CsvParser* self) {
         rowIndex++;
     }
 
-    file_close(self->stream);
+    fclose(self->stream);
     return self->rows;
 }
 
@@ -174,24 +175,24 @@ void csvparser_parse_async(CsvParser* self, RowCallback callback, size_t maxrows
         return;
     }
 
-    FILE* fp = file_fp(self->stream);
     // Read one line to determine the number of fields in the CSV file
-    if (!fgets(line, MAX_FIELD_SIZE, fp)) {
-        file_close(self->stream);
+    if (!fgets(line, MAX_FIELD_SIZE, self->stream)) {
+        fclose(self->stream);
         return;
     }
+
     // Reset the file pointer to the beginning of the file
-    file_seek(self->stream, 0, SEEK_SET);
+    fseek(self->stream, 0, SEEK_SET);
 
     // Get the number of fields in the CSV file
     size_t num_fields = get_num_fields(line, self->delim, self->quote);
     if (num_fields == 0) {
         fprintf(stderr, "Error: no fields found in CSV file\n");
-        file_close(self->stream);
+        fclose(self->stream);
         return;
     }
 
-    while (fgets(line, MAX_FIELD_SIZE, fp) && rowIndex < self->num_rows) {
+    while (fgets(line, MAX_FIELD_SIZE, self->stream) && rowIndex < self->num_rows) {
         // trim white space from end of line and skip empty lines
         char* end = line + strlen(line) - 1;
         while (end > line && isspace(*end)) {
@@ -235,7 +236,7 @@ void csvparser_parse_async(CsvParser* self, RowCallback callback, size_t maxrows
         rowIndex++;
     }
 
-    file_close(self->stream);
+    fclose(self->stream);
 }
 
 size_t csvparser_numrows(const CsvParser* self) {
@@ -295,28 +296,28 @@ static bool parse_csv_line(LineArgs* args) {
     char field[MAX_FIELD_SIZE] = {0};
     int insideQuotes           = 0;
 
-    args->row->fields = arena_alloc(args->arena, args->num_fields * sizeof(char*));
-    if (!args->row->fields) {
-        fprintf(stderr, "ERROR: unable to allocate memory for row->fields\n");
+    CsvRow* row = args->row;
+    row->fields = arena_alloc(args->arena, args->num_fields * sizeof(char*));
+    if (!row->fields) {
+        fprintf(stderr, "ERROR: unable to allocate memory for fields\n");
         return false;
     }
 
-    int fieldIndex       = 0;
-    args->row->numFields = 0;
+    char** fields  = row->fields;
+    int fieldIndex = 0;
+    row->numFields = 0;
 
     for (int i = 0; args->line[i] != '\0'; i++) {
         if (args->line[i] == args->quote) {
             insideQuotes = !insideQuotes;
         } else if (args->line[i] == args->delim && !insideQuotes) {
-            field[fieldIndex]                       = '\0';
-            args->row->fields[args->row->numFields] = arena_alloc_string(args->arena, field);
-            if (!args->row->fields[args->row->numFields]) {
-                fprintf(stderr, "ERROR: unable to allocate memory for args->row->fields[%zu]\n",
-                        args->row->numFields);
+            field[fieldIndex]      = '\0';
+            fields[row->numFields] = arena_alloc_string(args->arena, field);
+            if (!fields[row->numFields]) {
+                fprintf(stderr, "ERROR: unable to allocate memory for fields[%zu]\n", row->numFields);
                 return false;
             }
-
-            args->row->numFields++;
+            row->numFields++;
             fieldIndex = 0;
         } else {
             field[fieldIndex++] = args->line[i];
@@ -325,23 +326,21 @@ static bool parse_csv_line(LineArgs* args) {
 
     // If inside quotes at the end of the line, the line is not terminated
     if (insideQuotes) {
-        fprintf(stderr, "ERROR: unterminated quoted field:%s in line %zu\n", args->line,
-                args->rowIndex);
+        fprintf(stderr, "ERROR: unterminated quoted field:%s in line %zu\n", args->line, args->rowIndex);
         return false;
     }
 
     // Add the last field.
-    field[fieldIndex]                       = '\0';
-    args->row->fields[args->row->numFields] = arena_alloc_string(args->arena, field);
-    if (!args->row->fields[args->row->numFields]) {
-        fprintf(stderr, "ERROR: unable to allocate memory for args->row->fields[%zu]\n",
-                args->row->numFields);
+    field[fieldIndex]      = '\0';
+    fields[row->numFields] = arena_alloc_string(args->arena, field);
+    if (!fields[row->numFields]) {
+        fprintf(stderr, "ERROR: unable to allocate memory for fields[%zu]\n", row->numFields);
         return false;
     }
-    args->row->numFields++;
+    row->numFields++;
 
     // validate the number of fields
-    if (args->row->numFields != args->num_fields) {
+    if (row->numFields != args->num_fields) {
         fprintf(stderr, "ERROR: invalid number of fields in line %zu\n", args->rowIndex);
         return false;
     }
@@ -356,33 +355,32 @@ static size_t line_count(CsvParser* self) {
     char prevChar      = '\n';
     bool headerSkipped = false;
 
-    FILE* fp = file_fp(self->stream);
-    while (!feof(fp)) {
-        char c = (char)fgetc(fp);
+    while (!feof(self->stream)) {
+        char c = (char)fgetc(self->stream);
         if (c == EOF) {
             break;
         }
 
         // Ignore comment lines
         if (c == self->comment) {
-            while ((c = (char)fgetc(fp)) != EOF && c != '\n')
+            while ((c = (char)fgetc(self->stream)) != EOF && c != '\n')
                 ;
 
             // read the new line character at end of comment line
-            c = (char)fgetc(fp);
+            c = (char)fgetc(self->stream);
             continue;
         }
 
         // Skip the header line if it exists and hasn't been skipped yet
         if (self->has_header && self->skip_header && !headerSkipped && lines == 0) {
-            while ((c = (char)fgetc(fp)) != EOF && c != '\n')
+            while ((c = (char)fgetc(self->stream)) != EOF && c != '\n')
                 ;
             headerSkipped = true;
             continue;
         }
 
         if (c == '\n' && !isspace(prevChar)) {
-            char nextChar = (char)fgetc(fp);
+            char nextChar = (char)fgetc(self->stream);
             if (nextChar == EOF) {
                 break;
             }
@@ -393,7 +391,7 @@ static size_t line_count(CsvParser* self) {
             lines++;
 
             // Put back the character if it is not EOF
-            ungetc(nextChar, fp);
+            ungetc(nextChar, self->stream);
         } else if (!isspace(c)) {
             prevChar = c;
         }
@@ -404,7 +402,7 @@ static size_t line_count(CsvParser* self) {
         lines++;
     }
 
-    file_seek(self->stream, 0, SEEK_SET);
+    fseek(self->stream, 0, SEEK_SET);
     return lines;
 }
 
@@ -470,10 +468,7 @@ void csvwriter_free(CsvWriter* self) {
         return;
     }
 
-    if (self->stream) {
-        fclose(self->stream);
-    }
-
+    fclose(self->stream);
     free(self);
     self = NULL;
 }

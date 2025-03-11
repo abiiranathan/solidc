@@ -1,10 +1,11 @@
 #ifndef F3A813AA_9A33_453A_8622_F656C6A089F1
 #define F3A813AA_9A33_453A_8622_F656C6A089F1
 
+#include <stdio.h>
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-#include <stdio.h>
 
 // Node in the doubly linked list storing the data
 // and pointers to the next and previous nodes
@@ -67,9 +68,9 @@ void list_remove(list_t* list, void* elem);
 void list_clear(list_t* list);
 
 // Iteration
-#define list_foreach(list, node_data)                                                              \
-    for (list_node_t* node = list->head; node != NULL; node = node->next)                          \
-        for (int cont = 1; cont; cont = 0)                                                         \
+#define list_foreach(list, node_data)                                                                                  \
+    for (list_node_t* node = list->head; node != NULL; node = node->next)                                              \
+        for (int cont = 1; cont; cont = 0)                                                                             \
             for (void* node_data = node->data; cont; cont = 0)
 
 #if defined(__cplusplus)

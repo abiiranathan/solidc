@@ -10,13 +10,13 @@
 #define _GNU_SOURCE
 #endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #ifdef _WIN32
 #include <mswsock.h>
@@ -35,8 +35,9 @@ extern "C" {
 #endif
 
 // Socket abstraction that works on both Windows and Unix
-// On windows, you need to call initialize_winsock() before using any socket functions
-// and cleanup_winsock() after you are done using the socket functions.
+// On windows, you need to call initialize_winsock() before using any socket
+// functions and cleanup_winsock() after you are done using the socket
+// functions.
 typedef struct {
 #ifdef _WIN32
     SOCKET handle;
@@ -61,14 +62,13 @@ int socket_close(Socket* sock);
 // Returns 0 on success, -1 on error.
 int socket_bind(Socket* sock, const struct sockaddr* addr, socklen_t addrlen);
 
-// Listen for incoming connections. The backlog parameter is the maximum length of the queue of pending connections.
-// If the queue is full, the client will receive an ECONNREFUSED error.
-// Returns 0 on success, -1 on error.
+// Listen for incoming connections. The backlog parameter is the maximum length
+// of the queue of pending connections. If the queue is full, the client will
+// receive an ECONNREFUSED error. Returns 0 on success, -1 on error.
 int socket_listen(Socket* sock, int backlog);
 
 // Accept an incoming connection
-Socket* socket_accept(Socket* sock, struct sockaddr* addr, socklen_t* addrlen)
-    __attribute__((warn_unused_result));
+Socket* socket_accept(Socket* sock, struct sockaddr* addr, socklen_t* addrlen) __attribute__((warn_unused_result));
 
 // Connect to a remote socket
 int socket_connect(Socket* sock, const struct sockaddr* addr, socklen_t addrlen);

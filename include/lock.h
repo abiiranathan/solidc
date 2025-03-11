@@ -1,24 +1,10 @@
 #ifndef AB1DC3C5_00AA_4460_BD6A_65D8301B4779
 #define AB1DC3C5_00AA_4460_BD6A_65D8301B4779
-// Cross-platform function wrapper for syncronization primitives
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
 
 #ifdef _WIN32
 #include <windows.h>
-
-// Lock is a CRITICAL_SECTION
 typedef CRITICAL_SECTION Lock;
-
-// Condition is a CONDITION_VARIABLE
 typedef CONDITION_VARIABLE Condition;
-
 #else
 #include <pthread.h>
 
@@ -27,6 +13,10 @@ typedef pthread_mutex_t Lock;
 
 // Condition is a pthread_cond_t
 typedef pthread_cond_t Condition;
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 /// Initializes a lock

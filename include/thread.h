@@ -1,10 +1,6 @@
 #ifndef A8BA3E5B_9753_47B2_8F62_85E8A97F146F
 #define A8BA3E5B_9753_47B2_8F62_85E8A97F146F
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #if !defined(_GNU_SOURCE)
 #define _GNU_SOURCE  // for nanosleep
 #endif
@@ -19,6 +15,10 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 #ifdef _WIN32
@@ -46,8 +46,7 @@ int thread_attr_init(ThreadAttr* attr);
 int thread_attr_destroy(ThreadAttr* attr);
 
 // Create a new thread with attributes
-int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine start_routine,
-                       void* data);
+int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine start_routine, void* data);
 
 // Join a thread
 int thread_join(Thread tid, void** retval);
@@ -75,7 +74,7 @@ int get_tid(void);
 int get_ppid(void);
 
 // Get the number of CPU cores
-unsigned long get_ncpus(void);
+long get_ncpus(void);
 
 #ifndef _WIN32
 // Get the current user id

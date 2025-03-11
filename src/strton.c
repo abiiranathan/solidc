@@ -1,4 +1,5 @@
 #include "../include/strton.h"
+#include "../include/cmp.h"
 
 #include <errno.h>
 #include <float.h>
@@ -184,7 +185,7 @@ StoError sto_double(const char* str, double* result) {
     errno        = 0;
     *result      = strtod(str, &endptr);
 
-    if ((*result == DBL_MAX || *result == -DBL_MAX) && errno == ERANGE) {
+    if ((FLOAT_EQUAL(*result, (double)DBL_MAX) || FLOAT_EQUAL(*result, (double)-DBL_MAX)) && errno == ERANGE) {
         return STO_OVERFLOW;
     }
 
@@ -268,7 +269,7 @@ StoError sto_float(const char* str, float* result) {
     errno        = 0;
     *result      = strtof(str, &endptr);
 
-    if ((*result == FLT_MAX || *result == -FLT_MAX) && errno == ERANGE) {
+    if ((FLOAT_EQUAL(*result, (float)FLT_MAX) || FLOAT_EQUAL(*result, (float)-FLT_MAX)) && errno == ERANGE) {
         return STO_OVERFLOW;
     }
 

@@ -173,14 +173,14 @@ int slist_index_of(slist_t* list, void* elem) {
 void slist_insert_after(slist_t* list, void* elem, void* after) {
     int index = slist_index_of(list, after);
     if (index >= 0 && index < (int)list->size) {
-        slist_insert(list, index + 1, elem);
+        slist_insert(list, (size_t)index + 1, elem);
     }
 }
 
 void slist_insert_before(slist_t* list, void* elem, void* before) {
     int index = slist_index_of(list, before);
     if (index > 0 && index < (int)list->size) {
-        slist_insert(list, index - 1, elem);
+        slist_insert(list, (size_t)index - 1, elem);
     } else if (index == 0) {
         slist_push(list, elem);
     }

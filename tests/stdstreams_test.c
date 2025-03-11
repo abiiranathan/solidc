@@ -5,10 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define ASSERT(cond, msg)                                                                          \
-    if (!(cond)) {                                                                                 \
-        fprintf(stderr, "Assertion failed: %s\n", msg);                                            \
-        exit(1);                                                                                   \
+#define ASSERT(cond, msg)                                                                                              \
+    if (!(cond)) {                                                                                                     \
+        fprintf(stderr, "Assertion failed: %s\n", msg);                                                                \
+        exit(1);                                                                                                       \
     }
 
 void test_iocopy_n(void) {

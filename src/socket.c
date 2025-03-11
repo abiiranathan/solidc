@@ -8,11 +8,10 @@
 static void printLastErrorMessage(const char* prefix) {
     LPSTR errorText = NULL;
     // create format flags
-    DWORD flags =
-        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS;
+    DWORD flags = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS;
 
-    FormatMessageA(flags, NULL, WSAGetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                   (LPSTR)&errorText, 0, NULL);
+    FormatMessageA(
+        flags, NULL, WSAGetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errorText, 0, NULL);
 
     if (errorText != NULL) {
         fprintf(stderr, "%s failed with error %d: %s\n", prefix, WSAGetLastError(), errorText);
@@ -141,7 +140,8 @@ int socket_connect(Socket* sock, const struct sockaddr* addr, socklen_t addrlen)
 /*
 Read from a socket. Returns the number of bytes read, or -1 on error.
 buffer: Points to a buffer where the message should be stored.
-size: Specifies the length in bytes of the buffer pointed to by the buffer argument.
+size: Specifies the length in bytes of the buffer pointed to by the buffer
+argument.
 
 flags: Specifies the type of message reception.
 See man 2 recv for more information.
@@ -213,16 +213,14 @@ int socket_set_option(Socket* sock, int level, int optname, const void* optval, 
 int socket_reuse_port(Socket* sock, int enable) {
 #ifdef _WIN32
     // Enable SO_REUSEADDR
-    if (setsockopt(sock->handle, SOL_SOCKET, SO_REUSEADDR, (char*)&enable, sizeof(int)) ==
-        SOCKET_ERROR) {
+    if (setsockopt(sock->handle, SOL_SOCKET, SO_REUSEADDR, (char*)&enable, sizeof(int)) == SOCKET_ERROR) {
         perror("setsockopt");
         fprintf(stderr, "setsockopt SO_REUSEADDR failed\n");
         return 1;
     }
 
     // Enable SO_EXCLUSIVEADDRUSE
-    if (setsockopt(sock->handle, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char*)&enable, sizeof(int)) ==
-        SOCKET_ERROR) {
+    if (setsockopt(sock->handle, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char*)&enable, sizeof(int)) == SOCKET_ERROR) {
         perror("setsockopt");
         fprintf(stderr, "setsockopt SO_EXCLUSIVEADDRUSE failed\n");
         return 1;
@@ -260,7 +258,8 @@ int socket_type(Socket* sock) {
     return ret;
 }
 
-// Get the socket domain or type(address family, SOCK_STREAM or SOCK_DGRAM, for example).)
+// Get the socket domain or type(address family, SOCK_STREAM or SOCK_DGRAM, for
+// example).)
 int socket_family(Socket* sock) {
     int domain    = -1;
     socklen_t len = sizeof(domain);
@@ -308,10 +307,10 @@ A simple accept function using epoll:
 int Accept() {
     int client_fd;
     socklen_t client_len = sizeof(server_addr);
-    client_fd = socket_accept(server_fd, (struct sockaddr *)&server_addr, &client_len);
-    if (client_fd != -1) {
-    nonblocking(client_fd);
-    socket_epoll_ctl_add(epoll_fd, client_fd, &event, EPOLLIN | EPOLLET | EPOLLONESHOT);
+    client_fd = socket_accept(server_fd, (struct sockaddr *)&server_addr,
+&client_len); if (client_fd != -1) { nonblocking(client_fd);
+    socket_epoll_ctl_add(epoll_fd, client_fd, &event, EPOLLIN | EPOLLET |
+EPOLLONESHOT);
     }
     return client_fd;
 }
@@ -348,8 +347,9 @@ int socket_epoll_ctl_delete(int epoll_fd, int sock_fd) {
 
 // Wait for events on an epoll instance.
 // Returns the number of file descriptors ready for I/O, or -1
-// on error. Timeout can be -1 to block indefinitely, or 0 to return immediately.
-// Otherwise, it specifies the maximum number of milliseconds to wait.
+// on error. Timeout can be -1 to block indefinitely, or 0 to return
+// immediately. Otherwise, it specifies the maximum number of milliseconds to
+// wait.
 int socket_epoll_wait(int epoll_fd, struct epoll_event* events, int maxevents, int timeout) {
     return epoll_wait(epoll_fd, events, maxevents, timeout);
 }

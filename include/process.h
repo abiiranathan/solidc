@@ -1,99 +1,318 @@
-#ifndef A1A6896E_581A_42E7_8391_B3EA30D28307
-#define A1A6896E_581A_42E7_8391_B3EA30D28307
+/**
+ * @file process.h
+ * @brief A modern, cross-platform API for process management and IPC
+ */
+
+#ifndef PROCESS_H
+#define PROCESS_H
+
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
+#include <assert.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <fcntl.h>
+#include <signal.h>
+#include <sys/select.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 200809L  // for kill in signal.h
-#endif
+/**
+ * @brief Error codes for process operations
+ */
+typedef enum {
+    PROCESS_SUCCESS                 = 0,
+    PROCESS_ERROR_INVALID_ARGUMENT  = -1,
+    PROCESS_ERROR_FORK_FAILED       = -2,
+    PROCESS_ERROR_EXEC_FAILED       = -3,
+    PROCESS_ERROR_PIPE_FAILED       = -4,
+    PROCESS_ERROR_MEMORY            = -5,
+    PROCESS_ERROR_WAIT_FAILED       = -6,
+    PROCESS_ERROR_KILL_FAILED       = -7,
+    PROCESS_ERROR_PERMISSION_DENIED = -8,
+    PROCESS_ERROR_IO                = -9,
+    PROCESS_ERROR_UNKNOWN           = -10
+} ProcessError;
 
-// Include the necessary headers
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+/**
+ * @brief Standard IO stream types for redirection
+ */
+typedef enum { PROCESS_STREAM_STDIN = 0, PROCESS_STREAM_STDOUT = 1, PROCESS_STREAM_STDERR = 2 } ProcessStream;
 
-#ifdef _WIN32
-#include <io.h>       // for _pipe
-#include <process.h>  // for _execvp
-#include <windows.h>  // for CreateProcess, WaitForSingleObject, etc
-#else
-#include <sys/types.h>  // for pid_t
-#include <sys/wait.h>   // for waitpid, WIFEXITED, WEXITSTATUS
-#include <unistd.h>     // for pipe, fork, execvp etc
-#endif
+/**
+ * @brief Process handle type (platform-specific details hidden in implementation)
+ */
+typedef struct ProcessHandle ProcessHandle;
 
-// Helper macros for creating NULL terminated arrays
-#define ENV_ARRAY(...) ((const char* const[]){__VA_ARGS__, NULL})
-static const char* const DEFAULT_ENVP[] = {NULL};
+/**
+ * @brief Pipe handle type for IPC (platform-specific details hidden in implementation)
+ */
+typedef struct PipeHandle PipeHandle;
 
-// Cross-platform struct to represent a process.
-// On Unix, it is a simple integer representing the process id.
-// On Windows, it contains the process id, startup info and process info.
-typedef struct Process {
-#ifdef _WIN32
-    DWORD pid;               // Process id is similar to pi.dwProcessId
-    STARTUPINFO si;          // Start up info
-    PROCESS_INFORMATION pi;  // Process information
-#else
-    unsigned long pid;  // Process ID(long to match DWORD on Windows)
-#endif
-} Process;
+/**
+ * File redirection handle
+ */
+typedef struct FileRedirection FileRedirection;
 
-// Pipe end to close
-typedef enum PipeEnd { PIPE_END_READ = 1, PIPE_END_WRITE = 2, PIPE_END_BOTH = 3 } PipeEnd;
+/**
+ * @brief Options for process creation
+ */
+typedef struct {
+    const char* working_directory;   // NULL = inherit current
+    bool inherit_environment;        // If true, child inherits parent env
+    const char* const* environment;  // NULL-terminated array of "KEY=VALUE" strings
+    bool detached;                   // Run process in background (no wait by default)
 
-// Cross-platform struct to represent a pipe.
-// On Unix, it is a simple array of file descriptors.
-// On Windows, it contains the read and write handles.
-typedef struct PIPE {
-#ifdef _WIN32
-    HANDLE hReadPipe;   // Read handle
-    HANDLE hWritePipe;  // Write handle
-#else
-    int fd[2];
-#endif
-} PIPE;
+    // Stream redirection options
+    struct {
+        PipeHandle* stdin_pipe;   // NULL = inherit
+        PipeHandle* stdout_pipe;  // NULL = inherit
+        PipeHandle* stderr_pipe;  // NULL = inherit
+        bool merge_stderr;        // Redirect stderr to stdout
+    } io;
+} ProcessOptions;
 
-// =================== Pipe prototypes ===================
-// Open a pipe.
-int pipe_open(PIPE* pPipe);
+#ifndef _WIN32
+// Extend ProcessIO structure with file redirections
+typedef struct {
+    PipeHandle* stdin_pipe;   // stdin pipe
+    PipeHandle* stdout_pipe;  // stdout pipe
+    PipeHandle* stderr_pipe;  // stderr pipe
+    bool merge_stderr;        // whether to merge stdout and stderr.
 
-// Close a pipe, specifying which end to close.
-void pipe_close(PIPE* pPipe, PipeEnd endToClose);
+    FileRedirection* stdout_file;  // stdout redirections
+    FileRedirection* stderr_file;  // stderr redirections
+} ExtendedProcessIO;
 
-// Read from a pipe into a buffer.
-ssize_t pipe_read(PIPE* pPipe, void* buffer, size_t size);
+// Extended ProcessOptions to include extended IO
+typedef struct {
+    const char* working_directory;
+    bool inherit_environment;
+    char* const* environment;
+    bool detached;
+    ExtendedProcessIO io;
+} ExtProcessOptions;
 
-// Write to a pipe from a buffer.
-ssize_t pipe_write(PIPE* pPipe, const void* buffer, size_t size);
+#endif  // Linux only
 
-// ====================== Process functions ======================
+/**
+ * @brief Result information after a process completes
+ */
+typedef struct {
+    int exit_code;
+    bool exited_normally;
+    int term_signal;  // Only valid if !exited_normally
+} ProcessResult;
 
-/** Create a new process.
-* @param proc: Pointer to a Process struct
-* @param command: The command to run. If it contains a space, it must be quoted.
-* If envp[0] is NULL, the new process inherits the environment of the calling process.
-* by calling execvp(command, argv) on Unix or CreateProcess(NULL, command, ...) on Windows.
-* @param argv: Array of arguments to the command. The first argument should be the command itself.
-* The last argument must be NULL.
-* @param envp: Array of environment variables. The last argument must be NULL.
-* The envp array elements should be of the form "VAR=VALUE".
-* You can use helper macros ENV_ARRAY and DEFAULT_ENVP to create these arrays.
-* @return 0 if successful, -1 otherwise
-**/
-int process_create(Process* proc, const char* command, const char* const argv[],
-                   const char* const envp[]);
+/**
+ * @brief Create a new process
+ *
+ * @param[out] handle Pointer to receive the process handle
+ * @param[in] command Path to executable
+ * @param[in] argv NULL-terminated array of arguments (argv[0] should be command name)
+ * @param[in] options Process creation options (NULL for defaults)
+ * @return PROCESS_SUCCESS on success, error code otherwise
+ */
+ProcessError process_create(ProcessHandle** handle, const char* command, const char* const argv[],
+                            const ProcessOptions* options);
 
-// Wait for a process to exit
-int process_wait(Process* proc, int* status);
+/**
+ * @brief Wait for a process to complete
+ *
+ * @param[in] handle Process handle
+ * @param[out] result Pointer to receive exit information (can be NULL)
+ * @param[in] timeout_ms Timeout in milliseconds (-1 = wait indefinitely)
+ * @return PROCESS_SUCCESS on success, error code otherwise
+ */
+ProcessError process_wait(ProcessHandle* handle, ProcessResult* result, int timeout_ms);
 
-// Kill a process
-int process_kill(Process* proc);
+/**
+ * @brief Terminate a running process
+ *
+ * @param[in] handle Process handle
+ * @param[in] force If true, force immediate termination (SIGKILL/TerminateProcess)
+ * @return PROCESS_SUCCESS on success, error code otherwise
+ */
+ProcessError process_terminate(ProcessHandle* handle, bool force);
+
+/**
+ * @brief Free resources associated with a process handle
+ *
+ * @param[in] handle Process handle to free
+ */
+void process_free(ProcessHandle* handle);
+
+/**
+Returns True if pipe read closed.
+*/
+bool pipe_read_closed(PipeHandle* handle);
+
+/**
+Returns True if pipe write closed.
+*/
+bool pipe_write_closed(PipeHandle* handle);
+
+/**
+Returns the pipe write read descriptor.
+*/
+int pipe_read_fd(PipeHandle* handle);
+
+/**
+Returns the pipe write file descriptor.
+*/
+int pipe_write_fd(PipeHandle* handle);
+
+/**
+ * @brief Create a new pipe for IPC
+ *
+ * @param[out] pipe Pointer to receive the pipe handle
+ * @return PROCESS_SUCCESS on success, error code otherwise
+ */
+ProcessError pipe_create(PipeHandle** pipe);
+
+/**
+ * @brief Read data from a pipe
+ *
+ * @param[in] pipe Pipe handle
+ * @param[out] buffer Buffer to receive the data
+ * @param[in] size Buffer size
+ * @param[out] bytes_read Pointer to receive the number of bytes read (can be NULL)
+ * @param[in] timeout_ms Timeout in milliseconds (-1 = wait indefinitely)
+ * @return PROCESS_SUCCESS on success, error code otherwise
+ */
+ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* bytes_read, int timeout_ms);
+
+/**
+ * @brief Write data to a pipe
+ *
+ * @param[in] pipe Pipe handle
+ * @param[in] buffer Data to write
+ * @param[in] size Number of bytes to write
+ * @param[out] bytes_written Pointer to receive the number of bytes written (can be NULL)
+ * @param[in] timeout_ms Timeout in milliseconds (-1 = wait indefinitely)
+ * @return PROCESS_SUCCESS on success, error code otherwise
+ */
+ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_t* bytes_written, int timeout_ms);
+
+/**
+ * @brief Close a pipe
+ *
+ * @param[in] pipe Pipe handle to close
+ */
+void pipe_close(PipeHandle* pipe);
+
+/**
+ * @brief Get a string description of a process error
+ *
+ * @param[in] error Error code
+ * @return Human-readable error description
+ */
+const char* process_error_string(ProcessError error);
+
+/**
+ * @brief Run a command and capture its output
+ *
+ * Convenience function that creates a process, captures its output,
+ * waits for completion, and cleans up resources.
+ *
+ * @param[in] command Path to executable
+ * @param[in] argv NULL-terminated array of arguments
+ * @param[in] options Process creation options (NULL for defaults)
+ * @param[out] exit_code Pointer to receive the exit code (can be NULL)
+ * @return PROCESS_SUCCESS on success, error code otherwise
+ */
+ProcessError process_run_and_capture(const char* command, const char* const argv[], ProcessOptions* options,
+                                     int* exit_code);
+
+#ifndef _WIN32
+/**
+ * @brief Create a new file redirection for a process
+ *
+ * @param[out] redirection Pointer to store the created redirection
+ * @param[in] filepath Path to the file
+ * @param[in] flags File open flags (O_RDONLY, O_WRONLY, O_RDWR, etc.)
+ * @param[in] mode File mode for creation (if O_CREAT is used)
+ * @return ProcessError
+ */
+ProcessError process_redirect_to_file(FileRedirection** redirection, const char* filepath, int flags, int mode);
+
+/**
+ * @brief Create a file redirection from an existing file descriptor
+ *
+ * @param[out] redirection Pointer to store the created redirection
+ * @param[in] fd Existing file descriptor
+ * @param[in] close_on_exec Whether to close the FD when the process exits
+ * @return ProcessError
+ */
+ProcessError process_redirect_to_fd(FileRedirection** redirection, int fd, bool close_on_exec);
+
+/**
+ * @brief Close and free a file redirection
+ *
+ * @param redirection The redirection to close
+ */
+void process_close_redirection(FileRedirection* redirection);
+
+/**
+ * @brief Run the command in a process that duplicates output to multiple destinations.
+ *
+ * This function sets up a process whose output is duplicated to multiple files/pipes
+ *
+ * @param[out] result Will hold process exit information.
+ * @param[in] cmd Command to execute
+ * @param[in] argv Arguments (NULL-terminated)
+ * @param[in] output_fds Array of file descriptors to duplicate output to (NULL-terminated)
+ * @param[in] error_fds Array of file descriptors to duplicate errors to (NULL-terminated)
+ * @return ProcessError
+ */
+ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd, const char* args[], int output_fds[],
+                                          int error_fds[]);
+
+/**
+ * @brief Create a process with extended redirection options
+ *
+ * @param[out] handle Pointer to store the process handle
+ * @param[in] command Command to execute
+ * @param[in] argv Arguments for the command (NULL-terminated)
+ * @param[in] options Process options with extended IO
+ * @return ProcessError
+ */
+ProcessError process_create_with_redirection(ProcessHandle** handle, const char* command, const char* const argv[],
+                                             const ExtProcessOptions* options);
+
+/**
+ * @brief Create a process that redirects its output from stdout and/or stderr to files.
+ *
+ * @param[in] handle Pointer to process handle
+ * @param[in] command Command to run
+ * @param[in] argv Command arguments
+ * @param[in] stdout_file File to redirect stdout to, or NULL
+ * @param[in] stderr_file File to redirect stderr to, or NULL
+ * @param[in] append Whether to append to files (true) or overwrite (false)
+ * @return ProcessError
+ */
+ProcessError process_run_with_file_redirection(ProcessHandle** handle, const char* command, const char* const argv[],
+                                               const char* stdout_file, const char* stderr_file, bool append);
+
+#endif  // Linux only
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* A1A6896E_581A_42E7_8391_B3EA30D28307 */
+#endif /* PROCESS_H */

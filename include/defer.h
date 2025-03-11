@@ -13,6 +13,10 @@ Arch:          sudo pacman -S libdispatch
 */
 
 // ========== C++ implementation ================
+
+#include <stdio.h>
+#include <stdlib.h>
+
 #ifdef __cplusplus
 #include <utility>
 // Template class using RAII
@@ -20,7 +24,9 @@ template <typename F>
 struct Deferrer {
     F f;
     Deferrer(F&& f) : f(std::forward<F>(f)) {}
-    ~Deferrer() { f(); }
+    ~Deferrer() {
+        f();
+    }
 };
 
 #define _DEFER_CONCAT_IMPL(a, b) a##b
@@ -29,32 +35,26 @@ struct Deferrer {
 #define defer(...) auto _DEFER_CONCAT(__defer, __COUNTER__) = Deferrer([&]() { __VA_ARGS__ })
 
 #else
-
 #define _DEFER_CONCAT_IMPL(a, b) a##b
 #define _DEFER_CONCAT(a, b) _DEFER_CONCAT_IMPL(a, b)
-
-#include <stdio.h>
-#include <stdlib.h>
 
 #if defined(__GNUC__) && !defined(__clang__)
 typedef void (*defer_block)(void);
 // GCC/ICC
-#define defer_block_create(body)                                                                   \
-    ({                                                                                             \
-        void __fn__(void) body;                                                                    \
-        __fn__;                                                                                    \
+#define defer_block_create(body)                                                                                       \
+    ({                                                                                                                 \
+        void __fn__(void) body;                                                                                        \
+        __fn__;                                                                                                        \
     })
-#define defer(body)                                                                                \
-    defer_block __attribute((cleanup(do_defer))) _DEFER_CONCAT(__defer, __COUNTER__) =             \
-        defer_block_create(body)
+#define defer(body)                                                                                                    \
+    defer_block __attribute((cleanup(do_defer))) _DEFER_CONCAT(__defer, __COUNTER__) = defer_block_create(body)
 
 #elif defined(__clang__)
 // Clang/zig cc
 typedef void (^defer_block)(void);
 #define defer_block_create(body) ^body
-#define defer(body)                                                                                \
-    defer_block __attribute__((cleanup(do_defer))) _DEFER_CONCAT(__defer, __COUNTER__) =           \
-        defer_block_create(body)
+#define defer(body)                                                                                                    \
+    defer_block __attribute__((cleanup(do_defer))) _DEFER_CONCAT(__defer, __COUNTER__) = defer_block_create(body)
 #else
 #error "Compiler not compatible with defer library"
 #endif

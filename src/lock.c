@@ -1,10 +1,14 @@
-#include "../include/lock.h"
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 
 #include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+
+#include "../include/lock.h"
 
 #ifdef _WIN32
 void lock_init(Lock* lock) {
@@ -70,12 +74,14 @@ void lock_acquire(Lock* lock) {
         switch (ret) {
             case EDEADLK:
                 fprintf(stderr,
-                        "A deadlock condition was detected or the current thread already owns the "
+                        "A deadlock condition was detected or the current "
+                        "thread already owns the "
                         "mutex.\n");
                 break;
             case EINVAL:
                 fprintf(stderr,
-                        "The value specified by mutex does not refer to an initialized mutex "
+                        "The value specified by mutex does not refer to an "
+                        "initialized mutex "
                         "object.\n");
                 break;
             default:

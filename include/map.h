@@ -1,16 +1,16 @@
 #ifndef A02E572A_DD85_4D77_AC81_41037EDE290A
 #define A02E572A_DD85_4D77_AC81_41037EDE290A
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // Allow user to customize initial map size and load factor threshold
 #ifndef INITIAL_MAP_SIZE
@@ -33,7 +33,8 @@ typedef struct __attribute__((aligned(CACHE_LINE_SIZE))) entry {
 // Function pointer type for the key comparison.
 // The function should return true if the keys are equal.
 // This is necessary because the map does not know the size of the keys.
-// memcmp can be used for byte-wise comparison of keys if they are of a known size.
+// memcmp can be used for byte-wise comparison of keys if they are of a known
+// size.
 typedef bool (*key_compare_fn)(const void*, const void*);
 
 // Generic map implementation using xxhash as the hash function.
@@ -87,10 +88,10 @@ size_t map_capacity(map* m);
 
 entry* map_get_entries(map* m);
 
-#define map_foreach(map_ptr, e)                                                                    \
-    size_t capacity = map_capacity(map_ptr);                                                       \
-    entry* entries  = map_get_entries(map_ptr);                                                    \
-    for (entry * (e) = entries; (e) < entries + capacity; (e)++)                                   \
+#define map_foreach(map_ptr, e)                                                                                        \
+    size_t capacity = map_capacity(map_ptr);                                                                           \
+    entry* entries  = map_get_entries(map_ptr);                                                                        \
+    for (entry * (e) = entries; (e) < entries + capacity; (e)++)                                                       \
         if ((e)->key != NULL)
 
 // Function pointer for comparing 2 integers

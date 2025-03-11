@@ -42,8 +42,8 @@ bool readline(const char* prompt, char* buffer, size_t buffer_len) {
 // getpassword reads a password from the terminal with echo disabled.
 // If the prompt is not NULL, it is printed before reading the password.
 // uses termios on Linux and Windows API on Windows.
-// The password is stored in the buffer and the function returns the number of characters read or -1 on error.
-// The buffer is null-terminated.
+// The password is stored in the buffer and the function returns the number of
+// characters read or -1 on error. The buffer is null-terminated.
 int getpassword(const char* prompt, char* buffer, size_t buffer_len) {
 #ifdef _WIN32
     if (prompt) {
@@ -97,7 +97,7 @@ int getpassword(const char* prompt, char* buffer, size_t buffer_len) {
     }
 
     new = old;
-    new.c_lflag &= ~ECHO;
+    new.c_lflag &= (tcflag_t)~ECHO;
 
     if (tcsetattr(fileno(stdin), TCSAFLUSH, &new) != 0) {
         return -1;
@@ -180,8 +180,7 @@ stream_t create_file_stream(FILE* fp) {
 ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size) {
     ssize_t bytes_read = 0;
     int ch;
-    while ((ch = stream->read_char(stream->handle)) != EOF && ch != delim &&
-           bytes_read < (int)buffer_size - 1) {
+    while ((ch = stream->read_char(stream->handle)) != EOF && ch != delim && bytes_read < (int)buffer_size - 1) {
         buffer[bytes_read++] = (char)ch;
     }
 
@@ -219,7 +218,8 @@ unsigned long io_copy(stream_t writer, stream_t reader) {
     return total_written;
 }
 
-// Copy contents of one reader into writer, writing up to n bytes into the writer.
+// Copy contents of one reader into writer, writing up to n bytes into the
+// writer.
 unsigned long io_copy_n(stream_t writer, stream_t reader, size_t n) {
     char buffer[4096];
     unsigned long nread         = 0;
@@ -305,35 +305,26 @@ static size_t inner__string_stream_write(const void* ptr, size_t size, size_t co
     return bytes_written / size;
 }
 
-// seek implemented for string streams
 static int string_stream_seek(void* handle, long offset, int whence) {
     string_stream* ss = (string_stream*)handle;
-    size_t new_pos;
+    size_t length     = cstr_len(ss->str);
+    size_t new_pos    = ss->pos;
 
     switch (whence) {
         case SEEK_SET:
-            if (offset < 0 || (size_t)offset > cstr_len(ss->str)) {
+            if (offset < 0 || (size_t)offset > length)
                 return EOF;
-            }
-            new_pos = offset;
+            new_pos = (size_t)offset;
             break;
         case SEEK_CUR:
-            if (offset < 0 && (size_t)(-offset) > ss->pos) {
+            if ((offset < 0 && (size_t)(-offset) > ss->pos) || (offset > 0 && ss->pos + (size_t)offset > length))
                 return EOF;
-            }
-            new_pos = ss->pos + offset;
-            if (new_pos > cstr_len(ss->str)) {
-                return EOF;
-            }
+            new_pos += (size_t)offset;
             break;
         case SEEK_END:
-            if (offset < 0 && (size_t)(-offset) > cstr_len(ss->str)) {
+            if ((offset < 0 && (size_t)(-offset) > length) || (offset > 0))
                 return EOF;
-            }
-            new_pos = cstr_len(ss->str) + offset;
-            if (new_pos > cstr_len(ss->str)) {
-                return EOF;
-            }
+            new_pos = length + (size_t)offset;
             break;
         default:
             return EOF;

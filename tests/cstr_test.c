@@ -4,31 +4,31 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define ASSERT(cond, msg)                                                                          \
-    if (!(cond)) {                                                                                 \
-        printf("%s\n", msg);                                                                       \
-        exit(1);                                                                                   \
+#define ASSERT(cond, msg)                                                                                              \
+    if (!(cond)) {                                                                                                     \
+        printf("%s\n", msg);                                                                                           \
+        exit(1);                                                                                                       \
     }
 
-#define ASSERT_EQ(a, b, fmt, ...)                                                                  \
-    if ((a) != (b)) {                                                                              \
-        printf("Assertion failed: %s == %s\n", #a, #b);                                            \
-        printf(fmt, ##__VA_ARGS__);                                                                \
-        exit(1);                                                                                   \
+#define ASSERT_EQ(a, b, fmt, ...)                                                                                      \
+    if ((a) != (b)) {                                                                                                  \
+        printf("Assertion failed: %s == %s\n", #a, #b);                                                                \
+        printf(fmt, ##__VA_ARGS__);                                                                                    \
+        exit(1);                                                                                                       \
     }
 
-#define ASSERT_NE(a, b, fmt, ...)                                                                  \
-    if ((a) == (b)) {                                                                              \
-        printf("Assertion failed: %s != %s\n", #a, #b);                                            \
-        printf(fmt, ##__VA_ARGS__);                                                                \
-        exit(1);                                                                                   \
+#define ASSERT_NE(a, b, fmt, ...)                                                                                      \
+    if ((a) == (b)) {                                                                                                  \
+        printf("Assertion failed: %s != %s\n", #a, #b);                                                                \
+        printf(fmt, ##__VA_ARGS__);                                                                                    \
+        exit(1);                                                                                                       \
     }
 
-#define ASSERT_TRUE(cond, fmt, ...)                                                                \
-    if (!(cond)) {                                                                                 \
-        printf("Assertion failed: %s\n", #cond);                                                   \
-        printf(fmt, ##__VA_ARGS__);                                                                \
-        exit(1);                                                                                   \
+#define ASSERT_TRUE(cond, fmt, ...)                                                                                    \
+    if (!(cond)) {                                                                                                     \
+        printf("Assertion failed: %s\n", #cond);                                                                       \
+        printf(fmt, ##__VA_ARGS__);                                                                                    \
+        exit(1);                                                                                                       \
     }
 
 // Test functions
@@ -45,8 +45,7 @@ int main(void) {
     ASSERT(str2 != NULL, "Assertion failed on cstr2");
 
     ASSERT_EQ(cstr_len(str2), 13, "Expected length of 13 , got: %zu\n", cstr_len(str2));
-    ASSERT_EQ(strcmp(cstr_data(str2), "Hello, world!"), 0, "Expected 'Hello, world!', got: %s\n",
-              cstr_data(str2));
+    ASSERT_EQ(strcmp(cstr_data(str2), "Hello, world!"), 0, "Expected 'Hello, world!', got: %s\n", cstr_data(str2));
 
     // Test cstr_append_char
     cstr* str3 = cstr_new(arena, 0);
@@ -64,15 +63,14 @@ int main(void) {
     ASSERT(str4 != NULL, "Assertion failed");
     ASSERT_TRUE(cstr_append(arena, str4, "Hello, "), "Assertion failed");
     ASSERT_TRUE(cstr_append(arena, str4, "world!"), "Assertion failed");
-    ASSERT_EQ(strcmp(cstr_data(str4), "Hello, world!"), 0, "Expected 'Hello, world!', got: %s\n",
-              cstr_data(str4));
+    ASSERT_EQ(strcmp(cstr_data(str4), "Hello, world!"), 0, "Expected 'Hello, world!', got: %s\n", cstr_data(str4));
 
     // Test cstr_append_fmt
     cstr* str5 = cstr_new(arena, 0);
     ASSERT(str5 != NULL, "Assertion failed");
     ASSERT_TRUE(cstr_append_fmt(arena, str5, "The answer is %d", 42), "Assertion failed");
-    ASSERT_EQ(strcmp(cstr_data(str5), "The answer is 42"), 0,
-              "Expected 'The answer is 42', got: %s\n", cstr_data(str5));
+    ASSERT_EQ(
+        strcmp(cstr_data(str5), "The answer is 42"), 0, "Expected 'The answer is 42', got: %s\n", cstr_data(str5));
 
     // Test cstr_split
     cstr* str6 = cstr_from(arena, "Hello, world!");
@@ -183,15 +181,13 @@ int main(void) {
     cstr* str18    = cstr_from(arena, "Hello, world!");
     cstr* replaced = cstr_replace(arena, str18, "world", "universe!!!!!!!!!!!!!!!!!!!!!");
     printf("%s\n", cstr_data(replaced));
-    ASSERT(strcmp(cstr_data(replaced), "Hello, universe!!!!!!!!!!!!!!!!!!!!!!") == 0,
-           "Assertion failed");
+    ASSERT(strcmp(cstr_data(replaced), "Hello, universe!!!!!!!!!!!!!!!!!!!!!!") == 0, "Assertion failed");
 
     // Test cstr_replace_all
     cstr* str19        = cstr_from(arena, "Hello, world! Hello, world!");
     cstr* replaced_all = cstr_replace_all(arena, str19, "world", "universe");
     printf("%s\n", cstr_data(replaced_all));
-    ASSERT(strcmp(cstr_data(replaced_all), "Hello, universe! Hello, universe!") == 0,
-           "Assertion failed");
+    ASSERT(strcmp(cstr_data(replaced_all), "Hello, universe! Hello, universe!") == 0, "Assertion failed");
 
     // Test cstr_ltrim
     cstr* str20 = cstr_from(arena, "   Hello, world!   ");
