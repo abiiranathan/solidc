@@ -26,6 +26,9 @@ typedef struct stream* stream_t;
 // Create a stream from a file pointer
 stream_t create_file_stream(FILE* fp);
 
+// Read from file stream into ptr.
+size_t file_stream_read(stream_t s, void* restrict ptr, size_t size, size_t count);
+
 // Free a stream created with create_string_stream or create_file_stream
 // and close the underlying file FILE* streams.
 // If the underlying FILE* is stdin/stdout/stderr, they are not closed.
@@ -39,7 +42,6 @@ void stream_destroy(stream_t stream);
 ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size);
 
 typedef struct string_stream {
-    Arena* arena;
     cstr* str;
     size_t pos;
 } string_stream;

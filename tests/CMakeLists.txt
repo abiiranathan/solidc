@@ -15,8 +15,6 @@ target_link_libraries(arena_test pthread m)
 set(CSTR_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/cstr_test.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/cstr.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/arena.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
 )
 
 add_executable(cstr_test ${CSTR_SRCS})
@@ -143,13 +141,9 @@ set(STDSTREAMS_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/stdstreams_test.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/stdstreams.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/cstr.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/arena.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/filepath.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/file.c
 )
-
-
 
 add_executable(stdstreams_test ${STDSTREAMS_SRCS})
 if(TEST_STDIN)

@@ -5,7 +5,7 @@
 #include "../include/stdstreams.h"
 
 #include <float.h>
-#include <limits.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -160,6 +160,16 @@ static unsigned long file_read(void* handle, size_t size, size_t count, void* pt
     return fread(ptr, size, count, (FILE*)handle);
 }
 
+size_t file_stream_read(stream_t s, void* restrict ptr, size_t size, size_t count) {
+    if (s->type == FILE_STREAM) {
+        s->seek(s->handle, 0, SEEK_SET);
+        return fread(ptr, size, count, (FILE*)s->handle);
+    }
+
+    fprintf(stderr, "Reading from a non file stream\n");
+    return EOF;
+}
+
 stream_t create_file_stream(FILE* fp) {
     stream_t stream = malloc(sizeof(struct stream));
     if (!stream) {
@@ -245,7 +255,7 @@ static unsigned long inner_string_stream_read(void* handle, size_t size, size_t 
     (void)size;  // size is always 1 for a string
 
     string_stream* ss = (string_stream*)handle;
-    size_t string_len = cstr_len(ss->str);
+    size_t string_len = str_len(ss->str);
 
     if (count == 0 || ss->pos >= string_len) {
         return EOF;
@@ -263,7 +273,7 @@ static unsigned long inner_string_stream_read(void* handle, size_t size, size_t 
     }
 
     // Perform the read operation
-    char* data = (char*)cstr_data(ss->str);
+    char* data = (char*)str_data(ss->str);
     memcpy(ptr, data + ss->pos, count);
     ss->pos += count;
 
@@ -273,16 +283,16 @@ static unsigned long inner_string_stream_read(void* handle, size_t size, size_t 
 // implementation for reading a single character from a string
 static int string_stream_read_char(void* handle) {
     string_stream* ss = (string_stream*)handle;
-    if (ss->pos >= cstr_len(ss->str)) {
+    if (ss->pos >= str_len(ss->str)) {
         return EOF;
     }
-    return cstr_data(ss->str)[ss->pos++];
+    return str_data(ss->str)[ss->pos++];
 }
 
 // Returns whether the end of the string has been reached
 static int string_stream_eof(void* handle) {
     string_stream* ss = (string_stream*)handle;
-    return ss->pos >= cstr_len(ss->str);
+    return ss->pos >= str_len(ss->str);
 }
 
 // implementation for writing to a string. For a char *, size must be 1.
@@ -292,12 +302,12 @@ static size_t inner__string_stream_write(const void* ptr, size_t size, size_t co
     size_t total_bytes   = size * count;
     bool resized         = false;
 
-    resized = cstr_ensure_capacity(ss->arena, ss->str, cstr_len(ss->str) + total_bytes);
+    resized = str_resize(&ss->str, str_len(ss->str) + total_bytes);
     if (!resized) {
         return 0;
     }
 
-    char* data = (char*)cstr_data(ss->str);
+    char* data = (char*)str_data(ss->str);
     for (size_t i = 0; i < total_bytes; i++) {
         data[ss->pos++] = ((char*)ptr)[i];
         bytes_written++;
@@ -307,7 +317,7 @@ static size_t inner__string_stream_write(const void* ptr, size_t size, size_t co
 
 static int string_stream_seek(void* handle, long offset, int whence) {
     string_stream* ss = (string_stream*)handle;
-    size_t length     = cstr_len(ss->str);
+    size_t length     = str_len(ss->str);
     size_t new_pos    = ss->pos;
 
     switch (whence) {
@@ -344,15 +354,19 @@ int string_stream_write(stream_t stream, const char* str) {
     // copy over the string to the stream.
     // we don't have to increment the position.
     string_stream* ss = (string_stream*)stream->handle;
-    if (!cstr_append(ss->arena, ss->str, str)) {
+    if (!str_append(&ss->str, str)) {
         return -1;
     }
     return (int)strlen(str);
 }
 
 const char* string_stream_data(stream_t stream) {
-    string_stream* ss = (string_stream*)stream->handle;
-    return cstr_data(ss->str);
+    if (stream->type == STRING_STREAM) {
+        string_stream* ss = (string_stream*)stream->handle;
+        return str_data(ss->str);
+    } else {
+        return NULL;
+    }
 }
 
 static void inner__free_file_stream(stream_t stream) {
@@ -373,11 +387,6 @@ static void inner__free_string_stream(stream_t stream) {
         return;
 
     if (stream->handle) {
-        // free the underlying string
-        string_stream* ss = (string_stream*)stream->handle;
-        arena_destroy(ss->arena);
-
-        // free the stream handle
         free(stream->handle);
         stream->handle = NULL;
     }
@@ -414,17 +423,8 @@ stream_t create_string_stream(size_t initial_capacity) {
         return NULL;
     }
 
-    Arena* arena = arena_create(ARENA_DEFAULT_CHUNKSIZE);
-    if (arena == NULL) {
-        free(stream);
-        free(ss);
-        return NULL;
-    }
-
-    ss->arena = arena;
-    ss->str   = cstr_new(arena, initial_capacity);
+    ss->str = str_new(initial_capacity);
     if (ss->str == NULL) {
-        arena_destroy(arena);
         free(stream);
         free(ss);
         return NULL;
@@ -441,6 +441,3 @@ stream_t create_string_stream(size_t initial_capacity) {
     stream->type      = STRING_STREAM;
     return stream;
 }
-
-// Path: src/stdoutput.c
-// Compare this snippet from tests/stdinput_test.c

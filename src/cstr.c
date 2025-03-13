@@ -1,570 +1,402 @@
 #include "../include/cstr.h"
 
 #include <ctype.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef _WIN32
-#define strdup _strdup
-#define strtok_r strtok_s
-#endif
+// A dynamically resizable C-string.
+typedef struct cstr {
+    size_t length;    // The length of the string
+    size_t capacity;  // The capacity of the string
+    char data[];      // The string data as a flexible array member
+} cstr;
 
-// Create a new empty cstr with a default capacity.
-cstr* cstr_new(Arena* arena, size_t cap) {
-    if (cap == 0) {
-        cap = CSTR_MIN_CAPACITY;
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+size_t str_round_capacity(size_t capacity) {
+    size_t c = STR_MIN_CAPACITY;
+    while (c < capacity) {
+        c = (size_t)((double)c * STR_RESIZE_FACTOR);
     }
+    return c;
+}
 
-    // Create a new cstr object
-    cstr* str = (cstr*)arena_alloc(arena, sizeof(cstr));
-    if (!str) {
+cstr* str_new(size_t capacity) {
+    capacity = str_round_capacity(MAX(capacity, 1));
+    cstr* s  = malloc(sizeof(cstr) + capacity);
+    if (s) {
+        s->length   = 0;
+        s->capacity = capacity;
+        s->data[0]  = '\0';
+    }
+    return s;
+}
+
+cstr* str_from(const char* s) {
+    if (!s)
         return NULL;
-    }
 
-    // Allocate memory for the string data
-    str->data = (char*)arena_alloc(arena, cap);
-    if (!str->data) {
-        return NULL;
+    size_t len = strlen(s);
+    cstr* str  = str_new(len + 1);
+    if (str) {
+        memcpy(str->data, s, len + 1);
+        str->length = len;
     }
-
-    // Initialize the string
-    str->length   = 0;
-    str->capacity = cap;
-    str->data[0]  = '\0';
     return str;
 }
 
-// Create a new cstr from a C string using the default allocator.
-cstr* cstr_from(Arena* arena, const char* s) {
-    size_t len      = strlen(s);
-    size_t capacity = len + 1;
-
-    cstr* str = cstr_new(arena, capacity);
-    if (!str) {
-        return NULL;
-    }
-
-    memcpy(str->data, s, len);
-    str->data[len] = '\0';
-    str->length    = len;
-    return str;
-}
-
-// Ensure that the cstr has enough capacity.
-bool cstr_ensure_capacity(Arena* arena, cstr* str, size_t capacity) {
-    if (str->capacity >= capacity) {
-        return true;
-    }
-
-    // Reallocate memory for the string data
-    char* new_data = (char*)arena_realloc(arena, str->data, capacity);
-    if (!new_data) {
-        return false;
-    }
-
-    str->data     = new_data;
-    str->capacity = capacity;
-    return true;
-}
-
-// Append a character to the end of a cstr.
-bool cstr_append_char(Arena* arena, cstr* str, char c) {
-    if (!cstr_ensure_capacity(arena, str, str->length + 2)) {
-        return false;
-    }
-    str->data[str->length++] = c;
-    str->data[str->length]   = '\0';
-    return true;
-}
-
-// Append a string to the end of a cstr.
-bool cstr_append(Arena* arena, cstr* str, const char* s) {
-    if (!s) {
-        return false;
-    }
-
-    size_t s_len = strlen(s);
-    if (!cstr_ensure_capacity(arena, str, str->length + s_len + 1)) {
-        return false;
-    }
-
-    memcpy(str->data + str->length, s, s_len);
-    str->length += s_len;
-    str->data[str->length] = '\0';
-    return true;
-}
-
-// Get the length of a cstr.
-size_t cstr_len(const cstr* str) {
-    return str->length;
-}
-// Get the capacity of a cstr.
-size_t cstr_capacity(const cstr* str) {
-    return str->capacity;
-}
-
-// Append a formatted string to the cstr.
-bool cstr_append_fmt(Arena* arena, cstr* str, const char* fmt, ...) {
+cstr* str_format(const char* format, ...) {
     va_list args;
-    va_start(args, fmt);
+    va_start(args, format);
 
     // Get the required size for the formatted string
     va_list args_copy;
     va_copy(args_copy, args);
-    int size = vsnprintf(NULL, 0, fmt, args_copy);
+    int size = vsnprintf(NULL, 0, format, args_copy);
     va_end(args_copy);
 
     if (size < 0) {
-        return false;
+        va_end(args);
+        return NULL;
     }
 
-    // Ensure capacity in the cstr
-    if (!cstr_ensure_capacity(arena, str, str->length + (size_t)size + 1)) {
+    cstr* str = str_new((size_t)size + 1);
+    if (!str) {
         va_end(args);
-        return false;
+        return NULL;
     }
 
     // Append the formatted string
-    int n = vsnprintf(str->data + str->length, (size_t)size + 1, fmt, args);
-    if (n < 0) {
-        // Error occurred while formatting the string
-        va_end(args);
-        return false;
-    }
-
-    str->length += (size_t)size;
+    int written = vsnprintf(str->data, str->capacity, format, args);
     va_end(args);
-    return true;
+
+    if (written < 0 || (size_t)written >= str->capacity) {
+        // Handle error or truncation
+        str->length            = str->capacity - 1;
+        str->data[str->length] = '\0';
+    } else {
+        str->length = (size_t)written;
+    }
+
+    return str;
 }
 
-// Shrink the cstr to remove excess capacity.
-bool cstr_clip(Arena* arena, cstr* str) {
-    size_t new_capacity = (str)->length + 1;
-    if (new_capacity == str->capacity) {
-        return true;
+inline void str_free(cstr* s) {
+    if (s) {
+        free(s);
+        s = NULL;
     }
+}
 
-    if (str->length == 0) {
-        str->data[0] = '\0';
-        return true;
-    }
+inline size_t str_len(const cstr* s) {
+    return s ? s->length : 0;
+}
 
-    char* new_data = (char*)arena_realloc(arena, str->data, new_capacity);
-    if (!new_data) {
+inline size_t str_capacity(const cstr* s) {
+    return s ? s->capacity : 0;
+}
+
+bool str_empty(const cstr* s) {
+    return !s || s->length == 0;
+}
+
+bool str_resize(cstr** s, size_t capacity) {
+    if (!s || !*s) {
         return false;
     }
 
-    str->data     = new_data;
-    str->capacity = new_capacity;
+    if ((*s)->capacity >= capacity) {
+        return true;
+    }
+
+    capacity    = str_round_capacity(capacity);
+    cstr* new_s = realloc(*s, sizeof(cstr) + capacity);
+    if (!new_s) {
+        return false;
+    }
+    new_s->capacity = capacity;
+    *s              = new_s;
     return true;
 }
 
-// Get the C string representation of a cstr.
-char* cstr_data(const cstr* str) {
-    return str->data;
+bool str_append(cstr** s, const char* append) {
+    if (!s || !*s || !append)
+        return false;
+
+    size_t append_len = strlen(append);
+    if (!str_resize(s, (*s)->length + append_len + 1))
+        return false;
+
+    // Append the string and null-terminator
+    memcpy((*s)->data + (*s)->length, append, append_len + 1);
+    (*s)->length += append_len;
+    return true;
 }
 
-// Compare two cstrs.
-int cstr_compare(const cstr* str1, const cstr* str2) {
-    return strcmp(str1->data, str2->data);
-}
+bool str_append_fmt(cstr** s, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
 
-bool cstr_equals(const cstr* str1, const cstr* str2) {
-    return strcmp(str1->data, str2->data) == 0;
-}
+    // Get the required size for the formatted string
+    va_list args_copy;
+    va_copy(args_copy, args);
+    int size = vsnprintf(NULL, 0, format, args_copy);
+    va_end(args_copy);
 
-// Split the cstr into substrings based on a delimiter.
-cstr** cstr_split(Arena* arena, const cstr* str, char delimiter, size_t* num_splits) {
-    if (str == NULL || str->length == 0) {
-        return NULL;
+    if (size < 0)
+        return false;
+
+    if (!str_resize(s, (*s)->length + size + 1))
+        return false;
+
+    // Append the formatted string
+    int written = vsnprintf((*s)->data + (*s)->length, size + 1, format, args);
+    va_end(args);
+
+    if (written < 0 || written >= size) {
+        // Handle error or truncation
+        (*s)->length += size;
+        (*s)->data[(*s)->length] = '\0';
+    } else {
+        (*s)->length += written;
     }
 
-    // Count the number of substrings
-    size_t count = 0;
-    *num_splits  = 0;
-    for (size_t i = 0; i < str->length; i++) {
-        if (str->data[i] == delimiter) {
-            count++;
+    return true;
+}
+
+bool str_append_char(cstr** s, char c) {
+    if (!s || !*s)
+        return false;
+
+    if (!str_resize(s, (*s)->length + 2))
+        return false;
+
+    (*s)->data[(*s)->length++] = c;
+    (*s)->data[(*s)->length]   = '\0';
+    return true;
+}
+
+bool str_prepend(cstr** s, const char* prepend) {
+    if (!s || !*s || !prepend)
+        return false;
+
+    size_t prepend_len = strlen(prepend);
+    if (!str_resize(s, (*s)->length + prepend_len + 1))
+        return false;
+
+    memmove((*s)->data + prepend_len, (*s)->data, (*s)->length + 1);
+    memcpy((*s)->data, prepend, prepend_len);
+    (*s)->length += prepend_len;
+    return true;
+}
+
+bool str_insert(cstr** s, size_t index, const char* insert) {
+    if (!s || !*s || !insert || index > (*s)->length)
+        return false;
+
+    size_t insert_len = strlen(insert);
+    if (!str_resize(s, (*s)->length + insert_len + 1))
+        return false;
+
+    memmove((*s)->data + index + insert_len, (*s)->data + index, (*s)->length - index + 1);
+    memcpy((*s)->data + index, insert, insert_len);
+    (*s)->length += insert_len;
+    return true;
+}
+
+bool str_remove(cstr** s, size_t index, size_t count) {
+    if (!s || !*s || index >= (*s)->length)
+        return false;
+
+    count = MIN(count, (*s)->length - index);
+    memmove((*s)->data + index, (*s)->data + index + count, (*s)->length - index - count + 1);
+    (*s)->length -= count;
+    return true;
+}
+
+inline void str_clear(cstr* s) {
+    if (s) {
+        s->length  = 0;
+        s->data[0] = '\0';
+    }
+}
+
+size_t str_remove_all(cstr** s, const char* substr) {
+    if (!s || !*s || !substr)
+        return 0;
+
+    size_t substr_len = strlen(substr);
+    size_t count      = 0;
+    char* p           = (*s)->data;
+
+    while ((p = strstr(p, substr))) {
+        memmove(p, p + substr_len, (*s)->length - (p - (*s)->data) - substr_len + 1);
+        (*s)->length -= substr_len;
+        ++count;
+    }
+
+    return count;
+}
+
+inline char str_at(const cstr* s, size_t index) {
+    return (s && index < s->length) ? s->data[index] : '\0';
+}
+
+inline char* str_data(cstr* s) {
+    return s ? s->data : NULL;
+}
+
+// Get a string view of the data.
+str_view str_as_view(const cstr* s) {
+    str_view view = {NULL, 0};
+    if (s) {
+        view.data   = s->data;
+        view.length = s->length;
+    }
+    return view;
+}
+
+int str_compare(const cstr* s1, const cstr* s2) {
+    if (!s1 || !s2)
+        return s1 == s2 ? 0 : (s1 ? 1 : -1);
+    return strcmp(s1->data, s2->data);
+}
+
+bool str_equals(const cstr* s1, const cstr* s2) {
+    return str_compare(s1, s2) == 0;
+}
+
+bool str_starts_with(const cstr* s, const char* prefix) {
+    if (!s || !prefix)
+        return false;
+    size_t prefix_len = strlen(prefix);
+    return s->length >= prefix_len && memcmp(s->data, prefix, prefix_len) == 0;
+}
+
+bool str_ends_with(const cstr* s, const char* suffix) {
+    if (!s || !suffix)
+        return false;
+    size_t suffix_len = strlen(suffix);
+    return s->length >= suffix_len && memcmp(s->data + s->length - suffix_len, suffix, suffix_len) == 0;
+}
+
+int str_find(const cstr* s, const char* substr) {
+    if (!s || !substr)
+        return STR_NPOS;
+    char* found = strstr(s->data, substr);
+    return found ? (int)(found - s->data) : STR_NPOS;
+}
+
+int str_rfind(const cstr* s, const char* substr) {
+    if (!s || !substr || !*substr)
+        return STR_NPOS;
+
+    size_t substr_len = strlen(substr);
+    if (substr_len > s->length)
+        return STR_NPOS;
+
+    for (size_t i = s->length - substr_len + 1; i > 0; --i) {
+        if (memcmp(s->data + i - 1, substr, substr_len) == 0) {
+            return (int)(i - 1);
         }
     }
-    count++;  // Add 1 for the last substring
-    *num_splits = count;
-
-    // Allocate memory for the array of substrings
-    cstr** substrings = (cstr**)arena_alloc(arena, count * sizeof(cstr*));
-    if (substrings == NULL) {
-        return NULL;
-    }
-
-    // Special case for a single substring
-    if (count == 1) {
-        substrings[0] = cstr_from(arena, str->data);
-        return substrings;
-    }
-
-    // Split the string into substrings
-    size_t start           = 0;
-    size_t end             = 0;
-    size_t substring_index = 0;
-
-    for (size_t i = 0; i < str->length; i++) {
-        if (str->data[i] == delimiter || i == str->length - 1) {
-            end = i;
-
-            // Include the delimiter in the substring
-            if (i == str->length - 1) {
-                end = str->length;
-            }
-
-            size_t substring_len        = end - start + 1;
-            substrings[substring_index] = (cstr*)cstr_new(arena, substring_len);
-            if (substrings[substring_index] == NULL) {
-                return NULL;
-            }
-
-            strncpy(substrings[substring_index]->data, &str->data[start], substring_len);
-            (substrings[substring_index]->data)[substring_len - 1] = '\0';  // Add null terminator
-
-            // update the length of the substring
-            substrings[substring_index]->length = substring_len - 1;
-
-            substring_index++;
-            start = i + 1;
-        }
-    }
-    return substrings;
+    return STR_NPOS;
 }
 
-/**
- * @brief Splits a char* into an array of substrings based on a delimiter.
- *
- * @param str A pointer to the char* to split.
- * @param delimiter The delimiter character to split on.
- * @param count A pointer to a size_t variable that will store the number of
- * substrings found.
- * @return A pointer to an array of char* pointers, or NULL if allocation fails.
- */
-char** cstr_splitchar(const char* str, char delimiter, size_t* num_splits) {
-    if (str == NULL) {
-        return NULL;
+void str_to_lower(cstr* s) {
+    if (!s)
+        return;
+    for (size_t i = 0; i < s->length; ++i) {
+        s->data[i] = (char)tolower(s->data[i]);
     }
-
-    size_t len = strlen(str);
-    if (len == 0) {
-        return NULL;
-    }
-
-    size_t count = 0;
-    *num_splits  = 0;
-
-    // Count the number of substrings
-    for (size_t i = 0; i < len; i++) {
-        if (str[i] == delimiter) {
-            count++;
-        }
-    }
-    count++;  // Add 1 for the last substring
-    *num_splits = count;
-
-    // Allocate memory for the array of substrings
-    char** substrings = (char**)malloc(count * sizeof(char*));
-    if (substrings == NULL) {
-        return NULL;
-    }
-
-    // Special case for a single substring
-    if (count == 1) {
-        substrings[0] = strdup(str);
-        return substrings;
-    }
-
-    // Split the string into substrings
-    size_t start           = 0;
-    size_t end             = 0;
-    size_t substring_index = 0;
-
-    for (size_t i = 0; i < len; i++) {
-        if (str[i] == delimiter || i == len - 1) {
-            end = i;
-
-            // Include the delimiter in the substring
-            if (i == len - 1) {
-                end = len;
-            }
-
-            size_t substring_len        = end - start + 1;
-            substrings[substring_index] = (char*)malloc(substring_len);
-
-            if (substrings[substring_index] == NULL) {
-                // Free previously allocated memory
-                for (size_t j = 0; j < substring_index; j++) {
-                    free(substrings[j]);
-                }
-                free((void*)substrings);
-                return NULL;
-            }
-
-            strncpy(substrings[substring_index], &str[start], substring_len);
-            substrings[substring_index][substring_len - 1] = '\0';  // Add null terminator
-
-            substring_index++;
-            start = i + 1;
-        }
-    }
-
-    return substrings;
 }
 
-// Free an array of char* pointers.
-void cstr_free_array(char** substrings, size_t count) {
-    if (substrings == NULL) {
+void str_to_upper(cstr* s) {
+    if (!s)
+        return;
+    for (size_t i = 0; i < s->length; ++i) {
+        s->data[i] = (char)toupper(s->data[i]);
+    }
+}
+
+void str_snake_case(cstr* s) {
+    if (!s)
+        return;
+    for (size_t i = 0; i < s->length; ++i) {
+        if (isupper(s->data[i])) {
+            s->data[i] = (char)tolower(s->data[i]);
+            if (i > 0) {
+                str_insert(&s, i, "_");
+                ++i;
+            }
+        }
+    }
+}
+
+void str_camel_case(cstr* s) {
+    if (!s || s->length == 0) {
         return;
     }
-    for (size_t i = 0; i < count; i++) {
-        free(substrings[i]);
+
+    size_t read = 0, write = 0;
+    bool capitalize_next = false;
+
+    // First character should be lowercase
+    s->data[write++] = (char)tolower(s->data[read++]);
+
+    while (read < s->length) {
+        char c = s->data[read++];
+
+        if (c == ' ' || c == '_') {
+            capitalize_next = true;
+        } else if (capitalize_next) {
+            s->data[write++] = (char)toupper(c);
+            capitalize_next  = false;
+        } else {
+            s->data[write++] = (char)tolower(c);
+        }
     }
-    free((void*)substrings);
+
+    s->data[write] = '\0';
+    s->length      = write;
 }
 
-// Split a cstr into an array of cstrs by a given delimiter.
-// Returns an array of cstr pointers. It is not terminated by NULL.
-cstr** cstr_split_at(Arena* arena, const cstr* str, const char* delimiter, size_t initial_capacity, size_t* count) {
-    size_t capacity = initial_capacity;
-    cstr** tokens   = (cstr**)arena_alloc(arena, capacity * sizeof(cstr*));
-    if (!tokens) {
-        return NULL;
+void str_pascal_case(cstr* s) {
+    if (!s || s->length == 0) {
+        return;
     }
 
-    cstr* copy = cstr_from(arena, str->data);
-    if (!copy) {
-        return NULL;
+    size_t read = 0, write = 0;
+
+    // Start with true to capitalize the first letter
+    bool new_word = true;
+
+    while (read < s->length) {
+        char c = s->data[read++];
+
+        if (c == ' ' || c == '_') {
+            new_word = true;
+        } else if (new_word) {
+            s->data[write++] = (char)toupper(c);
+            new_word         = false;
+        } else if (isupper(c) && read < s->length && islower(s->data[read])) {
+            // If current char is uppercase and next char is lowercase,
+            // it's the start of a new word in camelCase
+            s->data[write++] = c;
+            new_word         = false;
+        } else {
+            s->data[write++] = (char)tolower(c);
+        }
     }
 
-    char* start        = copy->data;
-    size_t local_count = 0;
-
-    while (1) {
-        char* end = strstr(start, delimiter);
-        if (!end) {
-            // Add the last token to the array.
-            if (local_count == capacity) {
-                capacity *= 2;
-                cstr** new_tokens = (cstr**)arena_alloc(arena, capacity * sizeof(cstr*));
-                if (!new_tokens) {
-                    return NULL;
-                }
-                memcpy((void*)new_tokens, (void*)tokens, local_count * sizeof(cstr*));
-                tokens = new_tokens;
-            }
-
-            tokens[local_count] = cstr_from(arena, start);
-            if (tokens[local_count] == NULL) {
-                return NULL;
-            }
-
-            tokens[local_count]->length = strlen(start);
-            local_count++;
-            break;
-        }
-
-        size_t token_length = (unsigned long)(end - start);
-        if (local_count == capacity) {
-            capacity *= 2;
-            cstr** new_tokens = (cstr**)arena_alloc(arena, capacity * sizeof(cstr*));
-            if (!new_tokens) {
-                return NULL;
-            }
-            memcpy((void*)new_tokens, (void*)tokens, local_count * sizeof(cstr*));
-            tokens = new_tokens;
-        }
-
-        tokens[local_count] = (cstr*)arena_alloc(arena, sizeof(cstr));
-        if (!tokens[local_count]) {
-            return NULL;
-        }
-        tokens[local_count]->data = (char*)arena_alloc(arena, token_length + 1);
-        if (!tokens[local_count]->data) {
-            return NULL;
-        }
-        strncpy(tokens[local_count]->data, start, token_length);
-        tokens[local_count]->data[token_length] = '\0';
-        tokens[local_count]->length             = token_length;
-
-        local_count++;
-        start = end + strlen(delimiter);
-    }
-
-    *count = local_count;  // Set the count pointer to the local count value
-
-    return tokens;
+    s->data[write] = '\0';
+    s->length      = write;
 }
 
-// Join an array of cstr into a single cstr with a given separator.
-cstr* cstr_join(Arena* arena, cstr** strs, size_t count, const char* separator) {
-    if (count == 0) {
-        return cstr_from(arena, "");
-    }
-
-    // Calculate the total length of the joined string
-    size_t total_len = 0;
-    for (size_t i = 0; i < count; i++) {
-        total_len += strs[i]->length;
-    }
-    total_len += (count - 1) * strlen(separator);  // Add separator length
-
-    cstr* joined = cstr_new(arena, total_len + 1);
-    if (!joined) {
-        return NULL;
-    }
-
-    for (size_t i = 0; i < count; i++) {
-        if (!cstr_append(arena, joined, strs[i]->data)) {
-            return NULL;
-        }
-
-        // Do not append sep after the last string.
-        if (i < count - 1) {
-            if (!cstr_append(arena, joined, separator)) {
-                return NULL;
-            }
-        }
-    }
-    return joined;
-}
-
-// Get a substring from the cstr.
-cstr* cstr_substr(Arena* arena, const cstr* str, size_t start, size_t length) {
-    if (start >= str->length) {
-        return NULL;
-    }
-
-    if (start + length > str->length) {
-        length = str->length - start;
-    }
-
-    cstr* result = cstr_new(arena, str->length);
-    if (!result) {
-        return NULL;
-    }
-
-    for (size_t i = 0; i < length; ++i) {
-        if (!cstr_append_char(arena, result, str->data[start + i])) {
-            return NULL;
-        }
-    }
-    return result;
-}
-
-// Check if the cstr starts with a given prefix.
-bool cstr_starts_with(const cstr* str, const char* prefix) {
-    size_t prefix_len = strlen(prefix);
-    if (prefix_len > str->length) {
-        return false;
-    }
-
-    return strncmp(str->data, prefix, prefix_len) == 0;
-}
-
-// Check if the cstr ends with a given suffix.
-bool cstr_ends_with(const cstr* str, const char* suffix) {
-    size_t suffix_len = strlen(suffix);
-    if (suffix_len > str->length) {
-        return false;
-    }
-
-    return strncmp(str->data + str->length - suffix_len, suffix, suffix_len) == 0;
-}
-
-// // Regex matching using the regex library (requires linking with -lregex).
-// bool cstr_regex_match(const cstr* str, const char* pattern) {
-//   regex_t regex;
-//   int reti;
-
-//   reti = regcomp(&regex, pattern, REG_EXTENDED);
-//   if (reti) {
-//     // Error compiling the regex
-//     return false;
-//   }
-
-//   reti = regexec(&regex, str->data, 0, NULL, 0);
-//   regfree(&regex);
-
-//   if (!reti) {
-//     return true;
-//   } else if (reti == REG_NOMATCH) {
-//     return false;
-//   } else {
-//     // Error executing the regex
-//     return false;
-//   }
-// }
-
-// Prepend a string to the cstr.
-bool cstr_prepend(Arena* arena, cstr* str, const char* src) {
-    size_t src_len = strlen(src);
-    if (!cstr_ensure_capacity(arena, str, str->length + src_len + 1)) {
-        return false;
-    }
-
-    memmove(str->data + src_len, str->data, str->length + 1);
-    memcpy(str->data, src, src_len);
-    str->length += src_len;
-    return true;
-}
-
-// Convert the string to snake case.
-bool cstr_snakecase(Arena* arena, cstr* str) {
-    if (!cstr_ensure_capacity(arena, str, (str->length * 2) + 1)) {
-        return false;
-    }
-
-    size_t length = str->length;
-    char* data    = str->data;
-
-    // Convert first character to lowercase
-    data[0]            = (char)tolower(data[0]);
-    size_t space_count = 0;
-    char prev          = data[0];
-
-    for (size_t i = 1; i < length; i++) {
-        // Check if current character is a space
-        if (isspace(data[i])) {
-            space_count++;
-            continue;  // Skip spaces
-        }
-
-        // Check if current character is uppercase
-        if (isupper(data[i])) {
-            // Insert underscore before uppercase character
-            memmove(&data[i + 1 - space_count], &data[i - space_count], length - i + space_count);
-            data[i - space_count] = '_';
-            length++;
-            i++;  // Skip the inserted underscore
-        }
-
-        // Convert the character to lowercase
-        data[i - space_count] = (char)tolower(data[i]);
-
-        // Insert underscore before digit if preceded by a non-digit character
-        if (isdigit(data[i]) && !isdigit(prev)) {
-            memmove(&data[i + 1 - space_count], &data[i - space_count], length - i + space_count);
-            data[i - space_count] = '_';
-            length++;
-            i++;  // Skip the inserted underscore
-        }
-
-        prev = data[i];
-    }
-
-    // Trim the string to the new length
-    data[length - space_count] = '\0';
-    str->length                = length - space_count;
-    return true;
-}
-
-// Convert the string to title case.
-void cstr_titlecase(cstr* str) {
+void str_title_case(cstr* str) {
     int capitalize = 1;
     for (size_t i = 0; i < str->length; i++) {
         if (str->data[i] == ' ') {
@@ -578,208 +410,47 @@ void cstr_titlecase(cstr* str) {
     }
 }
 
-// Convert the string to camel case.
-bool cstr_camelcase(cstr* str) {
-    char* data    = str->data;
-    size_t length = str->length;
-    if (length == 0) {
-        return true;  // Empty string
-    }
-
-    int dest_index      = 0;
-    int capitalize      = 0;  // To check if the next character should be capitalized
-    int switch_to_upper = 0;  // To check if we should change the character to upper case
-
-    while (data[dest_index] != '\0') {
-        if (data[dest_index] == ' ' || data[dest_index] == '_') {
-            capitalize = 1;
-        } else if (capitalize) {
-            data[dest_index] = (char)toupper(data[dest_index]);
-            capitalize       = 0;
-        } else {
-            if (isupper(data[dest_index])) {
-                switch_to_upper = 1;
-            }
-            if (switch_to_upper) {
-                data[dest_index] = (char)toupper(data[dest_index]);
-                switch_to_upper  = 0;
-            } else {
-                data[dest_index] = (char)tolower(data[dest_index]);
-            }
-        }
-        dest_index++;
-    }
-
-    // Remove spaces and underscores from the string
-    size_t j = 0;
-    for (dest_index = 0; data[dest_index] != '\0'; dest_index++) {
-        if (data[dest_index] != ' ' && data[dest_index] != '_') {
-            data[j] = data[dest_index];
-            j++;
-        }
-    }
-
-    data[0] = (char)tolower(data[0]);
-    data[j] = '\0';
-
-    str->length = j;
-    return true;
-}
-
-// Convert the string to pascal case.
-bool cstr_pascalcase(cstr* str) {
-    if (!cstr_camelcase(str)) {
-        return false;
-    }
-    if (str->length > 0) {
-        str->data[0] = (char)toupper(str->data[0]);
-    }
-    return true;
-}
-
-cstr* cstr_replace(Arena* arena, const cstr* str, const char* old, const char* with) {
-    // Sanity checks and initialization
-    if (!str || !old || !with || strlen(old) == 0) {
-        return NULL;
-    }
-
-    size_t old_len  = strlen(old);
-    size_t len_with = strlen(with);
-
-    // Count the number of replacements needed
-    size_t numOccurrences      = 0;
-    const char* originalStrPtr = str->data;
-    while ((originalStrPtr = strstr(originalStrPtr, old))) {
-        ++numOccurrences;
-        originalStrPtr += old_len;
-    }
-
-    // Allocate memory for the new string
-    size_t result_len = str->length + ((len_with - old_len) * numOccurrences) + 1;
-    cstr* result      = cstr_new(arena, result_len);
-    if (!result) {
-        return NULL;
-    }
-
-    // Perform replacements
-    const char* original = str->data;
-    char* tmp            = result->data;
-    while (numOccurrences--) {
-        const char* substringLocation = strstr(original, old);
-
-        // Copy the part of the string before the old substring
-        size_t len_front = (size_t)(substringLocation - original);
-
-        // Copy the part of the string after the old substring
-        tmp = strncpy(tmp, original, len_front) + len_front;
-
-        // Copy the new substring
-        tmp = strcpy(tmp, with) + len_with;
-
-        // Move the original pointer to the end of the old substring
-        original += len_front + old_len;
-    }
-
-    // Copy the remaining part of the string
-    strcpy(tmp, original);
-
-    result->length = strlen(result->data);
-    return result;
-}
-
-// Replace all occurrences of a substring with another string
-cstr* cstr_replace_all(Arena* arena, const cstr* str, const char* old, const char* with) {
-    // Sanity checks and initialization
-    if (!str || !old || !with || strlen(old) == 0) {
-        return NULL;
-    }
-
-    size_t old_len  = strlen(old);
-    size_t len_with = strlen(with);
-
-    size_t numOccurrences      = 0;
-    const char* inputStringPtr = str->data;
-    while ((inputStringPtr = strstr(inputStringPtr, old))) {
-        ++numOccurrences;
-        inputStringPtr += old_len;
-    }
-
-    // Allocate memory for the new string
-    size_t result_len = str->length + (len_with - old_len) * numOccurrences + 1;
-    cstr* result      = cstr_new(arena, result_len);
-    if (!result) {
-        return NULL;
-    }
-
-    // Perform replacements
-    const char* originalString = str->data;
-    char* tmp                  = result->data;
-    while (numOccurrences--) {
-        const char* ins  = strstr(originalString, old);
-        size_t len_front = (size_t)(ins - originalString);
-        tmp              = strncpy(tmp, originalString, len_front) + len_front;
-        tmp              = strcpy(tmp, with) + len_with;
-        originalString += len_front + old_len;
-    }
-
-    // Copy the remaining part of the string
-    strcpy(tmp, originalString);
-
-    result->length = strlen(result->data);
-    return result;
-}
-
-// Remove leading whitespace characters from the string.
-void cstr_ltrim(cstr* str) {
-    if (str->length == 0) {
+void str_trim(cstr* s) {
+    if (!s || s->length == 0)
         return;
-    }
 
-    // Find the first non-whitespace character index in the string
-    size_t index = 0;
-    while (index < str->length && isspace(str->data[index])) {
-        index++;
-    }
+    size_t start = 0, end = s->length - 1;
+    while (start < s->length && isspace(s->data[start]))
+        ++start;
+    while (end > start && isspace(s->data[end]))
+        --end;
 
-    // Shift the string to the left
-    if (index > 0) {
-        memmove(str->data, str->data + index, str->length - index + 1);
-        str->length -= index;
-    }
+    s->length = end - start + 1;
+    memmove(s->data, s->data + start, s->length);
+    s->data[s->length] = '\0';
 }
 
-// Remove trailing whitespace characters from the string.
-void cstr_rtrim(cstr* str) {
-    if (str->length == 0) {
+void str_rtrim(cstr* s) {
+    if (!s || s->length == 0)
         return;
-    }
 
-    // Check if the string is all whitespace
-    if (str->length == 1 && isspace(str->data[0])) {
-        str->data[0] = '\0';
-        str->length  = 0;
+    size_t end = s->length - 1;
+    while (end > 0 && isspace(s->data[end]))
+        --end;
+
+    s->length          = end + 1;
+    s->data[s->length] = '\0';
+}
+
+void str_ltrim(cstr* s) {
+    if (!s || s->length == 0)
         return;
-    }
 
-    // Find the last non-whitespace character index in the string
-    size_t lastIndex = (str->length - 1);
-    while (isspace(str->data[lastIndex])) {
-        lastIndex--;
-    }
+    size_t start = 0;
+    while (start < s->length && isspace(s->data[start]))
+        ++start;
 
-    str->data[lastIndex + 1] = '\0';
-    str->length              = lastIndex + 1;
+    s->length -= start;
+    memmove(s->data, s->data + start, s->length);
+    s->data[s->length] = '\0';
 }
 
-// Remove leading and trailing whitespace characters from the string.
-void cstr_trim(cstr* str) {
-    cstr_ltrim(str);
-    cstr_rtrim(str);
-}
-
-// Remove leading and trailing characters from the string
-// that match any character in the given set.
-void cstr_trim_chars(cstr* str, const char* chars) {
+void str_trim_chars(cstr* str, const char* chars) {
     // Remove leading characters
     char* start = str->data;
     while (strchr(chars, *start)) {
@@ -799,7 +470,7 @@ void cstr_trim_chars(cstr* str, const char* chars) {
 }
 
 // Count the number of occurrences of a substring within the string.
-size_t cstr_count_substr(const cstr* str, const char* substr) {
+size_t str_count_substr(const cstr* str, const char* substr) {
     size_t count   = 0;
     size_t sub_len = strlen(substr);
     const char* p  = str->data;
@@ -811,9 +482,9 @@ size_t cstr_count_substr(const cstr* str, const char* substr) {
 }
 
 // Remove all occurrences of character c from str.
-void cstr_remove_char(char* str, char c) {
-    char* dest = str;
-    for (char* src = str; *src != '\0'; src++) {
+void str_remove_char(cstr* str, char c) {
+    char* dest = str->data;
+    for (char* src = str->data; *src != '\0'; src++) {
         if (*src != c) {
             *dest = *src;
             dest++;
@@ -823,7 +494,7 @@ void cstr_remove_char(char* str, char c) {
 }
 
 // Remove characters in str from start index, up to start + length.
-void cstr_remove_substr(cstr* str, size_t start, size_t substr_length) {
+void str_remove_substr(cstr* str, size_t start, size_t substr_length) {
     if (start >= str->length) {
         return;
     }
@@ -836,12 +507,206 @@ void cstr_remove_substr(cstr* str, size_t start, size_t substr_length) {
     str->length -= substr_length;
 }
 
-// Reverse the string str in place.
-void cstr_reverse(cstr* str) {
-    size_t len = str->length;
-    for (size_t i = 0; i < len / 2; i++) {
-        char temp              = str->data[i];
-        str->data[i]           = str->data[len - i - 1];
-        str->data[len - i - 1] = temp;
+cstr* str_substr(const cstr* s, size_t start, size_t length) {
+    if (!s || start >= s->length)
+        return NULL;
+
+    length       = MIN(length, s->length - start);
+    cstr* result = str_new(length + 1);
+    if (result) {
+        memcpy(result->data, s->data + start, length);
+        result->data[length] = '\0';
+        result->length       = length;
+    }
+    return result;
+}
+
+cstr* str_replace(const cstr* s, const char* old, const char* new) {
+    if (!s || !old || !new)
+        return NULL;
+
+    size_t old_len = strlen(old);
+    size_t new_len = strlen(new);
+    size_t count   = 0;
+    const char* p  = s->data;
+
+    while ((p = strstr(p, old))) {
+        ++count;
+        p += old_len;
+    }
+
+    size_t result_len = s->length + count * (new_len - old_len);
+    cstr* result      = str_new(result_len + 1);
+    if (!result)
+        return NULL;
+
+    char* dest = result->data;
+    p          = s->data;
+
+    while (*p) {
+        if (strncmp(p, old, old_len) == 0) {
+            memcpy(dest, new, new_len);
+            dest += new_len;
+            p += old_len;
+        } else {
+            *dest++ = *p++;
+        }
+    }
+
+    *dest          = '\0';
+    result->length = result_len;
+    return result;
+}
+
+cstr* str_replace_all(const cstr* s, const char* old, const char* new) {
+    if (!s || !old || !new)
+        return NULL;
+
+    size_t old_len = strlen(old);
+    size_t new_len = strlen(new);
+    size_t count   = 0;
+    const char* p  = s->data;
+
+    while ((p = strstr(p, old))) {
+        ++count;
+        p += old_len;
+    }
+
+    size_t result_len = s->length + count * (new_len - old_len);
+    cstr* result      = str_new(result_len + 1);
+    if (!result)
+        return NULL;
+
+    char* dest = result->data;
+    p          = s->data;
+
+    while (*p) {
+        if (strncmp(p, old, old_len) == 0) {
+            memcpy(dest, new, new_len);
+            dest += new_len;
+            p += old_len;
+        } else {
+            *dest++ = *p++;
+        }
+    }
+
+    *dest          = '\0';
+    result->length = result_len;
+    return result;
+}
+
+cstr** str_split(const cstr* s, const char* delim, size_t* count) {
+    if (!s || !delim || !count)
+        return NULL;
+
+    size_t delim_len  = strlen(delim);
+    size_t max_splits = s->length / delim_len + 1;
+    cstr** result     = malloc(max_splits * sizeof(cstr*));
+    if (!result)
+        return NULL;
+
+    *count            = 0;
+    const char* start = s->data;
+    const char* end   = s->data;
+
+    while ((end = strstr(start, delim))) {
+        size_t len     = end - start;
+        result[*count] = str_new(len + 1);
+        if (!result[*count]) {
+            for (size_t i = 0; i < *count; ++i)
+                str_free(result[i]);
+            free(result);
+            return NULL;
+        }
+        memcpy(result[*count]->data, start, len);
+        result[*count]->data[len] = '\0';
+        result[*count]->length    = len;
+        ++(*count);
+        start = end + delim_len;
+    }
+
+    size_t len     = s->data + s->length - start;
+    result[*count] = str_new(len + 1);
+    if (!result[*count]) {
+        for (size_t i = 0; i < *count; ++i)
+            str_free(result[i]);
+        free(result);
+        return NULL;
+    }
+    memcpy(result[*count]->data, start, len);
+    result[*count]->data[len] = '\0';
+    result[*count]->length    = len;
+    ++(*count);
+
+    return result;
+}
+
+cstr* str_join(const cstr** strings, size_t count, const char* delim) {
+    if (!strings || count == 0 || !delim)
+        return NULL;
+
+    size_t total_len = 0;
+    size_t delim_len = strlen(delim);
+
+    for (size_t i = 0; i < count; ++i) {
+        if (!strings[i])
+            return NULL;
+        total_len += strings[i]->length;
+    }
+    total_len += (count - 1) * delim_len;
+
+    cstr* result = str_new(total_len + 1);
+    if (!result)
+        return NULL;
+
+    char* dest = result->data;
+    for (size_t i = 0; i < count; ++i) {
+        if (i > 0) {
+            memcpy(dest, delim, delim_len);
+            dest += delim_len;
+        }
+        memcpy(dest, strings[i]->data, strings[i]->length);
+        dest += strings[i]->length;
+    }
+
+    *dest          = '\0';
+    result->length = total_len;
+    return result;
+}
+
+cstr* str_reverse(const cstr* s) {
+    if (!s || s->length == 0)
+        return NULL;
+
+    cstr* result = malloc(sizeof(cstr) + s->length + 1);
+    if (!result)
+        return NULL;
+
+    result->length   = s->length;
+    result->capacity = s->length + 1;
+
+    char* src  = (char*)s->data + s->length - 1;
+    char* dest = result->data;
+    size_t len = s->length;
+
+    while (len--) {
+        *dest++ = *src--;
+    }
+
+    *dest = '\0';
+    return result;
+}
+
+void str_reverse_in_place(cstr* s) {
+    if (!s || s->length < 2)
+        return;
+
+    char* start = s->data;
+    char* end   = s->data + s->length - 1;
+
+    while (start < end) {
+        char temp = *start;
+        *start++  = *end;
+        *end--    = temp;
     }
 }
