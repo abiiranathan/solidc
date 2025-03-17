@@ -10,6 +10,11 @@
 extern "C" {
 #endif
 
+#ifndef FLAG_MEMORY_LIMIT
+// Limit memory to 1MB
+#define FLAG_MEMORY_LIMIT (1 << 20)
+#endif
+
 #define FLAG_TYPES                                                                                                     \
     X(BOOL, bool)                                                                                                      \
     X(INT, int)                                                                                                        \

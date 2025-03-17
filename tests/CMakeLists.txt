@@ -28,7 +28,6 @@ set(FLAG_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/flag_test.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/flag.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/arena.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/lock.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/strton.c
 )
 
@@ -186,7 +185,6 @@ set(CSVPARSER_SRCS
 add_executable(csvparser_test ${CSVPARSER_SRCS})
 add_test(csvparser_test csvparser_test)
 target_link_libraries(csvparser_test pthread m)
-
 
 # Array test module
 set(ARRAY_SRCS

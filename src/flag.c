@@ -57,7 +57,7 @@ static char* PROGRAM_NAME = NULL;  // Program name, argv[0]
 
 // Initialize the global flag context.
 __attribute__((constructor())) static void flag_init(void) {
-    FLAG_ARENA = arena_create(ARENA_DEFAULT_CHUNKSIZE);
+    FLAG_ARENA = arena_create(FLAG_MEMORY_LIMIT);
     LOG_ASSERT(FLAG_ARENA, "arena allocation failed");
 
     ctx = FLAG_ALLOC(sizeof(FlagCtx));

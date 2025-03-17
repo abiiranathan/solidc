@@ -29,8 +29,13 @@ typedef struct ThreadData {
 
 void* arena_allocator(ThreadData* data) {
     // use thread-local arena.
-    arena_threadlocal(data->arena);
-    void* ptr = arena_alloc(NULL, data->size);
+    // arena_threadlocal(data->arena);
+    void* ptr = arena_alloc(data->arena, data->size);
+    if (ptr == NULL) {
+        fprintf(stderr, "arena_alloc failed\n");
+        exit(1);
+    }
+
     arena_reset(data->arena);
     return ptr;
 }
@@ -126,7 +131,7 @@ int main(int argc, char* argv[]) {
 
     for (int i = 0; i < NUM_THREADS; i++) {
         // 50MB per arena
-        arenas[i] = arena_create(ARENA_DEFAULT_CHUNKSIZE * 5);
+        arenas[i] = arena_create(1024 * 1024 * 50);
         if (arenas[i] == NULL) {
             printf("Error allocating arenas\n");
             return 1;

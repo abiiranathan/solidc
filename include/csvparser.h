@@ -17,7 +17,8 @@
 #pragma GCC diagnostic ignored "-Woverride-init"
 #endif
 
-#include "arena.h"
+#include <stdbool.h>
+#include <stddef.h>
 
 // C++ compatibility
 #ifdef __cplusplus
@@ -28,11 +29,8 @@ extern "C" {
 #define _GNU_SOURCE 1
 #endif
 
-#include <stdbool.h>
-#include <stddef.h>
-
 #ifndef CSV_ARENA_BLOCK_SIZE
-#define CSV_ARENA_BLOCK_SIZE 4096
+#define CSV_ARENA_BLOCK_SIZE (1 << 20)
 #endif
 
 #ifndef MAX_FIELD_SIZE
