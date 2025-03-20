@@ -54,9 +54,3 @@ int main() {
     return 0;
 }
 
-// 10000 -> 4 threads (Throughput: 339794.56 tasks/sec
-// Average Latency: 2.94 µs/task)
-
-// 1000000 -> 16 threads
-// Throughput: 338250.50 tasks/sec
-// Average Latency: 2.96 µs/task
