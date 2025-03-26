@@ -521,12 +521,12 @@ cstr* str_substr(const cstr* s, size_t start, size_t length) {
     return result;
 }
 
-cstr* str_replace(const cstr* s, const char* old, const char* new) {
-    if (!s || !old || !new)
+cstr* str_replace(const cstr* s, const char* old, const char* new_str) {
+    if (!s || !old || !new_str)
         return NULL;
 
     size_t old_len = strlen(old);
-    size_t new_len = strlen(new);
+    size_t new_len = strlen(new_str);
     size_t count   = 0;
     const char* p  = s->data;
 
@@ -545,7 +545,7 @@ cstr* str_replace(const cstr* s, const char* old, const char* new) {
 
     while (*p) {
         if (strncmp(p, old, old_len) == 0) {
-            memcpy(dest, new, new_len);
+            memcpy(dest, new_str, new_len);
             dest += new_len;
             p += old_len;
         } else {
@@ -558,12 +558,12 @@ cstr* str_replace(const cstr* s, const char* old, const char* new) {
     return result;
 }
 
-cstr* str_replace_all(const cstr* s, const char* old, const char* new) {
-    if (!s || !old || !new)
+cstr* str_replace_all(const cstr* s, const char* old, const char* new_str) {
+    if (!s || !old || !new_str)
         return NULL;
 
     size_t old_len = strlen(old);
-    size_t new_len = strlen(new);
+    size_t new_len = strlen(new_str);
     size_t count   = 0;
     const char* p  = s->data;
 
@@ -582,7 +582,7 @@ cstr* str_replace_all(const cstr* s, const char* old, const char* new) {
 
     while (*p) {
         if (strncmp(p, old, old_len) == 0) {
-            memcpy(dest, new, new_len);
+            memcpy(dest, new_str, new_len);
             dest += new_len;
             p += old_len;
         } else {

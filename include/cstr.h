@@ -170,10 +170,10 @@ void str_remove_char(cstr* str, char c);
 __attribute__((warn_unused_result)) cstr* str_substr(const cstr* s, size_t start, size_t length);
 
 // Replace the first occurrence of a substring in the string.
-__attribute__((warn_unused_result)) cstr* str_replace(const cstr* s, const char* old, const char* new);
+__attribute__((warn_unused_result)) cstr* str_replace(const cstr* s, const char* old, const char* new_str);
 
 // Replace all occurrences of a substring in the string.
-__attribute__((warn_unused_result)) cstr* str_replace_all(const cstr* s, const char* old, const char* new);
+__attribute__((warn_unused_result)) cstr* str_replace_all(const cstr* s, const char* old, const char* new_str);
 
 // ========== Splitting and joining ===========
 
