@@ -8,8 +8,8 @@
 #include <sys/mman.h>
 #endif
 
-#include "../include/arena_legacy.h"
 #include "../include/lock.h"
+#include "arena_legacy.h"
 
 #define CACHE_LINE_SIZE 64
 

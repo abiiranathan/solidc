@@ -1,13 +1,31 @@
 #include "../include/filepath.h"
 #include "../include/file.h"
+#include "../include/lock.h"
 
 #include <errno.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 // Length of the temporary directory prefix
 #define TEMP_PREF_PREFIX_LEN 12
+
+// Helper function for safer string copy
+static inline size_t safe_strlcpy(char* dst, const char* src, size_t size) {
+    if (!dst || !src || size == 0)
+        return 0;  // Input validation
+
+#ifdef _WIN32
+    size_t srclen = strnlen_s(src, size);  // safer string length check
+#else
+    size_t srclen = strnlen(src, size);
+#endif
+    size_t n = srclen < size - 1 ? srclen : size - 1;
+    memcpy(dst, src, n);
+    dst[n] = '\0';
+    return srclen;  // Returns original length
+}
 
 static void random_string(char* str, size_t len) {
     static int seeded = 0;
@@ -26,23 +44,42 @@ static void random_string(char* str, size_t len) {
 
 // Open a directory
 Directory* dir_open(const char* path) {
+    // Input validation
+    if (!path || *path == '\0') {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    // Allocate directory structure
     Directory* dir = (Directory*)malloc(sizeof(Directory));
     if (!dir) {
         perror("malloc");
         return NULL;
     }
+
+    // Store path
     dir->path = strdup(path);
     if (!dir->path) {
         perror("strdup");
         free(dir);
         return NULL;
     }
+
 #ifdef _WIN32
-    char search_path[FILENAME_MAX] = {0};
-    _snprintf(search_path, FILENAME_MAX, "%s\\*", path);
-    dir->handle = FindFirstFileA(search_path, &dir->find_data);
+    // Convert to wide char
+    wchar_t wpath[MAX_PATH];
+    if (!MultiByteToWideChar(CP_UTF8, 0, path, -1, wpath, MAX_PATH)) {
+        free(dir->path);
+        free(dir);
+        return NULL;
+    }
+
+    // Open directory
+    wchar_t search_path[MAX_PATH + 2];
+    swprintf(search_path, MAX_PATH + 2, L"%s\\*", wpath);
+
+    dir->handle = FindFirstFileW(search_path, &dir->find_data);
     if (dir->handle == INVALID_HANDLE_VALUE) {
-        perror("FindFirstFileA");
         free(dir->path);
         free(dir);
         return NULL;
@@ -50,7 +87,6 @@ Directory* dir_open(const char* path) {
 #else
     dir->dir = opendir(path);
     if (!dir->dir) {
-        perror("opendir");
         free(dir->path);
         free(dir);
         return NULL;
@@ -116,7 +152,6 @@ int dir_create(const char* path) {
     return ret;
 }
 
-// Remove a directory. Returns 0 if successful, -1 otherwise
 int dir_remove(const char* path) {
     int ret = -1;
 #ifdef _WIN32
@@ -193,6 +228,21 @@ cleanup:
     }
     dir_close(dir);
     return NULL;
+}
+
+// List all files in directory, recursively and passes the name in a callback.
+void dir_list_with_callback(const char* path, void (*callback)(const char* name)) {
+    Directory* dir = dir_open(path);
+    if (!dir) {
+        return;
+    }
+
+    char* name = NULL;  // Tracks the current file name
+    while ((name = dir_next(dir)) != NULL) {
+        callback(name);
+    }
+
+    dir_close(dir);
 }
 
 bool is_dir(const char* path) {
@@ -273,8 +323,12 @@ int dir_walk(const char* path, WalkDirCallback callback, void* data) {
         };
 
         ret = callback(fullpath, name, data);
+
         if (ret == DirStop) {
             break;  // Stop the walk
+        } else if (ret == DirError) {
+            dir_close(dir);
+            return -1;  // An error occured.
         } else if (ret == DirSkip) {
             continue;  // Skip the current entry
         } else if (ret == DirContinue && is_dir(fullpath)) {
@@ -297,8 +351,14 @@ static WalkDirOption dir_size_callback(const char* path, const char* name, void*
 
     ssize_t* size = (ssize_t*)data;
     if (is_file(path)) {
-        *size += file_size_char(path);
+        int64_t fs = get_file_size(path);
+        if (fs == -1) {
+            perror("get_file_size");
+            return DirError;
+        }
+        *size += fs;
     }
+
     // Continue walking the directory
     return DirContinue;
 }
@@ -378,16 +438,27 @@ bool filepath_makedirs(const char* path) {
 
 char* get_tempdir(void) {
 #ifdef _WIN32
-    char* temp = getenv("TEMP");  // Get the TEMP environment variable
-    if (!temp) {
-        temp = getenv("TMP");  // Try TMP if TEMP is not set
+    wchar_t wtemp[FILENAME_MAX];
+    DWORD ret = GetTempPathW(FILENAME_MAX, wtemp);
+    if (ret > FILENAME_MAX || ret == 0) {
+        fprintf(stderr, "get_tempdir: GetTempPathW failed.\n");
+        return NULL;
     }
+
+    // Convert to char
+    char* temp = (char*)malloc(FILENAME_MAX);
     if (!temp) {
-        temp = "C:\\Windows\\Temp";
+        perror("get_tempdir: malloc");
+        return NULL;
     }
-    return _strdup(temp);
+    wcstombs(temp, wtemp, FILENAME_MAX);
+    return temp;
 #else
-    return strdup("/tmp");
+    const char* temp = getenv("TMPDIR");
+    if (!temp) {
+        temp = "/tmp";
+    }
+    return strdup(temp);
 #endif
 }
 
@@ -400,39 +471,61 @@ char* make_tempfile(void) {
         return NULL;
     }
 
+    // Mutex for random string.
+    static Lock rand_lock;  // lock not destroyed.
+    static atomic_int initialized = 0;
+
+    if (!atomic_load(&initialized)) {
+        lock_init(&rand_lock);
+        srand((unsigned int)time(NULL));
+        atomic_store(&initialized, 1);
+    }
+
     // Generate a random pattern for the temporary file
     char pattern[TEMP_PREF_PREFIX_LEN + 7] = {0};  // +7 for XXXXXX and null terminator
+
+    lock_acquire(&rand_lock);
     random_string(pattern, sizeof(pattern) - 1);
+    lock_release(&rand_lock);
+
     // overwrite the last 6 characters with XXXXXX
-    strncpy(pattern + TEMP_PREF_PREFIX_LEN, "XXXXXX", 7);
+    safe_strlcpy(pattern + TEMP_PREF_PREFIX_LEN, "XXXXXX", 7);
 
-    // null terminate the string
-    pattern[sizeof(pattern) - 1] = '\0';
-
+    // join the path
     char* tmpfile = filepath_join(tmpdir, pattern);
     if (!tmpfile) {
         free(tmpdir);
         return NULL;
     }
 #ifdef _WIN32
-    // On Windows, use _mktemp to create a temporary file
-    // _mktemp_s returns 0 on success, an error code on failure
-    // 2nd argument is the length of the string
-    int err = _mktemp_s(tmpfile, strlen(tmpfile) + 1);
-    if (err != 0) {
-        perror("_mktemp_s");
+    wchar_t wtmpfile[FILENAME_MAX];
+    mbstowcs(wtmpfile, tmpfile, FILENAME_MAX);
+    if (errno == EILSEQ) {
+        fprintf(stderr, "make_tempfile: Invalid multibyte sequence.\n");
         free(tmpfile);
         free(tmpdir);
         return NULL;
     }
+
+    // Create temporary file, returns handle
+    int fd = _wcreat(wtmpfile, _S_IREAD | _S_IWRITE);
+    if (fd == -1) {
+        perror("make_tempfile: _wcreat");
+        free(tmpfile);
+        free(tmpdir);
+        return NULL;
+    }
+    _close(fd);  // close the file after created.
+
 #else
-    int ret = mkstemp(tmpfile);
-    if (ret == -1) {
-        perror("mkstemp");
+    int fd = mkstemp(tmpfile);
+    if (fd == -1) {
+        perror("make_tempfile: mkstemp");
         free(tmpfile);
         free(tmpdir);
         return NULL;
     }
+    close(fd);
 #endif
     free(tmpdir);
     return tmpfile;
@@ -449,29 +542,36 @@ char* make_tempdir(void) {
 
     // Generate a random pattern for the temporary file
     char pattern[TEMP_PREF_PREFIX_LEN + 7] = {0};  // +7 for XXXXXX and null terminator
-    random_string(pattern, sizeof(pattern) - 1);
-    // overwrite the last 6 characters with XXXXXX
-    strncpy(pattern + TEMP_PREF_PREFIX_LEN, "XXXXXX", 7);
 
-    // null terminate the string
-    pattern[sizeof(pattern) - 1] = '\0';
+    random_string(pattern, sizeof(pattern) - 1);
+
+    // overwrite the last 6 characters with XXXXXX
+    safe_strlcpy(pattern + TEMP_PREF_PREFIX_LEN, "XXXXXX", 7);
 
     char* tmp = filepath_join(tmpdir, pattern);
     if (!tmp) {
         free(tmpdir);
         return NULL;
     }
+
 #ifdef _WIN32
-    if (_mktemp_s(tmp, FILENAME_MAX) != 0) {
-        perror("_mktemp_s");
+    wchar_t wtmp[FILENAME_MAX];
+    mbstowcs(wtmp, tmp, FILENAME_MAX);
+    if (errno == EILSEQ) {
+        fprintf(stderr, "make_tempdir: Invalid multibyte sequence.\n");
+        free(tmp);
+        free(tmpdir);
+        return NULL;
+    }
+    if (_wmkdir(wtmp) != 0) {
+        perror("make_tempdir: _wmkdir");
         free(tmp);
         free(tmpdir);
         return NULL;
     }
 #else
-    // Returns a to the modified string or NULL on error
     if (mkdtemp(tmp) == NULL) {
-        perror("mkdtemp");
+        perror("make_tempdir: mkdtemp");
         free(tmp);
         free(tmpdir);
         return NULL;
@@ -482,8 +582,20 @@ char* make_tempdir(void) {
 }
 
 bool path_exists(const char* path) {
+    if (!path) {
+        fprintf(stderr, "path_exists: Path cannot be NULL.\n");
+        return false;
+    }
+
 #ifdef _WIN32
-    DWORD attr = GetFileAttributesA(path);
+    wchar_t wpath[FILENAME_MAX];
+    mbstowcs(wpath, path, FILENAME_MAX);
+    if (errno == EILSEQ) {
+        fprintf(stderr, "path_exists: Invalid multibyte sequence.\n");
+        return false;
+    }
+
+    DWORD attr = GetFileAttributesW(wpath);
     if (attr == INVALID_FILE_ATTRIBUTES) {
         return false;
     }
@@ -493,7 +605,7 @@ bool path_exists(const char* path) {
     if (stat(path, &st) != 0) {
         return false;
     }
-    return S_ISREG(st.st_mode);
+    return true;
 #endif
 }
 
@@ -502,6 +614,7 @@ void filepath_basename(const char* path, char* basename, size_t size) {
     if (!base) {
         base = strrchr(path, '\\');  // Windows
     }
+
     if (!base) {
         base = path;
     } else {

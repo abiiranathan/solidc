@@ -68,6 +68,9 @@ int dir_chdir(const char* path);
 // directory tree recursively and may be slow for large directories.
 char** dir_list(const char* path, size_t* count) __attribute__((warn_unused_result));
 
+// List all contents of the directory and passes the name of file/dir in a callback.
+void dir_list_with_callback(const char* path, void (*callback)(const char* name));
+
 // Returns true if the path is a directory
 bool is_dir(const char* path);
 
@@ -95,6 +98,7 @@ typedef enum WalkDirOption {
     DirContinue,  // Continue walking the directory recursively
     DirStop,      // Stop traversal and return from dir_walk
     DirSkip,      // Skip the current entry and continue traversal.
+    DirError,     // An error occured.
 } WalkDirOption;
 
 // Walk the directory path, for each entry call the callback.

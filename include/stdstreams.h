@@ -27,7 +27,7 @@ typedef struct stream* stream_t;
 stream_t create_file_stream(FILE* fp);
 
 // Read from file stream into ptr.
-size_t file_stream_read(stream_t s, void* restrict ptr, size_t size, size_t count);
+size_t file_stream_read(stream_t s, void* ptr, size_t size, size_t count);
 
 // Free a stream created with create_string_stream or create_file_stream
 // and close the underlying file FILE* streams.
