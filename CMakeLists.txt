@@ -1,84 +1,143 @@
 cmake_minimum_required(VERSION 3.30.0)
-project(solidc VERSION 0.2.0 LANGUAGES C)
+project(solidc VERSION 0.2.5 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
-# set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--no-warn-execstack")
-# set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-warn-execstack")
-# set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,--no-warn-execstack")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 option(BUILD_TESTS "Build the tests" ON)
+option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
 include(GNUInstallDirs)
 include(CTest)
 enable_testing()
 
-# Source files as all .c files in the src directory
-file(GLOB SOURCES "src/*.c")
-
-# Header files as all .h files in the include directory
-file(GLOB HEADERS "include/*.h")
-
-# Include our main solidc library.
-# Can pass -DBUILD_SHARED_LIB to build a shared library
-add_library(solidc ${SOURCES})
-target_link_libraries(solidc PUBLIC m)
-
-if(WIN32)
-    set(THREAD_LIB "kernel32")
-    target_link_libraries(solidc PUBLIC kernel32)
-else()
-    set(THREAD_LIB "-pthread")
-    target_link_libraries(solidc PUBLIC pthread)
-endif()
-
-# Include the include directory
-target_include_directories(solidc PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include/solidc>
+# Header files
+set(HEADERS 
+    include/arena.h
+    include/cstr.h
+    include/csvparser.h
+    include/file.h
+    include/filepath.h
+    include/flag.h
+    include/hash.h
+    include/list.h
+    include/lock.h
+    include/map.h
+    include/pipeline.h
+    include/process.h
+    include/slist.h
+    include/socket.h
+    include/stdstreams.h
+    include/strton.h
+    include/thread.h
+    include/threadpool.h
+    include/unicode.h
+    include/defer.h
 )
 
-# Configure the target to use the CC23 standard
-target_compile_options(solidc PRIVATE -Wall -Wextra -pedantic -Werror -std=c23 -Wl,--no-warn-execstack)
+# Source files
+set(SOURCES
+    src/arena.c
+    src/cstr.c
+    src/csvparser.c
+    src/file.c
+    src/filepath.c
+    src/flag.c
+    src/hash.c
+    src/list.c
+    src/lock.c
+    src/map.c
+    src/pipeline.c
+    src/process.c
+    src/slist.c
+    src/socket.c
+    src/stdstreams.c
+    src/strton.c
+    src/thread.c
+    src/threadpool.c
+    src/unicode.c
+)
 
-if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
-    target_compile_options(solidc PUBLIC -Wno-gnu-zero-variadic-macro-arguments -fblocks)
-    target_link_libraries(solidc PUBLIC BlocksRuntime)
-elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+# Create the library
+add_library(solidc ${SOURCES})
+add_library(solidc::solidc ALIAS solidc)
+
+# Headers
+target_include_directories(solidc PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include/>
+)
+
+# Platform-specific settings
+if(WIN32)
+    # Windows-specific compiler flags
+    target_compile_definitions(solidc PRIVATE 
+        _CRT_SECURE_NO_WARNINGS
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+    )
+    
+    # Windows-specific linker flags
+    target_link_libraries(solidc PUBLIC kernel32 ws2_32 advapi32)
+    
+    # Disable warnings that are too noisy on MSVC
+    if(MSVC)
+        target_compile_options(solidc PRIVATE
+            /W4
+            /wd4201  # nameless struct/union
+            /wd4996  # POSIX name deprecated
+        )
+    endif()
+else()
+    # Unix-like compiler flags
+    target_link_libraries(solidc PUBLIC m pthread)
+    
+    # Common warnings for GCC/Clang
+    target_compile_options(solidc PRIVATE
+        -Wall
+        -Wextra
+        -pedantic
+        -Werror
+        -std=c23
+    )
+    
+    # Security hardening in Release mode
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        target_compile_options(epollix PUBLIC -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE -fPIC)
+        target_compile_options(solidc PRIVATE
+            -fstack-protector-strong
+            -D_FORTIFY_SOURCE=2
+            -fPIE
+            -fPIC
+        )
+        target_link_options(solidc PRIVATE
+            -pie
+        )
+    endif()
+    
+    # Clang-specific settings
+    if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+        target_compile_options(solidc PRIVATE 
+            -Wno-gnu-zero-variadic-macro-arguments
+            -fblocks
+        )
+        target_link_libraries(solidc PRIVATE BlocksRuntime)
     endif()
 endif()
 
-# Explicitly install headers
-install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/solidc)
-
-# Install the target library
-install(TARGETS solidc LIBRARY DESTINATION lib)
-
-# Add the tests
-if(BUILD_TESTS)
-    add_subdirectory(tests)
-endif()
-
-add_subdirectory(benchmarks)
-
-# # ========== Installations ==========
+# Installation: headers and library
 install(TARGETS solidc
     EXPORT solidc_export
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/solidc
+)
 
-install(EXPORT solidc_export
-    FILE solidcTargets.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/solidc)
+install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/solidc)
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/solidcConfig.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/solidc)
-
-# Generate the configuration file for the library
+# Export config
 include(CMakePackageConfigHelpers)
 
 write_basic_package_version_file(
@@ -93,14 +152,32 @@ configure_package_config_file(
     INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/solidc
 )
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/solidcConfigVersion.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/solidc)
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/solidcConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/solidcConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/solidc
+)
 
-# Generate the .pc file for pkg-config
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/solidc.pc.in
-    ${CMAKE_CURRENT_BINARY_DIR}/solidc.pc
-    @ONLY)
+install(EXPORT solidc_export
+    FILE solidcTargets.cmake
+    NAMESPACE solidc::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/solidc
+)
 
-# Install the .pc file
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/solidc.pc
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+# Pkg-config - only on Unix-like systems
+if(NOT WIN32)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/solidc.pc.in
+        ${CMAKE_CURRENT_BINARY_DIR}/solidc.pc @ONLY)
+    
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/solidc.pc
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+endif()
+
+# Tests and benchmarks
+if(BUILD_TESTS)
+    add_subdirectory(tests)
+endif()
+
+if(NOT WIN32)
+    add_subdirectory(benchmarks)
+endif()

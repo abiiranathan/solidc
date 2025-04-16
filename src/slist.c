@@ -1,6 +1,6 @@
+#include "../include/slist.h"
 #include <stdlib.h>
 #include <string.h>
-#include "../include/slist.h"
 
 slist_t* slist_new(size_t elem_size) {
     slist_t* list = (slist_t*)malloc(sizeof(slist_t));

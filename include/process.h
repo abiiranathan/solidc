@@ -11,17 +11,16 @@
 #endif
 
 #include <assert.h>
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 #ifdef _WIN32
+#include <io.h>
 #include <windows.h>
 #else
 #include <fcntl.h>
-#include <signal.h>
 #include <sys/select.h>
 #include <sys/types.h>
 #include <sys/wait.h>

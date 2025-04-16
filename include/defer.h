@@ -12,12 +12,23 @@ Arch:          sudo pacman -S libdispatch
 ================================================================================
 */
 
-// ========== C++ implementation ================
+//******************************************************************************
+//*                                                                            *
+//*                           C++ IMPLEMENTATION                               *
+//*                                                                            *
+//******************************************************************************
 
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef _WIN32
+#define ATTR_UNUSED
+#else
+#define ATTR_UNUSED __attribute__((__unused__))
+#endif
+
 #ifdef __cplusplus
+#include <functional>
 #include <utility>
 // Template class using RAII
 template <typename F>
@@ -32,9 +43,15 @@ struct Deferrer {
 #define _DEFER_CONCAT_IMPL(a, b) a##b
 #define _DEFER_CONCAT(a, b) _DEFER_CONCAT_IMPL(a, b)
 
-#define defer(...) auto _DEFER_CONCAT(__defer, __COUNTER__) = Deferrer([&]() { __VA_ARGS__ })
+#define defer(block) auto _DEFER_CONCAT(__defer, __COUNTER__) = Deferrer<std::function<void()>>([&]() { block; })
 
 #else
+//******************************************************************************
+//*                                                                            *
+//*                           C IMPLEMENTATION                                 *
+//*                                                                            *
+//******************************************************************************
+
 #define _DEFER_CONCAT_IMPL(a, b) a##b
 #define _DEFER_CONCAT(a, b) _DEFER_CONCAT_IMPL(a, b)
 
@@ -46,26 +63,38 @@ typedef void (*defer_block)(void);
         void __fn__(void) body;                                                                                        \
         __fn__;                                                                                                        \
     })
-#define defer(body)                                                                                                    \
-    defer_block __attribute((cleanup(do_defer))) _DEFER_CONCAT(__defer, __COUNTER__) = defer_block_create(body)
+#define defer(block)                                                                                                   \
+    defer_block __attribute((cleanup(do_defer))) _DEFER_CONCAT(__defer, __COUNTER__) = defer_block_create(block)
 
 #elif defined(__clang__)
 // Clang/zig cc
 typedef void (^defer_block)(void);
 #define defer_block_create(body) ^body
-#define defer(body)                                                                                                    \
-    defer_block __attribute__((cleanup(do_defer))) _DEFER_CONCAT(__defer, __COUNTER__) = defer_block_create(body)
+#define defer(block)                                                                                                   \
+    defer_block __attribute__((cleanup(do_defer))) _DEFER_CONCAT(__defer, __COUNTER__) = defer_block_create(block)
+#elif defined(_MSC_VER)
+// MSVC Implementation using try-finally
+
+#define defer(block)                                                                                                   \
+    __try {                                                                                                            \
+    } __finally {                                                                                                      \
+        block;                                                                                                         \
+    }
 #else
 #error "Compiler not compatible with defer library"
 #endif
 
-__attribute_maybe_unused__ static inline void do_defer(defer_block* ptr) {
+ATTR_UNUSED static inline void do_defer(defer_block* ptr) {
     (*ptr)();
 }
 
 #endif
 
-// Automatic memory management
+//******************************************************************************
+//*                                                                            *
+//*                 AUTOMATIC MEMORY MANAGEMENT                                *
+//*                                                                            *
+//******************************************************************************
 // ============================
 
 #ifdef __cplusplus
@@ -80,31 +109,27 @@ extern "C" {
 #endif
 
 #if !defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
+#ifndef _MSC_VER
 #error "__attribute__(cleanup) is only supported in GCC, Clang and icc & icx compilers."
+#endif
 #endif
 
 #define autofree __attribute__((cleanup(automem_free)))
 #define autoclose __attribute__((cleanup(autoclose_file)))
 #define autoclean(func) __attribute__((cleanup(func)))
 
-__attribute_maybe_unused__ static inline void automem_free(void* ptr) {
-    if (!ptr)
+ATTR_UNUSED static inline void automem_free(void* ptr) {
+    if (!ptr) {
         return;
-    void** p = (void**)ptr;
-    if (*p) {
-        free(*p);
-        *p = NULL;
     }
+    free(ptr);
 }
 
-__attribute_maybe_unused__ static inline void autoclose_file(void* ptr) {
+ATTR_UNUSED static inline void autoclose_file(void* ptr) {
     if (!ptr)
         return;
-    FILE** p = (FILE**)ptr;
-    if (*p) {
-        fclose(*p);
-        *p = NULL;
-    }
+    FILE* p = (FILE*)ptr;
+    fclose(p);
 }
 
 #ifdef __cplusplus

@@ -68,7 +68,7 @@ void sleep_ms(int ms);
 int get_pid(void);
 
 // Get the current thread id
-int get_tid(void);
+unsigned long get_tid(void);
 
 // Get the parent process id
 int get_ppid(void);

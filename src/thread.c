@@ -156,11 +156,11 @@ int get_pid(void) {
 }
 
 // Get the current thread id
-int get_tid(void) {
+unsigned long get_tid(void) {
 #ifdef _WIN32
-    return (int)GetCurrentThreadId();
+    return (unsigned long)GetCurrentThreadId();
 #else
-    return (int)pthread_self();
+    return pthread_self();
 #endif
 }
 

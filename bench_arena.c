@@ -11,7 +11,7 @@
 #include "include/arena.h"
 
 // Number of iterations for each benchmark
-#define NUM_ITERATIONS 5
+#define NUM_ITERATIONS 64
 
 #ifndef NUM_THREADS
 #define NUM_THREADS 4
@@ -130,8 +130,7 @@ int main(int argc, char* argv[]) {
     Arena* arenas[NUM_THREADS];
 
     for (int i = 0; i < NUM_THREADS; i++) {
-        // 50MB per arena
-        arenas[i] = arena_create(1024 * 1024 * 50);
+        arenas[i] = arena_create(1024 * 1024 * 5);
         if (arenas[i] == NULL) {
             printf("Error allocating arenas\n");
             return 1;
@@ -171,7 +170,7 @@ int main(int argc, char* argv[]) {
         total_arena_throughput / NUM_ITERATIONS);
 
     printf(
-        "malloc (average over %d runs): %.6f ms, throughput: %.2f "
+        "malloc      (average over %d runs): %.6f ms, throughput: %.2f "
         "allocations/s\n",
         NUM_ITERATIONS,
         (total_malloc_time / NUM_ITERATIONS) * 1e3,

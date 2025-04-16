@@ -35,7 +35,7 @@
 #endif
 
 #ifndef THREAD_BLOCK_SIZE
-#define THREAD_BLOCK_SIZE (4 * 1024)  // 4 KB per thread block
+#define THREAD_BLOCK_SIZE (64 * 1024)  // 64 KB per thread block
 #endif
 
 /**
@@ -99,6 +99,19 @@ void arena_reset(Arena* arena);
  * @return void* Pointer to the allocated memory, or NULL if the allocation fails
  */
 void* arena_alloc(Arena* arena, size_t size);
+
+/**
+ *
+ * This function accepts an array 'sizes' containing the requested sizes for each allocation and a 'count'
+ * indicating how many allocations the caller wants. It uses one atomic update to reserve a contiguous
+ * block of memory sufficient to hold all the allocations (each with its header). It then partitions that
+ * block, writes the headers, and returns the pointer to each allocation in the out_ptrs array.
+ *
+ * Returns:
+ *   true  - if all allocations succeeded.
+ *   false - if there was insufficient memory in the arena.
+ */
+bool arena_alloc_batch(Arena* arena, const size_t sizes[], size_t count, void* out_ptrs[]);
 
 /**
  * @brief Reallocate memory from the arena

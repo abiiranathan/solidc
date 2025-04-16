@@ -18,12 +18,16 @@ extern "C" {
 #define UNICODE_MAX_CODEPOINT 0x10FFFF  // 1,114,111
 #define UNICODE_MAX_UTF8_BYTES 4        // 4 bytes
 
-typedef struct utf8_string utf8_string;  // Forward declaration for utf8_string
+typedef struct utf8_string {
+    char* data;     // utf-8 string
+    size_t length;  // number of bytes
+    size_t count;   // number of codepoints
+} utf8_string;
 
 void ucp_to_utf8(uint32_t codepoint, char* utf8);
 uint32_t utf8_to_codepoint(const char* utf8);
 size_t utf8_count_codepoints(const char* utf8);
-size_t utf8_byte_length(const char* s);
+size_t utf8_valid_byte_count(const char* s);
 size_t utf8_char_length(const char* str);
 
 bool is_valid_codepoint(uint32_t codepoint);

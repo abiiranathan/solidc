@@ -1,21 +1,28 @@
 #ifndef PIPELINE_H
 #define PIPELINE_H
 
+#ifdef _WIN32
 #include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <io.h>
+#include <sys/stat.h>
+#include <windows.h>
+#define O_WRONLY _O_WRONLY
+#define O_CREAT _O_CREAT
+#define O_TRUNC _O_TRUNC
+#define STDIN_FILENO 0
+#define STDOUT_FILENO 1
+#else
+#include <fcntl.h>
 #include <sys/wait.h>
 #include <unistd.h>
-
-#if defined(__cplusplus__)
-#extern "C" {
 #endif
 
-// CommandNode represents a command in the pipeline.
+/**
+ * @brief Structure representing a command in a pipeline.
+ */
 typedef struct CommandNode {
-    char** args;               // Command arguments (NULL-terminated)
-    struct CommandNode* next;  // Pointer to the next command in the pipeline
+    char** args;               // NULL-terminated array of command arguments
+    struct CommandNode* next;  // Next command in the pipeline
 } CommandNode;
 
 /**
@@ -30,8 +37,8 @@ CommandNode* create_command_node(char** args);
  * @brief Execute a pipeline of commands.
  *
  * @param head Pointer to the first CommandNode in the pipeline.
- * @param output_fd File descriptor to capture the output of the last command.
- *                 If -1, the output is not redirected.
+ * @param output_fd Optional file descriptor to capture the output of the last command.
+ * If -1, the output is not redirected.
  */
 void execute_pipeline(CommandNode* head, int output_fd);
 
@@ -43,15 +50,10 @@ void execute_pipeline(CommandNode* head, int output_fd);
 void free_pipeline(CommandNode* head);
 
 /**
- * @brief Build the pipeline using a NULL-terminated array of CommandNode
- * pointers.
+ * @brief Build the pipeline using a NULL-terminated array of CommandNode pointers.
  *
  * @param commands Array of CommandNode pointers, terminated by NULL.
  */
 void build_pipeline(CommandNode** commands);
 
-#if defined(__cplusplus__)
-}
-#endif
-
-#endif  // PIPELINE_H
+#endif /* PIPELINE_H */

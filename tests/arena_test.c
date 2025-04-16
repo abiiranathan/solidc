@@ -198,10 +198,30 @@ void stress_test_arena(void) {
     arena_destroy(arena);
 }
 
+void test_arena_allocbatch(void) {
+    Arena* arena = arena_create(1 << 20);
+    ASSERT(arena);
+
+    size_t sizes[] = {32, 64, 128};
+    void* ptrs[3];
+    size_t count = sizeof(sizes) / sizeof(sizes[0]);
+    bool ret     = arena_alloc_batch(arena, sizes, count, ptrs);
+    ASSERT(ret);
+
+    strncpy(ptrs[0], "Hello World\n", 31);
+    strncpy(ptrs[1], "Hello World\n", 63);
+    strncpy(ptrs[2], "Hello World\n", 127);
+
+    // ptrs[0], ptrs[1], and ptrs[2] now contain valid allocations.
+    print_test_result("Arena Alloc Batch", 1);
+    arena_destroy(arena);
+}
+
 int main(void) {
     // Run all tests
     test_basic_allocations();
     test_reallocations();
+    test_arena_allocbatch();
     test_multithreaded_allocations();
     stress_test_arena();
 

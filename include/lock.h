@@ -1,6 +1,8 @@
 #ifndef AB1DC3C5_00AA_4460_BD6A_65D8301B4779
 #define AB1DC3C5_00AA_4460_BD6A_65D8301B4779
 
+#include <stddef.h>
+
 #ifdef _WIN32
 #include <windows.h>
 typedef CRITICAL_SECTION Lock;

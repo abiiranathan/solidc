@@ -8,13 +8,6 @@
 #include <string.h>
 #include <wctype.h>
 
-// Data structure for a utf-8 char string
-typedef struct utf8_string {
-    char* data;     // utf-8 string
-    size_t length;  // number of bytes
-    size_t count;   // number of codepoints
-} utf8_string;
-
 void ucp_to_utf8(uint32_t codepoint, char* utf8) {
     if (codepoint <= 0x7F) {
         utf8[0] = (char)codepoint;
@@ -40,21 +33,55 @@ void ucp_to_utf8(uint32_t codepoint, char* utf8) {
 uint32_t utf8_to_codepoint(const char* utf8) {
     uint32_t codepoint = 0;
     const uint8_t* u   = (const uint8_t*)utf8;
+
     if ((u[0] & 0x80) == 0) {
+        // 1-byte sequence (ASCII)
         codepoint = u[0];
     } else if ((u[0] & 0xE0) == 0xC0) {
-        codepoint = (u[0] & 0x1FU) << 6;
-        codepoint |= (u[1] & 0x3F);
+        // 2-byte sequence
+        if ((u[1] & 0xC0) == 0x80) {  // Validate continuation byte
+            codepoint = ((u[0] & 0x1FU) << 6) | (u[1] & 0x3F);
+            // Overlong encoding check
+            if (codepoint < 0x80) {
+                return 0xFFFD;  // Replacement character
+            }
+        } else {
+            return 0xFFFD;  // Replacement character
+        }
     } else if ((u[0] & 0xF0) == 0xE0) {
-        codepoint = (u[0] & 0x0FU) << 12;
-        codepoint |= (u[1] & 0x3FU) << 6;
-        codepoint |= (u[2] & 0x3F);
+        // 3-byte sequence
+        if ((u[1] & 0xC0) == 0x80 && (u[2] & 0xC0) == 0x80) {  // Validate continuation bytes
+            codepoint = ((u[0] & 0x0FU) << 12) | ((u[1] & 0x3FU) << 6) | (u[2] & 0x3F);
+            // Overlong encoding check
+            if (codepoint < 0x800) {
+                return 0xFFFD;  // Replacement character
+            }
+            // Surrogate check
+            if (codepoint >= 0xD800 && codepoint <= 0xDFFF) {
+                return 0xFFFD;  // Replacement character
+            }
+        } else {
+            return 0xFFFD;  // Replacement character
+        }
     } else if ((u[0] & 0xF8) == 0xF0) {
-        codepoint = (u[0] & 0x07U) << 18;
-        codepoint |= (u[1] & 0x3FU) << 12;
-        codepoint |= (u[2] & 0x3FU) << 6;
-        codepoint |= (u[3] & 0x3F);
+        // 4-byte sequence
+        if ((u[1] & 0xC0) == 0x80 && (u[2] & 0xC0) == 0x80 && (u[3] & 0xC0) == 0x80) {  // Validate continuation bytes
+            codepoint = ((u[0] & 0x07U) << 18) | ((u[1] & 0x3FU) << 12) | ((u[2] & 0x3FU) << 6) | (u[3] & 0x3F);
+            // Overlong encoding check
+            if (codepoint < 0x10000) {
+                return 0xFFFD;  // Replacement character
+            }
+            // Too large check
+            if (codepoint > 0x10FFFF) {
+                return 0xFFFD;  // Replacement character
+            }
+        } else {
+            return 0xFFFD;  // Replacement character
+        }
+    } else {
+        return 0xFFFD;  // Replacement character
     }
+
     return codepoint;
 }
 
@@ -69,22 +96,40 @@ size_t utf8_count_codepoints(const char* s) {
     return count;
 }
 
-size_t utf8_byte_length(const char* s) {
+size_t utf8_valid_byte_count(const char* s) {
     size_t count = 0;
     for (size_t i = 0; s[i] != '\0';) {
         unsigned char byte = (unsigned char)s[i];
         if ((byte & 0x80) == 0) {
             count++;
             i++;
-        } else if ((byte & 0xE0) == 0xC0) {
-            count += 2;
-            i += 2;
-        } else if ((byte & 0xF0) == 0xE0) {
-            count += 3;
-            i += 3;
-        } else if ((byte & 0xF8) == 0xF0) {
-            count += 4;
-            i += 4;
+        } else if ((byte & 0xE0) == 0xC0 && s[i + 1] != '\0') {
+            // Check that next byte is a continuation byte
+            if ((s[i + 1] & 0xC0) == 0x80) {
+                count += 2;
+                i += 2;
+            } else {
+                // Invalid UTF-8 sequence, skip this byte
+                i++;
+            }
+        } else if ((byte & 0xF0) == 0xE0 && s[i + 1] != '\0' && s[i + 2] != '\0') {
+            // Check that next 2 bytes are continuation bytes
+            if ((s[i + 1] & 0xC0) == 0x80 && (s[i + 2] & 0xC0) == 0x80) {
+                count += 3;
+                i += 3;
+            } else {
+                // Invalid UTF-8 sequence, skip this byte
+                i++;
+            }
+        } else if ((byte & 0xF8) == 0xF0 && s[i + 1] != '\0' && s[i + 2] != '\0' && s[i + 3] != '\0') {
+            // Check that next 3 bytes are continuation bytes
+            if ((s[i + 1] & 0xC0) == 0x80 && (s[i + 2] & 0xC0) == 0x80 && (s[i + 3] & 0xC0) == 0x80) {
+                count += 4;
+                i += 4;
+            } else {
+                // Invalid UTF-8 sequence, skip this byte
+                i++;
+            }
         } else {
             // Invalid UTF-8 sequence, skip this byte
             i++;
@@ -114,8 +159,50 @@ bool is_valid_codepoint(uint32_t codepoint) {
 }
 
 bool is_valid_utf8(const char* utf8) {
-    for (size_t i = 0; utf8[i] != '\0'; i++) {
-        if ((utf8[i] & 0xC0) == 0x80) {
+    for (size_t i = 0; utf8[i] != '\0';) {
+        unsigned char byte = (unsigned char)utf8[i];
+        if ((byte & 0x80) == 0) {
+            // Single byte character (ASCII)
+            i++;
+        } else if ((byte & 0xE0) == 0xC0) {
+            // 2-byte sequence
+            if (utf8[i + 1] == '\0' || (utf8[i + 1] & 0xC0) != 0x80) {
+                return false;
+            }
+            // Check for overlong encoding
+            uint32_t codepoint = ((byte & 0x1F) << 6) | (utf8[i + 1] & 0x3F);
+            if (codepoint < 0x80) {
+                return false;
+            }
+            i += 2;
+        } else if ((byte & 0xF0) == 0xE0) {
+            // 3-byte sequence
+            if (utf8[i + 1] == '\0' || utf8[i + 2] == '\0' || (utf8[i + 1] & 0xC0) != 0x80 ||
+                (utf8[i + 2] & 0xC0) != 0x80) {
+                return false;
+            }
+            // Check for overlong encoding or surrogate
+            uint32_t codepoint = ((byte & 0x0F) << 12) | ((utf8[i + 1] & 0x3F) << 6) | (utf8[i + 2] & 0x3F);
+            if (codepoint < 0x800 || (codepoint >= 0xD800 && codepoint <= 0xDFFF)) {
+                return false;
+            }
+            i += 3;
+        } else if ((byte & 0xF8) == 0xF0) {
+            // 4-byte sequence
+            if (utf8[i + 1] == '\0' || utf8[i + 2] == '\0' || utf8[i + 3] == '\0' || (utf8[i + 1] & 0xC0) != 0x80 ||
+                (utf8[i + 2] & 0xC0) != 0x80 || (utf8[i + 3] & 0xC0) != 0x80) {
+                return false;
+            }
+            // Check for overlong encoding or too large value
+            uint32_t codepoint = ((byte & 0x07) << 18) | ((utf8[i + 1] & 0x3F) << 12) | ((utf8[i + 2] & 0x3F) << 6) |
+                                 (utf8[i + 3] & 0x3F);
+            if (codepoint < 0x10000 || codepoint > 0x10FFFF) {
+                return false;
+            }
+            i += 4;
+
+        } else {
+            // Invalid leading byte
             return false;
         }
     }
@@ -147,7 +234,7 @@ bool is_utf8_alpha(const char* utf8) {
 }
 
 char* utf8_copy(const char* data) {
-    size_t length = utf8_byte_length(data);
+    size_t length = utf8_valid_byte_count(data);
     char* copy    = (char*)malloc(length + 1);
     if (copy) {
         memcpy(copy, data, length);
@@ -161,14 +248,22 @@ const char* utf8_data(const utf8_string* s) {
 }
 
 utf8_string* utf8_new(const char* data) {
+    if (!data) {
+        return NULL;
+    }
+
     utf8_string* s = (utf8_string*)malloc(sizeof(utf8_string));
-    // we can't use strlen for utf-8 strings
     if (!s) {
         return NULL;
     }
 
-    s->data   = utf8_copy(data);
-    s->length = utf8_byte_length(data);
+    s->data = utf8_copy(data);
+    if (!s->data) {
+        free(s);
+        return NULL;
+    }
+
+    s->length = utf8_valid_byte_count(data);
     s->count  = utf8_count_codepoints(data);
     return s;
 }
@@ -196,7 +291,7 @@ void utf8_print_codepoints(const utf8_string* s) {
     for (size_t i = 0; s->data[i] != '\0';) {
         uint32_t codepoint = utf8_to_codepoint(&s->data[i]);
         printf("U+%04X ", codepoint);
-        i += utf8_byte_length(&s->data[i]);
+        i += utf8_valid_byte_count(&s->data[i]);
     }
     printf("\n");
 }
@@ -210,7 +305,7 @@ int utf8_index_of(const utf8_string* s, const char* utf8) {
 }
 
 void utf8_append(utf8_string* s, const char* data) {
-    size_t length = utf8_byte_length(data);
+    size_t length = utf8_valid_byte_count(data);
     size_t count  = utf8_count_codepoints(data);
 
     char* new_data = (char*)realloc(s->data, s->length + length + 1);
@@ -236,7 +331,7 @@ char* utf8_substr(const utf8_string* s, size_t index, size_t utf8_byte_len) {
 }
 
 void utf8_insert(utf8_string* s, size_t index, const char* data) {
-    size_t length  = utf8_byte_length(data);
+    size_t length  = utf8_valid_byte_count(data);
     size_t count   = utf8_count_codepoints(data);
     char* new_data = (char*)realloc(s->data, s->length + length + 1);
 
@@ -252,7 +347,7 @@ void utf8_insert(utf8_string* s, size_t index, const char* data) {
 void utf8_remove(utf8_string* s, size_t index, size_t count) {
     size_t i = index;
     for (size_t j = 0; j < count; j++) {
-        i += utf8_byte_length(&s->data[i]);
+        i += utf8_valid_byte_count(&s->data[i]);
     }
 
     memmove(&s->data[index], &s->data[i], s->length - i + 1);
@@ -261,8 +356,8 @@ void utf8_remove(utf8_string* s, size_t index, size_t count) {
 }
 
 void utf8_replace(utf8_string* s, const char* old_str, const char* new_str) {
-    size_t old_byte_len = utf8_byte_length(old_str);
-    size_t new_byte_len = utf8_byte_length(new_str);
+    size_t old_byte_len = utf8_valid_byte_count(old_str);
+    size_t new_byte_len = utf8_valid_byte_count(new_str);
     size_t old_count    = utf8_count_codepoints(old_str);
     size_t new_count    = utf8_count_codepoints(new_str);
 
@@ -290,8 +385,8 @@ void utf8_replace(utf8_string* s, const char* old_str, const char* new_str) {
 
 // replace all
 void utf8_replace_all(utf8_string* s, const char* old_str, const char* new_str) {
-    size_t old_byte_len = utf8_byte_length(old_str);
-    size_t new_byte_len = utf8_byte_length(new_str);
+    size_t old_byte_len = utf8_valid_byte_count(old_str);
+    size_t new_byte_len = utf8_valid_byte_count(new_str);
     size_t old_count    = utf8_count_codepoints(old_str);
     size_t new_count    = utf8_count_codepoints(new_str);
 
@@ -323,10 +418,10 @@ void utf8_reverse(utf8_string* s) {
     if (reversed) {
         size_t j = s->length;
         for (size_t i = 0; i < s->length;) {
-            size_t len = utf8_byte_length(&s->data[i]);
-            memmove(&reversed[j - len], &s->data[i], len);
-            i += len;
+            size_t len = utf8_char_length(&s->data[i]);
             j -= len;
+            memcpy(&reversed[j], &s->data[i], len);
+            i += len;
         }
         reversed[s->length] = '\0';
         free(s->data);
@@ -368,7 +463,7 @@ utf8_string* utf8_readfrom(const char* filename) {
 
 // string_ltrim removes leading whitespace from str.
 void utf8_ltrim(char* str) {
-    size_t len = utf8_byte_length(str);
+    size_t len = utf8_valid_byte_count(str);
     size_t i   = 0;
     while (i < len && is_utf8_whitespace(&str[i])) {
         // IMPORTANT: we use utf8_char_length here to skip over the entire
@@ -382,11 +477,41 @@ void utf8_ltrim(char* str) {
 
 // utf8_rtrim removes trailing whitespace from str.
 void utf8_rtrim(char* str) {
-    size_t len = utf8_byte_length(str);
-    size_t i   = len;
-    while (i > 0 && is_utf8_whitespace(&str[i - 1])) {
-        i -= utf8_char_length(&str[i - 1]);
+    size_t len = strlen(str);  // Start from the actual byte length
+    size_t i   = len;          // i represents the potential new null terminator position
+
+    while (i > 0) {
+        // Find the starting byte of the character that ends *before* index i
+        size_t char_start = i - 1;
+        // Move backwards past any continuation bytes (10xxxxxx)
+        while (char_start > 0 && (str[char_start] & 0xC0) == 0x80) {
+            char_start--;
+        }
+
+        // Now char_start points to the beginning of the last character sequence before i
+        // (or i-1 if it's a single-byte char)
+
+        // Check if the character sequence starting at char_start is valid UTF-8
+        // and represents a whitespace codepoint.
+        // We also need to ensure the character actually *ends* where we expect it to (at i-1).
+        // A simple way is to check if the length matches the distance.
+        size_t char_len = utf8_char_length(&str[char_start]);
+
+        // Basic validation: Does the calculated length match the distance from the start?
+        // And is the character within the original string bounds?
+        // And is it actually whitespace?
+        if (char_len > 0 && char_start + char_len == i && is_utf8_whitespace(&str[char_start])) {
+            // It's a valid whitespace character ending at i-1.
+            // Move the potential null terminator position back to the start of this character.
+            i = char_start;
+        } else {
+            // Either it's not whitespace, or it's an invalid/incomplete sequence
+            // ending at i-1. Stop trimming.
+            break;
+        }
     }
+
+    // Place the null terminator at the determined position.
     str[i] = '\0';
 }
 
@@ -396,31 +521,143 @@ void utf8_trim(char* str) {
     utf8_rtrim(str);
 }
 
-// utf8_trim_chars removes leading and trailing characters c from str.
-void utf8_trim_chars(char* str, const char* c) {
-    size_t len = utf8_byte_length(str);
+// utf8_trim_chars removes leading and trailing characters specified in chars from str.
+void utf8_trim_chars(char* str, const char* chars) {
+    // --- Build the set of codepoints to trim ---
+    // Consider making this dynamic or much larger if 'chars' could contain
+    // more than 256 distinct Unicode codepoints.
+    uint32_t trim_codepoints[256] = {0};
+    size_t num_trim_chars         = 0;
+    size_t chars_len              = strlen(chars);  // Use strlen for iterating through chars
+
+    for (size_t k = 0; k < chars_len && num_trim_chars < 255;) {  // Prevent overflow
+        // Get length of char *first* to advance correctly, even if invalid
+        size_t current_char_len = utf8_char_length(&chars[k]);
+        if (current_char_len == 0) {  // Handle invalid byte in chars string
+            k++;                      // Skip invalid starting byte
+            continue;
+        }
+        // Check if reading the char goes beyond the bounds
+        if (k + current_char_len > chars_len) {
+            break;  // Avoid reading past end if last char is incomplete
+        }
+
+        uint32_t codepoint = utf8_to_codepoint(&chars[k]);
+        // Optional: Add check here if codepoint is 0xFFFD (replacement char)
+        // and decide if you want to trim based on that.
+        if (codepoint != 0xFFFD) {  // Avoid adding replacement char unless intended
+            // Simple check to avoid duplicates (could use a better set structure)
+            bool found = false;
+            for (size_t idx = 0; idx < num_trim_chars; ++idx) {
+                if (trim_codepoints[idx] == codepoint) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                trim_codepoints[num_trim_chars++] = codepoint;
+            }
+        }
+        k += current_char_len;  // Advance by the actual byte length
+    }
+
+    // --- Trim leading characters ---
+    size_t len = strlen(str);
     size_t i   = 0;
-    while (i < len && strchr(c, str[i]) != NULL) {
-        i += utf8_char_length(&str[i]);
+    while (i < len) {
+        size_t current_char_len = utf8_char_length(&str[i]);
+        if (current_char_len == 0) {  // Invalid start byte
+            break;                    // Stop trimming if invalid UTF-8 encountered
+        }
+        if (i + current_char_len > len) {
+            break;  // Incomplete character at the end
+        }
+
+        uint32_t codepoint = utf8_to_codepoint(&str[i]);
+        bool should_trim   = false;
+
+        if (codepoint != 0xFFFD) {  // Don't trim replacement char unless it's in chars
+            for (size_t j = 0; j < num_trim_chars; j++) {
+                if (codepoint == trim_codepoints[j]) {
+                    should_trim = true;
+                    break;
+                }
+            }
+        }
+
+        if (!should_trim) {
+            break;  // Found first non-trim character
+        }
+
+        // Advance by the actual length of the character we just processed
+        i += current_char_len;
     }
-    memmove(str, &str[i], len - i + 1);
-    len = utf8_byte_length(str);
-    i   = len;
-    while (i > 0 && strchr(c, str[i - 1]) != NULL) {
-        i -= utf8_char_length(&str[i - 1]);
+
+    // Perform the move if leading characters were trimmed
+    if (i > 0) {
+        memmove(str, &str[i], len - i + 1);  // +1 to include null terminator
+        len -= i;                            // Update length
     }
+
+    // --- Trim trailing characters (FIXED) ---
+    i = len;  // Start at the potential new null terminator position
+    while (i > 0) {
+        // Find the starting byte of the character sequence ending *before* index i
+        size_t char_start = i - 1;
+        while (char_start > 0 && (str[char_start] & 0xC0) == 0x80) {
+            // Move backwards past continuation bytes (10xxxxxx)
+            char_start--;
+        }
+        // Ensure char_start is still within bounds if i was initially 1
+        if ((str[char_start] & 0xC0) == 0x80) {
+            // We scanned back past the beginning, indicates invalid leading byte(s)
+            break;
+        }
+
+        // Now char_start points to the potential beginning of the last character before i.
+        size_t char_len = utf8_char_length(&str[char_start]);
+
+        // Validate: Does the calculated length make sense and match the position?
+        if (char_len > 0 && char_start + char_len == i) {
+            uint32_t codepoint = utf8_to_codepoint(&str[char_start]);
+            bool should_trim   = false;
+
+            if (codepoint != 0xFFFD) {  // Don't trim replacement char unless it's in chars
+                for (size_t j = 0; j < num_trim_chars; j++) {
+                    if (codepoint == trim_codepoints[j]) {
+                        should_trim = true;
+                        break;
+                    }
+                }
+            }
+
+            if (should_trim) {
+                // It's a character to trim ending at i-1.
+                // Move the potential null terminator position back.
+                i = char_start;
+            } else {
+                // Found the last character that should *not* be trimmed.
+                break;
+            }
+        } else {
+            // Invalid UTF-8 sequence ending at i-1, or length mismatch. Stop trimming.
+            break;
+        }
+    }
+
+    // Place the null terminator at the final correct position.
     str[i] = '\0';
 }
 
 // utf8_trim_char removes leading and trailing character c from str.
 void utf8_trim_char(char* str, char c) {
-    size_t len = utf8_byte_length(str);
+    size_t len = utf8_valid_byte_count(str);
     size_t i   = 0;
     while (i < len && str[i] == c) {
         i += utf8_char_length(&str[i]);
     }
     memmove(str, &str[i], len - i + 1);
-    len = utf8_byte_length(str);
+    len = utf8_valid_byte_count(str);
     i   = len;
     while (i > 0 && str[i - 1] == c) {
         i -= utf8_char_length(&str[i - 1]);
@@ -434,7 +671,7 @@ void utf8_tolower(char* str) {
         if (iswupper(codepoint)) {
             char utf8[5] = {0};
             ucp_to_utf8(towlower(codepoint), utf8);
-            size_t len = utf8_byte_length(utf8);
+            size_t len = utf8_valid_byte_count(utf8);
             memmove(&str[i], utf8, len);
             i += len;
         } else {
@@ -449,7 +686,7 @@ void utf8_toupper(char* str) {
         if (iswlower(codepoint)) {
             char utf8[5] = {0};
             ucp_to_utf8(towupper(codepoint), utf8);
-            size_t len = utf8_byte_length(utf8);
+            size_t len = utf8_valid_byte_count(utf8);
             memmove(&str[i], utf8, len);
             i += len;
         } else {
@@ -464,11 +701,11 @@ void utf8_toupper(char* str) {
 utf8_string** utf8_split(const utf8_string* str, const char* delim, size_t* num_parts) {
     size_t count = 0;
     *num_parts   = 0;
-    size_t len   = utf8_byte_length(str->data);
+    size_t len   = utf8_valid_byte_count(str->data);
     for (size_t i = 0; i < len;) {
         if (utf8_starts_with(&str->data[i], delim)) {
             count++;
-            i += utf8_byte_length(delim);
+            i += utf8_valid_byte_count(delim);
         } else {
             i += utf8_char_length(&str->data[i]);
         }
@@ -489,7 +726,7 @@ utf8_string** utf8_split(const utf8_string* str, const char* delim, size_t* num_
             parts[index]->length          = i - start;
             parts[index]->count           = utf8_count_codepoints(parts[index]->data);
             index++;
-            i += utf8_byte_length(delim);
+            i += utf8_valid_byte_count(delim);
             start = i;
         } else {
             i += utf8_char_length(&str->data[i]);
@@ -524,7 +761,7 @@ void utf8_split_free(utf8_string** str, size_t size) {
 }
 
 bool utf8_starts_with(const char* str, const char* prefix) {
-    size_t len = utf8_byte_length(prefix);
+    size_t len = utf8_valid_byte_count(prefix);
     for (size_t i = 0; i < len; i++) {
         if (str[i] != prefix[i]) {
             return false;
@@ -534,8 +771,8 @@ bool utf8_starts_with(const char* str, const char* prefix) {
 }
 
 bool utf8_ends_with(const char* str, const char* suffix) {
-    size_t len  = utf8_byte_length(str);
-    size_t len2 = utf8_byte_length(suffix);
+    size_t len  = utf8_valid_byte_count(str);
+    size_t len2 = utf8_valid_byte_count(suffix);
     if (len2 > len) {
         return false;
     }

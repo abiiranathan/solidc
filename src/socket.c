@@ -247,7 +247,6 @@ int socket_get_peer_address(Socket* sock, struct sockaddr* addr, socklen_t* addr
     return getpeername(sock->handle, addr, addrlen);
 }
 
-// Get the socket type
 int socket_type(Socket* sock) {
     int ret = -1;
     int type;
@@ -258,8 +257,6 @@ int socket_type(Socket* sock) {
     return ret;
 }
 
-// Get the socket domain or type(address family, SOCK_STREAM or SOCK_DGRAM, for
-// example).)
 int socket_family(Socket* sock) {
     int domain    = -1;
     socklen_t len = sizeof(domain);
@@ -294,27 +291,6 @@ int socket_set_non_blocking(Socket* sock, int enable) {
 // epoll_create
 #ifndef _WIN32
 
-/* socket_epoll_ctl is a wrapper around epoll_ctl.
-
-It adds a new file descriptor to the epoll instance.
-Returns 0 on success, or -1 on error.
-Usage:
-struct epoll_event event;
-socket_epoll_ctl(epoll_fd, sock_fd, &event, EPOLLIN);
-
-A simple accept function using epoll:
-
-int Accept() {
-    int client_fd;
-    socklen_t client_len = sizeof(server_addr);
-    client_fd = socket_accept(server_fd, (struct sockaddr *)&server_addr,
-&client_len); if (client_fd != -1) { nonblocking(client_fd);
-    socket_epoll_ctl_add(epoll_fd, client_fd, &event, EPOLLIN | EPOLLET |
-EPOLLONESHOT);
-    }
-    return client_fd;
-}
-*/
 int socket_epoll_ctl_add(int epoll_fd, int sock_fd, struct epoll_event* event, uint32_t events) {
     event->events  = events;
     event->data.fd = sock_fd;
@@ -358,7 +334,7 @@ int socket_epoll_wait(int epoll_fd, struct epoll_event* events, int maxevents, i
 
 // Create an IPv4 address
 // Allocates a new sockaddr_in and set the address and port.
-struct sockaddr_in* socket_ipv4_address(const char* ip, int port) {
+struct sockaddr_in* socket_ipv4_address(const char* ip, uint16_t port) {
     struct sockaddr_in* addr = (struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
     if (!addr) {
         perror("malloc");
@@ -373,7 +349,7 @@ struct sockaddr_in* socket_ipv4_address(const char* ip, int port) {
 
 // Create an IPv6 address
 // Allocates a new sockaddr_in6 and set the address and port.
-struct sockaddr_in6* socket_ipv6_address(const char* ip, int port) {
+struct sockaddr_in6* socket_ipv6_address(const char* ip, uint16_t port) {
     struct sockaddr_in6* addr = (struct sockaddr_in6*)malloc(sizeof(struct sockaddr_in6));
     if (!addr) {
         perror("malloc");

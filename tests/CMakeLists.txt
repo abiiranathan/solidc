@@ -16,6 +16,8 @@ set(TEST_MODULES
     hash
     csvparser
     array
+    unicode
+    slist
 )
 
 # Loop over test modules and set up tests consistently
