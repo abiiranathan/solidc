@@ -148,6 +148,8 @@ bool arena_restore(Arena* arena, size_t offset) {
     return true;
 }
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
 void* arena_alloc(Arena* arena, size_t size) {
     if (UNLIKELY(!arena || !arena->base || size == 0)) {
         return NULL;
@@ -166,9 +168,10 @@ void* arena_alloc(Arena* arena, size_t size) {
         return ptr + header_size;
     }
 
-    // Reserve a new block from the arena
+    // Reserve a new block from the arena. Cap the reserve_size at arena->size.
     size_t reserve_size =
         aligned_size > THREAD_BLOCK_SIZE ? arena_align_up(aligned_size, ARENA_ALIGNMENT) : THREAD_BLOCK_SIZE;
+    reserve_size = MIN(reserve_size, arena->size);
 
     size_t old_used = atomic_fetch_add_explicit(&arena->used, reserve_size, memory_order_acq_rel);
     if (UNLIKELY(old_used + reserve_size > arena->size)) {
@@ -176,17 +179,15 @@ void* arena_alloc(Arena* arena, size_t size) {
         reserve_size = arena_align_up(aligned_size, ARENA_ALIGNMENT);
         old_used     = atomic_fetch_add_explicit(&arena->used, reserve_size, memory_order_acq_rel);
         if (UNLIKELY(old_used + reserve_size > arena->size)) {
+            // Roll back the atomic update if we can't allocate
+            atomic_fetch_sub_explicit(&arena->used, reserve_size, memory_order_acq_rel);
             return NULL;  // Out of memory
         }
     }
 
     // Assign new block to thread-local
-    if (LIKELY(old_used < arena->size)) {
-        tl_block.current   = arena->base + old_used;
-        tl_block.remaining = reserve_size;
-    } else {
-        return NULL;  // Failsafe check
-    }
+    tl_block.current   = arena->base + old_used;
+    tl_block.remaining = reserve_size;
 
     // Allocate from the new thread-local block
     char* ptr           = tl_block.current;
