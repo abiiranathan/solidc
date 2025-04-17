@@ -62,6 +62,9 @@ set(HEADERS
     include/threadpool.h
     include/unicode.h
     include/defer.h
+
+    # Combined header
+    include/solidc.h
 )
 
 # Source files
