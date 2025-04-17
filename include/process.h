@@ -18,13 +18,18 @@
 
 #ifdef _WIN32
 #include <io.h>
+#include <sys/stat.h>
 #include <windows.h>
+#include "wintypes.h"
+
 #else
+#include <errno.h>
 #include <fcntl.h>
 #include <sys/select.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
 #endif
 
 #ifdef __cplusplus
@@ -45,8 +50,15 @@ typedef enum {
     PROCESS_ERROR_KILL_FAILED       = -7,
     PROCESS_ERROR_PERMISSION_DENIED = -8,
     PROCESS_ERROR_IO                = -9,
-    PROCESS_ERROR_UNKNOWN           = -10
+    PROCESS_ERROR_TERMINATE_FAILED  = -10,
+    PROCESS_ERROR_UNKNOWN           = -11
 } ProcessError;
+
+#ifdef _WIN32
+typedef HANDLE PipeFd;  // Pipe handle
+#else
+typedef int PipeFd;  // Pipe file descriptor.
+#endif
 
 /**
  * @brief Standard IO stream types for redirection
@@ -169,12 +181,12 @@ bool pipe_write_closed(PipeHandle* handle);
 /**
 Returns the pipe write read descriptor.
 */
-int pipe_read_fd(PipeHandle* handle);
+PipeFd pipe_read_fd(PipeHandle* handle);
 
 /**
 Returns the pipe write file descriptor.
 */
-int pipe_write_fd(PipeHandle* handle);
+PipeFd pipe_write_fd(PipeHandle* handle);
 
 /**
  * @brief Create a new pipe for IPC

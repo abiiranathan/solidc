@@ -7,9 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define XXH_INLINE_ALL  // Include xxHash for faster hashing
-#include <xxhash.h>
-
+#define XXH_INLINE_ALL
+#include <xxhash.h>  // With Mingw: paru -S mingw-w64-xxhash
 #include "../include/cmp.h"
 #include "../include/map.h"
 

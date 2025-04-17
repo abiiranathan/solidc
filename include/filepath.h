@@ -35,7 +35,7 @@ typedef struct {
     char* path;  // directory path
 #ifdef _WIN32
     HANDLE handle;
-    WIN32_FIND_DATAA find_data;  // found in windows.h
+    WIN32_FIND_DATAW find_data;  // found in windows.h
 #else
     DIR* dir;  // directory pointer found in dirent.h
 #endif

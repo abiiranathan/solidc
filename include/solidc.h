@@ -1,6 +1,7 @@
 #ifndef __SOLIDC_H__
 #define __SOLIDC_H__
 
+#include "aligned_alloc.h"
 #include "arena.h"
 #include "array.h"
 #include "cstr.h"
@@ -23,5 +24,6 @@
 #include "thread.h"
 #include "threadpool.h"
 #include "unicode.h"
+#include "wintypes.h"
 
 #endif /* __SOLIDC_H__ */

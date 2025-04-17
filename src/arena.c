@@ -1,4 +1,5 @@
 #include "../include/arena.h"
+#include "../include/aligned_alloc.h"
 
 #include <stdatomic.h>
 #include <stdbool.h>
@@ -53,7 +54,7 @@ Arena* arena_create(size_t arena_size) {
         return NULL;
     }
 
-    char* memory = aligned_alloc(ARENA_ALIGNMENT, arena_size);
+    char* memory = ALIGNED_ALLOC(ARENA_ALIGNMENT, arena_size);
     if (UNLIKELY(memory == NULL)) {
         perror("aligned_alloc");
         free(arena);
@@ -97,7 +98,7 @@ void arena_destroy(Arena* arena) {
 
     // No concurrent access after this point is safe
     if (arena->owns_memory) {
-        free(arena->base);
+        ALIGNED_FREE(arena->base);
     }
 
     // Reset thread-local state (if applicable)

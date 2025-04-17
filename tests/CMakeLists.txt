@@ -20,11 +20,21 @@ set(TEST_MODULES
     slist
 )
 
-# Loop over test modules and set up tests consistently
+# Then modify your test loop:
 foreach(module ${TEST_MODULES})
     add_executable(${module}_test ${module}_test.c)
-    target_link_libraries(${module}_test solidc)
-    add_test(${module}_test ${module}_test)
+    
+    # Link the main library
+    target_link_libraries(${module}_test PRIVATE solidc)
+    
+    # Platform-specific dependencies
+    if(IS_WINDOWS_TARGET)
+        target_link_libraries(${module}_test PRIVATE ws2_32 advapi32 kernel32)
+    else()
+        target_link_libraries(${module}_test PRIVATE pthread m)
+    endif()
+    
+    add_test(NAME ${module}_test COMMAND ${module}_test)
 endforeach()
 
 # Enable stdin testing if required

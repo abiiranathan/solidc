@@ -17,15 +17,25 @@ uint32_t solidc_djb2_hash(const void* key) {
     return (uint32_t)hash;
 }
 
-// FNV-1a hash function
 uint32_t solidc_fnv1a_hash(const void* key) {
-    unsigned char* str = (unsigned char*)key;
-    unsigned long hash = 14695981039346656037UL;
+    const unsigned char* str = (const unsigned char*)key;
+    uint32_t hash            = 2166136261u;  // 32-bit FNV offset basis
     while (*str) {
-        hash ^= (unsigned long)(unsigned char)*str++;
-        hash *= 1099511628211UL;
+        hash ^= (uint32_t)(*str++);
+        hash *= 16777619u;  // 32-bit FNV prime
     }
-    return (uint32_t)hash;
+    return hash;
+}
+
+// FNV-1a hash function
+uint64_t solidc_fnv1a_hash64(const void* key) {
+    const unsigned char* str = (const unsigned char*)key;
+    uint64_t hash            = 14695981039346656037ULL;  // 64-bit FNV offset basis
+    while (*str) {
+        hash ^= (uint64_t)(*str++);
+        hash *= 1099511628211ULL;  // 64-bit FNV prime
+    }
+    return hash;
 }
 
 uint32_t solidc_elf_hash(const void* key) {

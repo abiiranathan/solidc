@@ -26,8 +26,6 @@ void test_pipe_create() {
 
     LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_create failed: %s", process_error_string(err));
     LOG_ASSERT(pipe_handle != NULL, "pipe handle is NULL");
-    LOG_ASSERT(pipe_read_fd(pipe_handle) >= 0, "Invalid read fd");
-    LOG_ASSERT(pipe_write_fd(pipe_handle) >= 0, "Invalid write fd");
 
     // Close the pipe handle
     pipe_close(pipe_handle);
@@ -179,6 +177,7 @@ void test_process_run_and_capture_ouput(void) {
     LOG_ASSERT(err == PROCESS_SUCCESS && read > 0, "pipe read failed: read %zu: %s", read, process_error_string(err));
 }
 
+#ifndef _WIN32
 void test_redirect_to_file() {
     // Simple redirection to a file
     ProcessHandle* handle;
@@ -223,16 +222,17 @@ void test_tee_to_multiple_destinations() {
 
 void test_process_create_with_redirection() {
     ProcessError err;
-    ProcessHandle* handle;
     PipeHandle *stdin_pipe, *stdout_pipe;
-    const char* cmd          = "/bin/cat";
-    const char* const argv[] = {cmd, NULL};
 
     err = pipe_create(&stdin_pipe);
     LOG_ASSERT(err == PROCESS_SUCCESS, "pipe create failed");
 
     err = pipe_create(&stdout_pipe);
     LOG_ASSERT(err == PROCESS_SUCCESS, "pipe create failed");
+
+    const char* cmd = "/bin/cat";
+    ProcessHandle* handle;
+    const char* const argv[] = {cmd, NULL};
 
     const ExtProcessOptions options = {
         .working_directory   = NULL,
@@ -269,6 +269,7 @@ void test_process_create_with_redirection() {
                res.exit_code,
                process_error_string(err));
 }
+#endif
 
 int main() {
     // Run all tests
@@ -282,9 +283,13 @@ int main() {
     test_process_pipe_integration_std();
     test_process_run_and_capture();
     test_process_run_and_capture_ouput();
+
+// Linux only functions
+#ifndef _WIN32
     test_redirect_to_file();
     test_tee_to_multiple_destinations();
     test_process_create_with_redirection();
+#endif
     printf("All process tests passed!\n");
 
     return 0;

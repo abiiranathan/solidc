@@ -4,7 +4,6 @@
  */
 
 #include "../include/process.h"
-#include <errno.h>
 
 /* Platform-specific implementations of process and pipe handles */
 #ifdef _WIN32
@@ -13,25 +12,19 @@ struct ProcessHandle {
     bool detached;
 };
 
-struct PipeHandle {
-    HANDLE read_handle;
-    HANDLE write_handle;
-    bool read_closed;
-    bool write_closed;
-};
 #else
 struct ProcessHandle {
     pid_t pid;
     bool detached;
 };
+#endif
 
 struct PipeHandle {
-    int read_fd;
-    int write_fd;
+    PipeFd read_fd;
+    PipeFd write_fd;
     bool read_closed;
     bool write_closed;
 };
-#endif
 
 // New structure to represent file redirection
 struct FileRedirection {
@@ -109,14 +102,14 @@ bool pipe_write_closed(PipeHandle* handle) {
 /**
 Returns the pipe write read descriptor.
 */
-int pipe_read_fd(PipeHandle* handle) {
+PipeFd pipe_read_fd(PipeHandle* handle) {
     return handle->read_fd;
 }
 
 /**
 Returns the pipe write file descriptor.
 */
-int pipe_write_fd(PipeHandle* handle) {
+PipeFd pipe_write_fd(PipeHandle* handle) {
     return handle->write_fd;
 }
 
@@ -167,7 +160,7 @@ ProcessError pipe_create(PipeHandle** pipeHandle) {
     security_attrs.nLength        = sizeof(security_attrs);
     security_attrs.bInheritHandle = TRUE;
 
-    if (!CreatePipe(&(*pipeHandle)->read_handle, &(*pipeHandle)->write_handle, &security_attrs, 0)) {
+    if (!CreatePipe(&(*pipeHandle)->read_fd, &(*pipeHandle)->write_fd, &security_attrs, 0)) {
         free(*pipeHandle);
         *pipeHandle = NULL;
         return PROCESS_ERROR_PIPE_FAILED;
@@ -213,7 +206,7 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
         return process_system_error();
     }
 
-    if (!ReadFile(pipe->read_handle, buffer, (DWORD)size, NULL, &overlapped)) {
+    if (!ReadFile(pipe->read_fd, buffer, (DWORD)size, NULL, &overlapped)) {
         DWORD error = GetLastError();
         if (error != ERROR_IO_PENDING) {
             CloseHandle(overlapped.hEvent);
@@ -224,7 +217,7 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
     DWORD wait_result = WaitForSingleObject(overlapped.hEvent, timeout_ms < 0 ? INFINITE : (DWORD)timeout_ms);
 
     if (wait_result == WAIT_OBJECT_0) {
-        if (!GetOverlappedResult(pipe->read_handle, &overlapped, &bytes_read_win, FALSE)) {
+        if (!GetOverlappedResult(pipe->read_fd, &overlapped, &bytes_read_win, FALSE)) {
             CloseHandle(overlapped.hEvent);
             return process_system_error();
         }
@@ -232,7 +225,7 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
             *bytes_read = bytes_read_win;
         }
     } else if (wait_result == WAIT_TIMEOUT) {
-        CancelIo(pipe->read_handle);
+        CancelIo(pipe->read_fd);
         CloseHandle(overlapped.hEvent);
         return PROCESS_ERROR_IO;  // Timeout
     } else {
@@ -301,7 +294,7 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
         return process_system_error();
     }
 
-    if (!WriteFile(pipe->write_handle, buffer, (DWORD)size, NULL, &overlapped)) {
+    if (!WriteFile(pipe->write_fd, buffer, (DWORD)size, NULL, &overlapped)) {
         DWORD error = GetLastError();
         if (error != ERROR_IO_PENDING) {
             CloseHandle(overlapped.hEvent);
@@ -312,7 +305,7 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
     DWORD wait_result = WaitForSingleObject(overlapped.hEvent, timeout_ms < 0 ? INFINITE : (DWORD)timeout_ms);
 
     if (wait_result == WAIT_OBJECT_0) {
-        if (!GetOverlappedResult(pipe->write_handle, &overlapped, &bytes_written_win, FALSE)) {
+        if (!GetOverlappedResult(pipe->write_fd, &overlapped, &bytes_written_win, FALSE)) {
             CloseHandle(overlapped.hEvent);
             return process_system_error();
         }
@@ -320,7 +313,7 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
             *bytes_written = bytes_written_win;
         }
     } else if (wait_result == WAIT_TIMEOUT) {
-        CancelIo(pipe->write_handle);
+        CancelIo(pipe->write_fd);
         CloseHandle(overlapped.hEvent);
         return PROCESS_ERROR_IO;  // Timeout
     } else {
@@ -378,11 +371,11 @@ void pipe_close(PipeHandle* pipe) {
 
 #ifdef _WIN32
     if (!pipe->read_closed) {
-        CloseHandle(pipe->read_handle);
+        CloseHandle(pipe->read_fd);
         pipe->read_closed = true;
     }
     if (!pipe->write_closed) {
-        CloseHandle(pipe->write_handle);
+        CloseHandle(pipe->write_fd);
         pipe->write_closed = true;
     }
 #else
@@ -450,15 +443,15 @@ static ProcessError win32_create_process(ProcessHandle** handle, const char* com
 
     // Apply redirections if specified
     if (options->io.stdin_pipe) {
-        startup_info.hStdInput = options->io.stdin_pipe->read_handle;
+        startup_info.hStdInput = options->io.stdin_pipe->read_fd;
     }
 
     if (options->io.stdout_pipe) {
-        startup_info.hStdOutput = options->io.stdout_pipe->write_handle;
+        startup_info.hStdOutput = options->io.stdout_pipe->write_fd;
     }
 
     if (options->io.stderr_pipe) {
-        startup_info.hStdError = options->io.stderr_pipe->write_handle;
+        startup_info.hStdError = options->io.stderr_pipe->write_fd;
     } else if (options->io.merge_stderr) {
         startup_info.hStdError = startup_info.hStdOutput;
     }
@@ -470,7 +463,7 @@ static ProcessError win32_create_process(ProcessHandle** handle, const char* com
     }
 
     PROCESS_INFORMATION process_info;
-    BOOL success = CreateProcessA(NULL,                            // No module name (use command line)
+    BOOL success = CreateProcessA(command,                         // command to execute
                                   cmdline,                         // Command line
                                   NULL,                            // Process handle not inheritable
                                   NULL,                            // Thread handle not inheritable
@@ -621,6 +614,7 @@ ProcessError process_create(ProcessHandle** handle, const char* command, const c
 #endif
 }
 
+#ifndef _WIN32
 static inline void set_process_result(int status, ProcessResult* result) {
     if (WIFEXITED(status)) {
         result->exit_code       = WEXITSTATUS(status);
@@ -634,9 +628,10 @@ static inline void set_process_result(int status, ProcessResult* result) {
         result->exited_normally = false;
     }
 }
+#endif
 
 // Cross-platform nanosleep function
-static void NANOSLEEP(long seconds, long nanoseconds) {
+void NANOSLEEP(long seconds, long nanoseconds) {
 #ifdef _WIN32
     // On Windows, Sleep works in milliseconds,
     // so we convert seconds and nanoseconds to milliseconds
@@ -739,7 +734,7 @@ ProcessError process_terminate(ProcessHandle* handle, bool force) {
 #ifdef _WIN32
     if (force) {
         // Force termination using TerminateProcess (like SIGKILL)
-        if (!TerminateProcess(handle->hProcess, 1)) {
+        if (!TerminateProcess(handle->process_info.hProcess, 1)) {
             return PROCESS_ERROR_TERMINATE_FAILED;
         }
     } else {

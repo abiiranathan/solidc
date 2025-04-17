@@ -4,6 +4,7 @@
 
 #include "../include/file.h"
 #include <errno.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <math.h>
 #include <stdlib.h>
@@ -11,7 +12,7 @@
 
 typedef struct file_t {
 #ifdef _WIN32
-    HANDLE handle;  // file handle
+    HANDLE file;  // file handle
 #else
     FILE* file;  // file pointer
 #endif
@@ -127,17 +128,18 @@ file_t* file_open(const char* filename, const char* mode) {
 
 #ifdef _WIN32
     // Get Windows HANDLE
-    file->handle = (HANDLE)_get_osfhandle(file->fd);
-    if (file->handle == INVALID_HANDLE_VALUE) {
+    file->file = (HANDLE)(uintptr_t)_get_osfhandle(file->fd);
+
+    if (file->file == INVALID_HANDLE_VALUE) {
         // Error getting handle, invalidates locking/async on Windows
         free(file->filename);
         fclose(fp);
         free(file);
         return NULL;
     }
+#else
+    file->file = fp;
 #endif
-
-    file->file    = fp;
     file->is_open = true;
     return file;
 }
@@ -188,7 +190,7 @@ void file_close(file_t* file) {
     // Reset fields to indicate closed state
     file->fd = -1;
 #ifdef _WIN32
-    file->handle = INVALID_HANDLE_VALUE;
+    file->file = INVALID_HANDLE_VALUE;
 #endif
     file->is_open   = false;
     file->is_locked = false;
@@ -390,12 +392,8 @@ bool file_lock(file_t* file) {
     OVERLAPPED overlapped = {0};
     // Lock maximum possible range (approximate whole file locking)
     // Note: Locking beyond EOF is generally permitted.
-    if (LockFileEx(file->handle,
-                   LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
-                   0,
-                   0xFFFFFFFF,
-                   0xFFFFFFFF,
-                   &overlapped)) {
+    if (LockFileEx(
+            file->file, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, 0xFFFFFFFF, 0xFFFFFFFF, &overlapped)) {
         file->is_locked = true;
         return true;
     } else {
@@ -446,7 +444,7 @@ bool file_unlock(file_t* file) {
 #ifdef _WIN32
     OVERLAPPED overlapped = {0};
     // Unlock the same range we locked (entire file approximation)
-    if (UnlockFileEx(file->handle, 0, 0xFFFFFFFF, 0xFFFFFFFF, &overlapped)) {
+    if (UnlockFileEx(file->file, 0, 0xFFFFFFFF, 0xFFFFFFFF, &overlapped)) {
         file->is_locked = false;
         return true;
     } else {
@@ -695,11 +693,11 @@ int file_truncate(file_t* file, int64_t length) {
     LARGE_INTEGER li_offset;
     li_offset.QuadPart = length;
 
-    if (!SetFilePointerEx(file->handle, li_offset, NULL, FILE_BEGIN)) {
+    if (!SetFilePointerEx(file->file, li_offset, NULL, FILE_BEGIN)) {
         // errno = EIO; // Map GetLastError()
         return -1;
     }
-    if (!SetEndOfFile(file->handle)) {
+    if (!SetEndOfFile(file->file)) {
         // errno = EIO; // Map GetLastError()
         return -1;
     }
@@ -750,7 +748,8 @@ void* file_mmap(file_t* file, size_t length, bool read_access, bool write_access
         flProtect       = PAGE_READONLY;
         dwDesiredAccess = FILE_MAP_READ;
     } else {
-        return internal_set_error(EINVAL);  // Should have caught earlier
+        internal_set_error(EINVAL);  // Should have caught earlier
+        return NULL;
     }
 
     // Create mapping object (size determined by file size or arguments?)
@@ -760,7 +759,7 @@ void* file_mmap(file_t* file, size_t length, bool read_access, bool write_access
     DWORD size_high = (DWORD)((uint64_t)length >> 32);
     DWORD size_low  = (DWORD)((uint64_t)length & 0xFFFFFFFF);
 
-    HANDLE hMapFile = CreateFileMapping(file->handle, NULL, flProtect, size_high, size_low, NULL);
+    HANDLE hMapFile = CreateFileMapping(file->file, NULL, flProtect, size_high, size_low, NULL);
     if (hMapFile == NULL) {
         // errno = EIO; // Map GetLastError()
         return NULL;
@@ -866,7 +865,7 @@ ssize_t file_pread(file_t* file, void* buffer, size_t size, int64_t offset) {
         return internal_set_error(EIO);  // Event creation failed
     }
 
-    bResult = ReadFile(file->handle,
+    bResult = ReadFile(file->file,
                        buffer,
                        (DWORD)size,  // Cast size_t to DWORD carefully
                        &dwBytesRead,
@@ -875,7 +874,7 @@ ssize_t file_pread(file_t* file, void* buffer, size_t size, int64_t offset) {
     if (!bResult) {
         if (GetLastError() == ERROR_IO_PENDING) {
             // Wait for the operation to complete
-            if (!GetOverlappedResult(file->handle, &overlapped, &dwBytesRead, TRUE)) {
+            if (!GetOverlappedResult(file->file, &overlapped, &dwBytesRead, TRUE)) {
                 // Operation failed after pending
                 CloseHandle(overlapped.hEvent);
                 // errno = EIO; // Map GetLastError()
@@ -936,11 +935,11 @@ ssize_t file_pwrite(file_t* file, const void* buffer, size_t size, int64_t offse
         return internal_set_error(EIO);
     }
 
-    bResult = WriteFile(file->handle, buffer, (DWORD)size, &dwBytesWritten, &overlapped);
+    bResult = WriteFile(file->file, buffer, (DWORD)size, &dwBytesWritten, &overlapped);
 
     if (!bResult) {
         if (GetLastError() == ERROR_IO_PENDING) {
-            if (!GetOverlappedResult(file->handle, &overlapped, &dwBytesWritten, TRUE)) {
+            if (!GetOverlappedResult(file->file, &overlapped, &dwBytesWritten, TRUE)) {
                 CloseHandle(overlapped.hEvent);
                 // errno = EIO; // Map GetLastError()
                 return -1;

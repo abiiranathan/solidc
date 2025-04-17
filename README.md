@@ -1,99 +1,189 @@
-# solidc
+Absolutely! Here's an updated and more exhaustive version of your README with improved **installation**, **usage**, and **clarity on build targets** including the `SYSTEM_NAME` explanation:
 
-Solidc is a robust collection of general purpose cross-platform C libraries and data structures designed for rapid C development.
+---
 
-## Features
+# **Solidc**
 
-Solidc is designed to be a lightweight, easy-to-use, and efficient library for C developers.
+**Solidc** is a robust collection of general-purpose cross-platform C libraries and data structures designed for rapid and safe development in C.
 
-All the functions are implemented in a way that they are safe and easy to use
-and are fully tested.
+---
 
-Available Headers:
+## ✨ Features
 
-1. [arena.h](./include/arena.h) - Arena allocator for fast memory allocation.
-1. [cstr.h](./include/cstr.h) - A simple string library with a lot of utility functions.
-1. [file.h](./include/file.h) - Cross-platform file handling library for synchronous and asynchronous file operations.
-1. [filepath.h](./include/filepath.h) - File path utility functions.
-1. [list.h](./include/list.h) - Doubly linked list implementation.
-1. [lock.h](./include/lock.h) - Cross-platform mutex abstraction.
-1. [map.h](./include/map.h) - Generic hash map implementation.
-1. [optional.h](./include/optional.h) - A simple optional type implementation.
-1. [process.h](./include/process.h) - Cross-platform process creation and management.
-1. [safe_map.h](./include/safe_map.h) - A type-safe and thread-safe hash map implementation implemented with a macro.
-1. [set.h](./include/set.h) - A generic set implementation.
-1. [slist.h](./include/slist.h) - Singly linked list implementation.
-1. [socket.h](./include/socket.h) - Cross-platform socket library for TCP communication.
-1. [solidc.h](./include/solidc.h) - A single header file that includes all the headers.
-1. [thread.h](./include/thread.h) - Cross-platform thread library for creating and managing threads.
-1. [threadpool.h](./include/threadpool.h) - A simple but roubust thread pool implementation.
-1. [unicode.h](./include/unicode.h) - UTF-8 string utility functions.
-1. [vec.h](./include/vec.h) - A simple dynamic array implementation.
-1. [hash.h](./include/hash.h) - A collection of fast non-cryptographic hash functions.
-1. [strton.h](./include/strton.h) - A collection of functions to convert strings to numbers.
-1. [stdstreams.h](./include/stdstreams.h) - A collection of functions to read and write to standard streams, FILE\* streams, convert strings to streams, io_copy, io_copy_n between streams, etc.
+- **Cross-platform**: Works on Linux, Windows (via MinGW), and WebAssembly (via Emscripten).
+- **Lightweight & Efficient**: Minimal dependencies and fast execution.
+- **Well-tested**: Every module is tested and follows strict C standards.
+- **Modular**: Choose and link only the modules you need.
+- **Modern C (C23)**: Fully compatible with the latest C standards.
 
-## Installation
+---
+
+## ⚙️ Build System
+
+Solidc uses a flexible `Makefile` and `CMake` setup with support for:
+
+### 🔧 Configurable Makefile Variables
+
+```make
+# CROSS_COMPILER: Path to the cross-compiler for Windows builds (MinGW)
+CROSS_COMPILER ?= /usr/bin/x86_64-w64-mingw32-cc
+
+# SYSTEM_NAME: Target system for CMake.
+# Allowed values: Linux, Windows, WebAssembly (WASI)
+SYSTEM_NAME ?= Linux
+
+# RELEASE: Build type.
+# Allowed values: Debug, Release
+RELEASE ?= Debug
+
+# TARGET: Target environment.
+# Allowed values:
+#   native  - Build for the host system (e.g., Linux)
+#   cross   - Cross-compile for Windows using MinGW
+#   wasm    - Compile to WebAssembly using Emscripten
+TARGET ?= native
+```
+
+---
+
+## 🔨 Installation
+
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/abiiranathan/solidc.git
 cd solidc
-mkdir -p build
-cd build
-cmake ..
-make
-sudo cmake --install .
 ```
 
-## Usage
+### 2. Build with Make (Recommended)
+
+```bash
+make        # Default build: native Debug
+make release    # Release build
+make cross      # Cross-compile for Windows
+make wasm       # Build for WebAssembly (requires emcc)
+sudo make install
+```
+
+You can customize the build:
+
+```bash
+make TARGET=cross SYSTEM_NAME=Windows CROSS_COMPILER=/usr/bin/x86_64-w64-mingw32-cc
+make TARGET=wasm SYSTEM_NAME=WebAssembly WASM_CC=emcc
+```
+
+---
+
+## 🧱 Dependencies
+
+| Platform        | Command                                             |
+| --------------- | --------------------------------------------------- |
+| Arch Linux      | `sudo pacman -S xxhash`                             |
+| Manjaro/MingW   | `paru -S mingw-w64-xxhash`                          |
+| Debian/Ubuntu   | `sudo apt update && sudo apt install libxxhash-dev` |
+| Fedora          | `sudo dnf install xxhash-libs`                      |
+| Windows (vcpkg) | `vcpkg install xxhash`                              |
+
+---
+
+## 📦 Library Modules
+
+| Header         | Description                                   |
+| -------------- | --------------------------------------------- |
+| `arena.h`      | Fast memory arena allocator                   |
+| `cstr.h`       | String utilities                              |
+| `file.h`       | Cross-platform file handling (sync & async)   |
+| `filepath.h`   | File path manipulation utilities              |
+| `list.h`       | Doubly linked list                            |
+| `lock.h`       | Mutex abstraction                             |
+| `map.h`        | Generic hash map                              |
+| `safe_map.h`   | Type-safe, thread-safe hash map using macros  |
+| `set.h`        | Generic set                                   |
+| `slist.h`      | Singly linked list                            |
+| `thread.h`     | Thread creation & management                  |
+| `threadpool.h` | Simple thread pool implementation             |
+| `process.h`    | Process management utilities                  |
+| `optional.h`   | Optional type implementation                  |
+| `socket.h`     | Cross-platform TCP socket library             |
+| `vec.h`        | Dynamic array                                 |
+| `hash.h`       | Fast, non-cryptographic hash functions        |
+| `strton.h`     | String to number converters                   |
+| `stdstreams.h` | Read/write helpers for stdout/stderr/FILE\*   |
+| `unicode.h`    | UTF-8 string helpers                          |
+| `defer.h`      | Cross-platform defer implementation           |
+| `solidc.h`     | Master header that includes all above modules |
+
+---
+
+## 🧪 Example: Directory Walk
 
 ```c
 #include <solidc/filepath.h>
 
 WalkDirOption callback(const char* path, const char* name, void* data) {
-    (void)name;
     (void)data;
-
     if (is_dir(path)) {
-        // if its a hidden directory, skip it
-        if (name[0] == '.') {
-            return DirSkip;
-        }
-
+        if (name[0] == '.') return DirSkip; // skip hidden dirs
         printf("%s/\n", path);
         return DirContinue;
     } else {
-        printf("%s/\n", path);
+        printf("%s\n", path);
         return DirContinue;
     }
 }
 
 int main(void) {
-    const char* dirname = user_home_dir();
-    dir_walk(dirname, callback, NULL);
+    dir_walk(user_home_dir(), callback, NULL);
 }
-
-// compile: gcc -Wall -Wextra -pedantic -o walkhome solidc.c -lsolidc
-// run: ./walkhome
 ```
 
-## Linking with cmake
+### Compile & Run:
+
+```bash
+gcc -Wall -Wextra -pedantic -o walkhome walkhome.c -lsolidc
+./walkhome
+```
+
+---
+
+## 🛠️ Linking with CMake
 
 ```cmake
 find_package(solidc REQUIRED)
 target_link_libraries(your_target PRIVATE solidc::solidc)
 ```
 
-## License
+---
 
-This project is licensed under the MIT License.
+## 🧪 Testing
 
-See the [LICENSE](LICENSE) file for details.
+```bash
+make test
+```
 
-## Contributing
+---
 
-1. Fork it!
-2. Create your feature branch: `git checkout -b my-new-feature`
-3. Commit your changes: `git commit -am 'Add some feature'`
-4. Push to the branch: `git push origin my-new-feature`
-5. Submit a pull request
+## 🧪 Benchmarking & Profiling
+
+```bash
+make bench  # Native only
+make perf   # Requires Linux perf tool
+```
+
+---
+
+## 📝 License
+
+**MIT License** – See the [LICENSE](LICENSE) file for full terms.
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repo
+2. Create your feature branch: `git checkout -b awesome-feature`
+3. Commit your changes: `git commit -am 'Add feature'`
+4. Push to the branch: `git push origin awesome-feature`
+5. Open a pull request 🚀
+
+---

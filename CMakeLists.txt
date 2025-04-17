@@ -5,11 +5,38 @@ set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows" OR WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
+    set(IS_WINDOWS_TARGET TRUE)
+    message(STATUS "Building for Windows target")
+else()
+    set(IS_WINDOWS_TARGET FALSE)
+    message(STATUS "Building for non-Windows target")
+endif()
+
+
+# Fix RPATH issue with Ninja + Windows
+if(UNIX AND NOT APPLE)
+    # Set RPATH on Linux
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+endif()
+
+if(BUILD_SHARED_LIBS AND (WIN32 OR MINGW))
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 option(BUILD_TESTS "Build the tests" ON)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
-include(GNUInstallDirs)
+# Workaround for GNUInstallDirs warning during cross-compilation
+if(CMAKE_CROSSCOMPILING)
+    set(CMAKE_INSTALL_LIBDIR "lib")
+    set(CMAKE_INSTALL_BINDIR "bin")
+    set(CMAKE_INSTALL_INCLUDEDIR "include")
+else()
+    include(GNUInstallDirs)
+endif()
+
 include(CTest)
 enable_testing()
 
@@ -61,7 +88,7 @@ set(SOURCES
 )
 
 # Create the library
-add_library(solidc ${SOURCES})
+add_library(solidc STATIC ${SOURCES})
 add_library(solidc::solidc ALIAS solidc)
 
 # Headers
@@ -71,17 +98,17 @@ target_include_directories(solidc PUBLIC
 )
 
 # Platform-specific settings
-if(WIN32)
+if(WIN32 OR MINGW)    
     # Windows-specific compiler flags
     target_compile_definitions(solidc PRIVATE 
         _CRT_SECURE_NO_WARNINGS
         WIN32_LEAN_AND_MEAN
         NOMINMAX
     )
-    
+
     # Windows-specific linker flags
-    target_link_libraries(solidc PUBLIC kernel32 ws2_32 advapi32)
-    
+    target_link_libraries(solidc PUBLIC ws2_32 advapi32 kernel32)
+
     # Disable warnings that are too noisy on MSVC
     if(MSVC)
         target_compile_options(solidc PRIVATE

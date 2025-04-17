@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #if !defined(_GNU_SOURCE)
@@ -10,9 +11,7 @@
 #define _POSIX_C_SOURCE 200809L
 #endif
 
-#ifdef _WIN32  // Windows
-
-#define WIN32_LEAN_AND_MEAN
+#ifdef _WIN32    // Windows
 #include <io.h>  // For _get_osfhandle, _filelengthi64
 #include <windows.h>
 // Define ssize_t for Windows if not using a recent SDK/compiler that does

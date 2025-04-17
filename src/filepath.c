@@ -1,6 +1,7 @@
 #include "../include/filepath.h"
 #include "../include/file.h"
 #include "../include/lock.h"
+#include "../include/wintypes.h"
 
 #include <errno.h>
 #include <stdatomic.h>
@@ -116,8 +117,8 @@ char* dir_next(Directory* dir) {
         return NULL;
     }
 #ifdef _WIN32
-    if (FindNextFileA(dir->handle, &dir->find_data)) {
-        return dir->find_data.cFileName;
+    if (FindNextFileW(dir->handle, &dir->find_data)) {
+        return (char*)dir->find_data.cFileName;
     }
 #else
     struct dirent* entry = readdir(dir->dir);
@@ -377,12 +378,6 @@ ssize_t dir_size(const char* path) {
     return size;
 }
 
-#ifdef _WIN32
-#define MKDIR(path) _mkdir(path)
-#else
-#define MKDIR(path) mkdir(path, 0755)
-#endif
-
 // Create a directory recursively
 bool filepath_makedirs(const char* path) {
     char* temp_path = strdup(path);
@@ -508,7 +503,7 @@ char* make_tempfile(void) {
     }
 
     // Create temporary file, returns handle
-    int fd = _wcreat(wtmpfile, _S_IREAD | _S_IWRITE);
+    int fd = _wcreat(wtmpfile, S_IREAD | S_IWRITE);
     if (fd == -1) {
         perror("make_tempfile: _wcreat");
         free(tmpfile);
@@ -723,176 +718,176 @@ const char* user_home_dir(void) {
     return getenv("USERPROFILE");
 #else
     return secure_getenv("HOME");
+#endif
 }
-#endif
 
-    // expand user home directory
-    char* filepath_expanduser(const char* path) {
-        // If the path is not a home directory path, return it as is
-        if (path[0] != '~') {
-            return strdup(path);
-        }
-
-#ifdef _WIN32
-        char* home = getenv("USERPROFILE");
-#else
-    char* home = (char*)secure_getenv("HOME");
-#endif
-        if (!home) {
-            fprintf(stderr, "USERPROFILE/HOME environment variable not set\n");
-            return NULL;
-        }
-
-        // If path is just "~" or ~/, return the home directory
-        size_t pathLen = strlen(path);
-        bool isHome    = pathLen == 1 || (pathLen == 2 && path[1] == '/');
-        if (isHome) {
-            return strdup(home);
-        }
-
-        // 1 for the separator and 1 for the null terminator
-        size_t len = strlen(home) + pathLen + 2;
-
-        // Allocate memory for the expanded path
-        char* expanded = (char*)malloc(len);
-        if (!expanded) {
-            perror("malloc");
-            return NULL;
-        }
-#ifdef _WIN32
-        // if there is a backslash in the path1, then use backslash as separator
-        // otherwise use forward slash
-        if (strchr(path, '\\')) {
-            _snprintf(expanded, len, "%s\\%s", home, path);
-        } else {
-            _snprintf(expanded, len, "%s/%s", home, path);
-        }
-#else
-    snprintf(expanded, len, "%s/%s", home, path);
-#endif
-        return expanded;
+// expand user home directory
+char* filepath_expanduser(const char* path) {
+    // If the path is not a home directory path, return it as is
+    if (path[0] != '~') {
+        return strdup(path);
     }
 
-    bool filepath_expanduser_buf(const char* path, char* expanded, size_t len) {
 #ifdef _WIN32
-        char* home = getenv("USERPROFILE");
+    char* home = getenv("USERPROFILE");
 #else
     char* home = (char*)secure_getenv("HOME");
 #endif
-        if (!home) {
-            fprintf(stderr, "USERPROFILE/HOME environment variable not set\n");
-            return false;
-        }
+    if (!home) {
+        fprintf(stderr, "USERPROFILE/HOME environment variable not set\n");
+        return NULL;
+    }
 
-        // If the path is not a home directory path, return it as is
-        if (path[0] != '~') {
-            strncpy(expanded, path, len);
-            expanded[len - 1] = '\0';
-            return true;
-        }
+    // If path is just "~" or ~/, return the home directory
+    size_t pathLen = strlen(path);
+    bool isHome    = pathLen == 1 || (pathLen == 2 && path[1] == '/');
+    if (isHome) {
+        return strdup(home);
+    }
 
-        // If path is just "~" or ~/, return the home directory
-        size_t pathLen = strlen(path);
-        bool isHome    = pathLen == 1 || (pathLen == 2 && path[1] == '/');
-        if (isHome) {
-            strncpy(expanded, home, len);
-            expanded[len - 1] = '\0';
-            return true;
-        }
+    // 1 for the separator and 1 for the null terminator
+    size_t len = strlen(home) + pathLen + 2;
 
-        // 1 for the separator and 1 for the null terminator
-        size_t homelen = strlen(home);
-        if (homelen + pathLen + 2 > len) {
-            fprintf(stderr, "Buffer is too small to store the expanded path\n");
-            return false;
-        }
+    // Allocate memory for the expanded path
+    char* expanded = (char*)malloc(len);
+    if (!expanded) {
+        perror("malloc");
+        return NULL;
+    }
 #ifdef _WIN32
-        // if there is a backslash in the path1, then use backslash as separator
-        // otherwise use forward slash
-        if (strchr(path, '\\')) {
-            _snprintf(expanded, len, "%s\\%s", home, path);
-        } else {
-            _snprintf(expanded, len, "%s/%s", home, path);
-        }
+    // if there is a backslash in the path1, then use backslash as separator
+    // otherwise use forward slash
+    if (strchr(path, '\\')) {
+        _snprintf(expanded, len, "%s\\%s", home, path);
+    } else {
+        _snprintf(expanded, len, "%s/%s", home, path);
+    }
 #else
     snprintf(expanded, len, "%s/%s", home, path);
 #endif
+    return expanded;
+}
+
+bool filepath_expanduser_buf(const char* path, char* expanded, size_t len) {
+#ifdef _WIN32
+    char* home = getenv("USERPROFILE");
+#else
+    char* home = (char*)secure_getenv("HOME");
+#endif
+    if (!home) {
+        fprintf(stderr, "USERPROFILE/HOME environment variable not set\n");
+        return false;
+    }
+
+    // If the path is not a home directory path, return it as is
+    if (path[0] != '~') {
+        strncpy(expanded, path, len);
+        expanded[len - 1] = '\0';
         return true;
     }
 
-    // join path
-    char* filepath_join(const char* path1, const char* path2) {
-        size_t len   = strlen(path1) + strlen(path2) + 2;  // 1 for the separator and 1 for the null terminator
-        char* joined = (char*)malloc(len);
-        if (!joined) {
-            perror("malloc");
-            return NULL;
-        }
+    // If path is just "~" or ~/, return the home directory
+    size_t pathLen = strlen(path);
+    bool isHome    = pathLen == 1 || (pathLen == 2 && path[1] == '/');
+    if (isHome) {
+        strncpy(expanded, home, len);
+        expanded[len - 1] = '\0';
+        return true;
+    }
+
+    // 1 for the separator and 1 for the null terminator
+    size_t homelen = strlen(home);
+    if (homelen + pathLen + 2 > len) {
+        fprintf(stderr, "Buffer is too small to store the expanded path\n");
+        return false;
+    }
 #ifdef _WIN32
-        // if there is a backslash in the path1, then use backslash as separator
-        // otherwise use forward slash
-        if (strchr(path1, '\\')) {
-            _snprintf(joined, len, "%s\\%s", path1, path2);
-        } else {
-            _snprintf(joined, len, "%s/%s", path1, path2);
-        }
+    // if there is a backslash in the path1, then use backslash as separator
+    // otherwise use forward slash
+    if (strchr(path, '\\')) {
+        _snprintf(expanded, len, "%s\\%s", home, path);
+    } else {
+        _snprintf(expanded, len, "%s/%s", home, path);
+    }
+#else
+    snprintf(expanded, len, "%s/%s", home, path);
+#endif
+    return true;
+}
+
+// join path
+char* filepath_join(const char* path1, const char* path2) {
+    size_t len   = strlen(path1) + strlen(path2) + 2;  // 1 for the separator and 1 for the null terminator
+    char* joined = (char*)malloc(len);
+    if (!joined) {
+        perror("malloc");
+        return NULL;
+    }
+#ifdef _WIN32
+    // if there is a backslash in the path1, then use backslash as separator
+    // otherwise use forward slash
+    if (strchr(path1, '\\')) {
+        _snprintf(joined, len, "%s\\%s", path1, path2);
+    } else {
+        _snprintf(joined, len, "%s/%s", path1, path2);
+    }
 #else
     snprintf(joined, len, "%s/%s", path1, path2);
 #endif
-        return joined;
-    }
+    return joined;
+}
 
-    /**
-  Join path1 and path2 using standard os specific separator.
-    @param path1: The first path
-    @param path2: The second path
-    @param abspath: The buffer to store the joined path
-    @param len: The size of the buffer
-  */
-    bool filepath_join_buf(const char* path1, const char* path2, char* abspath, size_t len) {
-        size_t newlen = strlen(path1) + strlen(path2) + 2;
-        if (newlen > len) {
-            fprintf(stderr, "Buffer is too small to store the joined path\n");
-            return false;
-        }
+/**
+Join path1 and path2 using standard os specific separator.
+@param path1: The first path
+@param path2: The second path
+@param abspath: The buffer to store the joined path
+@param len: The size of the buffer
+*/
+bool filepath_join_buf(const char* path1, const char* path2, char* abspath, size_t len) {
+    size_t newlen = strlen(path1) + strlen(path2) + 2;
+    if (newlen > len) {
+        fprintf(stderr, "Buffer is too small to store the joined path\n");
+        return false;
+    }
 #ifdef _WIN32
-        // if there is a backslash in the path1, then use backslash as separator
-        // otherwise use forward slash
-        if (strchr(path1, '\\')) {
-            _snprintf(abspath, len, "%s\\%s", path1, path2);
-        } else {
-            _snprintf(abspath, len, "%s/%s", path1, path2);
-        }
+    // if there is a backslash in the path1, then use backslash as separator
+    // otherwise use forward slash
+    if (strchr(path1, '\\')) {
+        _snprintf(abspath, len, "%s\\%s", path1, path2);
+    } else {
+        _snprintf(abspath, len, "%s/%s", path1, path2);
+    }
 #else
     snprintf(abspath, len, "%s/%s", path1, path2);
 #endif
-        return true;
+    return true;
+}
+
+/*
+ * Split a file path into directory and file name.
+ * The dir and name parameters must be pre-allocated buffers or pointers to
+ * pre-allocated buffers. dir_size and name_size are the size of the dir and
+ * name buffers.
+ */
+void filepath_split(const char* path, char* dir, char* name, size_t dir_size, size_t name_size) {
+    const char* p = strrchr(path, '/');
+    if (!p) {
+        p = strrchr(path, '\\');
     }
 
-    /*
-     * Split a file path into directory and file name.
-     * The dir and name parameters must be pre-allocated buffers or pointers to
-     * pre-allocated buffers. dir_size and name_size are the size of the dir and
-     * name buffers.
-     */
-    void filepath_split(const char* path, char* dir, char* name, size_t dir_size, size_t name_size) {
-        const char* p = strrchr(path, '/');
-        if (!p) {
-            p = strrchr(path, '\\');
+    if (!p) {
+        dir[0] = '\0';
+        strncpy(name, path, name_size);
+        name[name_size - 1] = '\0';  // Ensure null-termination
+    } else {
+        size_t len = (size_t)(p - path);
+        if (len >= dir_size) {
+            len = dir_size - 1;
         }
-
-        if (!p) {
-            dir[0] = '\0';
-            strncpy(name, path, name_size);
-            name[name_size - 1] = '\0';  // Ensure null-termination
-        } else {
-            size_t len = (size_t)(p - path);
-            if (len >= dir_size) {
-                len = dir_size - 1;
-            }
-            strncpy(dir, path, len);
-            dir[len] = '\0';
-            strncpy(name, p + 1, name_size);
-            name[name_size - 1] = '\0';  // Ensure null-termination
-        }
+        strncpy(dir, path, len);
+        dir[len] = '\0';
+        strncpy(name, p + 1, name_size);
+        name[name_size - 1] = '\0';  // Ensure null-termination
     }
+}

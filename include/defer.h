@@ -18,8 +18,7 @@ Arch:          sudo pacman -S libdispatch
 //*                                                                            *
 //******************************************************************************
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <stddef.h>
 
 #ifdef _WIN32
 #define ATTR_UNUSED
@@ -74,7 +73,6 @@ typedef void (^defer_block)(void);
     defer_block __attribute__((cleanup(do_defer))) _DEFER_CONCAT(__defer, __COUNTER__) = defer_block_create(block)
 #elif defined(_MSC_VER)
 // MSVC Implementation using try-finally
-
 #define defer(block)                                                                                                   \
     __try {                                                                                                            \
     } __finally {                                                                                                      \
@@ -88,52 +86,6 @@ ATTR_UNUSED static inline void do_defer(defer_block* ptr) {
     (*ptr)();
 }
 
-#endif
-
-//******************************************************************************
-//*                                                                            *
-//*                 AUTOMATIC MEMORY MANAGEMENT                                *
-//*                                                                            *
-//******************************************************************************
-// ============================
-
-#ifdef __cplusplus
-#include <cstddef>
-#include <cstdio>
-#include <cstdlib>
-extern "C" {
-#else
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#endif
-
-#if !defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
-#ifndef _MSC_VER
-#error "__attribute__(cleanup) is only supported in GCC, Clang and icc & icx compilers."
-#endif
-#endif
-
-#define autofree __attribute__((cleanup(automem_free)))
-#define autoclose __attribute__((cleanup(autoclose_file)))
-#define autoclean(func) __attribute__((cleanup(func)))
-
-ATTR_UNUSED static inline void automem_free(void* ptr) {
-    if (!ptr) {
-        return;
-    }
-    free(ptr);
-}
-
-ATTR_UNUSED static inline void autoclose_file(void* ptr) {
-    if (!ptr)
-        return;
-    FILE* p = (FILE*)ptr;
-    fclose(p);
-}
-
-#ifdef __cplusplus
-}
 #endif
 
 #endif  // __DEFER__H

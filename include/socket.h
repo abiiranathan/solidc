@@ -20,11 +20,10 @@ extern "C" {
 
 #ifdef _WIN32
 #include <mswsock.h>
-#include <windows.h>
-#include <winsock2.h>
+#include <windows.h>   // Include after winsock2.h
+#include <winsock2.h>  // Must be first on Windows
 #include <ws2tcpip.h>
 #else
-
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
