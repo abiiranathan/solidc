@@ -42,18 +42,25 @@ enable_testing()
 
 # Header files
 set(HEADERS 
+    include/aligned_alloc.h
     include/arena.h
+    include/array.h
+    include/cmp.h
     include/cstr.h
     include/csvparser.h
+    include/defer.h
     include/file.h
     include/filepath.h
     include/flag.h
+    include/global.h
     include/hash.h
     include/list.h
     include/lock.h
+    include/macros.h
     include/map.h
     include/pipeline.h
     include/process.h
+    include/set.h
     include/slist.h
     include/socket.h
     include/stdstreams.h
@@ -61,7 +68,7 @@ set(HEADERS
     include/thread.h
     include/threadpool.h
     include/unicode.h
-    include/defer.h
+    include/wintypes.h
 
     # Combined header
     include/solidc.h
