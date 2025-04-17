@@ -2,6 +2,7 @@
 #define __THREADPOOL_H__
 
 #include <stddef.h>
+#include "macros.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,9 +15,6 @@ extern "C" {
 #ifndef RING_BUFFER_SIZE
 #define RING_BUFFER_SIZE 4096  // Must be power of 2
 #endif
-
-#define IS_POWER_OF_2(n) ((n) > 0 && ((n) & ((n) - 1)) == 0)
-#define STATIC_CHECK_POWER_OF_2(n) _Static_assert(IS_POWER_OF_2(n), #n " is not a power of 2")
 
 STATIC_CHECK_POWER_OF_2(RING_BUFFER_SIZE);
 STATIC_CHECK_POWER_OF_2(THREADLOCAL_QUEUE_SIZE);

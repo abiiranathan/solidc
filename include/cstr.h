@@ -3,13 +3,11 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include "macros.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define IS_POWER_OF_2(n) ((n) > 0 && ((n) & ((n) - 1)) == 0)
-#define STATIC_CHECK_POWER_OF_2(n) _Static_assert(IS_POWER_OF_2(n), #n " is not a power of 2")
 
 #if !defined(STR_MIN_CAPACITY)
 #define STR_MIN_CAPACITY 16

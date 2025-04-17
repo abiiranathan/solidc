@@ -31,7 +31,7 @@ extern "C" {
             arr->count = new_capacity;                                                                                 \
         }                                                                                                              \
                                                                                                                        \
-        type* new_items = realloc(arr->items, new_capacity * sizeof(*arr->items));                                     \
+        type* new_items = (type*)realloc(arr->items, new_capacity * sizeof(*arr->items));                              \
         if (new_items == NULL && new_capacity > 0) {                                                                   \
             perror("realloc");                                                                                         \
             free(arr->items);                                                                                          \
@@ -186,7 +186,7 @@ int main(void) {
     StrArray_init(&ys);
 
     for (int i = 0; i < 5; ++i) {
-        char* name = malloc(32);
+        char* name = (char *)malloc(32);
         snprintf(name, 32, "name_%d", i);
         StrArray_append(&ys, name);
     }
