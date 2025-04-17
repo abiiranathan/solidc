@@ -1,18 +1,21 @@
-#ifndef __SOLIDC_H__
-#define __SOLIDC_H__
+#ifndef SOLIDC_H
+#define SOLIDC_H
 
 #include "aligned_alloc.h"
 #include "arena.h"
 #include "array.h"
+#include "cmp.h"
 #include "cstr.h"
 #include "csvparser.h"
 #include "defer.h"
 #include "file.h"
 #include "filepath.h"
 #include "flag.h"
+#include "global.h"
 #include "hash.h"
 #include "list.h"
 #include "lock.h"
+#include "macros.h"
 #include "map.h"
 #include "pipeline.h"
 #include "process.h"
@@ -26,4 +29,4 @@
 #include "unicode.h"
 #include "wintypes.h"
 
-#endif /* __SOLIDC_H__ */
+#endif  // SOLIDC_H

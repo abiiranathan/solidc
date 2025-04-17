@@ -22,6 +22,10 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef ARENA_ALIGNMENT
 #define ARENA_ALIGNMENT 8
 #endif
@@ -223,4 +227,8 @@ size_t arena_size(Arena* arena);
  */
 size_t arena_used(Arena* arena);
 
-#endif /* ARENA_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // ARENA_H

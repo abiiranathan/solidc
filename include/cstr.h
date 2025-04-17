@@ -4,6 +4,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define IS_POWER_OF_2(n) ((n) > 0 && ((n) & ((n) - 1)) == 0)
 #define STATIC_CHECK_POWER_OF_2(n) _Static_assert(IS_POWER_OF_2(n), #n " is not a power of 2")
 
@@ -188,5 +192,9 @@ __attribute__((warn_unused_result)) cstr* str_reverse(const cstr* s);
 
 // Reverse the string in place.
 void str_reverse_in_place(cstr* s);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // CSTR_H

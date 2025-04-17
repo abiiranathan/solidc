@@ -23,13 +23,11 @@
 #include "wintypes.h"
 
 #else
-#include <errno.h>
 #include <fcntl.h>
 #include <sys/select.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-
 #endif
 
 #ifdef __cplusplus

@@ -17,6 +17,10 @@
 #include <unistd.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Structure representing a command in a pipeline.
  */
@@ -56,4 +60,8 @@ void free_pipeline(CommandNode* head);
  */
 void build_pipeline(CommandNode** commands);
 
-#endif /* PIPELINE_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // PIPELINE_H

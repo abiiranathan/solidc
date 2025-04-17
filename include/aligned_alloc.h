@@ -3,6 +3,10 @@
 
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <malloc.h>  // For _aligned_malloc and _aligned_free
 #endif
@@ -43,5 +47,9 @@ static inline void aligned_free_xp(void* ptr) {
 // Macro version if preferred
 #define ALIGNED_ALLOC(alignment, size) aligned_alloc_xp(alignment, size)
 #define ALIGNED_FREE(ptr) aligned_free_xp(ptr)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // ALIGNED_ALLOC_H

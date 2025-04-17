@@ -4,6 +4,7 @@
  */
 
 #include "../include/process.h"
+#include <errno.h>
 
 /* Platform-specific implementations of process and pipe handles */
 #ifdef _WIN32
