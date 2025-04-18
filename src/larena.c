@@ -33,12 +33,27 @@ LArena* larena_create(size_t size) {
 // Returns the pointer to the memory or NULL if arena is out of memory.
 void* larena_alloc(LArena* arena, size_t size) {
     if (arena->allocated + size > arena->size) {
-        fprintf(stderr, "LArena is out of memory\n");
         return NULL;
     }
 
     arena->allocated += size;
     void* ptr = arena->memory + size;
+    return ptr;
+}
+
+// Allocate a new NULL-terminated string in the arena and copy s into it.
+void* larena_alloc_string(LArena* arena, const char* s) {
+    if (arena == NULL || s == NULL) {
+        return NULL;
+    }
+
+    size_t len = strlen(s);
+    char* ptr  = larena_alloc(arena, len + 1);
+    if (!ptr) {
+        return NULL;
+    }
+    memcpy(ptr, s, len);
+    ptr[len] = '\0';
     return ptr;
 }
 

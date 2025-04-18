@@ -1,8 +1,6 @@
 #ifndef L_ARANA_H_
 #define L_ARANA_H_
 
-#include <stddef.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -23,6 +21,9 @@ LArena* larena_create(size_t size);
 // Not thread-safe.
 // Returns the pointer to the memory or NULL if arena is out of memory.
 void* larena_alloc(LArena* arena, size_t size);
+
+// Allocate a new NULL-terminated string in the arena and copy s into it.
+void* larena_alloc_string(LArena* arena, const char* s);
 
 // Reset arena memory. Simply reset the allocated memory to 0 and
 // calls memset to zero the memory.

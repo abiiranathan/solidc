@@ -19,4 +19,13 @@ int main() {
     ASSERT(ptr == NULL);
 
     larena_destroy(arena);
+
+    arena = larena_create(128);
+    ASSERT(arena);
+
+    const char* str = "Hello World from Arena";
+    char* new_str   = (char*)larena_alloc_string(arena, str);
+    ASSERT_STR_EQ(str, new_str);
+
+    larena_destroy(arena);
 }
