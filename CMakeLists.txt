@@ -69,6 +69,7 @@ set(HEADERS
     include/threadpool.h
     include/unicode.h
     include/wintypes.h
+    include/larena.h
 
     # Combined header
     include/solidc.h
@@ -95,6 +96,7 @@ set(SOURCES
     src/thread.c
     src/threadpool.c
     src/unicode.c
+    src/larena.c
 )
 
 # Create the library

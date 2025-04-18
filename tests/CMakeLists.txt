@@ -18,6 +18,7 @@ set(TEST_MODULES
     array
     unicode
     slist
+    larena
 )
 
 # Then modify your test loop:
