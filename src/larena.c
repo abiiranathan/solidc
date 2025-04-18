@@ -35,14 +35,13 @@ void* larena_alloc(LArena* arena, size_t size) {
     if (arena->allocated + size > arena->size) {
         return NULL;
     }
-
+    void* ptr = arena->memory + arena->allocated;
     arena->allocated += size;
-    void* ptr = arena->memory + size;
     return ptr;
 }
 
 // Allocate a new NULL-terminated string in the arena and copy s into it.
-void* larena_alloc_string(LArena* arena, const char* s) {
+char* larena_alloc_string(LArena* arena, const char* s) {
     if (arena == NULL || s == NULL) {
         return NULL;
     }
