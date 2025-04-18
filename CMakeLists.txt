@@ -44,6 +44,7 @@ enable_testing()
 set(HEADERS 
     include/aligned_alloc.h
     include/arena.h
+    include/larena.h
     include/array.h
     include/cmp.h
     include/cstr.h
@@ -69,7 +70,7 @@ set(HEADERS
     include/threadpool.h
     include/unicode.h
     include/wintypes.h
-    include/larena.h
+   
 
     # Combined header
     include/solidc.h
@@ -78,6 +79,7 @@ set(HEADERS
 # Source files
 set(SOURCES
     src/arena.c
+    src/larena.c
     src/cstr.c
     src/csvparser.c
     src/file.c
@@ -96,7 +98,6 @@ set(SOURCES
     src/thread.c
     src/threadpool.c
     src/unicode.c
-    src/larena.c
 )
 
 # Create the library
