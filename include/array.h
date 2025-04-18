@@ -14,19 +14,19 @@ extern "C" {
 #define ARRAY_INIT_CAPACITY 16
 
 #define ARRAY_DEFINE(name, type)                                                                                       \
-    typedef struct {                                                                                                   \
+    typedef struct name {                                                                                              \
         type* items;                                                                                                   \
         size_t count;                                                                                                  \
         size_t capacity;                                                                                               \
-    }(name);                                                                                                           \
+    } name;                                                                                                            \
                                                                                                                        \
-    void name##_init(name* arr) {                                                                                      \
+    static inline void name##_init(name* arr) {                                                                        \
         arr->items    = NULL;                                                                                          \
         arr->count    = 0;                                                                                             \
         arr->capacity = 0;                                                                                             \
     }                                                                                                                  \
                                                                                                                        \
-    void name##_resize(name* arr, size_t new_capacity) {                                                               \
+    static inline void name##_resize(name* arr, size_t new_capacity) {                                                 \
         if (new_capacity < arr->count) {                                                                               \
             arr->count = new_capacity;                                                                                 \
         }                                                                                                              \
@@ -42,13 +42,13 @@ extern "C" {
         arr->capacity = new_capacity;                                                                                  \
     }                                                                                                                  \
                                                                                                                        \
-    void name##vec_shrink(name* arr) {                                                                                 \
+    static inline void name##vec_shrink(name* arr) {                                                                   \
         if (arr->capacity > arr->count) {                                                                              \
             name##_resize(arr, arr->count);                                                                            \
         }                                                                                                              \
     }                                                                                                                  \
                                                                                                                        \
-    void name##_append(name* arr, type x) {                                                                            \
+    static inline void name##_append(name* arr, type x) {                                                              \
         if (arr->count >= arr->capacity) {                                                                             \
             size_t new_capacity = arr->capacity == 0 ? ARRAY_INIT_CAPACITY : arr->capacity * 2;                        \
             name##_resize(arr, new_capacity);                                                                          \
@@ -56,7 +56,7 @@ extern "C" {
         arr->items[arr->count++] = x;                                                                                  \
     }                                                                                                                  \
                                                                                                                        \
-    void name##_set(name* arr, size_t index, type value) {                                                             \
+    static inline void name##_set(name* arr, size_t index, type value) {                                               \
         if (index >= arr->count) {                                                                                     \
             fprintf(stderr, "Index out of bounds\n");                                                                  \
             exit(1);                                                                                                   \
@@ -64,7 +64,7 @@ extern "C" {
         arr->items[index] = value;                                                                                     \
     }                                                                                                                  \
                                                                                                                        \
-    void name##_insert(name* arr, size_t index, type value) {                                                          \
+    static inline void name##_insert(name* arr, size_t index, type value) {                                            \
         if (index > arr->count) {                                                                                      \
             fprintf(stderr, "Index out of bounds\n");                                                                  \
             return;                                                                                                    \
@@ -77,7 +77,7 @@ extern "C" {
         arr->items[index] = value;                                                                                     \
         arr->count++;                                                                                                  \
     }                                                                                                                  \
-    void name##_remove(name* arr, size_t index) {                                                                      \
+    static inline void name##_remove(name* arr, size_t index) {                                                        \
         if (index >= arr->count) {                                                                                     \
             fprintf(stderr, "Index out of bounds\n");                                                                  \
             return;                                                                                                    \
@@ -86,12 +86,12 @@ extern "C" {
         arr->count--;                                                                                                  \
     }                                                                                                                  \
                                                                                                                        \
-    void name##_clear(name* arr) {                                                                                     \
+    static inline void name##_clear(name* arr) {                                                                       \
         memset(arr->items, 0, arr->count * sizeof(*arr->items));                                                       \
         arr->count = 0;                                                                                                \
     }                                                                                                                  \
                                                                                                                        \
-    void name##_free(name* arr) {                                                                                      \
+    static inline void name##_free(name* arr) {                                                                        \
         if (arr->items) {                                                                                              \
             free(arr->items);                                                                                          \
             arr->items = NULL;                                                                                         \
@@ -100,24 +100,24 @@ extern "C" {
         arr->capacity = 0;                                                                                             \
     }                                                                                                                  \
                                                                                                                        \
-    void name##_copy(name* dest, name* src) {                                                                          \
+    static inline void name##_copy(name* dest, name* src) {                                                            \
         name##_resize(dest, src->capacity);                                                                            \
         memcpy(dest->items, src->items, src->count * sizeof(*src->items));                                             \
         dest->count = src->count;                                                                                      \
     }                                                                                                                  \
-    void name##_swap(name* arr1, name* arr2) {                                                                         \
+    static inline void name##_swap(name* arr1, name* arr2) {                                                           \
         name temp = *arr1;                                                                                             \
         *arr1     = *arr2;                                                                                             \
         *arr2     = temp;                                                                                              \
     }                                                                                                                  \
-    void name##_reverse(name* arr) {                                                                                   \
+    static inline void name##_reverse(name* arr) {                                                                     \
         for (size_t i = 0; i < arr->count / 2; ++i) {                                                                  \
             type temp                      = arr->items[i];                                                            \
             arr->items[i]                  = arr->items[arr->count - i - 1];                                           \
             arr->items[arr->count - i - 1] = temp;                                                                     \
         }                                                                                                              \
     }                                                                                                                  \
-    void name##_sort(name* arr, int (*cmp)(const void*, const void*)) {                                                \
+    static inline void name##_sort(name* arr, int (*cmp)(const void*, const void*)) {                                  \
         qsort(arr->items, arr->count, sizeof(*arr->items), cmp);                                                       \
     }
 

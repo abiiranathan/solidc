@@ -15,7 +15,7 @@ extern "C" {
         size_t capacity;                                                                                               \
     } Set_##T;                                                                                                         \
     /* Creates a new heap-allocated set. */                                                                            \
-    Set_##T* set_create_##T(size_t initialCapacity) {                                                                  \
+    static inline Set_##T* set_create_##T(size_t initialCapacity) {                                                    \
         Set_##T* set = (Set_##T*)malloc(sizeof(Set_##T));                                                              \
         if (set == NULL) {                                                                                             \
             return NULL;                                                                                               \
@@ -32,7 +32,7 @@ extern "C" {
         return set;                                                                                                    \
     }                                                                                                                  \
     /* Free heap memory used by set and its elements.*/                                                                \
-    void set_destroy_##T(Set_##T* set) {                                                                               \
+    static inline void set_destroy_##T(Set_##T* set) {                                                                 \
         if (set == NULL) {                                                                                             \
             return;                                                                                                    \
         }                                                                                                              \
@@ -43,7 +43,7 @@ extern "C" {
         set = NULL;                                                                                                    \
     }                                                                                                                  \
     /* Returns true if set contains element. */                                                                        \
-    bool set_contains_##T(Set_##T* set, T value) {                                                                     \
+    static inline bool set_contains_##T(Set_##T* set, T value) {                                                       \
         if (set == NULL) {                                                                                             \
             return false;                                                                                              \
         }                                                                                                              \
@@ -58,7 +58,7 @@ extern "C" {
     }                                                                                                                  \
     /* Add element to the set. returns true if added successfully or already                                           \
      * exists. */                                                                                                      \
-    bool set_add_##T(Set_##T* set, T value) {                                                                          \
+    static inline bool set_add_##T(Set_##T* set, T value) {                                                            \
         if (set == NULL) {                                                                                             \
             return false;                                                                                              \
         }                                                                                                              \
@@ -80,7 +80,7 @@ extern "C" {
         return true;                                                                                                   \
     }                                                                                                                  \
     /* Remove element from the set. Returns true if successful. */                                                     \
-    bool set_remove_##T(Set_##T* set, T value) {                                                                       \
+    static inline bool set_remove_##T(Set_##T* set, T value) {                                                         \
         if (set == NULL) {                                                                                             \
             return false;                                                                                              \
         }                                                                                                              \
@@ -96,19 +96,19 @@ extern "C" {
     }                                                                                                                  \
                                                                                                                        \
     /* Returns number of elements in the set. */                                                                       \
-    size_t set_size_##T(Set_##T* set) {                                                                                \
+    static inline size_t set_size_##T(Set_##T* set) {                                                                  \
         return set->size;                                                                                              \
     }                                                                                                                  \
     /* Returns number of elements in the set. */                                                                       \
-    size_t set_capacity_##T(Set_##T* set) {                                                                            \
+    static inline size_t set_capacity_##T(Set_##T* set) {                                                              \
         return set->capacity;                                                                                          \
     }                                                                                                                  \
     /* returns true if size is 0. */                                                                                   \
-    bool set_isempty_##T(Set_##T* set) {                                                                               \
+    static inline bool set_isempty_##T(Set_##T* set) {                                                                 \
         return set->size == 0;                                                                                         \
     }                                                                                                                  \
     /* Clear the set. */                                                                                               \
-    void set_clear_##T(Set_##T* set) {                                                                                 \
+    static inline void set_clear_##T(Set_##T* set) {                                                                   \
         for (size_t i = 0; i < set->size; i++) {                                                                       \
             set->data[i] = (T)NULL;                                                                                    \
         }                                                                                                              \
@@ -116,7 +116,7 @@ extern "C" {
     }                                                                                                                  \
     /* Computes the union of two sets A and B, and returns a new set containing                                        \
      * all elements in A and B. */                                                                                     \
-    Set_##T* set_union_##T(Set_##T* setA, Set_##T* setB) {                                                             \
+    static inline Set_##T* set_union_##T(Set_##T* setA, Set_##T* setB) {                                               \
         Set_##T* unionSet = set_create_##T(setA->size + setB->size);                                                   \
         for (size_t i = 0; i < setA->size; i++) {                                                                      \
             set_add_##T(unionSet, setA->data[i]);                                                                      \
@@ -128,7 +128,7 @@ extern "C" {
     }                                                                                                                  \
     /* Computes the intersection of two sets A and B, and returns a new set                                            \
      * containing elements that are in both A and B. */                                                                \
-    Set_##T* set_intersection_##T(Set_##T* setA, Set_##T* setB) {                                                      \
+    static inline Set_##T* set_intersection_##T(Set_##T* setA, Set_##T* setB) {                                        \
         Set_##T* intersectionSet = set_create_##T(setA->size < setB->size ? setA->size : setB->size);                  \
         for (size_t i = 0; i < setA->size; i++) {                                                                      \
             if (set_contains_##T(setB, setA->data[i])) {                                                               \
@@ -139,7 +139,7 @@ extern "C" {
     }                                                                                                                  \
     /* Computes the difference of two sets A and B, and returns a new set                                              \
      * containing elements that are in A but not in B. */                                                              \
-    Set_##T* set_difference_##T(Set_##T* setA, Set_##T* setB) {                                                        \
+    static inline Set_##T* set_difference_##T(Set_##T* setA, Set_##T* setB) {                                          \
         Set_##T* differenceSet = set_create_##T(setA->size);                                                           \
         for (size_t i = 0; i < setA->size; i++) {                                                                      \
             if (!set_contains_##T(setB, setA->data[i])) {                                                              \
@@ -150,7 +150,7 @@ extern "C" {
     }                                                                                                                  \
     /* Computes the symmetric difference of two sets A and B, and returns a new                                        \
      * set containing elements that are in A or B but not in both. */                                                  \
-    Set_##T* set_symmetric_difference_##T(Set_##T* setA, Set_##T* setB) {                                              \
+    static inline Set_##T* set_symmetric_difference_##T(Set_##T* setA, Set_##T* setB) {                                \
         Set_##T* symmetricDifferenceSet = set_create_##T(setA->size + setB->size);                                     \
         for (size_t i = 0; i < setA->size; i++) {                                                                      \
             if (!set_contains_##T(setB, setA->data[i])) {                                                              \
@@ -166,7 +166,7 @@ extern "C" {
     }                                                                                                                  \
     /* Determines if setA is a subset of setB, and returns true if all elements                                        \
      * in setA are also in setB.*/                                                                                     \
-    bool set_isSubset_##T(Set_##T* setA, Set_##T* setB) {                                                              \
+    static inline bool set_isSubset_##T(Set_##T* setA, Set_##T* setB) {                                                \
         for (size_t i = 0; i < setA->size; i++) {                                                                      \
             if (!set_contains_##T(setB, setA->data[i])) {                                                              \
                 return false;                                                                                          \
@@ -176,7 +176,7 @@ extern "C" {
     }                                                                                                                  \
     /* Determines if setA is a proper subset of setB, and returns true if all                                          \
      * elements in setA are also in setB but setA and setB are not equal. */                                           \
-    bool set_isProperSubset_##T(Set_##T* setA, Set_##T* setB) {                                                        \
+    static inline bool set_isProperSubset_##T(Set_##T* setA, Set_##T* setB) {                                          \
         bool issubset = set_isSubset_##T(setA, setB);                                                                  \
         bool isequal  = setA->size == setB->size;                                                                      \
         if (isequal) {                                                                                                 \
