@@ -5,6 +5,9 @@
 
 #include "../include/array.h"
 
+ARRAY_DEFINE(IntArray, int)
+ARRAY_DEFINE(StrArray, char*)
+
 void test_init() {
     IntArray arr;
     IntArray_init(&arr);
@@ -132,7 +135,7 @@ void test_reverse() {
     printf("test_reverse passed\n");
 }
 
-int int_cmp(const void* a, const void* b) {
+int int_cmp(const int* a, const int* b) {
     return (*(int*)a - *(int*)b);
 }
 

@@ -1,5 +1,4 @@
 #include <limits.h>
-#include <pthread.h>
 #include <stdalign.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -8,239 +7,350 @@
 #include <string.h>
 
 #define XXH_INLINE_ALL
-#include <xxhash.h>  // With Mingw: paru -S mingw-w64-xxhash
+#include <xxhash.h>
 #include "../include/cmp.h"
+#include "../include/lock.h"
 #include "../include/map.h"
 
-// Map structure
-typedef struct map {
-    entry* entries;                                 // Map entries
-    uint8_t* deleted_bitmap;                        // Bitmap for deleted entries
-    size_t size;                                    // Number of map entries
-    size_t capacity;                                // Map capacity
-    unsigned long (*hash)(const void*);             // Hash function
-    bool (*key_compare)(const void*, const void*);  // Key comparison function
-    pthread_mutex_t lock;                           // Lock for thread safety
-    bool free_entries;                              // Free keys and values (if heap-allocated)
-} map;
+// Default maximum load factor
+#define DEFAULT_MAX_LOAD_FACTOR 0.75
+#define TOMBSTONE_RATIO_THRESHOLD 0.5  // Rehash when tombstones > 50% of size
 
-// Hash functions
-static inline unsigned long xxhash(const void* key);
+// Map structure with optimized layout
+typedef struct hash_map {
+    void** keys;                   // Separate array for keys
+    void** values;                 // Separate array for values
+    bool* deleted;                 // Separate array for deleted markers
+    size_t size;                   // Number of active entries
+    size_t capacity;               // Map capacity
+    size_t tombstone_count;        // Count of deleted entries
+    float max_load_factor;         // Configurable load factor threshold
+    HashFunction hash;             // Hash function
+    KeyLenFunction key_len_func;   // Key length function
+    KeyCmpFunction key_compare;    // Key comparison function
+    KeyFreeFunction key_free;      // Key free function (optional)
+    ValueFreeFunction value_free;  // Value free function (optional)
+    Lock lock;                     // Lock for thread safety
+} Map;
 
-// Map creation
-map* map_create(size_t initial_capacity, bool (*key_compare)(const void*, const void*), bool free_entries) {
-    if (initial_capacity == 0) {
-        initial_capacity = INITIAL_MAP_SIZE;
+// Fast hash for small keys (up to 8 bytes)
+// Optimized small key hash - no memcpy, no branches
+static inline uint64_t fast_small_hash(const void* key, size_t size) {
+    if (size == sizeof(uint64_t)) {
+        return *(const uint64_t*)key;
+    } else {
+        uint64_t hash = 0;
+        memcpy(&hash, key, size > sizeof(hash) ? sizeof(hash) : size);
+        return hash;
     }
+}
 
-    if (!key_compare) {
-        fprintf(stderr, "Key comparison function is required\n");
+// xxHash implementation with small key optimization
+unsigned long xxhash(const void* key, size_t size) {
+    if (size <= sizeof(uint64_t)) {
+        return fast_small_hash(key, size);
+    }
+    return XXH3_64bits(key, size);
+}
+
+// Map creation with more configuration options
+Map* map_create(const MapConfig* config) {
+    if (!config || !config->key_compare || !config->key_len_func) {
+        fprintf(stderr, "Invalid configuration\n");
         return NULL;
     }
 
-    map* m = (map*)malloc(sizeof(map));
+    float max_load_factor = DEFAULT_MAX_LOAD_FACTOR;
+    size_t capacity       = INITIAL_MAP_SIZE;
+    if (config->initial_capacity > 0 && config->initial_capacity < SIZE_MAX) {
+        capacity = config->initial_capacity;
+    }
+
+    if (max_load_factor <= 0.1f || max_load_factor > 0.95f) {
+        max_load_factor = DEFAULT_MAX_LOAD_FACTOR;
+    }
+
+    Map* m = (Map*)malloc(sizeof(Map));
     if (!m) {
         perror("Failed to allocate memory for map");
         return NULL;
     }
 
-    m->entries = (entry*)calloc(initial_capacity, sizeof(entry));
-    if (!m->entries) {
+    m->keys    = (void**)calloc(capacity, sizeof(void*));
+    m->values  = (void**)calloc(capacity, sizeof(void*));
+    m->deleted = (bool*)calloc(capacity, sizeof(bool));
+
+    if (!m->keys || !m->values || !m->deleted) {
+        if (m->keys)
+            free(m->keys);
+        if (m->values)
+            free(m->values);
+        if (m->deleted)
+            free(m->deleted);
         free(m);
         perror("Failed to allocate memory for map entries");
         return NULL;
     }
 
-    m->deleted_bitmap = (uint8_t*)calloc((initial_capacity + 7) / 8, sizeof(uint8_t));
-    if (!m->deleted_bitmap) {
-        free(m->entries);
-        free(m);
-        perror("Failed to allocate memory for deleted bitmap");
-        return NULL;
-    }
-
-    m->size         = 0;
-    m->capacity     = initial_capacity;
-    m->hash         = xxhash;  // Use xxHash for faster hashing
-    m->key_compare  = key_compare;
-    m->free_entries = free_entries;
-
-    pthread_mutex_init(&m->lock, NULL);
+    m->size            = 0;
+    m->capacity        = capacity;
+    m->tombstone_count = 0;
+    m->max_load_factor = max_load_factor;
+    m->hash            = config->hash_func ? config->hash_func : xxhash;
+    m->key_compare     = config->key_compare;
+    m->key_len_func    = config->key_len_func;
+    m->key_free        = config->key_free ? config->key_free : free;
+    m->value_free      = config->value_free ? config->value_free : free;
+    lock_init(&m->lock);
     return m;
 }
 
-entry* map_get_entries(map* m) {
-    return m->entries;
-}
-
-// Map destruction
-void map_destroy(map* m) {
-    if (!m)
-        return;
-
-    if (m->free_entries) {
-        for (size_t i = 0; i < m->capacity; i++) {
-            if (m->entries[i].key)
-                free((void*)m->entries[i].key);
-            if (m->entries[i].value)
-                free(m->entries[i].value);
-        }
+// Safe capacity growth calculation
+static size_t calculate_new_capacity(size_t current) {
+    if (current > SIZE_MAX / 2) {
+        return SIZE_MAX;
     }
-
-    free(m->entries);
-    free(m->deleted_bitmap);
-    pthread_mutex_destroy(&m->lock);
-    free(m);
+    size_t new_cap = current + (current / 2);
+    return (new_cap < current) ? SIZE_MAX : new_cap;
 }
 
-// Set the hash function for the map
-void map_set_hash(map* m, unsigned long (*hash)(const void*)) {
-    m->hash = hash;
-}
+// Resize the map with optimized rehashing
+bool map_resize(Map* m, size_t new_capacity) {
+    void** new_keys   = (void**)calloc(new_capacity, sizeof(void*));
+    void** new_values = (void**)calloc(new_capacity, sizeof(void*));
+    bool* new_deleted = (bool*)calloc(new_capacity, sizeof(bool));
 
-// Resize the map
-bool map_resize(map* m, size_t new_capacity) {
-    entry* new_entries = (entry*)calloc(new_capacity, sizeof(entry));
-    if (!new_entries) {
-        perror("Failed to allocate memory for new map entries");
+    if (!new_keys || !new_values || !new_deleted) {
+        free(new_keys);
+        free(new_values);
+        free(new_deleted);
         return false;
     }
 
-    uint8_t* new_deleted_bitmap = (uint8_t*)calloc((new_capacity + 7) / 8, sizeof(uint8_t));
-    if (!new_deleted_bitmap) {
-        free(new_entries);
-        perror("Failed to allocate memory for new deleted bitmap");
-        return false;
-    }
+    size_t old_capacity = m->capacity;
+    void** old_keys     = m->keys;
+    void** old_values   = m->values;
+    bool* old_deleted   = m->deleted;
 
-    for (size_t i = 0; i < m->capacity; i++) {
-        if (m->entries[i].key && !(m->deleted_bitmap[i / 8] & (1 << (i % 8)))) {
-            size_t index = m->hash(m->entries[i].key) % new_capacity;
-            size_t j     = 0;
-            while (new_entries[index].key) {
-                j++;
-                index = (index + j * j) % new_capacity;  // Quadratic probing
-            }
-            new_entries[index] = m->entries[i];
+    // Swap in new arrays
+    m->keys            = new_keys;
+    m->values          = new_values;
+    m->deleted         = new_deleted;
+    m->capacity        = new_capacity;
+    m->size            = 0;
+    m->tombstone_count = 0;
+
+    // Rehash all active entries
+    for (size_t i = 0; i < old_capacity; i++) {
+        if (old_keys[i] && !old_deleted[i]) {
+            map_set(m, old_keys[i], old_values[i]);
         }
     }
 
-    free(m->entries);
-    free(m->deleted_bitmap);
-
-    m->entries        = new_entries;
-    m->deleted_bitmap = new_deleted_bitmap;
-    m->capacity       = new_capacity;
+    // Free old arrays
+    free(old_keys);
+    free(old_values);
+    free(old_deleted);
 
     return true;
 }
 
-// Set a key-value pair
-void map_set(map* m, void* key, void* value) {
-    if ((double)m->size / (double)m->capacity > LOAD_FACTOR_THRESHOLD) {
-        if (m->capacity > SIZE_MAX / 2 || !map_resize(m, m->capacity * 2)) {
-            fprintf(stderr, "Integer overflow or out of memory\n");
+// Set a key-value pair with optimizations
+void map_set(Map* m, void* key, void* value) {
+    // Check if we need to resize
+    float load_factor = (float)(m->size + m->tombstone_count) / (float)m->capacity;
+    if (load_factor > m->max_load_factor) {
+        size_t new_capacity = calculate_new_capacity(m->capacity);
+        if (!map_resize(m, new_capacity)) {
+            fprintf(stderr, "Map resize failed\n");
             return;
         }
     }
 
-    size_t index = m->hash(key) % m->capacity;
-    size_t i     = 0;
-    while (m->entries[index].key && !m->key_compare(m->entries[index].key, key)) {
-        i++;
-        index = (index + i * i) % m->capacity;  // Quadratic probing
+    // Check for tombstone cleanup
+    else if ((double)m->tombstone_count / (double)m->size > TOMBSTONE_RATIO_THRESHOLD) {
+        if (!map_resize(m, m->capacity)) {
+            fprintf(stderr, "Map tombstone cleanup failed\n");
+            return;
+        }
     }
 
-    if (!m->entries[index].key)
-        m->size++;
-    m->entries[index].key   = key;
-    m->entries[index].value = value;
-    m->deleted_bitmap[index / 8] &= ~(1 << (index % 8));  // Clear deleted flag
+    size_t key_len         = m->key_len_func(key);
+    size_t hash            = m->hash(key, key_len);
+    size_t index           = hash % m->capacity;
+    size_t hash2           = (hash % (m->capacity - 1)) + 1;  // For double hashing
+    size_t first_tombstone = SIZE_MAX;
+    size_t i               = 0;
+
+    while (m->keys[index]) {
+        if (m->deleted[index]) {
+            if (first_tombstone == SIZE_MAX) {
+                first_tombstone = index;
+            }
+        } else if (m->key_compare(m->keys[index], key)) {
+            // Key exists - update value
+            if (m->value_free) {
+                m->value_free(m->values[index]);
+            }
+            m->values[index] = value;
+            return;
+        }
+
+        i++;
+        index = (hash + i * hash2) % m->capacity;
+
+        if (i >= m->capacity) {
+            fprintf(stderr, "Hashmap probe sequence too long\n");
+            return;
+        }
+    }
+
+    // Use first tombstone if we found one
+    if (first_tombstone != SIZE_MAX) {
+        index = first_tombstone;
+        m->tombstone_count--;
+    }
+
+    // Insert new entry
+    m->keys[index]    = key;
+    m->values[index]  = value;
+    m->deleted[index] = false;
+    m->size++;
 }
 
-// Get a value by key
-void* map_get(map* m, void* key) {
-    size_t index = m->hash(key) % m->capacity;
-    size_t i     = 0;
-    while (m->entries[index].key || (m->deleted_bitmap[index / 8] & (1 << (index % 8)))) {
-        if (m->entries[index].key && m->key_compare(m->entries[index].key, key)) {
-            return m->entries[index].value;
+// Get a value by key with optimized probing
+void* map_get(Map* m, void* key) {
+    size_t key_len = m->key_len_func(key);
+    size_t hash    = m->hash(key, key_len);
+    size_t index   = hash % m->capacity;
+    size_t hash2   = (hash % (m->capacity - 1)) + 1;
+    size_t i       = 0;
+
+    while (m->keys[index]) {
+        if (!m->deleted[index] && m->key_compare(m->keys[index], key)) {
+            return m->values[index];
         }
         i++;
-        index = (index + i * i) % m->capacity;  // Quadratic probing
+        index = (hash + i * hash2) % m->capacity;
+
+        if (i >= m->capacity) {
+            break;
+        }
     }
     return NULL;
 }
 
-size_t map_length(map* m) {
-    return m->size;
-}
+// Remove a key-value pair with tombstone optimization
+void map_remove(Map* m, void* key) {
+    size_t key_len = m->key_len_func(key);
+    size_t hash    = m->hash(key, key_len);
+    size_t index   = hash % m->capacity;
+    size_t hash2   = (hash % (m->capacity - 1)) + 1;
+    size_t i       = 0;
 
-size_t map_capacity(map* m) {
-    return m->capacity;
-}
-
-// Remove a key-value pair
-void map_remove(map* m, void* key) {
-    size_t index = m->hash(key) % m->capacity;
-    size_t i     = 0;
-
-    while (m->entries[index].key || (m->deleted_bitmap[index / 8] & (1 << (index % 8)))) {
-        if (m->entries[index].key && m->key_compare(m->entries[index].key, key)) {
-            if (m->free_entries) {
-                free((void*)m->entries[index].key);
-                free((void*)m->entries[index].value);
+    while (m->keys[index]) {
+        if (!m->deleted[index] && m->key_compare(m->keys[index], key)) {
+            if (m->key_free) {
+                m->key_free((void*)m->keys[index]);
+            }
+            if (m->value_free) {
+                m->value_free(m->values[index]);
             }
 
-            m->entries[index].key   = NULL;
-            m->entries[index].value = NULL;
-            m->deleted_bitmap[index / 8] |= (1 << (index % 8));  // Mark as deleted
+            m->keys[index]    = NULL;  // Mark as deleted
+            m->values[index]  = NULL;
+            m->deleted[index] = true;
             m->size--;
+            m->tombstone_count++;
             return;
         }
         i++;
-        index = (index + i * i) % m->capacity;  // Quadratic probing
+        index = (hash + i * hash2) % m->capacity;
+
+        if (i >= m->capacity) {
+            return;
+        }
     }
 }
 
-// Thread-safe operations
-void map_set_safe(map* m, void* key, void* value) {
-    pthread_mutex_lock(&m->lock);
-    map_set(m, key, value);
-    pthread_mutex_unlock(&m->lock);
+// Map destruction with proper cleanup
+void map_destroy(Map* m) {
+    if (!m)
+        return;
+
+    if (m->key_free || m->value_free) {
+        for (size_t i = 0; i < m->capacity; i++) {
+            if (m->keys[i] && !m->deleted[i]) {
+                if (m->key_free)
+                    m->key_free((void*)m->keys[i]);
+                if (m->value_free)
+                    m->value_free(m->values[i]);
+            }
+        }
+    }
+
+    free(m->keys);
+    free(m->values);
+    free(m->deleted);
+    lock_free(&m->lock);
+    free(m);
 }
 
-void* map_get_safe(map* m, void* key) {
-    pthread_mutex_lock(&m->lock);
+map_iterator map_iter(Map* m) {
+    map_iterator it = {.m = m, .index = 0};
+    // Advance to first non-empty, non-deleted entry
+    while (it.index < m->capacity && (!m->keys[it.index] || m->deleted[it.index])) {
+        it.index++;
+    }
+    return it;
+}
+
+bool map_next(map_iterator* it, void** key, void** value) {
+    while (it->index < it->m->capacity) {
+        if (it->m->keys[it->index] && !it->m->deleted[it->index]) {
+            if (key)
+                *key = it->m->keys[it->index];
+            if (value)
+                *value = it->m->values[it->index];
+            it->index++;
+
+            // Prepare for next call
+            while (it->index < it->m->capacity && (!it->m->keys[it->index] || it->m->deleted[it->index])) {
+                it->index++;
+            }
+            return true;
+        }
+        it->index++;
+    }
+    return false;
+}
+
+// Thread-safe operations (unchanged from original)
+void map_set_safe(Map* m, void* key, void* value) {
+    lock_acquire(&m->lock);
+    map_set(m, key, value);
+    lock_release(&m->lock);
+}
+
+void* map_get_safe(Map* m, void* key) {
+    lock_acquire(&m->lock);
     void* value = map_get(m, key);
-    pthread_mutex_unlock(&m->lock);
+    lock_release(&m->lock);
     return value;
 }
 
-void map_remove_safe(map* m, void* key) {
-    pthread_mutex_lock(&m->lock);
+void map_remove_safe(Map* m, void* key) {
+    lock_acquire(&m->lock);
     map_remove(m, key);
-    pthread_mutex_unlock(&m->lock);
+    lock_release(&m->lock);
 }
 
-// Key comparison functions
-bool key_compare_int(const void* a, const void* b) {
-    return a && b && *(int*)a == *(int*)b;
-}
+void map_set_from_array(Map* m, void** keys, void** values, size_t num_keys) {
+    lock_acquire(&m->lock);
 
-bool key_compare_char_ptr(const void* a, const void* b) {
-    return a && b && strcmp((char*)a, (char*)b) == 0;
-}
+    for (size_t i = 0; i < num_keys; ++i) {
+        map_set(m, keys[i], values[i]);
+    }
 
-bool key_compare_float(const void* a, const void* b) {
-    return a && b && FLOAT_EQUAL(*(float*)a, *(float*)b);
-}
-
-bool key_compare_double(const void* a, const void* b) {
-    return a && b && FLOAT_EQUAL(*(double*)a, *(double*)b);
-}
-
-// xxHash implementation using XXH64.
-unsigned long xxhash(const void* key) {
-    return XXH64(key, sizeof(int), 0);
+    lock_release(&m->lock);
 }

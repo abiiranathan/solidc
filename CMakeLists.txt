@@ -71,7 +71,6 @@ set(HEADERS
     include/unicode.h
     include/wintypes.h
    
-
     # Combined header
     include/solidc.h
 )

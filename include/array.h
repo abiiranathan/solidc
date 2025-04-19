@@ -117,90 +117,12 @@ extern "C" {
             arr->items[arr->count - i - 1] = temp;                                                                     \
         }                                                                                                              \
     }                                                                                                                  \
-    static inline void name##_sort(name* arr, int (*cmp)(const void*, const void*)) {                                  \
-        qsort(arr->items, arr->count, sizeof(*arr->items), cmp);                                                       \
+    static inline void name##_sort(name* arr, int (*cmp)(const type*, const type*)) {                                  \
+        qsort(arr->items, arr->count, sizeof(*arr->items), (int (*)(const void*, const void*))cmp);                    \
     }
-
-ARRAY_DEFINE(IntArray, int)
-ARRAY_DEFINE(StrArray, char*)
-ARRAY_DEFINE(FloatArray, float)
-ARRAY_DEFINE(DoubleArray, double)
 
 #ifdef __cplusplus
 }
 #endif
-
-#endif
-
-#if 0
-int int_cmp(const int* a, const int* b) {
-    return *a - *b;
-}
-
-int main(void) {
-    IntArray xs;
-    IntArray_init(&xs);
-
-    for (int i = 0; i < 1000; ++i) {
-        IntArray_append(&xs, i);
-    }
-
-    printf("First element: %d\n", xs.items[0]);
-    printf("Last element: %d\n", xs.items[xs.count - 1]);
-
-    IntArray_set(&xs, 500, -1);
-    printf("Element at index 500: %d\n", xs.items[500]);
-
-    IntArray_remove(&xs, 500);
-    printf("New element at index 500: %d\n", xs.items[500]);
-    printf("Array size: %ld\n", xs.count);
-
-    IntArray_insert(&xs, 10, 1000);
-    printf("Element at index 10: %d\n", xs.items[10]);
-
-    // IntArray_copy(&ys, &xs);
-    IntArray_reverse(&xs);
-    printf("First element after reverse: %d\n", xs.items[0]);
-    printf("Last element after reverse: %d\n", xs.items[xs.count - 1]);
-
-    IntArray_sort(&xs, (int (*)(const void*, const void*)) & int_cmp);
-    printf("First element after sort: %d\n", xs.items[0]);
-
-    // copy
-    IntArray ordered;
-    IntArray_init(&ordered);
-    IntArray_copy(&ordered, &xs);
-    printf("First element of ordered: %d\n", ordered.items[0]);
-    printf("Last element of ordered: %d\n", ordered.items[ordered.count - 1]);
-
-    IntArray_swap(&xs, &ordered);
-    printf("First element after swap: %d\n", xs.items[0]);
-    printf("First element of ordered after swap: %d\n", ordered.items[0]);
-
-    IntArray_clear(&xs);
-    printf("Array size after clear: %ld\n", xs.count);
-
-    IntArray_free(&xs);
-
-    StrArray ys;
-    StrArray_init(&ys);
-
-    for (int i = 0; i < 5; ++i) {
-        char* name = (char *)malloc(32);
-        snprintf(name, 32, "name_%d", i);
-        StrArray_append(&ys, name);
-    }
-
-    for (size_t i = 0; i < ys.count; ++i) {
-        printf("%s\n", ys.items[i]);
-    }
-
-    for (size_t i = 0; i < ys.count; ++i) {
-        free(ys.items[i]);
-    }
-    StrArray_free(&ys);
-
-    return 0;
-}
 
 #endif
