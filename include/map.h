@@ -7,7 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../include/cmp.h"
+
+#include "./cmp.h"
 
 #ifdef __cplusplus
 extern "C" {
