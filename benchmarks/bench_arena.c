@@ -8,7 +8,7 @@
 #include <string.h>
 #include <strings.h>
 #include <time.h>
-#include "include/arena.h"
+#include "../include/arena.h"
 
 // Number of iterations for each benchmark
 #define NUM_ITERATIONS 64
@@ -111,14 +111,9 @@ double benchmark(ThreadData* thread_data, void* (*allocator_func)(ThreadData*), 
     return total_elapsed / NUM_THREADS;
 }
 
-int main(int argc, char* argv[]) {
-    if (argc != 4) {
-        fprintf(stderr, "Usage: %s <size> <n>\n", argv[0]);
-        return 1;
-    }
-
-    size_t size = (size_t)atoi(argv[1]);
-    size_t n    = (size_t)atoi(argv[2]);
+int main() {
+    static const size_t size = 1024;
+    static const size_t n    = 10000;
 
     // Benchmark configurations
     double total_arena_time        = 0;
