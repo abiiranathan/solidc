@@ -19,6 +19,8 @@ set(TEST_MODULES
     unicode
     slist
     larena
+    vec
+    matrix
 )
 
 # Then modify your test loop:
@@ -31,8 +33,11 @@ foreach(module ${TEST_MODULES})
     # Platform-specific dependencies
     if(IS_WINDOWS_TARGET)
         target_link_libraries(${module}_test PRIVATE ws2_32 advapi32 kernel32)
+        target_compile_options(${module}_test PRIVATE /arch:AVX2)
     else()
         target_link_libraries(${module}_test PRIVATE pthread m)
+        target_compile_options(${module}_test PRIVATE -mavx -mavx2 -mfma)
+
     endif()
     
     add_test(NAME ${module}_test COMMAND ${module}_test)

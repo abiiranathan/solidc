@@ -112,6 +112,8 @@ make TARGET=wasm SYSTEM_NAME=WebAssembly WASM_CC=emcc
 | `unicode.h`    | UTF-8 string helpers                          |
 | `defer.h`      | Cross-platform defer implementation           |
 | `solidc.h`     | Master header that includes all above modules |
+| `vec.h`        | Fast Vec2 and Vec3 vector ops with SIMD       |
+| `matrix.h`     | Fast Mat3 and Mat4 matrix ops with SIMD       |
 
 ---
 

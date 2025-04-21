@@ -70,6 +70,9 @@ set(HEADERS
     include/threadpool.h
     include/unicode.h
     include/wintypes.h
+
+    include/vec.h
+    include/matrix.h
    
     # Combined header
     include/solidc.h
