@@ -1,4 +1,6 @@
 #include "../include/matrix.h"
+#include "../include/linear_alg.h"
+#include "../include/macros.h"
 #include "../include/vec.h"
 
 #include <math.h>
@@ -10,28 +12,6 @@ int float_equal(float a, float b) {
     return fabsf(a - b) < EPSILON;
 }
 
-int mat3_equal(Mat3 a, Mat3 b) {
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            if (!float_equal(a.m[i][j], b.m[i][j])) {
-                return 0;
-            }
-        }
-    }
-    return 1;
-}
-
-int mat4_equal(Mat4 a, Mat4 b) {
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            if (!float_equal(a.m[i][j], b.m[i][j])) {
-                return 0;
-            }
-        }
-    }
-    return 1;
-}
-
 void test_mat3_identity() {
     printf("Testing mat3_identity()...\n");
     Mat3 m        = mat3_identity();
@@ -41,10 +21,8 @@ void test_mat3_identity() {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
-        printf("Expected:\n");
-        mat3_print(expected);
-        printf("Got:\n");
-        mat3_print(m);
+        mat3_print(expected, "EXPECTED");
+        mat3_print(m, "GOT");
     }
     printf("\n");
 }
@@ -59,10 +37,8 @@ void test_mat4_identity() {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
-        printf("Expected:\n");
-        mat4_print(expected);
-        printf("Got:\n");
-        mat4_print(m);
+        mat4_print(expected, "EXPECTED");
+        mat4_print(m, "GOT");
     }
     printf("\n");
 }
@@ -78,12 +54,148 @@ void test_mat3_mul() {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
-        printf("Expected:\n");
-        mat3_print(expected);
-        printf("Got:\n");
-        mat3_print(result);
+        mat3_print(expected, "EXPECTED");
+        mat3_print(result, "GOT");
     }
     printf("\n");
+}
+
+void test_mat3_lu() {
+    printf("Testing mat3_lu()...\n");
+
+    // Define the test matrix (column-major)
+    Mat3 A = {{{2, 1, -1}, {-1, 3, 2}, {1, -1, 2}}};
+
+    // Output original matrix
+    mat3_print(A, "Original Matrix A");
+
+    // Perform LU decomposition
+    Mat3 L, U, P;
+    bool success = mat3_lu(A, &L, &U, &P);
+
+    if (!success) {
+        printf("LU decomposition failed! Matrix may be singular.\n");
+        exit(1);
+    }
+
+    // Print the results
+    mat3_print(L, "Lower Triangular L");
+    mat3_print(U, "Upper Triangular U");
+    mat3_print(P, "Permutation Matrix P");
+
+    // Verify: P * A = L * U
+    Mat3 PA = mat3_mul(P, A);
+    Mat3 LU = mat3_mul(L, U);
+
+    mat3_print(PA, "P * A");
+    mat3_print(LU, "L * U");
+
+    // Check if PA = LU
+    if (mat3_equal(PA, LU)) {
+        printf("VERIFICATION PASSED: P * A = L * U\n");
+    } else {
+        printf("VERIFICATION FAILED: P * A != L * U\n");
+    }
+}
+
+void test_mat3_solve() {
+    Mat3 A = mat3_new_column_major(5.0f,
+                                   6.0f,
+                                   0.0f,  // Row 0
+                                   0.0f,
+                                   1.0f,
+                                   4.0f,  // Row 1
+                                   1.0f,
+                                   2.0f,
+                                   3.0f  // Row 2
+    );
+
+    // Define the right-hand side vector b = Ax
+    Vec3 b = {17.0f, 14.0f, 14.0f};
+
+    // Solve the system Ax = b
+    Vec3 x = mat3_solve(A, b);
+    vec3_print(x, "mat3_solve SOLUTION: x");
+    if (vec3_equals(x, (Vec3){1.0, 2.0, 3.0}, 1e-04)) {
+        puts("mat3_solve PASSED");
+        printf("Eqation has a correct solution\n");
+    } else {
+        puts("mat3_solve FAILED");
+        exit(1);
+    }
+}
+
+void test_mat4_solve() {
+    // Define the mathematical matrix A:
+    // [ 2  1 -1  3 ]
+    // [ 1 -2  3  1 ]
+    // [-1  3  2  4 ]
+    // [ 3  1  4  2 ]
+
+    // Known solution x = {1, 1, 1, 1}
+    // Calculate b = Ax:
+    Mat4 A = mat4_new_column_major(2.0f,
+                                   1.0f,
+                                   -1.0f,
+                                   3.0f,  // Row 0
+                                   1.0f,
+                                   -2.0f,
+                                   3.0f,
+                                   1.0f,  // Row 1
+                                   -1.0f,
+                                   3.0f,
+                                   2.0f,
+                                   4.0f,  // Row 2
+                                   3.0f,
+                                   1.0f,
+                                   4.0f,
+                                   2.0f  // Row 3
+    );
+
+    Vec4 b = {5.0f, 3.0f, 8.0f, 10.0f};
+
+    printf("Solving Ax=b for:\n");
+    mat4_print(A, "A");
+    vec4_print(b, "b");
+
+    // Solve the system Ax = b
+    Vec4 x = mat4_solve(A, b);
+    printf("\n");
+    printf("Solution found:\n");
+    vec4_print(x, "X");  // Expected solution: {1.0, 1.0, 1.0, 1.0}
+    ASSERT(vec4_equals(x, (Vec4){1.0, 1.0, 1.0, 1.0}, 1e-04));
+
+    Mat4 A2 = mat4_new_column_major(5.0f,
+                                    6.0f,
+                                    0.0f,
+                                    1.0f,  // Row 0
+                                    0.0f,
+                                    1.0f,
+                                    4.0f,
+                                    2.0f,  // Row 1
+                                    1.0f,
+                                    2.0f,
+                                    3.0f,
+                                    0.0f,  // Row 2
+                                    2.0f,
+                                    0.0f,
+                                    1.0f,
+                                    3.0f  // Row 3
+    );
+
+    Vec4 b2 = {18.0f, 16.0f, 14.0f, 8.0f};
+    printf("\nSolving A2x=b2 for:\n");
+    mat4_print(A2, "A2");
+    vec4_print(b2, "b2");
+
+    Mat4 A2rm = mat4_transpose(A2);
+    mat4_print(A2rm, "A2 row-major");
+
+    Vec4 x2 = mat4_solve(A2, b2);
+    printf("\n");
+    printf("Solution found:\n");
+    vec4_print(x2, "X2");  // Expected solution: {1.0, 2.0, 3.0, 1.0}
+    ASSERT(vec4_equals(x2, (Vec4){1.0, 2.0, 3.0, 1.0}, 1e-04));
 }
 
 void test_mat4_mul() {
@@ -97,10 +209,8 @@ void test_mat4_mul() {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
-        printf("Expected:\n");
-        mat4_print(expected);
-        printf("Got:\n");
-        mat4_print(result);
+        mat4_print(expected, "EXPECTED");
+        mat4_print(result, "GOT");
     }
     printf("\n");
 }
@@ -150,10 +260,8 @@ void test_mat4_translate() {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
-        printf("Expected:\n");
-        mat4_print(expected);
-        printf("Got:\n");
-        mat4_print(result);
+        mat4_print(expected, "EXPECTED");
+        mat4_print(result, "GOT");
     }
     printf("\n");
 }
@@ -168,10 +276,8 @@ void test_mat4_scale() {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
-        printf("Expected:\n");
-        mat4_print(expected);
-        printf("Got:\n");
-        mat4_print(result);
+        mat4_print(expected, "EXPECTED");
+        mat4_print(result, "GOT");
     }
     printf("\n");
 }
@@ -186,10 +292,8 @@ void test_mat4_rotate_x() {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
-        printf("Expected:\n");
-        mat4_print(expected);
-        printf("Got:\n");
-        mat4_print(result);
+        mat4_print(expected, "EXPECTED");
+        mat4_print(result, "GOT");
     }
     printf("\n");
 }
@@ -204,10 +308,8 @@ void test_mat4_rotate_y() {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
-        printf("Expected:\n");
-        mat4_print(expected);
-        printf("Got:\n");
-        mat4_print(result);
+        mat4_print(expected, "EXPECTED");
+        mat4_print(result, "GOT");
     }
     printf("\n");
 }
@@ -222,10 +324,8 @@ void test_mat4_rotate_z() {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
-        printf("Expected:\n");
-        mat4_print(expected);
-        printf("Got:\n");
-        mat4_print(result);
+        mat4_print(expected, "EXPECTED");
+        mat4_print(result, "GOT");
     }
     printf("\n");
 }
@@ -242,10 +342,8 @@ void test_mat4_rotate() {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
-        printf("Expected:\n");
-        mat4_print(expected);
-        printf("Got:\n");
-        mat4_print(result);
+        mat4_print(expected, "EXPECTED");
+        mat4_print(result, "GOT");
     }
     printf("\n");
 }
@@ -260,10 +358,8 @@ void test_mat4_transpose() {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
-        printf("Expected:\n");
-        mat4_print(expected);
-        printf("Got:\n");
-        mat4_print(result);
+        mat4_print(expected, "EXPECTED");
+        mat4_print(result, "GOT");
     }
     printf("\n");
 }
@@ -294,10 +390,8 @@ void test_mat4_inverse() {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
-        printf("Expected:\n");
-        mat4_print(expected);
-        printf("Got:\n");
-        mat4_print(result);
+        mat4_print(expected, "EXPECTED");
+        mat4_print(result, "GOT");
     }
     printf("\n");
 }
@@ -311,10 +405,8 @@ void test_mat4_ortho() {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
-        printf("Expected:\n");
-        mat4_print(expected);
-        printf("Got:\n");
-        mat4_print(result);
+        mat4_print(expected, "EXPECTED");
+        mat4_print(result, "GOT");
     }
     printf("\n");
 }
@@ -375,6 +467,9 @@ int main() {
     test_mat4_identity();
     test_mat3_mul();
     test_mat4_mul();
+    test_mat3_lu();
+    test_mat3_solve();
+
     test_mat3_mul_vec3();
     test_mat4_mul_vec4();
     test_mat4_translate();
@@ -389,6 +484,7 @@ int main() {
     test_mat4_ortho();
     test_mat4_perspective();
     test_mat4_look_at();
+    test_mat4_solve();
 
     return 0;
 }

@@ -118,6 +118,18 @@ void vec3_print(const Vec3 v, const char* name) {
     if (name) {
         printf("%s: ", name);
     }
+    printf("Vec3(%.4f, %.4f, %.4f)\n", v.x, v.y, v.z);
+}
+
+/**
+ * @brief Prints a Vec3 to stdout with no rounding.
+ * @param v The vector to print
+ * @param name Optional name to display (can be NULL)
+ */
+void vec3_print_ex(const Vec3 v, const char* name) {
+    if (name) {
+        printf("%s: ", name);
+    }
     printf("Vec3(%f, %f, %f)\n", v.x, v.y, v.z);
 }
 
@@ -130,7 +142,48 @@ void vec4_print(const Vec4 v, const char* name) {
     if (name) {
         printf("%s: ", name);
     }
-    printf("Vec4(%f, %f, %f, %f)\n", v.x, v.y, v.z, v.w);
+    printf("Vec4(%.4f, %.4f, %.4f, %.4f)\n", v.x, v.y, v.z, v.w);
+}
+
+bool vec3_equal(Vec3 a, Vec3 b) {
+    static float EPSILON = 1e-6f;
+
+    // Pack Vec3 into __m128 with padding (e.g. 0.0f)
+    __m128 va = _mm_set_ps(0.0f, a.z, a.y, a.x);
+    __m128 vb = _mm_set_ps(0.0f, b.z, b.y, b.x);
+
+    // Compute absolute difference
+    __m128 diff     = _mm_sub_ps(va, vb);
+    __m128 abs_diff = _mm_andnot_ps(_mm_set1_ps(-0.0f), diff);  // fabs
+
+    // Compare with EPSILON
+    __m128 eps = _mm_set1_ps(EPSILON);
+    __m128 cmp = _mm_cmplt_ps(abs_diff, eps);  // abs_diff < EPSILON
+
+    // Extract bitmask
+    int mask = _mm_movemask_ps(cmp);
+
+    // Only check the first 3 lanes (bits 0–2)
+    return (mask & 0x7) == 0x7;
+}
+
+static inline bool vec4_equal(Vec4 a, Vec4 b) {
+    static float EPSILON = 1e-6f;
+
+    // Load vectors into SIMD registers
+    __m128 va = _mm_set_ps(a.w, a.z, a.y, a.x);
+    __m128 vb = _mm_set_ps(b.w, b.z, b.y, b.x);
+
+    // Compute absolute difference
+    __m128 diff     = _mm_sub_ps(va, vb);
+    __m128 abs_diff = _mm_andnot_ps(_mm_set1_ps(-0.0f), diff);  // clear sign bit (fabs)
+
+    // Compare with EPSILON
+    __m128 eps = _mm_set1_ps(EPSILON);
+    __m128 cmp = _mm_cmplt_ps(abs_diff, eps);  // true if abs_diff < EPSILON
+
+    // All bits set (0xFFFFFFFF) in each lane means equal
+    return _mm_movemask_ps(cmp) == 0xF;
 }
 
 // ======================
@@ -375,6 +428,15 @@ static inline Vec4 vec4_lerp(Vec4 a, Vec4 b, float t) {
  */
 static inline float vec4_distance(Vec4 a, Vec4 b) {
     return vec4_length(vec4_sub(a, b));
+}
+
+static inline Vec4 vec4_scale(Vec4 v, float factor) {
+    Vec4 result;
+    result.x = v.x * factor;
+    result.y = v.y * factor;
+    result.z = v.z * factor;
+    result.w = v.w * factor;
+    return result;
 }
 
 // ======================

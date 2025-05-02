@@ -6,14 +6,15 @@
 #include <stdbool.h>
 #include "vec.h"
 
-// Matrix types with SIMD alignment
+// 3x3 Matrix types with SIMD alignment and Column-Major storage.
 typedef struct __attribute__((aligned(16))) Mat3 {
-    float m[3][3];  // Column-major storage
+    float m[3][3];  // Column-major storage as m[col][row]
 } Mat3;
 
+// 4x4 Matrix types with SIMD alignment and Column-Major storage.
 typedef struct __attribute__((aligned(32))) Mat4 {
     union {
-        float m[4][4];   // Column-major storage
+        float m[4][4];   // Column-major storage as m[col][row]
         __m128 cols[4];  // SIMD columns
     };
 } Mat4;
@@ -21,21 +22,74 @@ typedef struct __attribute__((aligned(32))) Mat4 {
 // Debugging
 //================
 
+/**
+ * Creates a Mat3 with elements stored in column-major order.
+ * This means m[col][row] in the struct holds the element at mathematical row, col.
+ * Use this if your functions (like mat3_lu, solve_mat3) expect column-major storage.
+ * @param m00, m01, ... element values in row-major order (as you'd write the matrix).
+ * @return  A Mat3 struct with elements stored column-major.
+ */
+static inline Mat3 mat3_new_column_major(float m00, float m01, float m02, float m10, float m11, float m12, float m20,
+                                         float m21, float m22) {
+    Mat3 mat;
+    // Store element A_row,col at mat.m[col][row]
+    mat.m[0][0] = m00;
+    mat.m[1][0] = m01;
+    mat.m[2][0] = m02;  // Row 0 values go into col 0, 1, 2 at row 0 of array
+    mat.m[0][1] = m10;
+    mat.m[1][1] = m11;
+    mat.m[2][1] = m12;  // Row 1 values go into col 0, 1, 2 at row 1 of array
+    mat.m[0][2] = m20;
+    mat.m[1][2] = m21;
+    mat.m[2][2] = m22;  // Row 2 values go into col 0, 1, 2 at row 2 of array
+    return mat;
+}
+
+// Helper function to create a Mat4 with column-major storage
+static inline Mat4 mat4_new_column_major(float m00, float m01, float m02, float m03, float m10, float m11, float m12,
+                                         float m13, float m20, float m21, float m22, float m23, float m30, float m31,
+                                         float m32, float m33) {
+    Mat4 mat;
+    // Store A_row,col at mat.m[col][row]
+    mat.m[0][0] = m00;
+    mat.m[1][0] = m01;
+    mat.m[2][0] = m02;
+    mat.m[3][0] = m03;  // Row 0 values
+    mat.m[0][1] = m10;
+    mat.m[1][1] = m11;
+    mat.m[2][1] = m12;
+    mat.m[3][1] = m13;  // Row 1 values
+    mat.m[0][2] = m20;
+    mat.m[1][2] = m21;
+    mat.m[2][2] = m22;
+    mat.m[3][2] = m23;  // Row 2 values
+    mat.m[0][3] = m30;
+    mat.m[1][3] = m31;
+    mat.m[2][3] = m32;
+    mat.m[3][3] = m33;  // Row 3 values
+    return mat;
+}
+
 /// @brief Prints a Mat3 matrix to the standard output.
 /// @param m The Mat3 matrix to print.
-static inline void mat3_print(Mat3 m) {
+static inline void mat3_print(Mat3 mat, const char* name) {
+    printf("%s = \n", name);
     for (int i = 0; i < 3; i++) {
-        printf("[ ");
+        printf("  [");
         for (int j = 0; j < 3; j++) {
-            printf("%6.3f ", m.m[j][i]);
+            printf("%8.4f", mat.m[j][i]);  // Transpose for row-major display
+            if (j < 2)
+                printf(", ");
         }
         printf("]\n");
     }
+    printf("\n");
 }
 
 /// @brief Prints a Mat4 matrix to the standard output.
 /// @param m The Mat4 matrix to print.
-static inline void mat4_print(Mat4 m) {
+static inline void mat4_print(Mat4 m, const char* name) {
+    printf("%s = \n", name);
     for (int i = 0; i < 4; i++) {
         printf("[ ");
         for (int j = 0; j < 4; j++) {
@@ -56,6 +110,62 @@ static inline Mat3 mat3_identity(void) {
     return m;
 }
 
+static inline bool mat3_equal(Mat3 a, Mat3 b) {
+    static float EPSILON = 1e-6f;
+
+    const __m128 epsilon  = _mm_set1_ps(EPSILON);
+    const __m128 neg_zero = _mm_set1_ps(-0.0f);  // for fabs
+
+    const float* pa = &a.m[0][0];
+    const float* pb = &b.m[0][0];
+
+    // Compare first 4 floats
+    __m128 diff1 = _mm_sub_ps(_mm_loadu_ps(pa), _mm_loadu_ps(pb));
+    __m128 abs1  = _mm_andnot_ps(neg_zero, diff1);
+    __m128 cmp1  = _mm_cmplt_ps(abs1, epsilon);
+    if (_mm_movemask_ps(cmp1) != 0xF)
+        return false;
+
+    // Compare next 4 floats
+    __m128 diff2 = _mm_sub_ps(_mm_loadu_ps(pa + 4), _mm_loadu_ps(pb + 4));
+    __m128 abs2  = _mm_andnot_ps(neg_zero, diff2);
+    __m128 cmp2  = _mm_cmplt_ps(abs2, epsilon);
+    if (_mm_movemask_ps(cmp2) != 0xF)
+        return false;
+
+    // Compare final element (9th float)
+    float da = pa[8] - pb[8];
+    if (da < -EPSILON || da > EPSILON)
+        return false;
+
+    return true;
+}
+
+static inline bool mat4_equal(Mat4 a, Mat4 b) {
+    static float EPSILON = 1e-6f;
+
+    __m128 epsilon  = _mm_set1_ps(EPSILON);
+    __m128 neg_zero = _mm_set1_ps(-0.0f);  // for fabs via bitmask
+
+    for (int i = 0; i < 4; ++i) {
+        __m128 diff     = _mm_sub_ps(a.cols[i], b.cols[i]);
+        __m128 abs_diff = _mm_andnot_ps(neg_zero, diff);  // fabs
+
+        __m128 cmp = _mm_cmplt_ps(abs_diff, epsilon);
+        int mask   = _mm_movemask_ps(cmp);
+        if (mask != 0xF)
+            return false;
+    }
+    return true;
+}
+
+/// @brief Returns the diagonal matrix extracted from matrix m.
+/// @param m The input matrix
+/// @return A Mat3 diagonal matrix with the diagonal elements from m.
+static inline Mat3 mat3_diag(Mat3 m) {
+    return (Mat3){{{m.m[0][0], 0.0f, 0.0f}, {0.0f, m.m[1][1], 0.0f}, {0.0f, 0.0f, m.m[2][2]}}};
+}
+
 /// @brief Creates a 4x4 identity matrix using SIMD (SSE intrinsics).
 ///
 /// @return A Mat4 identity matrix.
@@ -68,6 +178,19 @@ static inline Mat4 mat4_identity(void) {
     return m;
 }
 
+/// @brief Returns the diagonal matrix extracted from matrix m.
+/// @param m The input matrix
+/// @return A Mat4 diagonal matrix with the diagonal elements from m.
+/// @brief Returns the diagonal matrix extracted from matrix m.
+/// @param m The input 4x4 matrix
+/// @return A Mat4 diagonal matrix with the diagonal elements from m.
+static inline Mat4 mat4_diag(Mat4 m) {
+    return (Mat4){{{{m.cols[0][0], 0.0f, 0.0f, 0.0f},
+                    {0.0f, m.cols[1][1], 0.0f, 0.0f},
+                    {0.0f, 0.0f, m.cols[2][2], 0.0f},
+                    {0.0f, 0.0f, 0.0f, m.m[3][3]}}}};
+}
+
 // ======================
 // Matrix Operations
 // ======================
@@ -78,14 +201,244 @@ static inline Mat4 mat4_identity(void) {
 /// @return The result of the matrix multiplication a * b.
 static inline Mat3 mat3_mul(Mat3 a, Mat3 b) {
     Mat3 result;
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            result.m[i][j] = 0.0f;
+    for (int col = 0; col < 3; col++) {
+        for (int row = 0; row < 3; row++) {
+            result.m[col][row] = 0.0f;
             for (int k = 0; k < 3; k++) {
-                result.m[i][j] += a.m[i][k] * b.m[k][j];
+                result.m[col][row] += a.m[k][row] * b.m[col][k];
             }
         }
     }
+    return result;
+}
+
+static inline Mat3 mat3_add_scalar(Mat3 m, float scalar) {
+    Mat3 result;
+
+    __m128 scalar_vec = _mm_set1_ps(scalar);
+
+    const float* src = &m.m[0][0];
+    float* dst       = &result.m[0][0];
+
+    // Add scalar to first 4 elements
+    __m128 a = _mm_loadu_ps(src);
+    a        = _mm_add_ps(a, scalar_vec);
+    _mm_storeu_ps(dst, a);
+
+    // Add scalar to next 4 elements
+    __m128 b = _mm_loadu_ps(src + 4);
+    b        = _mm_add_ps(b, scalar_vec);
+    _mm_storeu_ps(dst + 4, b);
+
+    // Add scalar to the 9th element
+    dst[8] = src[8] + scalar;
+
+    return result;
+}
+
+Mat3 mat3_add(Mat3 a, Mat3 b) {
+    Mat3 result;
+
+    const float* pa = &a.m[0][0];
+    const float* pb = &b.m[0][0];
+    float* pr       = &result.m[0][0];
+
+    // Add first 4 elements
+    __m128 va1  = _mm_loadu_ps(pa);
+    __m128 vb1  = _mm_loadu_ps(pb);
+    __m128 sum1 = _mm_add_ps(va1, vb1);
+    _mm_storeu_ps(pr, sum1);
+
+    // Add next 4 elements
+    __m128 va2  = _mm_loadu_ps(pa + 4);
+    __m128 vb2  = _mm_loadu_ps(pb + 4);
+    __m128 sum2 = _mm_add_ps(va2, vb2);
+    _mm_storeu_ps(pr + 4, sum2);
+
+    // Add final element
+    pr[8] = pa[8] + pb[8];
+
+    return result;
+}
+
+static inline Mat3 mat3_scalar_mul(Mat3 m, float scalar) {
+    Mat3 result;
+    const float* src = &m.m[0][0];
+    float* dst       = &result.m[0][0];
+
+    __m128 s = _mm_set1_ps(scalar);
+
+    // Multiply first 4 floats
+    __m128 a = _mm_loadu_ps(src);
+    a        = _mm_mul_ps(a, s);
+    _mm_storeu_ps(dst, a);
+
+    // Multiply next 4 floats
+    __m128 b = _mm_loadu_ps(src + 4);
+    b        = _mm_mul_ps(b, s);
+    _mm_storeu_ps(dst + 4, b);
+
+    // Multiply the 9th float
+    dst[8] = src[8] * scalar;
+
+    return result;
+}
+
+/// @brief Calculates the determinant of a 3x3 matrix
+/// @param m The Mat3 matrix
+/// @return The determinant of the matrix
+static inline float mat3_determinant(Mat3 m) {
+    return m.m[0][0] * (m.m[1][1] * m.m[2][2] - m.m[2][1] * m.m[1][2]) -
+           m.m[0][1] * (m.m[1][0] * m.m[2][2] - m.m[2][0] * m.m[1][2]) +
+           m.m[0][2] * (m.m[1][0] * m.m[2][1] - m.m[2][0] * m.m[1][1]);
+}
+
+/// @brief Calculates the inverse of a 3x3 matrix
+/// @param m The Mat3 matrix to invert
+/// @param[out] inv Output inverted matrix
+/// @return true if successful, false if matrix is singular
+static inline bool mat3_inverse(Mat3 m, Mat3* inv) {
+    const float det = mat3_determinant(m);
+
+    // Check for singularity (using absolute value)
+    if (fabsf(det) < 1e-8f) {
+        return false;
+    }
+
+    const float inv_det = 1.0f / det;
+
+    inv->m[0][0] = (m.m[1][1] * m.m[2][2] - m.m[1][2] * m.m[2][1]) * inv_det;
+    inv->m[0][1] = (m.m[0][2] * m.m[2][1] - m.m[0][1] * m.m[2][2]) * inv_det;
+    inv->m[0][2] = (m.m[0][1] * m.m[1][2] - m.m[0][2] * m.m[1][1]) * inv_det;
+
+    inv->m[1][0] = (m.m[1][2] * m.m[2][0] - m.m[1][0] * m.m[2][2]) * inv_det;
+    inv->m[1][1] = (m.m[0][0] * m.m[2][2] - m.m[0][2] * m.m[2][0]) * inv_det;
+    inv->m[1][2] = (m.m[0][2] * m.m[1][0] - m.m[0][0] * m.m[1][2]) * inv_det;
+
+    inv->m[2][0] = (m.m[1][0] * m.m[2][1] - m.m[1][1] * m.m[2][0]) * inv_det;
+    inv->m[2][1] = (m.m[0][1] * m.m[2][0] - m.m[0][0] * m.m[2][1]) * inv_det;
+    inv->m[2][2] = (m.m[0][0] * m.m[1][1] - m.m[0][1] * m.m[1][0]) * inv_det;
+
+    return true;
+}
+
+/**
+ * LU Decomposition with partial pivoting for a 3x3 matrix.
+ * Assumes column-major matrices.
+ *
+ * @param A  Input matrix (column-major)
+ * @param L  Output lower triangular matrix (column-major)
+ * @param U  Output upper triangular matrix (column-major)
+ * @param P  Output permutation matrix (column-major)
+ */
+static inline bool mat3_lu(Mat3 A, Mat3* L, Mat3* U, Mat3* P) {
+    const float tolerance = 1e-6f;
+
+    // Initialize U to A
+    *U = A;
+
+    // Initialize L to identity
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j)
+            L->m[j][i] = (i == j) ? 1.0f : 0.0f;
+
+    // Initialize P to identity
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j)
+            P->m[j][i] = (i == j) ? 1.0f : 0.0f;
+
+    // LU Decomposition with partial pivoting
+    for (int k = 0; k < 3; ++k) {
+        // Find pivot row
+        int pivot_row = k;
+        float max_val = fabsf(U->m[k][k]);
+        for (int i = k + 1; i < 3; ++i) {
+            float val = fabsf(U->m[k][i]);
+            if (val > max_val) {
+                max_val   = val;
+                pivot_row = i;
+            }
+        }
+
+        if (max_val < tolerance)
+            return false;  // Singular matrix
+
+        // Swap rows in U and P if needed
+        if (pivot_row != k) {
+            for (int j = 0; j < 3; ++j) {
+                float tmp          = U->m[j][k];
+                U->m[j][k]         = U->m[j][pivot_row];
+                U->m[j][pivot_row] = tmp;
+
+                tmp                = P->m[j][k];
+                P->m[j][k]         = P->m[j][pivot_row];
+                P->m[j][pivot_row] = tmp;
+
+                if (j < k) {
+                    tmp                = L->m[j][k];
+                    L->m[j][k]         = L->m[j][pivot_row];
+                    L->m[j][pivot_row] = tmp;
+                }
+            }
+        }
+
+        // Elimination
+        for (int i = k + 1; i < 3; ++i) {
+            float factor = U->m[k][i] / U->m[k][k];
+            L->m[k][i]   = factor;
+
+            for (int j = k; j < 3; ++j) {
+                U->m[j][i] -= factor * U->m[j][k];
+            }
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Forward substitution for solving Lx = b, where L is lower triangular.
+ * Assumes L is column-major.
+ */
+static inline Vec3 forward_substitution_mat3(Mat3 L, Vec3 b) {
+    Vec3 x;
+    x.x = b.x / L.m[0][0];                                        // L[0][0]
+    x.y = (b.y - L.m[0][1] * x.x) / L.m[1][1];                    // L[1][0]*x.x / L[1][1]
+    x.z = (b.z - L.m[0][2] * x.x - L.m[1][2] * x.y) / L.m[2][2];  // L[2][0]*x.x + L[2][1]*x.y
+    return x;
+}
+
+/**
+ * Backward substitution for solving Ux = b, where U is upper triangular.
+ * Assumes U is column-major.
+ */
+static inline Vec3 backward_substitution_mat3(Mat3 U, Vec3 b) {
+    Vec3 x;
+    x.z = b.z / U.m[2][2];                                        // U[2][2]
+    x.y = (b.y - U.m[2][1] * x.z) / U.m[1][1];                    // U[1][2]*x.z / U[1][1]
+    x.x = (b.x - U.m[1][0] * x.y - U.m[2][0] * x.z) / U.m[0][0];  // U[0][1]*x.y + U[0][2]*x.z
+    return x;
+}
+
+/**
+ * Matrix exponential for 3x3 using Taylor series approximation.
+ * @param A      Input 3x3 matrix
+ * @param terms  Number of terms to use in the Taylor series expansion
+ */
+static inline Mat3 mat3_exp(Mat3 A, int terms) {
+    Mat3 I       = mat3_identity();  // Identity matrix
+    Mat3 result  = I;                // Start with I
+    Mat3 power_A = I;                // A^0 = I
+
+    float factorial = 1.0f;
+
+    for (int n = 1; n < terms; ++n) {
+        factorial *= n;
+        power_A   = mat3_mul(power_A, A);                        // A^n
+        Mat3 term = mat3_scalar_mul(power_A, 1.0f / factorial);  // A^n / n!
+        result    = mat3_add(result, term);
+    }
+
     return result;
 }
 
