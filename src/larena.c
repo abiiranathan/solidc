@@ -1,4 +1,5 @@
 #include "../include/larena.h"
+#include <stdio.h>
 
 // LArena is a linear memory allocator.
 // Uses a bump allocation strategy to allocate memory.
@@ -38,6 +39,28 @@ void* larena_alloc(LArena* arena, size_t size) {
     void* ptr = arena->memory + arena->allocated;
     arena->allocated += size;
     return ptr;
+}
+
+// Expand or shrink the allocated memory.
+bool larena_resize(LArena* arena, size_t size) {
+    if (size <= arena->allocated) {
+        return false;
+    }
+
+    void* memory = realloc(arena->memory, size);
+    if (!memory) {
+        perror("realloc");
+        return false;
+    }
+
+    arena->memory = (char*)memory;
+    arena->size   = size;
+    return true;
+}
+
+// Get free memory
+size_t larena_getfree_memory(LArena* arena) {
+    return (arena->size - arena->allocated);
 }
 
 // Allocate a new NULL-terminated string in the arena and copy s into it.

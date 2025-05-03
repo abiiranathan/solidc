@@ -17,6 +17,13 @@ extern "C" {
 // Returns the pointer to the allocator if successful or NULL if malloc fails.
 LArena* larena_create(size_t size);
 
+// Expand or shrink the allocated memory. size must be greater than the allocated memory.
+// Returns true on success.
+bool larena_resize(LArena* arena, size_t size);
+
+// Get free memory
+size_t larena_getfree_memory(LArena* arena);
+
 // Allocate size bytes in the arena.
 // Not thread-safe.
 // Returns the pointer to the memory or NULL if arena is out of memory.

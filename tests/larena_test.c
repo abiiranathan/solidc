@@ -27,5 +27,11 @@ int main() {
     char* new_str   = (char*)larena_alloc_string(arena, str);
     ASSERT_STR_EQ(str, new_str);
 
+    // Resize the arena
+    ASSERT(larena_resize(arena, ARENA_SIZE * 2));
+    // printf("Free memory: %ld\n", larena_getfree_memory(arena));
+    ptr = larena_alloc(arena, 1024);
+    ASSERT(ptr);
+
     larena_destroy(arena);
 }
