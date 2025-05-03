@@ -4,11 +4,11 @@
 #include "matrix.h"
 #include "vec.h"
 
-// Gram-Schmidt orthogonalization
 typedef struct {
     Vec3 v0, v1, v2;
 } OrthonormalBasis;
 
+// Gram-Schmidt orthogonalization
 static inline OrthonormalBasis orthonormalize(Vec3 v0, Vec3 v1) {
     v0 = vec3_normalize(v0);
 
@@ -29,8 +29,7 @@ typedef struct {
 /**
  * Computes eigenvalues/vectors of symmetric 3x3 matrix
  * @param A Input symmetric Mat3
- * @param eigenvalues Output Vec3
- * @param eigenvectors Output Mat3 (columns are eigenvectors)
+ * @return  EigenDecomposition struct with eigen vectors and values.
  */
 static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
     EigenDecomposition result;
@@ -73,6 +72,7 @@ static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
             A.m[r][p] = c * arp - s * arq;
             A.m[r][q] = s * arp + c * arq;
         }
+
         for (int r = 0; r < 3; ++r) {
             float arp = A.m[p][r];
             float arq = A.m[q][r];
