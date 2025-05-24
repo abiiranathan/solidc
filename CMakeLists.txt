@@ -13,7 +13,6 @@ else()
     message(STATUS "Building for non-Windows target")
 endif()
 
-
 # Fix RPATH issue with Ninja + Windows
 if(UNIX AND NOT APPLE)
     # Set RPATH on Linux

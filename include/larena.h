@@ -22,12 +22,15 @@ LArena* larena_create(size_t size);
 bool larena_resize(LArena* arena, size_t size);
 
 // Get free memory
-size_t larena_getfree_memory(LArena* arena);
+__attribute__((pure)) size_t larena_getfree_memory(LArena* arena);
 
 // Allocate size bytes in the arena.
 // Not thread-safe.
 // Returns the pointer to the memory or NULL if arena is out of memory.
 void* larena_alloc(LArena* arena, size_t size);
+
+// Allocate memory of size * count and zero it.
+void* larena_calloc(LArena* arena, size_t count, size_t size);
 
 // Allocate a new NULL-terminated string in the arena and copy s into it.
 char* larena_alloc_string(LArena* arena, const char* s);

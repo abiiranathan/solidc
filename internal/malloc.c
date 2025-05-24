@@ -37,10 +37,10 @@ static size_t header_size(void) {
 // Initialize the memory pool with a single free block
 static void initialize_memory() {
     block_header* header = (block_header*)memory;
-    header->size = MEMORY_SIZE;
-    header->next = NULL;
-    header->is_free = true;
-    header->magic = MAGIC_FREE;
+    header->size         = MEMORY_SIZE;
+    header->next         = NULL;
+    header->is_free      = true;
+    header->magic        = MAGIC_FREE;
 }
 
 // Split a block into an allocated block of 'size' bytes and a free remainder.
@@ -50,12 +50,12 @@ static void split_block(block_header* header, size_t size) {
     // payload.
     if (header->size >= size + header_size() + ALIGNMENT) {
         block_header* new_block = (block_header*)((uint8_t*)header + size);
-        new_block->size = header->size - size;
-        new_block->next = header->next;
-        new_block->is_free = true;
-        new_block->magic = MAGIC_FREE;
-        header->size = size;
-        header->next = new_block;
+        new_block->size         = header->size - size;
+        new_block->next         = header->next;
+        new_block->is_free      = true;
+        new_block->magic        = MAGIC_FREE;
+        header->size            = size;
+        header->next            = new_block;
     }
 }
 
@@ -99,7 +99,7 @@ void* my_malloc(size_t size) {
             // Found a free block large enough.
             split_block(current, total_size);
             current->is_free = false;
-            current->magic = MAGIC_ALLOCATED;
+            current->magic   = MAGIC_ALLOCATED;
             // Return pointer to the payload, which is after the header.
             return (void*)((uint8_t*)current + header_size());
         }
@@ -127,7 +127,7 @@ void my_free(void* ptr) {
     }
 
     header->is_free = true;
-    header->magic = MAGIC_FREE;
+    header->magic   = MAGIC_FREE;
 
     // Optionally, clear the memory in the payload (for debugging/security)
     memset(ptr, 0, header->size - header_size());
@@ -143,7 +143,7 @@ void* my_calloc(size_t nmemb, size_t size) {
         return NULL;
 
     size_t total = nmemb * size;
-    void* ptr = my_malloc(total);
+    void* ptr    = my_malloc(total);
 
     if (ptr)
         memset(ptr, 0, total);
@@ -163,10 +163,10 @@ void* my_realloc(void* ptr, size_t size) {
     }
 
     // Retrieve the original block header.
-    block_header* header = (block_header*)((uint8_t*)ptr - header_size());
+    block_header* header    = (block_header*)((uint8_t*)ptr - header_size());
     size_t old_payload_size = header->size - header_size();
-    size_t aligned_size = align_up(size, ALIGNMENT);
-    size_t total_size = header_size() + aligned_size;
+    size_t aligned_size     = align_up(size, ALIGNMENT);
+    size_t total_size       = header_size() + aligned_size;
 
     // If the current block is large enough, we can re-use it.
     if (header->size >= total_size) {
@@ -191,8 +191,11 @@ void print_memory_state() {
     block_header* current = (block_header*)memory;
     printf("Memory state:\n");
     while (current) {
-        printf(" Block @ %p: size = %zu, %s, magic = 0x%x, next = %p\n", (void*)current,
-               current->size, current->is_free ? "free" : "allocated", current->magic,
+        printf(" Block @ %p: size = %zu, %s, magic = 0x%x, next = %p\n",
+               (void*)current,
+               current->size,
+               current->is_free ? "free" : "allocated",
+               current->magic,
                (void*)current->next);
         current = current->next;
     }

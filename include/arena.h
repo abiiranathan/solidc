@@ -27,7 +27,7 @@ extern "C" {
 #endif
 
 #ifndef ARENA_ALIGNMENT
-#define ARENA_ALIGNMENT 8
+#define ARENA_ALIGNMENT 16
 #endif
 
 #ifndef ARENA_MIN_SIZE
@@ -39,7 +39,7 @@ extern "C" {
 #endif
 
 #ifndef THREAD_BLOCK_SIZE
-#define THREAD_BLOCK_SIZE (64 * 1024)  // 64 KB per thread block
+#define THREAD_BLOCK_SIZE (64 * 1024)
 #endif
 
 /**
@@ -215,7 +215,7 @@ bool arena_can_fit(Arena* arena, size_t size);
  * @param arena Pointer to the arena
  * @return size_t The total size in bytes
  */
-size_t arena_size(Arena* arena);
+size_t arena_size(const Arena* arena);
 
 /**
  * @brief Get the amount of memory used in the arena

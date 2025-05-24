@@ -22,6 +22,7 @@ TARGET ?= native
 NATIVE_CC = gcc
 WASM_CC = emcc
 BUILD_DIR = build/$(TARGET)
+CMAKE_C_FLAGS += -std=c23
 
 # Phony targets
 .PHONY: all configure build test install clean format bench perf
@@ -71,7 +72,7 @@ format:
 # Benchmarking (native only)
 bench:
 ifeq ($(TARGET),native)
-	gcc -D_GNU_SOURCE bench_arena.c src/arena.c src/lock.c \
+	gcc -D_GNU_SOURCE benchmarks/bench_arena.c src/larena.c src/lock.c \
 		-lpthread -O3 -std=c23 -Wall -Wextra -Wpedantic -march=native -flto
 	./a.out 4096 100000 8
 else

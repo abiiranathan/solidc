@@ -8,18 +8,18 @@
 #include <string.h>
 #include <strings.h>
 #include <time.h>
-#include "../include/arena.h"
+#include "../include/larena.h"
 
 // Number of iterations for each benchmark
-#define NUM_ITERATIONS 64
+#define NUM_ITERATIONS 1024
 
 #ifndef NUM_THREADS
-#define NUM_THREADS 4
+#define NUM_THREADS 8
 #endif
 
 // Structure to pass data to threads
 typedef struct ThreadData {
-    Arena* arena;
+    LArena* arena;
     size_t size;
     size_t n;
     double* elapsed_time;
@@ -27,21 +27,29 @@ typedef struct ThreadData {
     void* (*allocator_func)(struct ThreadData*);
 } ThreadData;
 
-void* arena_allocator(ThreadData* data) {
-    // use thread-local arena.
-    // arena_threadlocal(data->arena);
-    void* ptr = arena_alloc(data->arena, data->size);
+void* larena_allocator(ThreadData* data) {
+    void* ptr = larena_alloc(data->arena, data->size);
     if (ptr == NULL) {
-        fprintf(stderr, "arena_alloc failed\n");
+        fprintf(stderr, "larena_alloc failed\n");
         exit(1);
     }
 
-    arena_reset(data->arena);
+    ptr = larena_alloc_string(data->arena, "Hello World");
+
+    // Resets should be rare!
+    larena_reset(data->arena);
     return ptr;
 }
 
 void* malloc_allocator(ThreadData* data) {
-    return malloc(data->size);
+    char* ptr = malloc(data->size);
+    if (ptr == NULL) {
+        perror("malloc");
+        exit(1);
+    }
+    strncpy(ptr, "Hello World", data->size - 1);
+    ptr[data->size - 1] = '\0';
+    return ptr;
 }
 
 // Function to run in each thread
@@ -122,10 +130,10 @@ int main() {
     double total_malloc_throughput = 0;
 
     ThreadData thread_data[NUM_THREADS];
-    Arena* arenas[NUM_THREADS];
+    LArena* arenas[NUM_THREADS];
 
     for (int i = 0; i < NUM_THREADS; i++) {
-        arenas[i] = arena_create(1024 * 1024 * 5);
+        arenas[i] = larena_create(1024);
         if (arenas[i] == NULL) {
             printf("Error allocating arenas\n");
             return 1;
@@ -141,7 +149,7 @@ int main() {
             thread_data[i].n = n / (size_t)NUM_THREADS;
         }
 
-        total_arena_time += benchmark(thread_data, arena_allocator, &total_arena_throughput);
+        total_arena_time += benchmark(thread_data, larena_allocator, &total_arena_throughput);
 
         // Benchmark malloc
         for (int i = 0; i < NUM_THREADS; i++) {
@@ -153,12 +161,12 @@ int main() {
     }
 
     for (int i = 0; i < NUM_THREADS; i++) {
-        arena_destroy(arenas[i]);
+        larena_destroy(arenas[i]);
     }
 
     // Print average results
     printf(
-        "arena_alloc (average over %d runs): %.6f ms, throughput: %.2f "
+        "larena_alloc (average over %d runs): %.6f ms, throughput: %.2f "
         "allocations/s\n",
         NUM_ITERATIONS,
         (total_arena_time / NUM_ITERATIONS) * 1e3,

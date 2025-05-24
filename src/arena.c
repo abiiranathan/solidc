@@ -2,7 +2,6 @@
 #include "../include/aligned_alloc.h"
 
 #include <stdatomic.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,11 +17,11 @@
 
 // Separate 'used' into its own cache line to prevent false sharing
 typedef struct __attribute__((aligned(CACHE_LINE_SIZE))) Arena {
-    _Atomic size_t used;                                       // Isolated in its own cache line
-    char _padding1[CACHE_LINE_SIZE - sizeof(_Atomic size_t)];  // Pad to fill the cache line
-    size_t size;                                               // Arena size (immutable after creation)
-    char* base;                                                // Memory buffer (immutable after creation)
-    bool owns_memory;                                          // Indicates if the arena owns the memory
+    atomic_size_t used;                                       // Isolated in its own cache line
+    char _padding1[CACHE_LINE_SIZE - sizeof(atomic_size_t)];  // Pad to fill the cache line
+    size_t size;                                              // Arena size (immutable after creation)
+    char* base;                                               // Memory buffer (immutable after creation)
+    bool owns_memory;                                         // Indicates if the arena owns the memory
 } Arena;
 
 typedef struct AllocHeader {
@@ -35,11 +34,13 @@ typedef struct {
     size_t remaining;
 } ThreadBlock;
 
-static _Thread_local ThreadBlock tl_block = {0, 0};
+static _Thread_local ThreadBlock tl_block = {NULL, 0};
+
+#define ALIGNMENT_MASK (ARENA_ALIGNMENT - 1)
 
 // Helper function to align sizes and addresses
-static inline size_t arena_align_up(size_t n, size_t alignment) {
-    return (n + alignment - 1) & ~(alignment - 1);
+static size_t arena_align_up(const size_t n) {
+    return (n + ALIGNMENT_MASK) & ~ALIGNMENT_MASK;
 }
 
 Arena* arena_create(size_t arena_size) {
@@ -47,7 +48,7 @@ Arena* arena_create(size_t arena_size) {
         arena_size = ARENA_MIN_SIZE;
     }
 
-    arena_size   = arena_align_up(arena_size, ARENA_ALIGNMENT);
+    arena_size   = arena_align_up(arena_size);
     Arena* arena = malloc(sizeof(Arena));
     if (UNLIKELY(arena == NULL)) {
         perror("malloc arena");
@@ -68,7 +69,7 @@ Arena* arena_create(size_t arena_size) {
     return arena;
 }
 
-Arena* arena_create_from_buffer(void* buffer, size_t buffer_size) {
+Arena* arena_create_from_buffer(void* buffer, const size_t buffer_size) {
     if (UNLIKELY(!buffer || buffer_size < ARENA_MIN_SIZE)) {
         return NULL;
     }
@@ -155,28 +156,27 @@ void* arena_alloc(Arena* arena, size_t size) {
         return NULL;
     }
 
-    size_t header_size  = arena_align_up(sizeof(AllocHeader), ARENA_ALIGNMENT);
-    size_t aligned_size = header_size + arena_align_up(size, ARENA_ALIGNMENT);
+    const size_t header_size  = arena_align_up(sizeof(AllocHeader));
+    const size_t aligned_size = header_size + arena_align_up(size);
 
     // Fast path: try thread-local block first
     if (LIKELY(tl_block.remaining >= aligned_size)) {
-        char* ptr           = tl_block.current;
-        AllocHeader* header = (AllocHeader*)ptr;
-        header->size        = size;
+        char* ptr    = tl_block.current;
+        auto header  = (AllocHeader*)ptr;
+        header->size = size;
         tl_block.current += aligned_size;
         tl_block.remaining -= aligned_size;
         return ptr + header_size;
     }
 
     // Reserve a new block from the arena. Cap the reserve_size at arena->size.
-    size_t reserve_size =
-        aligned_size > THREAD_BLOCK_SIZE ? arena_align_up(aligned_size, ARENA_ALIGNMENT) : THREAD_BLOCK_SIZE;
-    reserve_size = MIN(reserve_size, arena->size);
+    size_t reserve_size = aligned_size > THREAD_BLOCK_SIZE ? arena_align_up(aligned_size) : THREAD_BLOCK_SIZE;
+    reserve_size        = MIN(reserve_size, arena->size);
 
     size_t old_used = atomic_fetch_add_explicit(&arena->used, reserve_size, memory_order_acq_rel);
     if (UNLIKELY(old_used + reserve_size > arena->size)) {
         // Try one last attempt using the exact aligned size
-        reserve_size = arena_align_up(aligned_size, ARENA_ALIGNMENT);
+        reserve_size = arena_align_up(aligned_size);
         old_used     = atomic_fetch_add_explicit(&arena->used, reserve_size, memory_order_acq_rel);
         if (UNLIKELY(old_used + reserve_size > arena->size)) {
             // Roll back the atomic update if we can't allocate
@@ -190,34 +190,29 @@ void* arena_alloc(Arena* arena, size_t size) {
     tl_block.remaining = reserve_size;
 
     // Allocate from the new thread-local block
-    char* ptr           = tl_block.current;
-    AllocHeader* header = (AllocHeader*)ptr;
-    header->size        = size;
+    char* ptr    = tl_block.current;
+    auto header  = (AllocHeader*)ptr;
+    header->size = size;
     tl_block.current += aligned_size;
     tl_block.remaining -= aligned_size;
     return ptr + header_size;
 }
 
 void* arena_realloc(Arena* arena, void* ptr, size_t new_size) {
-    if (UNLIKELY(arena == NULL || new_size == 0)) {
+    if (UNLIKELY(!arena || new_size == 0))
         return NULL;
-    }
-
-    // behave like realloc.
-    if (UNLIKELY(ptr == NULL)) {
+    if (UNLIKELY(!ptr))
         return arena_alloc(arena, new_size);
-    }
 
-    size_t header_size  = arena_align_up(sizeof(AllocHeader), ARENA_ALIGNMENT);
+    size_t header_size  = arena_align_up(sizeof(AllocHeader));
     AllocHeader* header = (AllocHeader*)((char*)ptr - header_size);
     size_t old_size     = header->size;
 
     void* new_ptr = arena_alloc(arena, new_size);
-    if (UNLIKELY(new_ptr == NULL)) {
-        return NULL;  // Allocation failed
-    }
+    if (UNLIKELY(!new_ptr))
+        return NULL;
 
-    size_t copy_size = (old_size < new_size) ? old_size : new_size;
+    size_t copy_size = MIN(old_size, new_size);
     memcpy(new_ptr, ptr, copy_size);
     return new_ptr;
 }
@@ -227,12 +222,12 @@ char* arena_alloc_string(Arena* arena, const char* str) {
         return NULL;
     }
 
-    size_t len = strlen(str);
+    const size_t len = strlen(str);
     if (UNLIKELY(len >= SIZE_MAX)) {
         return NULL;
     }
 
-    char* s = (char*)arena_alloc(arena, len + 1);
+    char* s = arena_alloc(arena, len + 1);
     if (UNLIKELY(!s)) {
         return NULL;
     }
@@ -242,12 +237,12 @@ char* arena_alloc_string(Arena* arena, const char* str) {
     return s;
 }
 
-int* arena_alloc_int(Arena* arena, int n) {
+int* arena_alloc_int(Arena* arena, const int n) {
     if (UNLIKELY(!arena)) {
         return NULL;
     }
 
-    int* number = (int*)arena_alloc(arena, sizeof(int));
+    int* number = arena_alloc(arena, sizeof(int));
     if (UNLIKELY(!number)) {
         return NULL;
     }
@@ -260,23 +255,24 @@ size_t arena_remaining(Arena* arena) {
     if (!arena) {
         return 0;
     }
+
     // Acquire semantics to get latest used value
-    size_t used = atomic_load_explicit(&arena->used, memory_order_acquire);
+    const size_t used = atomic_load_explicit(&arena->used, memory_order_acquire);
     return arena->size - used;
 }
 
-bool arena_can_fit(Arena* arena, size_t size) {
+bool arena_can_fit(Arena* arena, const size_t size) {
     if (!arena || size == 0) {
         return false;
     }
 
-    size_t aligned_size = arena_align_up(size, ARENA_ALIGNMENT);
+    const size_t aligned_size = arena_align_up(size);
     // Relaxed is fine here as we just need a snapshot
-    size_t current_used = atomic_load_explicit(&arena->used, memory_order_relaxed);
-    return (current_used <= arena->size && aligned_size <= arena->size - current_used);
+    const size_t current_used = atomic_load_explicit(&arena->used, memory_order_relaxed);
+    return current_used <= arena->size && aligned_size <= arena->size - current_used;
 }
 
-size_t arena_size(Arena* arena) {
+size_t arena_size(const Arena* arena) {
     return arena ? arena->size : 0;
 }
 
@@ -299,26 +295,26 @@ size_t arena_used(Arena* arena) {
  *   true  - if all allocations succeeded.
  *   false - if there was insufficient memory in the arena.
  */
-bool arena_alloc_batch(Arena* arena, const size_t sizes[], size_t count, void* out_ptrs[]) {
+bool arena_alloc_batch(Arena* arena, const size_t sizes[], const size_t count, void* out_ptrs[]) {
     if (UNLIKELY(!arena || !sizes || count == 0 || !out_ptrs)) {
         return false;
     }
 
-    size_t header_size  = arena_align_up(sizeof(AllocHeader), ARENA_ALIGNMENT);
-    size_t total_size   = 0;
-    size_t* alloc_sizes = arena_alloc(arena, count * sizeof(size_t));
+    const size_t header_size = arena_align_up(sizeof(AllocHeader));
+    size_t total_size        = 0;
+    size_t* alloc_sizes      = arena_alloc(arena, count * sizeof(size_t));
     if (UNLIKELY(alloc_sizes == NULL)) {
         return false;
     }
 
     // Calculate the aligned block size for each allocation and sum them.
     for (size_t i = 0; i < count; i++) {
-        size_t asize   = arena_align_up(sizes[i], ARENA_ALIGNMENT);
-        alloc_sizes[i] = header_size + asize;
+        const size_t size = arena_align_up(sizes[i]);
+        alloc_sizes[i]    = header_size + size;
         total_size += alloc_sizes[i];
     }
 
-    total_size = arena_align_up(total_size, ARENA_ALIGNMENT);
+    total_size = arena_align_up(total_size);
 
     // Reserve the total_size from the arena in one atomic operation.
     size_t old_used, new_used;
@@ -336,8 +332,8 @@ bool arena_alloc_batch(Arena* arena, const size_t sizes[], size_t count, void* o
 
     // Partition the reserved block for each allocation
     for (size_t i = 0; i < count; i++) {
-        AllocHeader* header = (AllocHeader*)current;
-        header->size        = sizes[i];
+        auto header  = (AllocHeader*)current;
+        header->size = sizes[i];
         // The pointer returned to the caller skips past the header.
         out_ptrs[i] = current + header_size;
         current += alloc_sizes[i];

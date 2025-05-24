@@ -155,6 +155,10 @@ bool map_resize(Map* m, size_t new_capacity) {
     return true;
 }
 
+size_t map_length(Map* m) {
+    return m->size;
+}
+
 // Set a key-value pair with optimizations
 void map_set(Map* m, void* key, void* value) {
     // Check if we need to resize
