@@ -21,8 +21,10 @@ STATIC_CHECK_POWER_OF_2(STR_MIN_CAPACITY);
 
 #define STR_NPOS -1
 
-// A dynamically resizable c-string.
-// All strings MUST be NULL-terminated.
+/**
+ * A dynamically resizable C-string with Small String Optimization (SSO).
+ * Stores small strings (up to CSTR_MAX_STACK_LEN) on the stack, larger ones on the heap.
+ */
 typedef struct cstr cstr;
 
 // Lightweight string view that points to a const char * data
@@ -67,6 +69,11 @@ bool str_resize(cstr** s, size_t capacity);
 // Append a C string to the end of the string.
 bool str_append(cstr** s, const char* append);
 
+// Append a C string to end end of string without capacity checks.
+// This is faster if you `KNOW FOR SURE` that you already have enough capacity.
+// Forexample after calling str_resize.
+bool str_append_fast(cstr** s, const char* append);
+
 // Append a formatted string to the end of the string.
 bool str_append_fmt(cstr** s, const char* format, ...);
 
@@ -75,6 +82,11 @@ bool str_append_char(cstr** s, char c);
 
 // Prepend a C string to the beginning of the string.
 bool str_prepend(cstr** s, const char* prepend);
+
+// Prepend a C string to the beginning of the string.
+// This should `ONLY` be used if you have enough enough capacity
+// in s to avoid checks.
+bool str_prepend_fast(cstr** s, const char* prepend);
 
 // Insert a C string at the given index in the string.
 bool str_insert(cstr** s, size_t index, const char* insert);
@@ -98,6 +110,16 @@ char str_at(const cstr* s, size_t index);
 
 // Get a pointer to the internal data of the string.
 char* str_data(cstr* s);
+
+// Returns the const char[] for string data.
+const char* str_data_const(const cstr* s);
+
+/**
+ * Checks if the string is stored on the heap.
+ * @param s Pointer to the cstr.
+ * @return True if the string is heap-allocated, false if stack-allocated.
+ */
+bool str_allocated(const cstr* s);
 
 // Get a string view of the str with data and length populated.
 // You must not modify this directly.
@@ -163,8 +185,21 @@ size_t str_count_substr(const cstr* str, const char* substr);
 // Remove characters in str from start index, up to start + length.
 void str_remove_substr(cstr* str, size_t start, size_t substr_length);
 
-// Remove all occurrences of character c from str.
-void str_remove_char(cstr* str, char c);
+/**
+ * Removes all occurrences of a character from the cstr.
+ * @param s Pointer to the cstr.
+ * @param c Character to remove.
+ */
+void str_remove_char(cstr* s, char c);
+
+/**
+ * Finds the last occurrence of a substring in the cstr.
+ * @param s Pointer to behaves like the original `str_remove_substr`, renamed for clarity.
+ * @param s Pointer to the cstr.
+ * @param start_index Starting index of the range to remove.
+ * @param length Number of characters to remove.
+ */
+void str_remove_range(cstr* s, size_t start_index, size_t length);
 
 // ============== Substrings and replacements ==============
 

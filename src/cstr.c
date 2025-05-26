@@ -87,7 +87,6 @@ cstr* str_format(const char* format, ...) {
 inline void str_free(cstr* s) {
     if (s) {
         free(s);
-        s = NULL;
     }
 }
 
@@ -130,6 +129,20 @@ bool str_append(cstr** s, const char* append) {
     if (!str_resize(s, (*s)->length + append_len + 1))
         return false;
 
+    // Append the string and null-terminator
+    memcpy((*s)->data + (*s)->length, append, append_len + 1);
+    (*s)->length += append_len;
+    return true;
+}
+
+// Append a C string to end end of string without capacity checks.
+// This is faster if you know for sure that you already have enough capacity.
+// Forexample after calling str_resize.
+bool str_append_fast(cstr** s, const char* append) {
+    if (!s || !*s || !append)
+        return false;
+
+    size_t append_len = strlen(append);
     // Append the string and null-terminator
     memcpy((*s)->data + (*s)->length, append, append_len + 1);
     (*s)->length += append_len;
@@ -193,6 +206,17 @@ bool str_prepend(cstr** s, const char* prepend) {
     return true;
 }
 
+bool str_prepend_fast(cstr** s, const char* prepend) {
+    if (!s || !*s || !prepend)
+        return false;
+
+    size_t prepend_len = strlen(prepend);
+    memmove((*s)->data + prepend_len, (*s)->data, (*s)->length + 1);
+    memcpy((*s)->data, prepend, prepend_len);
+    (*s)->length += prepend_len;
+    return true;
+}
+
 bool str_insert(cstr** s, size_t index, const char* insert) {
     if (!s || !*s || !insert || index > (*s)->length)
         return false;
@@ -225,19 +249,21 @@ inline void str_clear(cstr* s) {
 }
 
 size_t str_remove_all(cstr** s, const char* substr) {
-    if (!s || !*s || !substr)
-        return 0;
-
     size_t substr_len = strlen(substr);
+    char* read        = (*s)->data;
+    char* write       = (*s)->data;
     size_t count      = 0;
-    char* p           = (*s)->data;
 
-    while ((p = strstr(p, substr))) {
-        memmove(p, p + substr_len, (*s)->length - (p - (*s)->data) - substr_len + 1);
-        (*s)->length -= substr_len;
-        ++count;
+    while (*read) {
+        if (strncmp(read, substr, substr_len) == 0) {
+            read += substr_len;
+            count++;
+        } else {
+            *write++ = *read++;
+        }
     }
-
+    *write       = '\0';
+    (*s)->length = write - (*s)->data;
     return count;
 }
 

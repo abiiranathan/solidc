@@ -81,7 +81,9 @@ set(HEADERS
 set(SOURCES
     src/arena.c
     src/larena.c
-    src/cstr.c
+    # src/cstr.c
+    src/string.c
+    src/string_array.c
     src/csvparser.c
     src/file.c
     src/filepath.c

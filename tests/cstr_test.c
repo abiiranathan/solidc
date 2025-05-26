@@ -175,5 +175,11 @@ int main(void) {
     cstr* str30 = str_reverse(str29);
     ASSERT_STR_EQ(str_data(str30), "!dlrow ,olleH");
 
+    cstr* text = str_from("A man a plan a canal Panama");
+    ASSERT(text);
+
+    str_remove_all(&text, " ");
+    printf("Text: %s\n", str_data(text));
+
     return 0;
 }
