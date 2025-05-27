@@ -1,3 +1,4 @@
+#include "../include/cstr.h"
 #include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
@@ -6,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../include/cstr.h"
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -26,6 +26,11 @@
 // Macros for capacity manipulation
 #define CSTR_SET_HEAP_CAPACITY(cap) ((cap) | HEAP_FLAG_BIT)
 #define CSTR_GET_HEAP_CAPACITY(cap) ((cap) & ~HEAP_FLAG_BIT)
+
+#define CSTR_IS_HEAP(s) ((s->heap.capacity & HEAP_FLAG_BIT) != 0)
+
+#define WOULD_OVERFLOW_ADD(a, b) (a > SIZE_MAX - b)
+#define would_overflow_mul(a, b) (b != 0 && a > SIZE_MAX / b)
 
 /**
  * @brief A dynamically resizable C-string with Small String Optimization (SSO).
@@ -68,54 +73,13 @@ typedef struct cstr {
 // --- Internal Helper Functions ---
 
 /**
- * @brief Safely checks for arithmetic overflow in size calculations.
- * @param a First operand
- * @param b Second operand
- * @return true if a + b would overflow, false otherwise
- */
-static inline bool would_overflow_add(size_t a, size_t b) {
-    return a > SIZE_MAX - b;
-}
-
-/**
- * @brief Safely checks for arithmetic overflow in multiplication.
- * @param a First operand
- * @param b Second operand
- * @return true if a * b would overflow, false otherwise
- */
-static inline bool would_overflow_mul(size_t a, size_t b) {
-    return b != 0 && a > SIZE_MAX / b;
-}
-
-/**
- * @brief Validates a cstr pointer for basic sanity checks.
- * @param s Pointer to validate
- * @return true if pointer appears valid, false otherwise
- */
-static inline bool cstr_is_valid_ptr(const cstr* s) {
-    return s != NULL;
-}
-
-/**
- * @brief Checks if the string is stored on the heap.
- * @param s Pointer to the cstr (must not be NULL)
- * @return true if heap-allocated, false if stack-allocated
- * @pre s != NULL
- */
-static inline bool cstr_is_heap(const cstr* s) {
-    assert(s != NULL);
-    return (s->heap.capacity & HEAP_FLAG_BIT) != 0;
-}
-
-/**
  * @brief Retrieves the length of the string.
  * @param s Pointer to the cstr (must not be NULL)
  * @return Length of the string excluding null terminator
  * @pre s != NULL
  */
 static inline size_t cstr_get_length(const cstr* s) {
-    assert(s != NULL);
-    if (cstr_is_heap(s)) {
+    if (CSTR_IS_HEAP(s)) {
         return s->heap.length;
     } else {
         return s->stack.len & SSO_LENGTH_MASK;
@@ -129,8 +93,7 @@ static inline size_t cstr_get_length(const cstr* s) {
  * @pre s != NULL
  */
 static inline char* cstr_get_data(cstr* s) {
-    assert(s != NULL);
-    return cstr_is_heap(s) ? s->heap.data : s->stack.data;
+    return CSTR_IS_HEAP(s) ? s->heap.data : s->stack.data;
 }
 
 /**
@@ -140,8 +103,7 @@ static inline char* cstr_get_data(cstr* s) {
  * @pre s != NULL
  */
 static inline const char* cstr_get_data_const(const cstr* s) {
-    assert(s != NULL);
-    return cstr_is_heap(s) ? s->heap.data : s->stack.data;
+    return CSTR_IS_HEAP(s) ? s->heap.data : s->stack.data;
 }
 
 /**
@@ -151,8 +113,7 @@ static inline const char* cstr_get_data_const(const cstr* s) {
  * @pre s != NULL
  */
 static inline size_t cstr_get_capacity(const cstr* s) {
-    assert(s != NULL);
-    return cstr_is_heap(s) ? CSTR_GET_HEAP_CAPACITY(s->heap.capacity) : SSO_MAX_SIZE;
+    return CSTR_IS_HEAP(s) ? CSTR_GET_HEAP_CAPACITY(s->heap.capacity) : SSO_MAX_SIZE;
 }
 
 /**
@@ -168,13 +129,11 @@ static inline size_t cstr_get_capacity(const cstr* s) {
  * @pre len < cstr_get_capacity(s)
  */
 static inline void cstr_set_length(cstr* s, size_t len) {
-    assert(s != NULL);
     assert(len < cstr_get_capacity(s));
 
-    if (cstr_is_heap(s)) {
+    if (CSTR_IS_HEAP(s)) {
         s->heap.length = len;
     } else {
-        assert(len < SSO_MAX_SIZE);
         s->stack.len = (unsigned char)len;
     }
 }
@@ -221,12 +180,11 @@ static size_t calculate_growth_capacity(size_t current_cap, size_t min_needed) {
  * @param s Pointer to the cstr (must be stack-allocated)
  * @param capacity_needed Minimum capacity required including null terminator
  * @return true on success, false on allocation failure
- * @pre s != NULL && !cstr_is_heap(s)
+ * @pre s != NULL && !CSTR_IS_HEAP(s)
  * @pre capacity_needed > SSO_MAX_SIZE
  */
 static bool cstr_promote_to_heap(cstr* s, size_t capacity_needed) {
-    assert(s != NULL);
-    assert(!cstr_is_heap(s));
+    assert(!CSTR_IS_HEAP(s));
     assert(capacity_needed > SSO_MAX_SIZE);
 
     // Prevent overflow attacks
@@ -273,8 +231,6 @@ static bool cstr_promote_to_heap(cstr* s, size_t capacity_needed) {
  * @pre s != NULL
  */
 static bool cstr_ensure_capacity(cstr* s, size_t new_capacity) {
-    assert(s != NULL);
-
     if (new_capacity <= cstr_get_capacity(s)) {
         return true;
     }
@@ -284,7 +240,7 @@ static bool cstr_ensure_capacity(cstr* s, size_t new_capacity) {
         return false;
     }
 
-    if (cstr_is_heap(s)) {
+    if (CSTR_IS_HEAP(s)) {
         size_t optimal_capacity = calculate_growth_capacity(cstr_get_capacity(s), new_capacity);
         if (optimal_capacity == 0) {
             return false;
@@ -406,13 +362,13 @@ void cstr_debug(const cstr* s) {
     }
 
     printf("=== String Debug Info ===\n");
-    printf("Storage type: %s\n", cstr_is_heap(s) ? "heap" : "stack");
+    printf("Storage type: %s\n", CSTR_IS_HEAP(s) ? "heap" : "stack");
     printf("Length: %zu\n", cstr_get_length(s));
     printf("Capacity: %zu\n", cstr_get_capacity(s));
     printf("Content: \"%s\"\n", cstr_get_data_const((cstr*)s));
     printf("Union size: %zu bytes\n", sizeof(cstr));
 
-    if (cstr_is_heap(s)) {
+    if (CSTR_IS_HEAP(s)) {
         printf("--- Heap Details ---\n");
         printf("Raw capacity field: 0x%016lx\n", s->heap.capacity);
         printf("Actual capacity: %zu\n", cstr_get_capacity(s));
@@ -441,7 +397,7 @@ void cstr_debug(const cstr* s) {
  * @return true if heap-allocated, false if stack-allocated or NULL
  */
 bool cstr_allocated(const cstr* s) {
-    return s && cstr_is_heap(s);
+    return s && CSTR_IS_HEAP(s);
 }
 
 /**
@@ -459,7 +415,7 @@ void cstr_free(cstr* s) {
         return;
     }
 
-    if (cstr_is_heap(s)) {
+    if (CSTR_IS_HEAP(s)) {
         free(s->heap.data);
     }
 
@@ -538,7 +494,7 @@ bool cstr_append(cstr* s, const char* append_str) {
     size_t current_len = cstr_get_length(s);
 
     // Check for overflow
-    if (would_overflow_add(current_len, append_len) || would_overflow_add(current_len + append_len, 1)) {
+    if (WOULD_OVERFLOW_ADD(current_len, append_len) || WOULD_OVERFLOW_ADD(current_len + append_len, 1)) {
         return false;
     }
 
@@ -683,8 +639,8 @@ bool cstr_append_fmt(cstr* s, const char* format, ...) {
     size_t current_len = cstr_get_length(s);
 
     // Check for overflow
-    if (would_overflow_add(current_len, (size_t)append_len) ||
-        would_overflow_add(current_len + (size_t)append_len, 1)) {
+    if (WOULD_OVERFLOW_ADD(current_len, (size_t)append_len) ||
+        WOULD_OVERFLOW_ADD(current_len + (size_t)append_len, 1)) {
         va_end(args);
         return false;
     }
@@ -722,7 +678,7 @@ bool cstr_append_char(cstr* s, char c) {
     size_t current_len = cstr_get_length(s);
 
     // Check for overflow
-    if (would_overflow_add(current_len, 2)) {
+    if (WOULD_OVERFLOW_ADD(current_len, 2)) {
         return false;
     }
 
@@ -761,7 +717,7 @@ bool cstr_prepend(cstr* s, const char* prepend_str) {
     size_t current_len = cstr_get_length(s);
 
     // Check for overflow
-    if (would_overflow_add(current_len, prepend_len) || would_overflow_add(current_len + prepend_len, 1)) {
+    if (WOULD_OVERFLOW_ADD(current_len, prepend_len) || WOULD_OVERFLOW_ADD(current_len + prepend_len, 1)) {
         return false;
     }
 
@@ -836,7 +792,7 @@ bool cstr_insert(cstr* s, size_t index, const char* insert_str) {
     }
 
     // Check for overflow
-    if (would_overflow_add(current_length, insert_len) || would_overflow_add(current_length + insert_len, 1)) {
+    if (WOULD_OVERFLOW_ADD(current_length, insert_len) || WOULD_OVERFLOW_ADD(current_length + insert_len, 1)) {
         return false;
     }
 
@@ -1203,7 +1159,7 @@ bool cstr_snakecase(cstr* s) {
     size_t new_length = original_length + underscores;
 
     // Check for overflow
-    if (would_overflow_add(new_length, 1)) {
+    if (WOULD_OVERFLOW_ADD(new_length, 1)) {
         return false;
     }
 
@@ -1673,8 +1629,8 @@ cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) {
 
     // Calculate required capacity for the new string
     size_t required_capacity;
-    if (would_overflow_add(pos, new_len) || would_overflow_add(pos + new_len, remaining_len) ||
-        would_overflow_add(pos + new_len + remaining_len, 1)) {
+    if (WOULD_OVERFLOW_ADD(pos, new_len) || WOULD_OVERFLOW_ADD(pos + new_len, remaining_len) ||
+        WOULD_OVERFLOW_ADD(pos + new_len + remaining_len, 1)) {
         return NULL;  // Potential overflow
     }
     required_capacity = pos + new_len + remaining_len + 1;
@@ -1743,7 +1699,7 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
     // Calculate estimated result length
     size_t result_len_estimate;
     if (new_len > old_len) {
-        if (would_overflow_mul(count, new_len - old_len) || would_overflow_add(s_len, count * (new_len - old_len))) {
+        if (would_overflow_mul(count, new_len - old_len) || WOULD_OVERFLOW_ADD(s_len, count * (new_len - old_len))) {
             return NULL;  // Potential overflow
         }
         result_len_estimate = s_len + count * (new_len - old_len);
@@ -1914,13 +1870,13 @@ cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
             return NULL;
         }
         size_t string_len = cstr_get_length(strings[i]);
-        if (would_overflow_add(total_len, string_len)) {
+        if (WOULD_OVERFLOW_ADD(total_len, string_len)) {
             return NULL;  // Potential overflow
         }
         total_len += string_len;
 
         if (i < count - 1 && delim_len > 0) {
-            if (would_overflow_add(total_len, delim_len)) {
+            if (WOULD_OVERFLOW_ADD(total_len, delim_len)) {
                 return NULL;  // Potential overflow
             }
             total_len += delim_len;
@@ -1928,7 +1884,7 @@ cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
     }
 
     // Check for overflow with null terminator
-    if (would_overflow_add(total_len, 1)) {
+    if (WOULD_OVERFLOW_ADD(total_len, 1)) {
         return NULL;
     }
 

@@ -183,7 +183,8 @@ void socket_strerror(int err, char* buffer, size_t size) {
 #ifdef _WIN32
     FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, 0, buffer, size, NULL);
 #else
-    strerror_r(err, buffer, size);
+    char* msg = strerror_r(err, buffer, size);
+    (void)msg;
 #endif
 }
 
