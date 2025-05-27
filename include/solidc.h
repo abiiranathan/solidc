@@ -6,6 +6,7 @@
 #include "array.h"
 #include "cmp.h"
 #include "cstr.h"
+#include "cstr_array.h"
 #include "csvparser.h"
 #include "defer.h"
 #include "file.h"

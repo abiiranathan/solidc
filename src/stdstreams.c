@@ -255,7 +255,7 @@ static unsigned long inner_string_stream_read(void* handle, size_t size, size_t 
     (void)size;  // size is always 1 for a string
 
     string_stream* ss = (string_stream*)handle;
-    size_t string_len = str_len(ss->str);
+    size_t string_len = cstr_len(ss->str);
 
     if (count == 0 || ss->pos >= string_len) {
         return EOF;
@@ -273,7 +273,7 @@ static unsigned long inner_string_stream_read(void* handle, size_t size, size_t 
     }
 
     // Perform the read operation
-    char* data = (char*)str_data(ss->str);
+    char* data = (char*)cstr_data(ss->str);
     memcpy(ptr, data + ss->pos, count);
     ss->pos += count;
 
@@ -283,16 +283,16 @@ static unsigned long inner_string_stream_read(void* handle, size_t size, size_t 
 // implementation for reading a single character from a string
 static int string_stream_read_char(void* handle) {
     string_stream* ss = (string_stream*)handle;
-    if (ss->pos >= str_len(ss->str)) {
+    if (ss->pos >= cstr_len(ss->str)) {
         return EOF;
     }
-    return str_data(ss->str)[ss->pos++];
+    return cstr_data(ss->str)[ss->pos++];
 }
 
 // Returns whether the end of the string has been reached
 static int string_stream_eof(void* handle) {
     string_stream* ss = (string_stream*)handle;
-    return ss->pos >= str_len(ss->str);
+    return ss->pos >= cstr_len(ss->str);
 }
 
 // implementation for writing to a string. For a char *, size must be 1.
@@ -302,12 +302,12 @@ static size_t inner__string_stream_write(const void* ptr, size_t size, size_t co
     size_t total_bytes   = size * count;
     bool resized         = false;
 
-    resized = str_resize(&ss->str, str_len(ss->str) + total_bytes);
+    resized = cstr_resize(ss->str, cstr_len(ss->str) + total_bytes);
     if (!resized) {
         return 0;
     }
 
-    char* data = (char*)str_data(ss->str);
+    char* data = (char*)cstr_data(ss->str);
     for (size_t i = 0; i < total_bytes; i++) {
         data[ss->pos++] = ((char*)ptr)[i];
         bytes_written++;
@@ -317,7 +317,7 @@ static size_t inner__string_stream_write(const void* ptr, size_t size, size_t co
 
 static int string_stream_seek(void* handle, long offset, int whence) {
     string_stream* ss = (string_stream*)handle;
-    size_t length     = str_len(ss->str);
+    size_t length     = cstr_len(ss->str);
     size_t new_pos    = ss->pos;
 
     switch (whence) {
@@ -354,7 +354,7 @@ int string_stream_write(stream_t stream, const char* str) {
     // copy over the string to the stream.
     // we don't have to increment the position.
     string_stream* ss = (string_stream*)stream->handle;
-    if (!str_append(&ss->str, str)) {
+    if (!cstr_append(ss->str, str)) {
         return -1;
     }
     return (int)strlen(str);
@@ -363,7 +363,7 @@ int string_stream_write(stream_t stream, const char* str) {
 const char* string_stream_data(stream_t stream) {
     if (stream->type == STRING_STREAM) {
         string_stream* ss = (string_stream*)stream->handle;
-        return str_data(ss->str);
+        return cstr_data(ss->str);
     } else {
         return NULL;
     }
@@ -423,7 +423,7 @@ stream_t create_string_stream(size_t initial_capacity) {
         return NULL;
     }
 
-    ss->str = str_new(initial_capacity);
+    ss->str = cstr_init(initial_capacity);
     if (ss->str == NULL) {
         free(stream);
         free(ss);

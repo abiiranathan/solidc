@@ -1,9 +1,8 @@
 # Define test modules
 set(TEST_MODULES
     arena
-    # cstr
-    string
-    string_array
+    cstr
+    cstr_array
     flag
     file
     filepath

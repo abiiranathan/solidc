@@ -11,7 +11,7 @@ int main() {
     cstr_array_push_str(arr, "Friendsjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj");
 
     for (size_t i = 0; i < arr->len; ++i) {
-        printf("[%zu] %s\n", i, str_data(cstr_array_get(arr, i)));
+        printf("[%zu] %s\n", i, cstr_data(cstr_array_get(arr, i)));
     }
 
     cstr_array_remove(arr, 2);
@@ -19,7 +19,7 @@ int main() {
 
     printf("After removal:\n");
     for (size_t i = 0; i < arr->len; ++i) {
-        printf("[%zu] %s\n", i, str_data(cstr_array_get(arr, i)));
+        printf("[%zu] %s\n", i, cstr_data(cstr_array_get(arr, i)));
     }
 
     cstr_array_free(arr);

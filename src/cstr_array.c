@@ -1,6 +1,6 @@
+#include "../include/cstr_array.h"
 #include <stdlib.h>
 #include <string.h>
-#include "../include/cstr_array.h"
 
 #define INITIAL_CAPACITY 8
 
@@ -27,7 +27,7 @@ void cstr_array_free(cstr_array* arr) {
     if (!arr)
         return;
     for (size_t i = 0; i < arr->len; ++i) {
-        str_free(arr->data[i]);
+        cstr_free(arr->data[i]);
     }
     free(arr->data);
     free(arr);
@@ -54,7 +54,7 @@ int cstr_array_push(cstr_array* arr, cstr* s) {
 }
 
 int cstr_array_push_str(cstr_array* arr, const char* str) {
-    return cstr_array_push(arr, str_from(str));
+    return cstr_array_push(arr, cstr_new(str));
 }
 
 cstr* cstr_array_get(cstr_array* arr, size_t index) {
@@ -67,7 +67,7 @@ void cstr_array_remove(cstr_array* arr, size_t index) {
     if (!arr || index >= arr->len)
         return;
 
-    str_free(arr->data[index]);
+    cstr_free(arr->data[index]);
 
     if (index < arr->len - 1) {
         memmove(&arr->data[index], &arr->data[index + 1], (arr->len - index - 1) * sizeof(cstr*));
