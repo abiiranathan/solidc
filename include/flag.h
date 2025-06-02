@@ -10,9 +10,19 @@
 extern "C" {
 #endif
 
-#ifndef FLAG_MEMORY_LIMIT
-// Limit memory to 1MB
-#define FLAG_MEMORY_LIMIT (1 << 20)
+// Maximum number of global flags.
+#ifndef MAX_GLOBAL_FLAGS
+#define MAX_GLOBAL_FLAGS 20
+#endif
+
+// maximum number of subcommand flags.
+#ifndef MAX_SUBCOMMAND_FLAGS
+#define MAX_SUBCOMMAND_FLAGS 10
+#endif
+
+// Maximum number of subcommands
+#ifndef MAX_SUBCOMMANDS
+#define MAX_SUBCOMMANDS 10
 #endif
 
 #define FLAG_TYPES                                                                                                     \
@@ -53,11 +63,11 @@ typedef bool (*FlagValidator)(void* value, size_t buffer_size, char* error_buffe
 Command* AddCommand(const char* name, const char* description, void (*handler)(Command*));
 
 // Register a new flag for a subcommand.
-Flag* AddFlagCmd(Command* subcommand, FlagType type, const char* name, char short_name, const char* description,
-                 void* value, bool required);
+Flag* AddFlagCmd(Command* cmd, FlagType type, const char* name, char short_name, const char* desc, void* value,
+                 bool required);
 
 //  Register a new global flag.
-Flag* AddFlag(FlagType type, const char* name, char short_name, const char* description, void* value, bool required);
+Flag* AddFlag(FlagType type, const char* name, char short_name, const char* desc, void* value, bool required);
 
 // Print the usage information for the program.
 void FlagUsage(const char* program_name);
@@ -74,18 +84,10 @@ void FlagParse(int argc, char** argv, void (*pre_exec)(void* user_data), void* u
 
 // Get the parsed flag value for a subcommand by name.
 // Returns NULL if the flag is not found.
-void* FlagValue(Command* subcommand, const char* name);
+void* FlagValue(Command* cmd, const char* name);
 
 // Returns the global flag value by name or NULL if the flag is not found.
 void* FlagValueG(const char* name);
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-function"
-#else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-#endif
 
 // Generate helper functions for adding flags with concrete types
 #define X(name, type)                                                                                                  \
@@ -124,12 +126,6 @@ FLAG_TYPES
     }
 FLAG_TYPES
 #undef X
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#else
-#pragma GCC diagnostic pop
-#endif
 
 #ifdef __cplusplus
 }
