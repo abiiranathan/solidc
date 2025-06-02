@@ -1,4 +1,5 @@
 #include "../include/flag.h"
+#include "../include/cmp.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,21 +32,21 @@ bool validate_int(void* value, size_t size, char* error) {
 }
 
 void printHandler(Command* cmd) {
-    int count      = FlagValue_INT(cmd, "count", 0);
-    bool* verbose  = FlagValue(cmd, "verbose");
-    bool prompt    = FlagValue_BOOL(cmd, "prompt", false);
-    char* greeting = FlagValue_STRING(cmd, "greeting", "");
+    int count_local      = FlagValue_INT(cmd, "count", 0);
+    bool* verbose_local  = FlagValue(cmd, "verbose");
+    bool prompt_local    = FlagValue_BOOL(cmd, "prompt", false);
+    char* greeting_local = FlagValue_STRING(cmd, "greeting", "");
 
-    FLAG_ASSERT(count, "count should not be NULL");
-    FLAG_ASSERT(verbose, "verbose should not be NULL");
-    FLAG_ASSERT(prompt, "prompt should not be NULL");
+    FLAG_ASSERT(count_local, "count should not be NULL");
+    FLAG_ASSERT(verbose_local, "verbose should not be NULL");
+    FLAG_ASSERT(prompt_local, "prompt should not be NULL");
 
-    FLAG_ASSERT(count == 5, "count should be 5");
-    FLAG_ASSERT(*verbose, "verbose should be true");
-    FLAG_ASSERT(prompt, "prompt should be true");
+    FLAG_ASSERT(count_local == 5, "count should be 5");
+    FLAG_ASSERT(*verbose_local, "verbose should be true");
+    FLAG_ASSERT(prompt_local, "prompt should be true");
 
-    FLAG_ASSERT(greeting, "greeting must not be NULL");
-    FLAG_ASSERT(strcmp(greeting, "Hello World!") == 0, "greetings do not match");
+    FLAG_ASSERT(greeting_local, "greeting must not be NULL");
+    FLAG_ASSERT(strcmp(greeting_local, "Hello World!") == 0, "greetings do not match");
 
     double float64 = *(double*)FlagValueG("float64");
     FLAG_ASSERT(float64 == 100.5, "float64 should be 100.5");
@@ -53,7 +54,7 @@ void printHandler(Command* cmd) {
 
 static void assertions(void) {
     FLAG_ASSERT(integer_flag == 10, "int should be 10");
-    FLAG_ASSERT(float32_flag == 3.14f, "float32 should be 3.14");
+    FLAG_ASSERT((FLOAT_EQUAL(float32_flag, 3.14f)), "float32 should be 3.14");
     FLAG_ASSERT(float64_flag == 100.5, "float64 should be 100.5");
     FLAG_ASSERT(verbose, "verbose should be true");
     FLAG_ASSERT(strcmp(string_flag, "hello") == 0, "string should be hello");
