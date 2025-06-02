@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef __cplusplus
@@ -126,6 +128,14 @@ FLAG_TYPES
     }
 FLAG_TYPES
 #undef X
+
+#define FLAG_ASSERT(cond, msg)                                                                                         \
+    do {                                                                                                               \
+        if (!(cond)) {                                                                                                 \
+            fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, msg);                                                    \
+            exit(EXIT_FAILURE);                                                                                        \
+        }                                                                                                              \
+    } while (0)
 
 #ifdef __cplusplus
 }

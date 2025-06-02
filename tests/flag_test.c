@@ -1,10 +1,6 @@
 #include "../include/flag.h"
 #include "../include/cmp.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 static int integer_flag    = 0;
 static float float32_flag  = 0.0f;
 static double float64_flag = 0.0;
@@ -13,14 +9,6 @@ int count                  = 0;
 bool verbose               = false;
 bool prompt                = false;
 static char* greeting      = "";
-
-#define FLAG_ASSERT(cond, msg)                                                                                         \
-    do {                                                                                                               \
-        if (!(cond)) {                                                                                                 \
-            fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, msg);                                                    \
-            exit(EXIT_FAILURE);                                                                                        \
-        }                                                                                                              \
-    } while (0)
 
 bool validate_int(void* value, size_t size, char* error) {
     int num = *(int*)value;
@@ -52,7 +40,7 @@ void printHandler(Command* cmd) {
     FLAG_ASSERT(float64 == 100.5, "float64 should be 100.5");
 }
 
-static void assertions(void) {
+static void run_assertions(void) {
     FLAG_ASSERT(integer_flag == 10, "int should be 10");
     FLAG_ASSERT((FLOAT_EQUAL(float32_flag, 3.14f)), "float32 should be 3.14");
     FLAG_ASSERT(float64_flag == 100.5, "float64 should be 100.5");
@@ -60,23 +48,25 @@ static void assertions(void) {
     FLAG_ASSERT(strcmp(string_flag, "hello") == 0, "string should be hello");
 }
 
-static char* argv[] = {"flag_test",
-                       "--int",
-                       "10",
-                       "--float32",
-                       "3.14",
-                       "--float64",
-                       "100.5",
-                       "--string",
-                       "hello",
-                       "print",
-                       "--count",
-                       "5",
-                       "--verbose",
-                       "--prompt",
-                       "1",
-                       "--greeting",
-                       "Hello World!"};
+static char* argv[] = {
+    "flag_test",
+    "--int",
+    "10",
+    "--float32",
+    "3.14",
+    "--float64",
+    "100.5",
+    "--string",
+    "hello",
+    "print",
+    "--count",
+    "5",
+    "--verbose",
+    "--prompt",
+    "1",
+    "--greeting",
+    "Hello World!",
+};
 
 #define argc (sizeof(argv) / sizeof(argv[0]))
 
@@ -99,6 +89,6 @@ int main(void) {
     SetValidators(countFlag, 1, validate_int);
 
     FlagParse(argc, argv, NULL, NULL);
-    assertions();
+    run_assertions();
     return 0;
 }

@@ -3,14 +3,6 @@
 #include "../include/cstr.h"
 #include "../include/strton.h"
 
-#define LOG_ASSERT(cond, msg)                                                                                          \
-    do {                                                                                                               \
-        if (!(cond)) {                                                                                                 \
-            fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, msg);                                                    \
-            exit(EXIT_FAILURE);                                                                                        \
-        }                                                                                                              \
-    } while (0)
-
 typedef struct Flag {
     bool required;              // Whether this flag must be passed
     bool is_provided;           // Internal flag to keep track of provided flag
@@ -33,16 +25,17 @@ typedef struct Subcommand {
 
 // Global flag context.
 typedef struct FlagCtx {
-    size_t num_subcommands;                // Number of subcommands on registered.
-    Command subcommands[MAX_SUBCOMMANDS];  // Array of subcommands registered
-    size_t num_flags;                      // Number of global flags.
-    Flag flags[MAX_GLOBAL_FLAGS];          // Array of global flags.
+    size_t num_flags;                   // Number of global flags.
+    Flag flags[MAX_GLOBAL_FLAGS];       // Array of global flags.
+    size_t num_cmd;                     // Number of subcommands on registered.
+    Command commands[MAX_SUBCOMMANDS];  // Array of subcommands registered
 } FlagCtx;
 
 static FlagCtx* ctx = &(FlagCtx){0};  // Initialize global context
 
 static char* PROGRAM_NAME = NULL;  // Program name, argv[0]
 
+// Comparison for the (cstr) vs (const char*)
 #define STREQ(s1, s2) (strcmp(cstr_data_const(s1), s2) == 0)
 
 static inline void destroy_flags(const Flag* flags, size_t n) {
@@ -60,8 +53,8 @@ static inline void destroy_flags(const Flag* flags, size_t n) {
 static inline void destroy_subcommands(const Command* cmd, size_t n_subcmds) {
     for (size_t i = 0; i < n_subcmds; i++) {
         destroy_flags(cmd[i].flags, cmd[i].num_flags);
-        cstr_free(ctx->subcommands[i].name);
-        cstr_free(ctx->subcommands[i].description);
+        cstr_free(ctx->commands[i].name);
+        cstr_free(ctx->commands[i].description);
     }
 }
 
@@ -71,7 +64,7 @@ __attribute__((destructor())) static void flag_destroy(void) {
     destroy_flags(ctx->flags, ctx->num_flags);
 
     // free subcommand flags
-    destroy_subcommands(ctx->subcommands, ctx->num_subcommands);
+    destroy_subcommands(ctx->commands, ctx->num_cmd);
 }
 
 // Returns the flag value from the subcommand or NULL if None exists.
@@ -96,25 +89,25 @@ void* FlagValueG(const char* name) {
 
 // Register a new subcommand.
 Command* AddCommand(const char* name, const char* desc, void (*handler)(Command*)) {
-    LOG_ASSERT(handler, "handler must a valid function pointer");
-    LOG_ASSERT(ctx->num_subcommands < MAX_SUBCOMMANDS, "You have run out subcommands");
+    FLAG_ASSERT(handler, "handler must be a non-NULL function pointer");
+    FLAG_ASSERT(ctx->num_cmd < MAX_SUBCOMMANDS, "You have run out subcommands");
 
-    Command* cmd     = &ctx->subcommands[ctx->num_subcommands++];
+    Command* cmd     = &ctx->commands[ctx->num_cmd++];
     cmd->name        = cstr_new(name);
     cmd->description = cstr_new(desc);
     cmd->handler     = handler;
     cmd->num_flags   = 0;
     memset(cmd->flags, 0, sizeof(cmd->flags));
 
-    LOG_ASSERT(cmd->name, "failed to alloc subcommand name");
-    LOG_ASSERT(cmd->description, "failed to alloc subcommand description");
+    FLAG_ASSERT(cmd->name, "failed to alloc subcommand name");
+    FLAG_ASSERT(cmd->description, "failed to alloc subcommand description");
     return cmd;
 }
 
 Flag* AddFlagCmd(Command* cmd, FlagType type, const char* name, char short_name, const char* desc, void* value,
                  bool required) {
 
-    LOG_ASSERT(cmd->num_flags < MAX_SUBCOMMAND_FLAGS, "You have run out of subcommand flags");
+    FLAG_ASSERT(cmd->num_flags < MAX_SUBCOMMAND_FLAGS, "You have run out of subcommand flags");
     Flag* flag           = &cmd->flags[cmd->num_flags++];
     flag->type           = type;
     flag->short_name     = short_name;
@@ -126,13 +119,13 @@ Flag* AddFlagCmd(Command* cmd, FlagType type, const char* name, char short_name,
     flag->num_validators = 0;
     flag->validators     = NULL;
 
-    LOG_ASSERT(flag->name, "failed to alloc flag name");
-    LOG_ASSERT(flag->description, "failed to alloc flag description");
+    FLAG_ASSERT(flag->name, "failed to alloc flag name");
+    FLAG_ASSERT(flag->description, "failed to alloc flag description");
     return flag;
 }
 
 Flag* AddFlag(FlagType type, const char* name, char short_name, const char* description, void* value, bool required) {
-    LOG_ASSERT(ctx->num_flags < MAX_GLOBAL_FLAGS, "You have run out of global flags");
+    FLAG_ASSERT(ctx->num_flags < MAX_GLOBAL_FLAGS, "You have run out of global flags");
     Flag* flag           = &ctx->flags[ctx->num_flags++];
     flag->type           = type;
     flag->short_name     = short_name;
@@ -144,8 +137,8 @@ Flag* AddFlag(FlagType type, const char* name, char short_name, const char* desc
     flag->num_validators = 0;
     flag->validators     = NULL;
 
-    LOG_ASSERT(flag->name, "failed to alloc flag name");
-    LOG_ASSERT(flag->description, "failed to alloc flag description");
+    FLAG_ASSERT(flag->name, "failed to alloc flag name");
+    FLAG_ASSERT(flag->description, "failed to alloc flag description");
 
     return flag;
 }
@@ -176,8 +169,8 @@ void FlagUsage(const char* program_name) {
 
     // Calculate maximum subcommand name length
     size_t max_subcmd_len = 0;
-    for (size_t i = 0; i < ctx->num_subcommands; i++) {
-        size_t len = cstr_len(ctx->subcommands[i].name);
+    for (size_t i = 0; i < ctx->num_cmd; i++) {
+        size_t len = cstr_len(ctx->commands[i].name);
         if (len > max_subcmd_len) {
             max_subcmd_len = len;
         }
@@ -185,8 +178,8 @@ void FlagUsage(const char* program_name) {
 
     // Print subcommands
     printf("\nSubcommands:\n");
-    for (size_t i = 0; i < ctx->num_subcommands; i++) {
-        Command* subcmd = &ctx->subcommands[i];
+    for (size_t i = 0; i < ctx->num_cmd; i++) {
+        Command* subcmd = &ctx->commands[i];
         printf(
             "  %-*s: %s\n", (int)max_subcmd_len, cstr_data_const(subcmd->name), cstr_data_const(subcmd->description));
 
@@ -329,7 +322,7 @@ static void process_flag_name(char* name, bool is_long_flag, Command* cmd, size_
 
     // Handle help command.
     if (strcmp(name, "help") == 0 || name[0] == 'h') {
-        LOG_ASSERT(PROGRAM_NAME != NULL, "program name not initialized");
+        FLAG_ASSERT(PROGRAM_NAME != NULL, "program name not initialized");
         FlagUsage(PROGRAM_NAME);
         exit(EXIT_SUCCESS);
     }
@@ -410,9 +403,9 @@ void FlagParse(int argc, char** argv, void (*pre_exec)(void* user_data), void* u
                 }
             } break;
             case FLAG_SUBCOMMAND: {
-                for (size_t j = 0; j < ctx->num_subcommands; j++) {
-                    if (STREQ(ctx->subcommands[j].name, arg)) {
-                        subcmd = &ctx->subcommands[j];
+                for (size_t j = 0; j < ctx->num_cmd; j++) {
+                    if (STREQ(ctx->commands[j].name, arg)) {
+                        subcmd = &ctx->commands[j];
                         break;
                     }
                 }
@@ -477,7 +470,7 @@ void SetValidators(Flag* flag, size_t count, FlagValidator validator, ...) {
 
     flag->num_validators = count;
     flag->validators     = malloc(count * sizeof(FlagValidator));
-    LOG_ASSERT(flag->validators != NULL, "unable to allocate flag validators");
+    FLAG_ASSERT(flag->validators != NULL, "unable to allocate flag validators");
 
     va_list args;
     va_start(args, validator);
