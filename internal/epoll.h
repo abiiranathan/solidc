@@ -193,6 +193,7 @@ bool epoll_write(EpollConn* conn, const void* msg, size_t length);
  * @brief Parse request line, populating rh HTTP method, Path, http version and start of headers.
  * @return true on success, false otherwise.
  */
-bool epoll_parse_request_line(char* req_data, char** method, char** uri, char** http_version, char** header_start);
+bool epoll_parse_request_line(char* req_data, char** method, char** uri, char** http_version,
+                              char** header_start);
 
 #endif  // EPOLL_H

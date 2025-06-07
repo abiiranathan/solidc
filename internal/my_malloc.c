@@ -364,10 +364,8 @@ void print_memory_state(void) {
         // Print blocks in this pool
         block_header* current = (block_header*)g_pools[i].memory;
         while (current) {
-            printf("  Block @ %p: size = %zu, %s, magic = 0x%x\n",
-                   (void*)current,
-                   atomic_load(&current->size),
-                   atomic_load(&current->is_free) ? "free" : "allocated",
+            printf("  Block @ %p: size = %zu, %s, magic = 0x%x\n", (void*)current,
+                   atomic_load(&current->size), atomic_load(&current->is_free) ? "free" : "allocated",
                    current->magic);
 
             // Calculate next physical block

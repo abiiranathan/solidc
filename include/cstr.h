@@ -534,7 +534,8 @@ void cstr_remove_char(cstr* s, char c);
  * @param s Pointer to the cstr (can be NULL).
  * @param old_str Substring to replace (can be NULL). Cannot be empty.
  * @param new_str Replacement substring (can be NULL).
- * @return Pointer to the new cstr with the first occurrence replaced, or NULL on invalid input or allocation failure.
+ * @return Pointer to the new cstr with the first occurrence replaced, or NULL on invalid input or allocation
+ * failure.
  */
 [[nodiscard]] cstr* cstr_replace(const cstr* s, const char* old, const char* new_str);
 
@@ -560,7 +561,8 @@ void cstr_remove_char(cstr* s, char c);
  * as the separator. Consecutive delimiters result in empty strings in the output array.
  *
  * @param s Pointer to the cstr (can be NULL).
- * @param delim Delimiter string (can be NULL). If empty, returns an array containing a copy of the original string.
+ * @param delim Delimiter string (can be NULL). If empty, returns an array containing a copy of the original
+ * string.
  * @param count_out Pointer to store the number of resulting substrings (must not be NULL).
  * @return Array of cstr pointers, or NULL on invalid input or allocation failure.
  *         The caller is responsible for freeing the array and each cstr within it.

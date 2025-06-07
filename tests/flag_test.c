@@ -10,10 +10,15 @@ bool verbose               = false;
 bool prompt                = false;
 static char* greeting      = "";
 
-bool validate_int(void* value, size_t size, char* error) {
+// Validation callback
+bool validate_int(void* value) {
+    if (!value) {
+        return false;
+    }
+
     int num = *(int*)value;
     if (num < 0 || num > 10) {
-        strncpy(error, "integer must be between 1 and 10", size);
+        printf("integer must be between 1 and 10");
         return false;
     }
     return true;
@@ -48,25 +53,9 @@ static void run_assertions(void) {
     FLAG_ASSERT(strcmp(string_flag, "hello") == 0, "string should be hello");
 }
 
-static char* argv[] = {
-    "flag_test",
-    "--int",
-    "10",
-    "--float32",
-    "3.14",
-    "--float64",
-    "100.5",
-    "--string",
-    "hello",
-    "print",
-    "--count",
-    "5",
-    "--verbose",
-    "--prompt",
-    "1",
-    "--greeting",
-    "Hello World!",
-};
+static char* argv[] = {"flag_test", "--int",    "10",    "--float32",  "3.14",        "--float64",
+                       "100.5",     "--string", "hello", "print",      "--count",     "5",
+                       "--verbose", "--prompt", "1",     "--greeting", "Hello World!"};
 
 #define argc (sizeof(argv) / sizeof(argv[0]))
 

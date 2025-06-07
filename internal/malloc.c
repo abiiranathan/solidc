@@ -191,12 +191,8 @@ void print_memory_state() {
     block_header* current = (block_header*)memory;
     printf("Memory state:\n");
     while (current) {
-        printf(" Block @ %p: size = %zu, %s, magic = 0x%x, next = %p\n",
-               (void*)current,
-               current->size,
-               current->is_free ? "free" : "allocated",
-               current->magic,
-               (void*)current->next);
+        printf(" Block @ %p: size = %zu, %s, magic = 0x%x, next = %p\n", (void*)current, current->size,
+               current->is_free ? "free" : "allocated", current->magic, (void*)current->next);
         current = current->next;
     }
     printf("\n");

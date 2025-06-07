@@ -4,13 +4,13 @@
 #include <stdio.h>
 
 // Utility macro for logging
-#define LOG_TEST_RESULT(test_name, condition)                                                                          \
-    do {                                                                                                               \
-        if (condition) {                                                                                               \
-            printf("[PASS] %s\n", test_name);                                                                          \
-        } else {                                                                                                       \
-            printf("[FAIL] %s\n", test_name);                                                                          \
-        }                                                                                                              \
+#define LOG_TEST_RESULT(test_name, condition)                                                                \
+    do {                                                                                                     \
+        if (condition) {                                                                                     \
+            printf("[PASS] %s\n", test_name);                                                                \
+        } else {                                                                                             \
+            printf("[FAIL] %s\n", test_name);                                                                \
+        }                                                                                                    \
     } while (0)
 
 // Test function prototypes

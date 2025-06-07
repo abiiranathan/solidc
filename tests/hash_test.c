@@ -7,14 +7,15 @@
 #include "../include/hash.h"
 #include "../include/macros.h"
 
-void test_hash_function(const char* name, uint32_t (*hash_func)(const void*), const char* input, uint32_t expected) {
+void test_hash_function(const char* name, uint32_t (*hash_func)(const void*), const char* input,
+                        uint32_t expected) {
     uint32_t result = hash_func(input);
     printf("Testing %s, result: %u, expected: %u\n", name, result, expected);
     ASSERT_EQ(result, expected);
 }
 
-void test_hash_function_with_length(const char* name, uint32_t (*hash_func)(const void*, size_t), const char* input,
-                                    uint32_t expected) {
+void test_hash_function_with_length(const char* name, uint32_t (*hash_func)(const void*, size_t),
+                                    const char* input, uint32_t expected) {
     uint32_t result = hash_func(input, strlen(input));
     printf("Testing %s, result: %u, expected: %u\n", name, result, expected);
     assert(result == expected);

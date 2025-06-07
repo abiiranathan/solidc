@@ -259,7 +259,8 @@ void* FREALLOC(void* ptr, size_t size) {
         return result;
     }
 
-    if (header->next && is_block_free(header->next) && (header->size + header->next->size >= total_required_size)) {
+    if (header->next && is_block_free(header->next) &&
+        (header->size + header->next->size >= total_required_size)) {
         block_header* next_block = header->next;
         header->size += next_block->size;
         header->next = next_block->next;
@@ -291,14 +292,11 @@ void FDEBUG_MEMORY() {
     printf("Memory state (Total Size: %d, Header Size: %zu):\n", MEMORY_SIZE, HEADER_SIZE);
     int i = 0;
     while (current) {
-        printf(" [%d] Block @ %p: size = %-6zu, magic = 0x%x (%s), prev = %-10p, next = %p\n",
-               i++,
-               (void*)current,
-               current->size,
-               current->magic,
-               (current->magic == MAGIC_ALLOCATED ? "ALLOC" : (current->magic == MAGIC_FREE ? "FREE " : "?????")),
-               (void*)current->prev,
-               (void*)current->next);
+        printf(" [%d] Block @ %p: size = %-6zu, magic = 0x%x (%s), prev = %-10p, next = %p\n", i++,
+               (void*)current, current->size, current->magic,
+               (current->magic == MAGIC_ALLOCATED ? "ALLOC"
+                                                  : (current->magic == MAGIC_FREE ? "FREE " : "?????")),
+               (void*)current->prev, (void*)current->next);
         current = current->next;
     }
 

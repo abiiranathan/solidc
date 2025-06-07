@@ -143,8 +143,8 @@ bool arena_restore(Arena* arena, size_t offset) {
             return false;
         }
         // Compare-and-swap with release semantics
-    } while (!atomic_compare_exchange_weak_explicit(
-        &arena->used, &current, offset, memory_order_release, memory_order_relaxed));
+    } while (!atomic_compare_exchange_weak_explicit(&arena->used, &current, offset, memory_order_release,
+                                                    memory_order_relaxed));
 
     return true;
 }
@@ -324,8 +324,8 @@ bool arena_alloc_batch(Arena* arena, const size_t sizes[], const size_t count, v
         if (new_used > arena->size) {
             return false;  // Not enough space in the arena
         }
-    } while (!atomic_compare_exchange_weak_explicit(
-        &arena->used, &old_used, new_used, memory_order_release, memory_order_relaxed));
+    } while (!atomic_compare_exchange_weak_explicit(&arena->used, &old_used, new_used, memory_order_release,
+                                                    memory_order_relaxed));
 
     char* batch_ptr = arena->base + old_used;
     char* current   = batch_ptr;

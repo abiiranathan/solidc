@@ -148,7 +148,8 @@ static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
         float sigma = ((float*)S)[i];
         if (sigma > 1e-6f) {
             for (int j = 0; j < 3; ++j) {  // row
-                U->m[i][j] = (A.m[0][j] * V->m[i][0] + A.m[1][j] * V->m[i][1] + A.m[2][j] * V->m[i][2]) / sigma;
+                U->m[i][j] =
+                    (A.m[0][j] * V->m[i][0] + A.m[1][j] * V->m[i][1] + A.m[2][j] * V->m[i][2]) / sigma;
             }
         } else {
             U->m[i][0] = U->m[i][1] = U->m[i][2] = 0.0f;
@@ -229,7 +230,8 @@ static inline void mat4_qr(Mat4 A, Mat4* Q, Mat4* R) {
  * @param max_iter Maximum iterations
  * @param tol Tolerance
  */
-static inline void mat4_power_iteration(Mat4 A, Vec4* eigenvector, float* eigenvalue, int max_iter, float tol) {
+static inline void mat4_power_iteration(Mat4 A, Vec4* eigenvector, float* eigenvalue, int max_iter,
+                                        float tol) {
     Vec4 v = {1.0f, 0.0f, 0.0f, 0.0f};  // Start with an arbitrary vector
     Vec4 Av;
     float lambda_old = 0.0f;

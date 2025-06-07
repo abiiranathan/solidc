@@ -42,7 +42,8 @@ struct Deferrer {
 #define _DEFER_CONCAT_IMPL(a, b) a##b
 #define _DEFER_CONCAT(a, b) _DEFER_CONCAT_IMPL(a, b)
 
-#define defer(block) auto _DEFER_CONCAT(__defer, __COUNTER__) = Deferrer<std::function<void()>>([&]() { block; })
+#define defer(block)                                                                                         \
+    auto _DEFER_CONCAT(__defer, __COUNTER__) = Deferrer<std::function<void()>>([&]() { block; })
 
 #else
 //******************************************************************************
@@ -57,26 +58,28 @@ struct Deferrer {
 #if defined(__GNUC__) && !defined(__clang__)
 typedef void (*defer_block)(void);
 // GCC/ICC
-#define defer_block_create(body)                                                                                       \
-    ({                                                                                                                 \
-        void __fn__(void) body;                                                                                        \
-        __fn__;                                                                                                        \
+#define defer_block_create(body)                                                                             \
+    ({                                                                                                       \
+        void __fn__(void) body;                                                                              \
+        __fn__;                                                                                              \
     })
-#define defer(block)                                                                                                   \
-    defer_block __attribute((cleanup(do_defer))) _DEFER_CONCAT(__defer, __COUNTER__) = defer_block_create(block)
+#define defer(block)                                                                                         \
+    defer_block __attribute((cleanup(do_defer))) _DEFER_CONCAT(__defer, __COUNTER__) =                       \
+        defer_block_create(block)
 
 #elif defined(__clang__)
 // Clang/zig cc
 typedef void (^defer_block)(void);
 #define defer_block_create(body) ^body
-#define defer(block)                                                                                                   \
-    defer_block __attribute__((cleanup(do_defer))) _DEFER_CONCAT(__defer, __COUNTER__) = defer_block_create(block)
+#define defer(block)                                                                                         \
+    defer_block __attribute__((cleanup(do_defer))) _DEFER_CONCAT(__defer, __COUNTER__) =                     \
+        defer_block_create(block)
 #elif defined(_MSC_VER)
 // MSVC Implementation using try-finally
-#define defer(block)                                                                                                   \
-    __try {                                                                                                            \
-    } __finally {                                                                                                      \
-        block;                                                                                                         \
+#define defer(block)                                                                                         \
+    __try {                                                                                                  \
+    } __finally {                                                                                            \
+        block;                                                                                               \
     }
 #else
 #error "Compiler not compatible with defer library"

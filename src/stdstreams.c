@@ -190,7 +190,8 @@ stream_t create_file_stream(FILE* fp) {
 ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size) {
     ssize_t bytes_read = 0;
     int ch;
-    while ((ch = stream->read_char(stream->handle)) != EOF && ch != delim && bytes_read < (int)buffer_size - 1) {
+    while ((ch = stream->read_char(stream->handle)) != EOF && ch != delim &&
+           bytes_read < (int)buffer_size - 1) {
         buffer[bytes_read++] = (char)ch;
     }
 
@@ -327,7 +328,8 @@ static int string_stream_seek(void* handle, long offset, int whence) {
             new_pos = (size_t)offset;
             break;
         case SEEK_CUR:
-            if ((offset < 0 && (size_t)(-offset) > ss->pos) || (offset > 0 && ss->pos + (size_t)offset > length))
+            if ((offset < 0 && (size_t)(-offset) > ss->pos) ||
+                (offset > 0 && ss->pos + (size_t)offset > length))
                 return EOF;
             new_pos += (size_t)offset;
             break;

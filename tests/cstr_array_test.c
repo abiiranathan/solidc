@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include "../include/cstr_array.h"
+#include <stdio.h>
 
 int main() {
     cstr_array* arr = cstr_array_new(0);

@@ -53,7 +53,8 @@ typedef struct cstr {
             /// @brief Length of the string (excluding null terminator)
             size_t length;
 
-            /// @brief Capacity with heap flag in MSB. Use CSTR_GET_HEAP_CAPACITY() to extract actual capacity.
+            /// @brief Capacity with heap flag in MSB. Use CSTR_GET_HEAP_CAPACITY() to extract actual
+            /// capacity.
             size_t capacity;
 
             /// @brief Pointer to heap-allocated string data
@@ -792,7 +793,8 @@ bool cstr_insert(cstr* s, size_t index, const char* insert_str) {
     }
 
     // Check for overflow
-    if (WOULD_OVERFLOW_ADD(current_length, insert_len) || WOULD_OVERFLOW_ADD(current_length + insert_len, 1)) {
+    if (WOULD_OVERFLOW_ADD(current_length, insert_len) ||
+        WOULD_OVERFLOW_ADD(current_length + insert_len, 1)) {
         return false;
     }
 
@@ -839,7 +841,8 @@ bool cstr_remove(cstr* s, size_t index, size_t count) {
 
     char* data = cstr_get_data(s);
     // Shift the remaining part of the string
-    memmove(data + index, data + index + count, current_length - index - count + 1);  // +1 for the null terminator
+    memmove(data + index, data + index + count,
+            current_length - index - count + 1);  // +1 for the null terminator
     cstr_set_length(s, current_length - count);
     return true;
 }
@@ -1020,7 +1023,8 @@ bool cstr_starts_with(const cstr* s, const char* prefix) {
     }
     size_t prefix_len = strlen(prefix);
     size_t s_len      = cstr_get_length(s);
-    return prefix_len == 0 || (prefix_len <= s_len && memcmp(cstr_get_data_const(s), prefix, prefix_len) == 0);
+    return prefix_len == 0 ||
+           (prefix_len <= s_len && memcmp(cstr_get_data_const(s), prefix, prefix_len) == 0);
 }
 
 /**
@@ -1038,8 +1042,8 @@ bool cstr_ends_with(const cstr* s, const char* suffix) {
     }
     size_t suffix_len = strlen(suffix);
     size_t s_len      = cstr_get_length(s);
-    return suffix_len == 0 ||
-           (suffix_len <= s_len && memcmp(cstr_get_data_const(s) + s_len - suffix_len, suffix, suffix_len) == 0);
+    return suffix_len == 0 || (suffix_len <= s_len &&
+                               memcmp(cstr_get_data_const(s) + s_len - suffix_len, suffix, suffix_len) == 0);
 }
 
 /**
@@ -1603,7 +1607,8 @@ cstr* cstr_substr(const cstr* s, size_t start, size_t length) {
  * @param s Pointer to the cstr (can be NULL).
  * @param old_str Substring to replace (can be NULL). Cannot be empty.
  * @param new_str Replacement substring (can be NULL).
- * @return Pointer to the new cstr with the first occurrence replaced, or NULL on invalid input or allocation failure.
+ * @return Pointer to the new cstr with the first occurrence replaced, or NULL on invalid input or allocation
+ * failure.
  */
 cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) {
     if (!s || !old_str || !new_str) {
@@ -1699,7 +1704,8 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
     // Calculate estimated result length
     size_t result_len_estimate;
     if (new_len > old_len) {
-        if (would_overflow_mul(count, new_len - old_len) || WOULD_OVERFLOW_ADD(s_len, count * (new_len - old_len))) {
+        if (would_overflow_mul(count, new_len - old_len) ||
+            WOULD_OVERFLOW_ADD(s_len, count * (new_len - old_len))) {
             return NULL;  // Potential overflow
         }
         result_len_estimate = s_len + count * (new_len - old_len);
@@ -1750,7 +1756,8 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
  * as the separator. Consecutive delimiters result in empty strings in the output array.
  *
  * @param s Pointer to the cstr (can be NULL).
- * @param delim Delimiter string (can be NULL). If empty, returns an array containing a copy of the original string.
+ * @param delim Delimiter string (can be NULL). If empty, returns an array containing a copy of the original
+ * string.
  * @param count_out Pointer to store the number of resulting substrings (must not be NULL).
  * @return Array of cstr pointers, or NULL on invalid input or allocation failure.
  *         The caller is responsible for freeing the array and each cstr within it.

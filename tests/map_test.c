@@ -98,6 +98,7 @@ int main(void) {
 
     clock_gettime(CLOCK_MONOTONIC, &end);
 
-    double took = (((double)(end.tv_sec - start.tv_sec) * 1000) + (double)(end.tv_nsec - start.tv_nsec) / 1e6);
+    double took =
+        (((double)(end.tv_sec - start.tv_sec) * 1000) + (double)(end.tv_nsec - start.tv_nsec) / 1e6);
     printf("Took: %.2f ms\n", took);
 }

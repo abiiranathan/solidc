@@ -452,7 +452,8 @@ bool epoll_write(EpollConn* conn, const void* msg, size_t length) {
     return epoll_sendall(conn->client_fd, msg, length) > 0;
 }
 
-bool epoll_parse_request_line(char* req_data, char** method, char** uri, char** http_version, char** header_start) {
+bool epoll_parse_request_line(char* req_data, char** method, char** uri, char** http_version,
+                              char** header_start) {
     *method = req_data;
     *uri    = strchr(req_data, ' ');
     if (!*uri) {
@@ -607,14 +608,17 @@ int epoll_eventloop(int server_fd, io_callbacks* io_cb) {
                     ssize_t bytes_read = reader_callback(&events[i]);
                     if (bytes_read > 0) {
                         /* Protocol-Specific End of message (E.O.M) callback */
-                        bool message_complete = conn_data->end_of_message ||
-                                                io_cb->end_of_message(conn_data->read_buffer, conn_data->read_offset);
+                        bool message_complete =
+                            conn_data->end_of_message ||
+                            io_cb->end_of_message(conn_data->read_buffer, conn_data->read_offset);
                         if (message_complete) {
                             conn_data->end_of_message = 1;
                             // Monitor for write readiness since we are done reading.
                             mod_event.events = EPOLLOUT | EPOLLET | EPOLLHUP | EPOLLERR;
-                            if (!epoll_ctl_mod(epoll_fd, conn_data->client_fd, &mod_event, mod_event.events)) {
-                                fprintf(stderr, "Failed to modify epoll event for fd %d\n", conn_data->client_fd);
+                            if (!epoll_ctl_mod(epoll_fd, conn_data->client_fd, &mod_event,
+                                               mod_event.events)) {
+                                fprintf(stderr, "Failed to modify epoll event for fd %d\n",
+                                        conn_data->client_fd);
                             }
                         }
                     } else if (bytes_read == 0) {

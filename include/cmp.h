@@ -9,8 +9,11 @@
 extern "C" {
 #endif
 
-#define FLOAT_EQUAL(a, b)                                                                                              \
-    _Generic((a), float: nearly_equal_float, double: nearly_equal_double, long double: nearly_equal_long_double)(a, b)
+#define FLOAT_EQUAL(a, b)                                                                                    \
+    _Generic((a),                                                                                            \
+        float: nearly_equal_float,                                                                           \
+        double: nearly_equal_double,                                                                         \
+        long double: nearly_equal_long_double)(a, b)
 
 // Helper function to check for signed zero equality
 static inline bool is_zero_float(float a) {

@@ -99,14 +99,11 @@ void test_mat3_lu() {
 }
 
 void test_mat3_solve() {
-    Mat3 A = mat3_new_column_major(5.0f,
-                                   6.0f,
+    Mat3 A = mat3_new_column_major(5.0f, 6.0f,
                                    0.0f,  // Row 0
-                                   0.0f,
-                                   1.0f,
+                                   0.0f, 1.0f,
                                    4.0f,  // Row 1
-                                   1.0f,
-                                   2.0f,
+                                   1.0f, 2.0f,
                                    3.0f  // Row 2
     );
 
@@ -134,21 +131,13 @@ void test_mat4_solve() {
 
     // Known solution x = {1, 1, 1, 1}
     // Calculate b = Ax:
-    Mat4 A = mat4_new_column_major(2.0f,
-                                   1.0f,
-                                   -1.0f,
+    Mat4 A = mat4_new_column_major(2.0f, 1.0f, -1.0f,
                                    3.0f,  // Row 0
-                                   1.0f,
-                                   -2.0f,
-                                   3.0f,
+                                   1.0f, -2.0f, 3.0f,
                                    1.0f,  // Row 1
-                                   -1.0f,
-                                   3.0f,
-                                   2.0f,
+                                   -1.0f, 3.0f, 2.0f,
                                    4.0f,  // Row 2
-                                   3.0f,
-                                   1.0f,
-                                   4.0f,
+                                   3.0f, 1.0f, 4.0f,
                                    2.0f  // Row 3
     );
 
@@ -165,21 +154,13 @@ void test_mat4_solve() {
     vec4_print(x, "X");  // Expected solution: {1.0, 1.0, 1.0, 1.0}
     ASSERT(vec4_equals(x, (Vec4){1.0, 1.0, 1.0, 1.0}, 1e-04));
 
-    Mat4 A2 = mat4_new_column_major(5.0f,
-                                    6.0f,
-                                    0.0f,
+    Mat4 A2 = mat4_new_column_major(5.0f, 6.0f, 0.0f,
                                     1.0f,  // Row 0
-                                    0.0f,
-                                    1.0f,
-                                    4.0f,
+                                    0.0f, 1.0f, 4.0f,
                                     2.0f,  // Row 1
-                                    1.0f,
-                                    2.0f,
-                                    3.0f,
+                                    1.0f, 2.0f, 3.0f,
                                     0.0f,  // Row 2
-                                    2.0f,
-                                    0.0f,
-                                    1.0f,
+                                    2.0f, 0.0f, 1.0f,
                                     3.0f  // Row 3
     );
 
@@ -222,7 +203,8 @@ void test_mat3_mul_vec3() {
     Vec3 result   = mat3_mul_vec3(m, v);
     Vec3 expected = {30, 36, 42};
 
-    if (float_equal(result.x, expected.x) && float_equal(result.y, expected.y) && float_equal(result.z, expected.z)) {
+    if (float_equal(result.x, expected.x) && float_equal(result.y, expected.y) &&
+        float_equal(result.z, expected.z)) {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
@@ -239,8 +221,8 @@ void test_mat4_mul_vec4() {
     Vec4 result   = mat4_mul_vec4(m, v);
     Vec4 expected = {90, 100, 110, 120};
 
-    if (float_equal(result.x, expected.x) && float_equal(result.y, expected.y) && float_equal(result.z, expected.z) &&
-        float_equal(result.w, expected.w)) {
+    if (float_equal(result.x, expected.x) && float_equal(result.y, expected.y) &&
+        float_equal(result.z, expected.z) && float_equal(result.w, expected.w)) {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
@@ -456,8 +438,8 @@ void test_mat4_look_at() {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
-        printf(
-            "Expected eye to map to [0, 0, 0], got [%.2f, %.2f, %.2f]\n", transformed.x, transformed.y, transformed.z);
+        printf("Expected eye to map to [0, 0, 0], got [%.2f, %.2f, %.2f]\n", transformed.x, transformed.y,
+               transformed.z);
     }
     printf("\n");
 }

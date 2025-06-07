@@ -110,9 +110,7 @@ void run_benchmark(const char* name, void* (*alloc_fn)(size_t), void (*free_fn)(
 
 int main() {
     printf("Starting Memory Allocator Benchmark\n");
-    printf("Threads: %d, Operations per Thread: %d, Max Alloc Size: %d bytes\n",
-           NUM_THREADS,
-           NUM_OPERATIONS,
+    printf("Threads: %d, Operations per Thread: %d, Max Alloc Size: %d bytes\n", NUM_THREADS, NUM_OPERATIONS,
            MAX_ALLOC_SIZE);
 
     // Benchmark standard malloc/free

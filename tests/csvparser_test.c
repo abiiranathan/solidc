@@ -20,8 +20,8 @@ static bool compareCsvRows(const CsvRow* expected, const CsvRow* actual) {
 }
 
 // Function to run a CSV parser test case
-static void runCsvParserTestCase(const char* csvData, CsvRow* expectedRows, size_t numExpectedRows, bool skipHeader,
-                                 bool hasHeader) {
+static void runCsvParserTestCase(const char* csvData, CsvRow* expectedRows, size_t numExpectedRows,
+                                 bool skipHeader, bool hasHeader) {
     // Create a temporary file and write the CSV data
     char* tmpfile = make_tempfile();
     if (!tmpfile) {

@@ -216,7 +216,8 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
  * @param[in] timeout_ms Timeout in milliseconds (-1 = wait indefinitely)
  * @return PROCESS_SUCCESS on success, error code otherwise
  */
-ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_t* bytes_written, int timeout_ms);
+ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_t* bytes_written,
+                        int timeout_ms);
 
 /**
  * @brief Close a pipe
@@ -258,7 +259,8 @@ ProcessError process_run_and_capture(const char* command, const char* const argv
  * @param[in] mode File mode for creation (if O_CREAT is used)
  * @return ProcessError
  */
-ProcessError process_redirect_to_file(FileRedirection** redirection, const char* filepath, int flags, int mode);
+ProcessError process_redirect_to_file(FileRedirection** redirection, const char* filepath, int flags,
+                                      int mode);
 
 /**
  * @brief Create a file redirection from an existing file descriptor
@@ -289,8 +291,8 @@ void process_close_redirection(FileRedirection* redirection);
  * @param[in] error_fds Array of file descriptors to duplicate errors to (NULL-terminated)
  * @return ProcessError
  */
-ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd, const char* args[], int output_fds[],
-                                          int error_fds[]);
+ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd, const char* args[],
+                                          int output_fds[], int error_fds[]);
 
 /**
  * @brief Create a process with extended redirection options
@@ -301,8 +303,8 @@ ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd
  * @param[in] options Process options with extended IO
  * @return ProcessError
  */
-ProcessError process_create_with_redirection(ProcessHandle** handle, const char* command, const char* const argv[],
-                                             const ExtProcessOptions* options);
+ProcessError process_create_with_redirection(ProcessHandle** handle, const char* command,
+                                             const char* const argv[], const ExtProcessOptions* options);
 
 /**
  * @brief Create a process that redirects its output from stdout and/or stderr to files.
@@ -315,8 +317,9 @@ ProcessError process_create_with_redirection(ProcessHandle** handle, const char*
  * @param[in] append Whether to append to files (true) or overwrite (false)
  * @return ProcessError
  */
-ProcessError process_run_with_file_redirection(ProcessHandle** handle, const char* command, const char* const argv[],
-                                               const char* stdout_file, const char* stderr_file, bool append);
+ProcessError process_run_with_file_redirection(ProcessHandle** handle, const char* command,
+                                               const char* const argv[], const char* stdout_file,
+                                               const char* stderr_file, bool append);
 
 #endif  // Linux only
 

@@ -112,8 +112,8 @@ static bool coalesce_with_next(block_header* header) {
     }
 
     block_header* next_block = header->next;
-    // printf("Coalescing %p (size %zu) with next %p (size %zu)\n", (void*)header, header->size, (void*)next_block,
-    // next_block->size);
+    // printf("Coalescing %p (size %zu) with next %p (size %zu)\n", (void*)header, header->size,
+    // (void*)next_block, next_block->size);
 
     header->size += next_block->size;  // Combine sizes
     header->next = next_block->next;   // Link past the merged block
@@ -218,8 +218,8 @@ void FFREE(void* ptr) {
     // If it's already free, or doesn't have the allocated magic, bail.
     if (header->magic != MAGIC_ALLOCATED) {
         // Optional: Add logging for double free or corruption
-        // fprintf(stderr, "Warning: Double free or corruption detected for pointer %p (header %p, magic 0x%x)\n", ptr,
-        // (void*)header, header->magic);
+        // fprintf(stderr, "Warning: Double free or corruption detected for pointer %p (header %p, magic
+        // 0x%x)\n", ptr, (void*)header, header->magic);
         return;
     }
 
@@ -311,7 +311,8 @@ void* FREALLOC(void* ptr, size_t size) {
 
     // --- Optimization 2: Expanding in place (if next block is free) ---
     // Check if the next block exists, is free, and provides enough combined space.
-    if (header->next && is_block_free(header->next) && (header->size + header->next->size >= total_required_size)) {
+    if (header->next && is_block_free(header->next) &&
+        (header->size + header->next->size >= total_required_size)) {
         // Yes, we can expand by consuming the next block.
         block_header* next_block = header->next;
 
@@ -350,28 +351,24 @@ void FDEBUG_MEMORY() {
     printf("Memory state (Total Size: %d, Header Size: %zu):\n", MEMORY_SIZE, HEADER_SIZE);
     int i = 0;
     while (current) {
-        printf(" [%d] Block @ %p: size = %-6zu, magic = 0x%x (%s), prev = %-10p, next = %p\n",
-               i++,
-               (void*)current,
-               current->size,
-               current->magic,
-               (current->magic == MAGIC_ALLOCATED ? "ALLOC" : (current->magic == MAGIC_FREE ? "FREE " : "?????")),
-               (void*)current->prev,
-               (void*)current->next);
+        printf(" [%d] Block @ %p: size = %-6zu, magic = 0x%x (%s), prev = %-10p, next = %p\n", i++,
+               (void*)current, current->size, current->magic,
+               (current->magic == MAGIC_ALLOCATED ? "ALLOC"
+                                                  : (current->magic == MAGIC_FREE ? "FREE " : "?????")),
+               (void*)current->prev, (void*)current->next);
 
         // Sanity checks (optional)
         if (current->next && (uintptr_t)current->next != (uintptr_t)current + current->size) {
             printf("     ERROR: current + size != next pointer! (%p != %p)\n",
-                   (void*)((uintptr_t)current + current->size),
-                   (void*)current->next);
+                   (void*)((uintptr_t)current + current->size), (void*)current->next);
         }
         if (current->next && current->next->prev != current) {
-            printf(
-                "     ERROR: next->prev != current pointer! (%p != %p)\n", (void*)current->next->prev, (void*)current);
+            printf("     ERROR: next->prev != current pointer! (%p != %p)\n", (void*)current->next->prev,
+                   (void*)current);
         }
         if (current->prev && current->prev->next != current) {
-            printf(
-                "     ERROR: prev->next != current pointer! (%p != %p)\n", (void*)current->prev->next, (void*)current);
+            printf("     ERROR: prev->next != current pointer! (%p != %p)\n", (void*)current->prev->next,
+                   (void*)current);
         }
 
         current = current->next;

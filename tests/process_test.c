@@ -9,14 +9,14 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
-#define LOG_ERROR(fmt, ...)                                                                                            \
+#define LOG_ERROR(fmt, ...)                                                                                  \
     fprintf(stderr, "[ERROR]: %s:%d:%s(): " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
-#define LOG_ASSERT(condition, fmt, ...)                                                                                \
-    do {                                                                                                               \
-        if (!(condition)) {                                                                                            \
-            LOG_ERROR("Assertion failed: " #condition " " fmt, ##__VA_ARGS__);                                         \
-        }                                                                                                              \
+#define LOG_ASSERT(condition, fmt, ...)                                                                      \
+    do {                                                                                                     \
+        if (!(condition)) {                                                                                  \
+            LOG_ERROR("Assertion failed: " #condition " " fmt, ##__VA_ARGS__);                               \
+        }                                                                                                    \
     } while (0)
 #pragma clang diagnostic pop
 
@@ -59,10 +59,12 @@ void test_pipe_timeout() {
     char buffer[128]  = {0};
     size_t bytes_read = 0;
     err               = pipe_read(pipe_handle, buffer, sizeof(buffer), &bytes_read, 0);
-    LOG_ASSERT(err == PROCESS_ERROR_IO, "pipe_read did not time out as expected: %s", process_error_string(err));
+    LOG_ASSERT(err == PROCESS_ERROR_IO, "pipe_read did not time out as expected: %s",
+               process_error_string(err));
 
     err = pipe_write(pipe_handle, "Test", 4, &bytes_read, 0);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_write did not time out as expected: %s", process_error_string(err));
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_write did not time out as expected: %s",
+               process_error_string(err));
 
     pipe_close(pipe_handle);
 }
@@ -75,10 +77,12 @@ void test_process_error_handling() {
 
 void test_process_error_string() {
     const char* error_str = process_error_string(PROCESS_ERROR_INVALID_ARGUMENT);
-    LOG_ASSERT(strcmp(error_str, "Invalid argument") == 0, "Error string mismatch for PROCESS_ERROR_INVALID_ARGUMENT");
+    LOG_ASSERT(strcmp(error_str, "Invalid argument") == 0,
+               "Error string mismatch for PROCESS_ERROR_INVALID_ARGUMENT");
 
     error_str = process_error_string(PROCESS_ERROR_MEMORY);
-    LOG_ASSERT(strcmp(error_str, "Memory allocation failed") == 0, "Error string mismatch for PROCESS_ERROR_MEMORY");
+    LOG_ASSERT(strcmp(error_str, "Memory allocation failed") == 0,
+               "Error string mismatch for PROCESS_ERROR_MEMORY");
 
     error_str = process_error_string(PROCESS_ERROR_UNKNOWN);
     LOG_ASSERT(strcmp(error_str, "Unknown error") == 0, "Error string mismatch for PROCESS_ERROR_UNKNOWN");
@@ -174,7 +178,8 @@ void test_process_run_and_capture_ouput(void) {
     char buffer[512];
     size_t read;
     err = pipe_read(ph, buffer, sizeof(buffer), &read, 1000);
-    LOG_ASSERT(err == PROCESS_SUCCESS && read > 0, "pipe read failed: read %zu: %s", read, process_error_string(err));
+    LOG_ASSERT(err == PROCESS_SUCCESS && read > 0, "pipe read failed: read %zu: %s", read,
+               process_error_string(err));
 }
 
 #ifndef _WIN32
@@ -193,10 +198,8 @@ void test_redirect_to_file() {
     // Wait for process completion
     ProcessResult result;
     err = process_wait(handle, &result, -1);
-    LOG_ASSERT(err == PROCESS_SUCCESS && result.exit_code == 0,
-               "process_wait failed: %s[%d]",
-               process_error_string(err),
-               result.exit_code);
+    LOG_ASSERT(err == PROCESS_SUCCESS && result.exit_code == 0, "process_wait failed: %s[%d]",
+               process_error_string(err), result.exit_code);
 }
 
 void test_tee_to_multiple_destinations() {
@@ -264,10 +267,8 @@ void test_process_create_with_redirection() {
 
     ProcessResult res;
     err = process_wait(handle, &res, -1);
-    LOG_ASSERT(err == PROCESS_SUCCESS && res.exited_normally,
-               "pipe_wait failed with code: %d: %s",
-               res.exit_code,
-               process_error_string(err));
+    LOG_ASSERT(err == PROCESS_SUCCESS && res.exited_normally, "pipe_wait failed with code: %d: %s",
+               res.exit_code, process_error_string(err));
 }
 #endif
 

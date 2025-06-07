@@ -620,7 +620,8 @@ static inline SimdVec3 simd_vec3_cross(SimdVec3 a, SimdVec3 b) {
 }
 
 /**
- * @brief Rotates a SimdVec3 vector around a given axis by a specified angle using Rodrigues' rotation formula.
+ * @brief Rotates a SimdVec3 vector around a given axis by a specified angle using Rodrigues' rotation
+ * formula.
  *
  * @param v The vector to rotate.
  * @param axis The axis to rotate around (will be normalized).
@@ -650,10 +651,11 @@ static inline SimdVec3 simd_vec3_rotate(SimdVec3 v, SimdVec3 axis, float angle) 
     __m256 term1 = _mm256_mul_ps(v.m256, cos_vec);
 
     // Term 2: (axis × v)*sinθ
-    __m256 cross = _mm256_sub_ps(_mm256_mul_ps(_mm256_shuffle_ps(norm_axis, norm_axis, _MM_SHUFFLE(3, 0, 2, 1)),
-                                               _mm256_shuffle_ps(v.m256, v.m256, _MM_SHUFFLE(3, 1, 0, 2))),
-                                 _mm256_mul_ps(_mm256_shuffle_ps(norm_axis, norm_axis, _MM_SHUFFLE(3, 1, 0, 2)),
-                                               _mm256_shuffle_ps(v.m256, v.m256, _MM_SHUFFLE(3, 0, 2, 1))));
+    __m256 cross =
+        _mm256_sub_ps(_mm256_mul_ps(_mm256_shuffle_ps(norm_axis, norm_axis, _MM_SHUFFLE(3, 0, 2, 1)),
+                                    _mm256_shuffle_ps(v.m256, v.m256, _MM_SHUFFLE(3, 1, 0, 2))),
+                      _mm256_mul_ps(_mm256_shuffle_ps(norm_axis, norm_axis, _MM_SHUFFLE(3, 1, 0, 2)),
+                                    _mm256_shuffle_ps(v.m256, v.m256, _MM_SHUFFLE(3, 0, 2, 1))));
     __m256 term2 = _mm256_mul_ps(cross, sin_vec);
 
     // Term 3: axis*(axis·v)(1 - cosθ)

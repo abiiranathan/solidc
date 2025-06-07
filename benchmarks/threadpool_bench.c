@@ -15,7 +15,7 @@ void dummy_task(void* arg) {
 
     // Simulate a CPU-bound task
     volatile int x = 0;
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 10000; i++) {
         x++;
     }
 }

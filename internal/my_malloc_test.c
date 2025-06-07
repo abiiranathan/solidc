@@ -120,11 +120,8 @@ void* thread_func(void* arg) {
         }
     }
 
-    printf("Thread %d completed: %d successes, %d failures, %d verify errors\n",
-           id,
-           state->success_count,
-           state->failure_count,
-           verify_errors);
+    printf("Thread %d completed: %d successes, %d failures, %d verify errors\n", id, state->success_count,
+           state->failure_count, verify_errors);
 
     return NULL;
 }

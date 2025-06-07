@@ -11,8 +11,8 @@ static void printLastErrorMessage(const char* prefix) {
     // create format flags
     DWORD flags = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS;
 
-    FormatMessageA(
-        flags, NULL, WSAGetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errorText, 0, NULL);
+    FormatMessageA(flags, NULL, WSAGetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                   (LPSTR)&errorText, 0, NULL);
 
     if (errorText != NULL) {
         fprintf(stderr, "%s failed with error %d: %s\n", prefix, WSAGetLastError(), errorText);
@@ -222,7 +222,8 @@ int socket_reuse_port(Socket* sock, int enable) {
     }
 
     // Enable SO_EXCLUSIVEADDRUSE
-    if (setsockopt(sock->handle, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char*)&enable, sizeof(int)) == SOCKET_ERROR) {
+    if (setsockopt(sock->handle, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char*)&enable, sizeof(int)) ==
+        SOCKET_ERROR) {
         perror("setsockopt");
         fprintf(stderr, "setsockopt SO_EXCLUSIVEADDRUSE failed\n");
         return 1;

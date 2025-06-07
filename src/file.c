@@ -392,8 +392,8 @@ bool file_lock(file_t* file) {
     OVERLAPPED overlapped = {0};
     // Lock maximum possible range (approximate whole file locking)
     // Note: Locking beyond EOF is generally permitted.
-    if (LockFileEx(
-            file->file, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, 0xFFFFFFFF, 0xFFFFFFFF, &overlapped)) {
+    if (LockFileEx(file->file, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, 0xFFFFFFFF, 0xFFFFFFFF,
+                   &overlapped)) {
         file->is_locked = true;
         return true;
     } else {
@@ -865,11 +865,9 @@ ssize_t file_pread(file_t* file, void* buffer, size_t size, int64_t offset) {
         return internal_set_error(EIO);  // Event creation failed
     }
 
-    bResult = ReadFile(file->file,
-                       buffer,
+    bResult = ReadFile(file->file, buffer,
                        (DWORD)size,  // Cast size_t to DWORD carefully
-                       &dwBytesRead,
-                       &overlapped);
+                       &dwBytesRead, &overlapped);
 
     if (!bResult) {
         if (GetLastError() == ERROR_IO_PENDING) {

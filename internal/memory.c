@@ -149,11 +149,8 @@ __attribute__((constructor)) static void initialize_memory() {
 
     // 2. Check if memory is large enough for bitmap and at least one header
     if (MEMORY_SIZE <= bitmap_size_bytes + HEADER_SIZE) {
-        fprintf(stderr,
-                "Error: MEMORY_SIZE (%d) too small for bitmap (%zu) and header (%zu).\n",
-                MEMORY_SIZE,
-                bitmap_size_bytes,
-                HEADER_SIZE);
+        fprintf(stderr, "Error: MEMORY_SIZE (%d) too small for bitmap (%zu) and header (%zu).\n", MEMORY_SIZE,
+                bitmap_size_bytes, HEADER_SIZE);
         exit(EXIT_FAILURE);
     }
 
@@ -423,8 +420,8 @@ void FFREE(void* ptr) {
     block_header* header = payload_to_header(ptr);
 
     if (header->magic != MAGIC_ALLOCATED) {
-        // fprintf(stderr, "Warning: Double free or corruption detected for pointer %p (header %p, magic 0x%x)\n", ptr,
-        // (void*)header, header->magic);
+        // fprintf(stderr, "Warning: Double free or corruption detected for pointer %p (header %p, magic
+        // 0x%x)\n", ptr, (void*)header, header->magic);
         return;
     }
 
@@ -478,10 +475,8 @@ void* FREALLOC(void* ptr, size_t size) {
     }
     block_header* header = payload_to_header(ptr);
     if (header->magic != MAGIC_ALLOCATED) {
-        fprintf(stderr,
-                "ERROR: FREALLOC called on non-allocated or corrupted block %p (magic: 0x%x)\n",
-                (void*)header,
-                header->magic);
+        fprintf(stderr, "ERROR: FREALLOC called on non-allocated or corrupted block %p (magic: 0x%x)\n",
+                (void*)header, header->magic);
         return NULL;
     }
 
@@ -502,7 +497,8 @@ void* FREALLOC(void* ptr, size_t size) {
     }
 
     // --- Optimization 2: Expanding in place (using next block) ---
-    if (header->next && is_block_free(header->next) && is_valid_header_ptr(header->next) &&  // Sanity check next ptr
+    if (header->next && is_block_free(header->next) &&
+        is_valid_header_ptr(header->next) &&  // Sanity check next ptr
         (header->size + header->next->size >= total_required_size)) {
         block_header* next_block = header->next;
         size_t combined_size     = header->size + next_block->size;  // Store before modifying list
@@ -550,11 +546,8 @@ void* FREALLOC(void* ptr, size_t size) {
 // Print memory state (includes bitmap info)
 void FDEBUG_MEMORY() {
     block_header* current = (block_header*)memory_pool;
-    printf("--- Memory State (Pool @ %p, Size %zu, Bitmap Size %zu, Chunks %zu) ---\n",
-           (void*)memory_pool,
-           effective_memory_size,
-           bitmap_size_bytes,
-           num_chunks);
+    printf("--- Memory State (Pool @ %p, Size %zu, Bitmap Size %zu, Chunks %zu) ---\n", (void*)memory_pool,
+           effective_memory_size, bitmap_size_bytes, num_chunks);
 
     // Print Bitmap
     printf("Bitmap (%p, %zu bytes): ", (void*)bitmap, bitmap_size_bytes);
@@ -574,37 +567,31 @@ void FDEBUG_MEMORY() {
         // Check for physical continuity
         if (current_addr != expected_next_addr) {
             printf("   *** GAP DETECTED! Expected header at %p, but found at %p ***\n",
-                   (void*)expected_next_addr,
-                   (void*)current);
+                   (void*)expected_next_addr, (void*)current);
         }
 
         size_t start_chunk = get_chunk_index(current);
         size_t end_chunk   = get_chunk_index((uint8_t*)current + current->size - 1);
 
-        printf(" [%d] Block @ %p: size = %-6zu, magic = 0x%x (%s), prev = %-10p, next = %p [Chunks %zu-%zu]\n",
-               i++,
-               (void*)current,
-               current->size,
-               current->magic,
-               (current->magic == MAGIC_ALLOCATED ? "ALLOC" : (current->magic == MAGIC_FREE ? "FREE " : "?????")),
-               (void*)current->prev,
-               (void*)current->next,
-               start_chunk,
-               end_chunk);
+        printf(
+            " [%d] Block @ %p: size = %-6zu, magic = 0x%x (%s), prev = %-10p, next = %p [Chunks %zu-%zu]\n",
+            i++, (void*)current, current->size, current->magic,
+            (current->magic == MAGIC_ALLOCATED ? "ALLOC"
+                                               : (current->magic == MAGIC_FREE ? "FREE " : "?????")),
+            (void*)current->prev, (void*)current->next, start_chunk, end_chunk);
 
         // Sanity checks (optional)
         if (current->next && (uintptr_t)current->next != (uintptr_t)current + current->size) {
             printf("     ERROR: Block end != next pointer! (%p != %p)\n",
-                   (void*)((uintptr_t)current + current->size),
-                   (void*)current->next);
+                   (void*)((uintptr_t)current + current->size), (void*)current->next);
         }
         if (current->next && is_valid_header_ptr(current->next) && current->next->prev != current) {
-            printf(
-                "     ERROR: next->prev != current pointer! (%p != %p)\n", (void*)current->next->prev, (void*)current);
+            printf("     ERROR: next->prev != current pointer! (%p != %p)\n", (void*)current->next->prev,
+                   (void*)current);
         }
         if (current->prev && is_valid_header_ptr(current->prev) && current->prev->next != current) {
-            printf(
-                "     ERROR: prev->next != current pointer! (%p != %p)\n", (void*)current->prev->next, (void*)current);
+            printf("     ERROR: prev->next != current pointer! (%p != %p)\n", (void*)current->prev->next,
+                   (void*)current);
         }
         if (current->size == 0) {
             printf("    ERROR: Block size is zero!\n");
@@ -616,14 +603,15 @@ void FDEBUG_MEMORY() {
 
         // Prevent runaway loop if list is corrupted
         if (i > (int)(effective_memory_size / HEADER_SIZE) + 10) {  // Heuristic limit
-            printf("   *** ERROR: Potentially corrupted list, too many blocks found. Aborting debug print. ***\n");
+            printf(
+                "   *** ERROR: Potentially corrupted list, too many blocks found. Aborting debug print. "
+                "***\n");
             break;
         }
     }
     if (expected_next_addr != (uintptr_t)memory_pool + effective_memory_size) {
         printf("   *** ERROR: End of last block (%p) does not match end of memory pool (%p)! ***\n",
-               (void*)expected_next_addr,
-               (void*)(memory_pool + effective_memory_size));
+               (void*)expected_next_addr, (void*)(memory_pool + effective_memory_size));
     }
 
     printf("--- End of Memory State ---\n\n");

@@ -1,18 +1,15 @@
+#include "../include/cstr.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include "../include/cstr.h"
 
 // Helper function to print cstr content for debugging
 void print_cstr(const cstr* s) {
     if (!s) {
         printf("NULL\n");
     } else {
-        printf("\"%s\" (len=%zu, cap=%zu, heap=%d)\n",
-               cstr_data_const(s),
-               cstr_len(s),
-               cstr_capacity(s),
+        printf("\"%s\" (len=%zu, cap=%zu, heap=%d)\n", cstr_data_const(s), cstr_len(s), cstr_capacity(s),
                cstr_allocated(s));
     }
 }
@@ -577,7 +574,8 @@ int main(void) {
 
         // Verify first and last segments
         assert_cstr_equals(arr[0], "It was the best of times", "long prose first element");
-        assert_cstr_equals(arr[expected_splits - 1], "it was the winter of despair.", "long prose last element");
+        assert_cstr_equals(arr[expected_splits - 1], "it was the winter of despair.",
+                           "long prose last element");
 
         // Verify a middle segment
         assert_cstr_equals(arr[7], "it was the season of Darkness", "long prose middle element");

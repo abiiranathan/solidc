@@ -168,16 +168,12 @@ int main() {
     printf(
         "larena_alloc (average over %d runs): %.6f ms, throughput: %.2f "
         "allocations/s\n",
-        NUM_ITERATIONS,
-        (total_arena_time / NUM_ITERATIONS) * 1e3,
-        total_arena_throughput / NUM_ITERATIONS);
+        NUM_ITERATIONS, (total_arena_time / NUM_ITERATIONS) * 1e3, total_arena_throughput / NUM_ITERATIONS);
 
     printf(
         "malloc      (average over %d runs): %.6f ms, throughput: %.2f "
         "allocations/s\n",
-        NUM_ITERATIONS,
-        (total_malloc_time / NUM_ITERATIONS) * 1e3,
-        total_malloc_throughput / NUM_ITERATIONS);
+        NUM_ITERATIONS, (total_malloc_time / NUM_ITERATIONS) * 1e3, total_malloc_throughput / NUM_ITERATIONS);
 
     return 0;
 }

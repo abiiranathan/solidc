@@ -276,7 +276,8 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
     return PROCESS_SUCCESS;
 }
 
-ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_t* bytes_written, int timeout_ms) {
+ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_t* bytes_written,
+                        int timeout_ms) {
     if (!pipe || !buffer || pipe->write_closed) {
         return PROCESS_ERROR_INVALID_ARGUMENT;
     }
@@ -395,8 +396,8 @@ void pipe_close(PipeHandle* pipe) {
 
 /* Implementation of the process API */
 #ifdef _WIN32
-static ProcessError win32_create_process(ProcessHandle** handle, const char* command, const char* const argv[],
-                                         const ProcessOptions* options) {
+static ProcessError win32_create_process(ProcessHandle** handle, const char* command,
+                                         const char* const argv[], const ProcessOptions* options) {
     // Build command line string (Windows style with quotes)
     size_t cmdline_len = 0;
     int arg_count      = 0;
@@ -802,7 +803,8 @@ ProcessError process_run_and_capture(const char* command, const char* const argv
  * @param[in] mode File mode for creation (if O_CREAT is used)
  * @return ProcessError
  */
-ProcessError process_redirect_to_file(FileRedirection** redirection, const char* filepath, int flags, int mode) {
+ProcessError process_redirect_to_file(FileRedirection** redirection, const char* filepath, int flags,
+                                      int mode) {
     if (!redirection || !filepath) {
         return PROCESS_ERROR_INVALID_ARGUMENT;
     }
@@ -877,8 +879,8 @@ void process_close_redirection(FileRedirection* redirection) {
  * @param[in] options Process options with extended IO
  * @return ProcessError
  */
-ProcessError process_create_with_redirection(ProcessHandle** handle, const char* command, const char* const argv[],
-                                             const ExtProcessOptions* options) {
+ProcessError process_create_with_redirection(ProcessHandle** handle, const char* command,
+                                             const char* const argv[], const ExtProcessOptions* options) {
     if (!handle || !command || !argv || !argv[0]) {
         return PROCESS_ERROR_INVALID_ARGUMENT;
     }
@@ -993,8 +995,8 @@ ProcessError process_create_with_redirection(ProcessHandle** handle, const char*
     return PROCESS_SUCCESS;
 }
 
-ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd, const char* args[], int output_fds[],
-                                          int error_fds[]) {
+ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd, const char* args[],
+                                          int output_fds[], int error_fds[]) {
     // Create pipes for stdout and stderr
     int stdout_pipe[2];
     int stderr_pipe[2];
@@ -1167,8 +1169,9 @@ ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd
  * @param[in] append Whether to append to files (true) or overwrite (false)
  * @return ProcessError
  */
-ProcessError process_run_with_file_redirection(ProcessHandle** handle, const char* command, const char* const argv[],
-                                               const char* stdout_file, const char* stderr_file, bool append) {
+ProcessError process_run_with_file_redirection(ProcessHandle** handle, const char* command,
+                                               const char* const argv[], const char* stdout_file,
+                                               const char* stderr_file, bool append) {
     ExtProcessOptions options;
     memset(&options, 0, sizeof(options));
     options.inherit_environment = true;

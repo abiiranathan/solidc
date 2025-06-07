@@ -29,8 +29,8 @@ typedef struct __attribute__((aligned(32))) Mat4 {
  * @param m00, m01, ... element values in row-major order (as you'd write the matrix).
  * @return  A Mat3 struct with elements stored column-major.
  */
-static inline Mat3 mat3_new_column_major(float m00, float m01, float m02, float m10, float m11, float m12, float m20,
-                                         float m21, float m22) {
+static inline Mat3 mat3_new_column_major(float m00, float m01, float m02, float m10, float m11, float m12,
+                                         float m20, float m21, float m22) {
     Mat3 mat;
     // Store element A_row,col at mat.m[col][row]
     mat.m[0][0] = m00;
@@ -46,9 +46,9 @@ static inline Mat3 mat3_new_column_major(float m00, float m01, float m02, float 
 }
 
 // Helper function to create a Mat4 with column-major storage
-static inline Mat4 mat4_new_column_major(float m00, float m01, float m02, float m03, float m10, float m11, float m12,
-                                         float m13, float m20, float m21, float m22, float m23, float m30, float m31,
-                                         float m32, float m33) {
+static inline Mat4 mat4_new_column_major(float m00, float m01, float m02, float m03, float m10, float m11,
+                                         float m12, float m13, float m20, float m21, float m22, float m23,
+                                         float m30, float m31, float m32, float m33) {
     Mat4 mat;
     // Store A_row,col at mat.m[col][row]
     mat.m[0][0] = m00;
@@ -481,9 +481,10 @@ static inline Vec3 mat3_mul_vec3(Mat3 m, Vec3 v) {
     __m128 row1 = _mm_loadu_ps(&m.m[1][0]);
     __m128 row2 = _mm_loadu_ps(&m.m[2][0]);
 
-    __m128 result = _mm_add_ps(_mm_add_ps(_mm_mul_ps(_mm_shuffle_ps(vec, vec, _MM_SHUFFLE(0, 0, 0, 0)), row0),
-                                          _mm_mul_ps(_mm_shuffle_ps(vec, vec, _MM_SHUFFLE(1, 1, 1, 1)), row1)),
-                               _mm_mul_ps(_mm_shuffle_ps(vec, vec, _MM_SHUFFLE(2, 2, 2, 2)), row2));
+    __m128 result =
+        _mm_add_ps(_mm_add_ps(_mm_mul_ps(_mm_shuffle_ps(vec, vec, _MM_SHUFFLE(0, 0, 0, 0)), row0),
+                              _mm_mul_ps(_mm_shuffle_ps(vec, vec, _MM_SHUFFLE(1, 1, 1, 1)), row1)),
+                   _mm_mul_ps(_mm_shuffle_ps(vec, vec, _MM_SHUFFLE(2, 2, 2, 2)), row2));
 
     return (Vec3){_mm_cvtss_f32(result),
                   _mm_cvtss_f32(_mm_shuffle_ps(result, result, _MM_SHUFFLE(1, 1, 1, 1))),
@@ -661,52 +662,53 @@ static inline Mat4 mat4_transpose(Mat4 m) {
 /// @return The determinant of the matrix.
 static inline float mat4_determinant(Mat4 m) {
     // Calculate sub-determinants for first row
-    __m128 s0 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]),
-                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[3][3])),
-                                         _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[2][3])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][1]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[3][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[1][3])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[3][1]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[2][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[1][3]))))));
-
-    __m128 s1 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]),
-                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[3][3])),
-                                         _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[2][3])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][1]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[3][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[0][3])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[3][1]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[2][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[0][3]))))));
-
-    __m128 s2 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]),
+    __m128 s0 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[1][1]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[3][3])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[2][3])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][1]),
                               _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[3][3])),
                                          _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[1][3])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[3][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[0][3])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[3][1]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[1][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[0][3]))))));
-
-    __m128 s3 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]),
+                   _mm_mul_ps(_mm_set1_ps(m.m[3][1]),
                               _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[2][3])),
-                                         _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[1][3])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[2][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[0][3])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[2][1]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[1][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[0][3]))))));
+                                         _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[1][3]))))));
 
-    __m128 det = _mm_add_ps(_mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][0]), s0), _mm_mul_ps(_mm_set1_ps(m.m[1][0]), s1)),
-                            _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][0]), s2), _mm_mul_ps(_mm_set1_ps(m.m[3][0]), s3)));
+    __m128 s1 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[0][1]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[3][3])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[2][3])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][1]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[3][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[0][3])))),
+                   _mm_mul_ps(_mm_set1_ps(m.m[3][1]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[2][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[0][3]))))));
+
+    __m128 s2 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[0][1]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[3][3])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[1][3])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[3][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[0][3])))),
+                   _mm_mul_ps(_mm_set1_ps(m.m[3][1]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[1][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[0][3]))))));
+
+    __m128 s3 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[0][1]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[2][3])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[1][3])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[2][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[0][3])))),
+                   _mm_mul_ps(_mm_set1_ps(m.m[2][1]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[1][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[0][3]))))));
+
+    __m128 det = _mm_add_ps(
+        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][0]), s0), _mm_mul_ps(_mm_set1_ps(m.m[1][0]), s1)),
+        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][0]), s2), _mm_mul_ps(_mm_set1_ps(m.m[3][0]), s3)));
 
     return _mm_cvtss_f32(det);
 }
@@ -717,52 +719,53 @@ static inline float mat4_determinant(Mat4 m) {
 static inline Mat4 mat4_inverse(Mat4 m) {
     Mat4 inv;
     // Calculate sub-determinants for first row
-    __m128 s0 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]),
-                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[3][3])),
-                                         _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[2][3])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][1]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[3][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[1][3])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[3][1]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[2][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[1][3]))))));
-
-    __m128 s1 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]),
-                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[3][3])),
-                                         _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[2][3])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][1]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[3][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[0][3])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[3][1]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[2][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[0][3]))))));
-
-    __m128 s2 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]),
+    __m128 s0 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[1][1]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[3][3])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[2][3])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][1]),
                               _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[3][3])),
                                          _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[1][3])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[3][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[0][3])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[3][1]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[1][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[0][3]))))));
-
-    __m128 s3 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]),
+                   _mm_mul_ps(_mm_set1_ps(m.m[3][1]),
                               _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[2][3])),
-                                         _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[1][3])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[2][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[0][3])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[2][1]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[1][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[0][3]))))));
+                                         _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[1][3]))))));
 
-    __m128 det = _mm_add_ps(_mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][0]), s0), _mm_mul_ps(_mm_set1_ps(m.m[1][0]), s1)),
-                            _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][0]), s2), _mm_mul_ps(_mm_set1_ps(m.m[3][0]), s3)));
+    __m128 s1 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[0][1]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[3][3])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[2][3])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][1]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[3][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[0][3])))),
+                   _mm_mul_ps(_mm_set1_ps(m.m[3][1]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[2][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[0][3]))))));
+
+    __m128 s2 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[0][1]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[3][3])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[1][3])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[3][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[0][3])))),
+                   _mm_mul_ps(_mm_set1_ps(m.m[3][1]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[1][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[0][3]))))));
+
+    __m128 s3 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[0][1]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[2][3])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[1][3])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[2][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[0][3])))),
+                   _mm_mul_ps(_mm_set1_ps(m.m[2][1]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[1][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[0][3]))))));
+
+    __m128 det = _mm_add_ps(
+        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][0]), s0), _mm_mul_ps(_mm_set1_ps(m.m[1][0]), s1)),
+        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][0]), s2), _mm_mul_ps(_mm_set1_ps(m.m[3][0]), s3)));
 
     if (fabsf(_mm_cvtss_f32(det)) < FLT_EPSILON) {
         return mat4_identity();  // Fallback for singular matrix
@@ -777,93 +780,93 @@ static inline Mat4 mat4_inverse(Mat4 m) {
     inv.cols[3] = _mm_mul_ps(_mm_set1_ps(-1.0f), _mm_mul_ps(s3, inv_det));
 
     // Calculate remaining cofactors
-    __m128 c0 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][0]),
-                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[3][3])),
-                                         _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[2][3])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[3][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[1][3])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[2][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[1][3]))))));
-
-    __m128 c1 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][0]),
-                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[3][3])),
-                                         _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[2][3])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[3][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[0][3])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[2][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[0][3]))))));
-
-    __m128 c2 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][0]),
+    __m128 c0 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[1][0]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[3][3])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[2][3])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][0]),
                               _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[3][3])),
                                          _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[1][3])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[3][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[0][3])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[1][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[0][3]))))));
-
-    __m128 c3 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][0]),
+                   _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
                               _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[2][3])),
-                                         _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[1][3])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[2][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[0][3])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[2][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[1][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[0][3]))))));
+                                         _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[1][3]))))));
 
-    __m128 c4 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][0]),
-                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[3][3])),
-                                         _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[2][3])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[3][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[1][3])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[2][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[1][3]))))));
+    __m128 c1 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[0][0]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[3][3])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[2][3])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[3][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[0][3])))),
+                   _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[2][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[0][3]))))));
 
-    __m128 c5 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][0]),
-                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[3][3])),
-                                         _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[2][3])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[3][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[0][3])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[2][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[0][3]))))));
+    __m128 c2 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[0][0]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[3][3])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[1][3])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[3][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[3][2]), _mm_set1_ps(m.m[0][3])))),
+                   _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[1][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[0][3]))))));
 
-    __m128 c6 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][0]),
+    __m128 c3 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[0][0]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[2][3])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[1][3])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[2][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[2][2]), _mm_set1_ps(m.m[0][3])))),
+                   _mm_mul_ps(_mm_set1_ps(m.m[2][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][2]), _mm_set1_ps(m.m[1][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[1][2]), _mm_set1_ps(m.m[0][3]))))));
+
+    __m128 c4 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[1][0]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[3][3])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[2][3])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][0]),
                               _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[3][3])),
                                          _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[1][3])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[3][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[0][3])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[1][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[0][3]))))));
-
-    __m128 c7 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][0]),
+                   _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
                               _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[2][3])),
-                                         _mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[1][3])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[2][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[0][3])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[2][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[1][3])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[0][3]))))));
+                                         _mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[1][3]))))));
+
+    __m128 c5 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[0][0]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[3][3])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[2][3])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[3][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[0][3])))),
+                   _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[2][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[0][3]))))));
+
+    __m128 c6 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[0][0]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[3][3])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[1][3])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[3][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[0][3])))),
+                   _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[1][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[0][3]))))));
+
+    __m128 c7 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[0][0]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[2][3])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[1][3])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[2][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[0][3])))),
+                   _mm_mul_ps(_mm_set1_ps(m.m[2][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[1][3])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[0][3]))))));
 
     // Store the cofactors in the inverse matrix
     inv.m[0][1] = -_mm_cvtss_f32(_mm_mul_ps(c0, inv_det));
@@ -877,49 +880,49 @@ static inline Mat4 mat4_inverse(Mat4 m) {
     inv.m[3][2] = -_mm_cvtss_f32(_mm_mul_ps(c7, inv_det));
 
     // Calculate remaining cofactors for last row
-    __m128 c8 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][0]),
-                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[3][2])),
-                                         _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[2][2])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[3][2])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[1][2])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[2][2])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[1][2]))))));
-
-    __m128 c9 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][0]),
-                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[3][2])),
-                                         _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[2][2])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[3][2])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[0][2])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[2][2])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[0][2]))))));
-
-    __m128 c10 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][0]),
+    __m128 c8 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[1][0]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[3][2])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[2][2])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][0]),
                               _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[3][2])),
                                          _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[1][2])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[3][2])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[0][2])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[1][2])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[0][2]))))));
-
-    __m128 c11 =
-        _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][0]),
+                   _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
                               _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[2][2])),
-                                         _mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[1][2])))),
-                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[2][2])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[0][2])))),
-                              _mm_mul_ps(_mm_set1_ps(m.m[2][0]),
-                                         _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[1][2])),
-                                                    _mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[0][2]))))));
+                                         _mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[1][2]))))));
+
+    __m128 c9 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[0][0]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[3][2])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[2][2])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[2][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[3][2])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[0][2])))),
+                   _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[2][2])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[0][2]))))));
+
+    __m128 c10 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[0][0]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[3][2])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[1][2])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[3][2])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[3][1]), _mm_set1_ps(m.m[0][2])))),
+                   _mm_mul_ps(_mm_set1_ps(m.m[3][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[1][2])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[0][2]))))));
+
+    __m128 c11 = _mm_sub_ps(
+        _mm_mul_ps(_mm_set1_ps(m.m[0][0]),
+                   _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[2][2])),
+                              _mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[1][2])))),
+        _mm_add_ps(_mm_mul_ps(_mm_set1_ps(m.m[1][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[2][2])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[2][1]), _mm_set1_ps(m.m[0][2])))),
+                   _mm_mul_ps(_mm_set1_ps(m.m[2][0]),
+                              _mm_sub_ps(_mm_mul_ps(_mm_set1_ps(m.m[0][1]), _mm_set1_ps(m.m[1][2])),
+                                         _mm_mul_ps(_mm_set1_ps(m.m[1][1]), _mm_set1_ps(m.m[0][2]))))));
 
     // Store the remaining cofactors
     inv.m[0][3] = -_mm_cvtss_f32(_mm_mul_ps(c8, inv_det));

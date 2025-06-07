@@ -185,7 +185,8 @@ StoError sto_double(const char* str, double* result) {
     errno        = 0;
     *result      = strtod(str, &endptr);
 
-    if ((FLOAT_EQUAL(*result, (double)DBL_MAX) || FLOAT_EQUAL(*result, (double)-DBL_MAX)) && errno == ERANGE) {
+    if ((FLOAT_EQUAL(*result, (double)DBL_MAX) || FLOAT_EQUAL(*result, (double)-DBL_MAX)) &&
+        errno == ERANGE) {
         return STO_OVERFLOW;
     }
 
