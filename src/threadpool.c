@@ -22,10 +22,9 @@
 #define RING_BUFFER_MASK (RING_BUFFER_SIZE - 1)
 #ifndef BATCH_SIZE
 // Increased batch size for better amortization
-#define BATCH_SIZE 16
+#define BATCH_SIZE 8
 #endif
 
-#define SPIN_LIMIT 1000  // Number of spins before yielding
 #define YIELD_LIMIT 100  // Number of yields before sleeping
 
 // Task represents a work item that should be executed by a thread
@@ -128,9 +127,8 @@ static int ringbuffer_push(TaskRingBuffer* rb, Task* task) {
     return 0;
 }
 
-// Lock-free batch pull with spinning and yielding
+// Lock-free batch pull with yielding and blocking (no spinning)
 static int ringbuffer_pull_batch_optimized(TaskRingBuffer* rb, Task* tasks, int max_tasks) {
-    int spin_count  = 0;
     int yield_count = 0;
 
     while (1) {
@@ -159,7 +157,7 @@ static int ringbuffer_pull_batch_optimized(TaskRingBuffer* rb, Task* tasks, int 
 
                 return to_take;
             }
-            // CAS failed, retry
+            // CAS failed, retry immediately
             continue;
         }
 
@@ -168,23 +166,7 @@ static int ringbuffer_pull_batch_optimized(TaskRingBuffer* rb, Task* tasks, int 
             return -1;
         }
 
-        // Progressive backoff: spin -> yield -> block
-        if (spin_count < SPIN_LIMIT) {
-            spin_count++;
-// CPU pause/yield instruction
-#if defined(__x86_64__) || defined(__i386__)
-            __asm__ __volatile__("pause" ::: "memory");
-#elif defined(__aarch64__)
-            __asm__ __volatile__("yield" ::: "memory");
-#elif defined(__powerpc__) || defined(__ppc__)
-            __asm__ __volatile__("or 27,27,27" ::: "memory");  // PowerPC yield hint
-#elif defined(__arm__)
-            __asm__ __volatile__("yield" ::: "memory");
-#endif
-
-            continue;
-        }
-
+        // Skip spinning entirely - go straight to yielding
         if (yield_count < YIELD_LIMIT) {
             yield_count++;
 #ifdef _WIN32
@@ -195,7 +177,7 @@ static int ringbuffer_pull_batch_optimized(TaskRingBuffer* rb, Task* tasks, int 
             continue;
         }
 
-        // Block and wait
+        // After yielding limit reached, block and wait
         atomic_fetch_add(&rb->waiting_consumers, 1);
         lock_acquire(&rb->mutex);
 
@@ -207,8 +189,8 @@ static int ringbuffer_pull_batch_optimized(TaskRingBuffer* rb, Task* tasks, int 
         lock_release(&rb->mutex);
         atomic_fetch_sub(&rb->waiting_consumers, 1);
 
-        // Reset counters for next iteration
-        spin_count = yield_count = 0;
+        // Reset yield counter for next iteration
+        yield_count = 0;
     }
 }
 

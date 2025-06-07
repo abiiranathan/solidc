@@ -1,12 +1,20 @@
 #include "../include/larena.h"
 #include <assert.h>
-#include <emmintrin.h>  // SSE2
 #include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+// Platform-specific headers for aligned allocation
+#ifdef _WIN32
+#include <malloc.h>  // For _aligned_malloc/_aligned_free
+#elif defined(__APPLE__)
+#include <stdlib.h>  // For aligned_alloc (macOS 10.15+) or fallback
+#else
+#include <stdlib.h>  // For aligned_alloc (C11) or posix_memalign
+#endif
 
 // Cache line size (64 bytes on most modern CPUs)
 #define CACHE_LINE_SIZE 64
@@ -19,8 +27,8 @@
 #define LIKELY(x) __builtin_expect(!!(x), 1)
 #define UNLIKELY(x) __builtin_expect(!!(x), 0)
 #define NOINLINE __attribute__((noinline))
-
 #define ALWAYS_INLINE __attribute__((always_inline)) inline
+
 // Error logging that can be disabled in production
 #ifdef NDEBUG
 #define LOG_ERROR(fmt, ...) ((void)0)
@@ -43,6 +51,64 @@ ALWAYS_INLINE size_t align_up(size_t size, size_t align) {
     return (size + align - 1) & ~(align - 1);
 }
 
+// Cross-platform aligned memory allocation
+static void* aligned_alloc_cross_platform(size_t alignment, size_t size) {
+#ifdef _WIN32
+    // Windows: use _aligned_malloc
+    return _aligned_malloc(size, alignment);
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+    // C11 aligned_alloc (requires size to be multiple of alignment)
+    size_t aligned_size = align_up(size, alignment);
+    return aligned_alloc(alignment, aligned_size);
+#elif defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 200112L
+    // POSIX posix_memalign
+    void* ptr;
+    if (posix_memalign(&ptr, alignment, size) == 0) {
+        return ptr;
+    }
+    return NULL;
+#else
+    // Fallback: manual alignment using malloc
+    // Allocate extra space for alignment + pointer storage
+    size_t total_size = size + alignment + sizeof(void*);
+    void* raw_ptr     = malloc(total_size);
+    if (!raw_ptr) {
+        return NULL;
+    }
+
+    // Calculate aligned address
+    uintptr_t raw_addr     = (uintptr_t)raw_ptr;
+    uintptr_t aligned_addr = align_up(raw_addr + sizeof(void*), alignment);
+    void* aligned_ptr      = (void*)aligned_addr;
+
+    // Store original pointer just before the aligned memory
+    ((void**)aligned_ptr)[-1] = raw_ptr;
+
+    return aligned_ptr;
+#endif
+}
+
+// Cross-platform aligned memory deallocation
+static void aligned_free_cross_platform(void* ptr) {
+    if (!ptr)
+        return;
+
+#ifdef _WIN32
+    // Windows: use _aligned_free
+    _aligned_free(ptr);
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+    // C11 aligned_alloc uses regular free
+    free(ptr);
+#elif defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 200112L
+    // POSIX posix_memalign uses regular free
+    free(ptr);
+#else
+    // Fallback: retrieve original pointer and free it
+    void* raw_ptr = ((void**)ptr)[-1];
+    free(raw_ptr);
+#endif
+}
+
 // Create arena with optimized alignment and prefetching
 NOINLINE LArena* larena_create(size_t size) {
     // Align size to cache lines and add one extra cache line for prefetching
@@ -54,9 +120,10 @@ NOINLINE LArena* larena_create(size_t size) {
         return NULL;
     }
 
-    // Allocate with cache line alignment
-    if (posix_memalign((void**)&arena->memory, CACHE_LINE_SIZE, size)) {
-        LOG_ERROR("posix_memalign failed: %s", strerror(errno));
+    // Allocate with cache line alignment using cross-platform function
+    arena->memory = (char*)aligned_alloc_cross_platform(CACHE_LINE_SIZE, size);
+    if (UNLIKELY(!arena->memory)) {
+        LOG_ERROR("Aligned allocation failed");
         free(arena);
         return NULL;
     }
@@ -69,7 +136,7 @@ NOINLINE LArena* larena_create(size_t size) {
     return arena;
 }
 
-// Assembly-optimized hot path targeting the specific bottlenecks
+// Pure C optimized allocation with aligned access
 ALWAYS_INLINE void* larena_alloc_aligned(LArena* arena, size_t size, size_t align) {
     if (UNLIKELY(!arena || (align & (align - 1)))) {
         return NULL;
@@ -94,126 +161,59 @@ ALWAYS_INLINE void* larena_alloc_aligned(LArena* arena, size_t size, size_t alig
     return ptr;
 }
 
-ALWAYS_INLINE void* larena_alloc_asm_optimized(LArena* arena, size_t size) {
-    void* result;
-    size_t new_allocated;
+// Pure C optimized allocation (replaces assembly version)
+ALWAYS_INLINE void* larena_alloc_optimized(LArena* arena, size_t size) {
+    if (UNLIKELY(!arena)) {
+        return NULL;
+    }
 
-    // Use inline assembly to control register allocation and eliminate redundant loads
-    __asm__ volatile(
-        "movq   %c4(%2), %%rax\n\t"  // Load arena->allocated
-        "movq   %c5(%2), %%rdx\n\t"  // Load arena->size
-        "movq   (%2), %%rcx\n\t"     // Load arena->memory
+    // Align to 16 bytes
+    size_t offset    = align_up(arena->allocated, ARENA_ALIGNMENT);
+    size_t new_alloc = offset + size;
 
-        // Alignment calculation (assuming 16-byte alignment)
-        "addq   $15, %%rax\n\t"   // Add alignment - 1
-        "andq   $-16, %%rax\n\t"  // Mask for alignment
+    // Bounds check
+    if (UNLIKELY(new_alloc > arena->size)) {
+        return NULL;
+    }
 
-        // Calculate new allocation
-        "leaq   (%%rax,%3), %%r8\n\t"  // new_alloc = offset + size
-
-        // Bounds check
-        "cmpq   %%r8, %%rdx\n\t"  // Compare arena_size with new_alloc
-        "jb     1f\n\t"           // Jump if out of bounds
-
-        // Success path
-        "movq   %%r8, %c4(%2)\n\t"  // Update arena->allocated
-        "addq   %%rcx, %%rax\n\t"   // Calculate return pointer
-        "jmp    2f\n\t"
-
-        // Failure path
-        "1:\n\t"
-        "xorq   %%rax, %%rax\n\t"  // Return NULL
-
-        "2:\n\t"
-        "movq   %%rax, %0\n\t"  // Store result
-        "movq   %%r8, %1\n\t"   // Store new_allocated for update
-
-        : "=m"(result), "=m"(new_allocated)
-        : "r"(arena), "r"(size), "i"(offsetof(LArena, allocated)), "i"(offsetof(LArena, size))
-        : "rax", "rdx", "rcx", "r8", "memory");
-
-    return result;
+    // Update allocation pointer and return memory
+    arena->allocated = new_alloc;
+    return arena->memory + offset;
 }
 
 ALWAYS_INLINE void* larena_alloc(LArena* arena, size_t size) {
-    return larena_alloc_asm_optimized(arena, size);
+    return larena_alloc_optimized(arena, size);
 }
 
-ALWAYS_INLINE void* larena_calloc_asm(LArena* arena, size_t count, size_t size) {
-    size_t total_size;
-
-    // Overflow check and size calculation in assembly
-    __asm__ volatile(
-        "mov %1, %%rax\n\t"
-        "mul %2\n\t"             // count * size
-        "mov %%rax, %0\n\t"      // store result
-        "jc 1f\n\t"              // jump if overflow (CF=1)
-        "test %%rdx, %%rdx\n\t"  // check high bits
-        "jz 2f\n\t"
-        "1:\n\t"
-        "xor %%rax, %%rax\n\t"  // return NULL on overflow
-        "2:\n\t"
-        : "=r"(total_size)
-        : "r"(count), "r"(size)
-        : "rax", "rdx", "cc");
-
-    if (!total_size)
+// Pure C calloc implementation (replaces assembly version)
+ALWAYS_INLINE void* larena_calloc_optimized(LArena* arena, size_t count, size_t size) {
+    if (UNLIKELY(!arena || !count || !size)) {
         return NULL;
+    }
 
-    void* ptr;
-    size_t new_alloc;
+    // Check for overflow using division
+    if (UNLIKELY(count > SIZE_MAX / size)) {
+        return NULL;
+    }
 
-    __asm__ volatile(
-        // Load arena fields
-        "movq %c4(%2), %%r8\n\t"  // allocated
-        "movq %c5(%2), %%r9\n\t"  // size
-        "movq (%2), %%r10\n\t"    // memory
+    size_t total_size = count * size;
+    void* ptr         = larena_alloc(arena, total_size);
 
-        // Alignment calculation
-        "lea 15(%%r8), %%rax\n\t"
-        "and $-16, %%rax\n\t"
-
-        // New allocation
-        "lea (%%rax,%3), %%r11\n\t"
-
-        // Bounds check
-        "cmp %%r11, %%r9\n\t"
-        "jb 1f\n\t"
-
-        // Zero memory
-        "mov %%rax, %%rdi\n\t"
-        "add %%r10, %%rdi\n\t"
-        "mov %3, %%rcx\n\t"
-        "xor %%eax, %%eax\n\t"
-        "shr $3, %%rcx\n\t"
-        "rep stosq\n\t"
-
-        // Update arena
-        "mov %%r11, %c4(%2)\n\t"
-        "mov %%rdi, %0\n\t"
-        "jmp 2f\n\t"
-
-        "1:\n\t"
-        "xor %%rax, %%rax\n\t"
-
-        "2:\n\t"
-        : "=r"(ptr), "=m"(new_alloc)
-        : "r"(arena), "r"(total_size), "i"(offsetof(LArena, allocated)), "i"(offsetof(LArena, size))
-        : "rax", "rcx", "rdi", "r8", "r9", "r10", "r11", "memory");
+    if (LIKELY(ptr)) {
+        // Zero the allocated memory
+        memset(ptr, 0, total_size);
+    }
 
     return ptr;
 }
 
 // Zero-fill allocation variant
-ALWAYS_INLINE void* larena_calloc(LArena* arena, size_t count, size_t size) {
-    return larena_calloc_asm(arena, count, size);
+void* larena_calloc(LArena* arena, size_t count, size_t size) {
+    return larena_calloc_optimized(arena, count, size);
 }
 
-// Optimized string allocation with SIMD copying
+// Optimized string allocation
 char* larena_alloc_string(LArena* arena, const char* s) {
-    if (UNLIKELY(!arena || !s))
-        return NULL;
-
     // Fast path for empty string
     if (UNLIKELY(*s == '\0')) {
         char* ptr = larena_alloc(arena, 1);
@@ -222,12 +222,13 @@ char* larena_alloc_string(LArena* arena, const char* s) {
         return ptr;
     }
 
-    // Use strlen that may use SIMD instructions
+    // Use strlen and allocate
     size_t len = strlen(s);
     char* ptr  = larena_alloc(arena, len + 1);
     if (UNLIKELY(!ptr))
         return NULL;
 
+    // Copy string data
     memcpy(ptr, s, len);
     ptr[len] = '\0';
     return ptr;
@@ -243,9 +244,9 @@ bool larena_resize(LArena* arena, size_t new_size) {
     size_t growth_size = arena->size + (arena->size >> 1);
     new_size           = align_up(new_size > growth_size ? new_size : growth_size, CACHE_LINE_SIZE);
 
-    void* new_memory;
-    if (posix_memalign(&new_memory, CACHE_LINE_SIZE, new_size)) {
-        LOG_ERROR("posix_memalign failed: %s", strerror(errno));
+    void* new_memory = aligned_alloc_cross_platform(CACHE_LINE_SIZE, new_size);
+    if (UNLIKELY(!new_memory)) {
+        LOG_ERROR("Aligned allocation failed during resize");
         return false;
     }
 
@@ -257,26 +258,24 @@ bool larena_resize(LArena* arena, size_t new_size) {
         memcpy(new_memory, arena->memory, arena->allocated);
     }
 
-    free(arena->memory);
+    aligned_free_cross_platform(arena->memory);
 
-    arena->memory = new_memory;
+    arena->memory = (char*)new_memory;
     arena->size   = new_size;
     return true;
 }
 
-ALWAYS_INLINE size_t larena_getfree_memory(LArena* arena) {
+size_t larena_getfree_memory(LArena* arena) {
     return arena->size - arena->allocated;
 }
 
-ALWAYS_INLINE void larena_reset(LArena* arena) {
-    if (LIKELY(arena)) {
-        arena->allocated = 0;
-    }
+void larena_reset(LArena* arena) {
+    arena->allocated = 0;
 }
 
-ALWAYS_INLINE void larena_destroy(LArena* arena) {
+void larena_destroy(LArena* arena) {
     if (LIKELY(arena)) {
-        free(arena->memory);
+        aligned_free_cross_platform(arena->memory);
         free(arena);
     }
 }

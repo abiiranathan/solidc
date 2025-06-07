@@ -12,7 +12,7 @@ extern "C" {
 #endif
 
 // Cross-platform aligned memory allocation
-static void* aligned_alloc_xp(size_t alignment, size_t size) {
+static inline void* aligned_alloc_xp(size_t alignment, size_t size) {
     // Alignment must be a power of two and at least sizeof(void*)
     if ((alignment & (alignment - 1)) != 0 || alignment < sizeof(void*)) {
         return NULL;
