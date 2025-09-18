@@ -13,7 +13,6 @@
 #include "flag.h"
 #include "global.h"
 #include "hash.h"
-#include "larena.h"
 #include "list.h"
 #include "lock.h"
 #include "macros.h"

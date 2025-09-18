@@ -43,7 +43,6 @@ enable_testing()
 set(HEADERS 
     include/aligned_alloc.h
     include/arena.h
-    include/larena.h
     include/array.h
     include/cmp.h
     include/cstr.h
@@ -80,7 +79,6 @@ set(HEADERS
 # Source files
 set(SOURCES
     src/arena.c
-    src/larena.c
     src/cstr.c
     src/csvparser.c
     src/file.c

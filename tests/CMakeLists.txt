@@ -18,7 +18,6 @@ set(TEST_MODULES
     array
     unicode
     slist
-    larena
     vec
     matrix
 )
