@@ -66,7 +66,7 @@
 #define STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
 #endif
 
-#define IS_POWER_OF_2(n) ((n) > 0 && ((n) & ((n) - 1)) == 0)
+#define IS_POWER_OF_2(n)           ((n) > 0 && ((n) & ((n) - 1)) == 0)
 #define STATIC_CHECK_POWER_OF_2(n) STATIC_ASSERT(IS_POWER_OF_2(n), #n " is not a power of 2")
 
 #endif

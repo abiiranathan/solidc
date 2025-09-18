@@ -24,9 +24,11 @@ typedef struct __attribute__((aligned(32))) Mat4 {
 
 /**
  * Creates a Mat3 with elements stored in column-major order.
- * This means m[col][row] in the struct holds the element at mathematical row, col.
- * Use this if your functions (like mat3_lu, solve_mat3) expect column-major storage.
- * @param m00, m01, ... element values in row-major order (as you'd write the matrix).
+ * This means m[col][row] in the struct holds the element at mathematical row,
+ * col. Use this if your functions (like mat3_lu, solve_mat3) expect
+ * column-major storage.
+ * @param m00, m01, ... element values in row-major order (as you'd write the
+ * matrix).
  * @return  A Mat3 struct with elements stored column-major.
  */
 static inline Mat3 mat3_new_column_major(float m00, float m01, float m02, float m10, float m11, float m12,
@@ -78,8 +80,7 @@ static inline void mat3_print(Mat3 mat, const char* name) {
         printf("  [");
         for (int j = 0; j < 3; j++) {
             printf("%8.4f", mat.m[j][i]);  // Transpose for row-major display
-            if (j < 2)
-                printf(", ");
+            if (j < 2) printf(", ");
         }
         printf("]\n");
     }
@@ -123,20 +124,17 @@ static inline bool mat3_equal(Mat3 a, Mat3 b) {
     __m128 diff1 = _mm_sub_ps(_mm_loadu_ps(pa), _mm_loadu_ps(pb));
     __m128 abs1  = _mm_andnot_ps(neg_zero, diff1);
     __m128 cmp1  = _mm_cmplt_ps(abs1, epsilon);
-    if (_mm_movemask_ps(cmp1) != 0xF)
-        return false;
+    if (_mm_movemask_ps(cmp1) != 0xF) return false;
 
     // Compare next 4 floats
     __m128 diff2 = _mm_sub_ps(_mm_loadu_ps(pa + 4), _mm_loadu_ps(pb + 4));
     __m128 abs2  = _mm_andnot_ps(neg_zero, diff2);
     __m128 cmp2  = _mm_cmplt_ps(abs2, epsilon);
-    if (_mm_movemask_ps(cmp2) != 0xF)
-        return false;
+    if (_mm_movemask_ps(cmp2) != 0xF) return false;
 
     // Compare final element (9th float)
     float da = pa[8] - pb[8];
-    if (da < -EPSILON || da > EPSILON)
-        return false;
+    if (da < -EPSILON || da > EPSILON) return false;
 
     return true;
 }
@@ -153,8 +151,7 @@ static inline bool mat4_equal(Mat4 a, Mat4 b) {
 
         __m128 cmp = _mm_cmplt_ps(abs_diff, epsilon);
         int mask   = _mm_movemask_ps(cmp);
-        if (mask != 0xF)
-            return false;
+        if (mask != 0xF) return false;
     }
     return true;
 }
@@ -360,8 +357,7 @@ static inline bool mat3_lu(Mat3 A, Mat3* L, Mat3* U, Mat3* P) {
             }
         }
 
-        if (max_val < tolerance)
-            return false;  // Singular matrix
+        if (max_val < tolerance) return false;  // Singular matrix
 
         // Swap rows in U and P if needed
         if (pivot_row != k) {
@@ -542,7 +538,8 @@ static inline Mat4 mat4_translate(Vec3 translation) {
 /// Creates a 4x4 scaling matrix using SIMD (SSE intrinsics).
 ///
 /// Given a scaling vector `scale` with components (x, y, z), this function
-/// returns a 4x4 matrix that scales points or vectors along the X, Y, and Z axes.
+/// returns a 4x4 matrix that scales points or vectors along the X, Y, and Z
+/// axes.
 ///
 /// The resulting matrix `M` looks like this:
 ///
@@ -657,7 +654,8 @@ static inline Mat4 mat4_transpose(Mat4 m) {
     return result;
 }
 
-/// @brief Calculates the determinant of a 4x4 matrix using SIMD (SSE intrinsics).
+/// @brief Calculates the determinant of a 4x4 matrix using SIMD (SSE
+/// intrinsics).
 /// @param m The Mat4 matrix.
 /// @return The determinant of the matrix.
 static inline float mat4_determinant(Mat4 m) {
@@ -715,7 +713,8 @@ static inline float mat4_determinant(Mat4 m) {
 
 /// @brief Inverts a 4x4 matrix using SIMD (SSE intrinsics).
 /// @param m The Mat4 matrix to invert.
-/// @return The inverted Mat4 matrix. Returns an identity matrix if the input matrix is singular.
+/// @return The inverted Mat4 matrix. Returns an identity matrix if the input
+/// matrix is singular.
 static inline Mat4 mat4_inverse(Mat4 m) {
     Mat4 inv;
     // Calculate sub-determinants for first row

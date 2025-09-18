@@ -47,7 +47,6 @@ set(HEADERS
     include/array.h
     include/cmp.h
     include/cstr.h
-    include/cstr_array.h
     include/csvparser.h
     include/defer.h
     include/file.h
@@ -65,7 +64,7 @@ set(HEADERS
     include/slist.h
     include/socket.h
     include/stdstreams.h
-    include/strton.h
+    include/str_to_num.h
     include/thread.h
     include/threadpool.h
     include/unicode.h
@@ -83,7 +82,6 @@ set(SOURCES
     src/arena.c
     src/larena.c
     src/cstr.c
-    src/cstr_array.c
     src/csvparser.c
     src/file.c
     src/filepath.c
@@ -97,7 +95,7 @@ set(SOURCES
     src/slist.c
     src/socket.c
     src/stdstreams.c
-    src/strton.c
+    src/str_to_num.c
     src/thread.c
     src/threadpool.c
     src/unicode.c

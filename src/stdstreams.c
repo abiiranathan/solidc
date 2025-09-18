@@ -32,8 +32,7 @@ bool readline(const char* prompt, char* buffer, size_t buffer_len) {
     if (strlen(buffer) >= buffer_len - 1) {
         char c;
         while ((c = (char)getchar()) != EOF) {
-            if (c == '\n')
-                break;
+            if (c == '\n') break;
         }
     }
     return true;
@@ -323,8 +322,7 @@ static int string_stream_seek(void* handle, long offset, int whence) {
 
     switch (whence) {
         case SEEK_SET:
-            if (offset < 0 || (size_t)offset > length)
-                return EOF;
+            if (offset < 0 || (size_t)offset > length) return EOF;
             new_pos = (size_t)offset;
             break;
         case SEEK_CUR:
@@ -334,8 +332,7 @@ static int string_stream_seek(void* handle, long offset, int whence) {
             new_pos += (size_t)offset;
             break;
         case SEEK_END:
-            if ((offset < 0 && (size_t)(-offset) > length) || (offset > 0))
-                return EOF;
+            if ((offset < 0 && (size_t)(-offset) > length) || (offset > 0)) return EOF;
             new_pos = length + (size_t)offset;
             break;
         default:
@@ -372,8 +369,7 @@ const char* string_stream_data(stream_t stream) {
 }
 
 static void inner__free_file_stream(stream_t stream) {
-    if (!stream)
-        return;
+    if (!stream) return;
     FILE* fp = (FILE*)stream->handle;
 
     if (!(fp == stdout || fp == stderr || fp == stdin)) {
@@ -385,8 +381,7 @@ static void inner__free_file_stream(stream_t stream) {
 }
 
 static void inner__free_string_stream(stream_t stream) {
-    if (!stream)
-        return;
+    if (!stream) return;
 
     if (stream->handle) {
         free(stream->handle);

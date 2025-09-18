@@ -11,7 +11,7 @@
 #define ALIGNMENT sizeof(void*)
 
 // Magic numbers for block validation
-#define MAGIC_FREE 0xDEADBEEF
+#define MAGIC_FREE      0xDEADBEEF
 #define MAGIC_ALLOCATED 0xBEEFDEAD
 
 // Free list bins for small sizes: 16, 32, 64, 128, 256, 512, 1024, and "large"
@@ -57,8 +57,7 @@ static inline bool is_block_free(block_header* header) {
 // Get bin index for a size
 static inline int size_to_bin(size_t total_size) {
     for (int i = 0; i < NUM_BINS - 1; i++) {
-        if (total_size <= align_up(bin_sizes[i] + HEADER_SIZE, ALIGNMENT))
-            return i;
+        if (total_size <= align_up(bin_sizes[i] + HEADER_SIZE, ALIGNMENT)) return i;
     }
     return NUM_BINS - 1;  // Large blocks
 }
@@ -94,17 +93,14 @@ static bool coalesce_with_next(block_header* header) {
 }
 
 static bool is_valid_payload_ptr(void* ptr) {
-    if (ptr == NULL)
-        return false;
+    if (ptr == NULL) return false;
     uintptr_t ptr_addr      = (uintptr_t)ptr;
     uintptr_t mem_start     = (uintptr_t)memory;
     uintptr_t payload_start = mem_start + HEADER_SIZE;
     uintptr_t mem_end       = mem_start + MEMORY_SIZE;
 
-    if (ptr_addr < payload_start || ptr_addr >= mem_end)
-        return false;
-    if ((ptr_addr - mem_start - HEADER_SIZE) % ALIGNMENT != 0)
-        return false;
+    if (ptr_addr < payload_start || ptr_addr >= mem_end) return false;
+    if ((ptr_addr - mem_start - HEADER_SIZE) % ALIGNMENT != 0) return false;
     return true;
 }
 
@@ -132,8 +128,7 @@ __attribute__((constructor)) static void initialize_memory() {
 // --- Public API ---
 
 void* FMALLOC(size_t size) {
-    if (size == 0)
-        return NULL;
+    if (size == 0) return NULL;
 
     pthread_mutex_lock(&memory_lock);
 
@@ -150,8 +145,7 @@ void* FMALLOC(size_t size) {
     if (bin < NUM_BINS - 1 && free_lists[bin]) {
         block_header* header = free_lists[bin];
         free_lists[bin]      = header->next;
-        if (free_lists[bin])
-            free_lists[bin]->prev = NULL;
+        if (free_lists[bin]) free_lists[bin]->prev = NULL;
         header->magic = MAGIC_ALLOCATED;
         void* result  = header_to_payload(header);
         pthread_mutex_unlock(&memory_lock);
@@ -196,8 +190,7 @@ void FFREE(void* ptr) {
     if (bin < NUM_BINS - 1) {
         header->next = free_lists[bin];
         header->prev = NULL;
-        if (free_lists[bin])
-            free_lists[bin]->prev = header;
+        if (free_lists[bin]) free_lists[bin]->prev = header;
         free_lists[bin] = header;
     } else {
         coalesce_with_next(header);
@@ -264,8 +257,7 @@ void* FREALLOC(void* ptr, size_t size) {
         block_header* next_block = header->next;
         header->size += next_block->size;
         header->next = next_block->next;
-        if (header->next)
-            header->next->prev = header;
+        if (header->next) header->next->prev = header;
         split_block_if_possible(header, total_required_size);
         void* result = header_to_payload(header);
         pthread_mutex_unlock(&memory_lock);
@@ -292,11 +284,13 @@ void FDEBUG_MEMORY() {
     printf("Memory state (Total Size: %d, Header Size: %zu):\n", MEMORY_SIZE, HEADER_SIZE);
     int i = 0;
     while (current) {
-        printf(" [%d] Block @ %p: size = %-6zu, magic = 0x%x (%s), prev = %-10p, next = %p\n", i++,
-               (void*)current, current->size, current->magic,
-               (current->magic == MAGIC_ALLOCATED ? "ALLOC"
-                                                  : (current->magic == MAGIC_FREE ? "FREE " : "?????")),
-               (void*)current->prev, (void*)current->next);
+        printf(
+            " [%d] Block @ %p: size = %-6zu, magic = 0x%x (%s), prev = %-10p, "
+            "next = %p\n",
+            i++, (void*)current, current->size, current->magic,
+            (current->magic == MAGIC_ALLOCATED ? "ALLOC"
+                                               : (current->magic == MAGIC_FREE ? "FREE " : "?????")),
+            (void*)current->prev, (void*)current->next);
         current = current->next;
     }
 

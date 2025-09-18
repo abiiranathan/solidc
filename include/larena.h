@@ -4,43 +4,96 @@
 #include <stdlib.h>
 #include <string.h>
 
-// LArena is a linear memory allocator.
-// Uses a bump allocation strategy to allocate memory.
-// It is NOT thread-safe.
-typedef struct LArena LArena;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// Create a linear allocator of given size.
-// Returns the pointer to the allocator if successful or NULL if malloc fails.
+/**
+ * @file larena.h
+ * @brief A high-performance arena allocator for memory management
+ */
+
+#ifndef LARENA_H
+#define LARENA_H
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+/**
+ * @struct LArena
+ * @brief Arena allocator structure that manages a contiguous block of memory
+ */
+typedef struct LArena {
+    char* memory;      ///< Pointer to the allocated memory block
+    size_t size;       ///< Total size of the allocated memory
+    size_t allocated;  ///< Number of bytes currently allocated
+} LArena;
+
+/**
+ * @brief Creates a new arena allocator
+ * @param size Initial size of the arena in bytes
+ * @return Pointer to the new arena, or NULL on failure
+ */
 LArena* larena_create(size_t size);
 
-// Expand or shrink the allocated memory. size must be greater than the allocated memory.
-// Returns true on success.
-bool larena_resize(LArena* arena, size_t size);
-
-// Get free memory
-__attribute__((pure)) size_t larena_getfree_memory(LArena* arena);
-
-// Allocate size bytes in the arena.
-// Not thread-safe.
-// Returns the pointer to the memory or NULL if arena is out of memory.
+/**
+ * @brief Allocates memory from the arena
+ * @param arena Arena to allocate from
+ * @param size Number of bytes to allocate
+ * @return Pointer to allocated memory, or NULL on failure
+ */
 void* larena_alloc(LArena* arena, size_t size);
 
-// Allocate memory of size * count and zero it.
+/*
+ * @brief Allocates zero-initialized memory from the arena
+ * @param arena Arena to allocate from
+ * @param count Number of elements to allocate
+ * @param size Size of each element
+ * @return Pointer to allocated memory, or NULL on failure
+ */
 void* larena_calloc(LArena* arena, size_t count, size_t size);
 
-// Allocate a new NULL-terminated string in the arena and copy s into it.
+/**
+ * @brief Allocates a string copy in the arena
+ * @param arena Arena to allocate from
+ * @param s Null-terminated string to copy
+ * @return Pointer to the new string copy, or NULL on failure
+ */
 char* larena_alloc_string(LArena* arena, const char* s);
 
-// Reset arena memory. Simply reset the allocated memory to 0 and
-// calls memset to zero the memory.
-void larena_reset(LArena* arena);
+/**
+ * @brief Resizes the arena's memory block
+ * @param arena Arena to resize
+ * @param new_size New size in bytes
+ * @return true on success, false on failure
+ */
+bool larena_resize(LArena* arena, size_t new_size);
 
-// Free memory used to LArena and underlying memory.
+/**
+ * @brief Resets the arena's allocation pointer, allowing reuse of allocated
+ * memory
+ * @param arena Arena to reset
+ *
+ * This function resets the allocation pointer to the start of the arena,
+ * effectively "freeing" all previously allocated memory in the arena without
+ * actually deallocating the underlying memory. This allows the arena to be
+ * reused for new allocations.
+ *
+ * @note This does not zero or clear the memory - previously allocated content
+ * remains until overwritten by new allocations.
+ */
+static inline void larena_reset(LArena* arena) {
+    arena->allocated = 0;
+}
+
+/**
+ * @brief Destroys an arena and frees all its memory
+ * @param arena Arena to destroy
+ */
 void larena_destroy(LArena* arena);
+
+#endif  // LARENA_H
 
 #ifdef __cplusplus
 }

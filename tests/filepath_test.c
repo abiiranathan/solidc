@@ -129,5 +129,8 @@ int main(void) {
     // test dir_walk
     assert(dir_walk(dirname, walk, NULL) == 0);
 
+    // Delete the directory
+    dir_remove("./temp", true);
+
     return 0;
 }

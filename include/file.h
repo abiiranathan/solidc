@@ -1,269 +1,276 @@
-#ifndef CB4BB606_713F_4BBD_9F44_DB223464EB5A
-#define CB4BB606_713F_4BBD_9F44_DB223464EB5A
+#ifndef SOLIDC_FILE_H
+#define SOLIDC_FILE_H
+
+// feature detection before stdio.h include.
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
+#define _POSIX_C_SOURCE   200809L  // For fstat, fileno, pwrite, pread, fcntl, etc.
+#define _FILE_OFFSET_BITS 64       // Ensure 64-bit off_t on 32-bit POSIX systems
 
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 
-#if !defined(_GNU_SOURCE)
-#define _GNU_SOURCE
-#define _POSIX_C_SOURCE 200809L
+// Platform detection and feature setup
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
 #endif
-
-#ifdef _WIN32    // Windows
-#include <io.h>  // For _get_osfhandle, _filelengthi64
+#include <io.h>
 #include <windows.h>
-// Define ssize_t for Windows if not using a recent SDK/compiler that does
+
+// Define ssize_t for Windows if not already defined
 #if defined(_MSC_VER) && !defined(_SSIZE_T_DEFINED)
 typedef intptr_t ssize_t;
 #define _SSIZE_T_DEFINED
 #endif
 
-#else  // Posix
+// Windows-specific file handle type
+typedef HANDLE native_handle_t;
+#define INVALID_NATIVE_HANDLE INVALID_HANDLE_VALUE
+
+#else  // POSIX systems
+
 #include <fcntl.h>
-#include <pwd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
+
+// POSIX file handle type
+typedef int native_handle_t;
+#define INVALID_NATIVE_HANDLE (-1)
 #endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// file_t structure that encapsulates file operations
-// in a platform-independent way.
-// Adds support for locking, unlocking, asyncronous read and write etc.
-typedef struct file_t file_t;
+/**
+ * Cross-platform file structure.
+ * Encapsulates both high-level (FILE*) and low-level (native handle) operations.
+ * Optimized to minimize memory footprint while maintaining functionality.
+ */
+typedef struct {
+    FILE* stream;                  /**< Standard C file stream for buffered I/O. */
+    native_handle_t native_handle; /**< Platform-native file handle for direct operations. */
+} file_t;
+
+/** File operation result codes. */
+typedef enum {
+    FILE_SUCCESS = 0,         /**< Operation completed successfully. */
+    FILE_ERROR_INVALID_ARGS,  /**< Invalid arguments provided. */
+    FILE_ERROR_OPEN_FAILED,   /**< File open operation failed. */
+    FILE_ERROR_IO_FAILED,     /**< I/O operation failed. */
+    FILE_ERROR_LOCK_FAILED,   /**< File locking operation failed. */
+    FILE_ERROR_MEMORY_FAILED, /**< Memory allocation failed. */
+    FILE_ERROR_SYSTEM_ERROR   /**< System-specific error occurred. */
+} file_result_t;
 
 /**
- * @brief Opens a file and allocated & populate the file_t structure.
+ * Opens a file and populates the file_t structure.
  *
- * @param filename The path to the file to open.
- * @param mode The mode string (e.g., "r", "wb+", "a"). See fopen documentation.
- * @return Pointer to allocated file_t structure on success, NULL on failure (errno may be set).
+ * @param file Pointer to file_t structure to initialize.
+ * @param filename Path to the file to open.
+ * @param mode Mode string (e.g., "r", "wb+", "a"). See fopen documentation.
+ * @return FILE_SUCCESS on success, appropriate error code otherwise.
+ * @note Sets errno on failure. The file structure is zeroed on failure.
  */
-file_t* file_open(const char* filename, const char* mode);
+file_result_t file_open(file_t* file, const char* filename, const char* mode);
 
 /**
- * @brief Gets the current size of the file.
- * This queries the OS and is generally more up-to-date than the cached file->size.
+ * Closes the file and releases all associated resources.
+ * Safe to call multiple times or on uninitialized structures.
  *
- * @param file Pointer to the opened file_t structure.
- * @return The current file size in bytes, or -1 on error (errno is set).
- */
-int64_t file_get_size(file_t* file);
-
-/**
- * @brief Get the file descriptor associated with the open file.
- */
-int file_getfd(file_t* file);
-
-/**
- * @brief Gets the current size of the file.
- *
- * @param filename Absolute path to the file.
- * @return The current file size in bytes, or -1 on error (errno is set).
- */
-int64_t get_file_size(const char* filename);
-
-/**
- * @brief Checks the error indicator for the stream. Wrapper around ferror.
- * @param file Pointer to the opened file_t structure.
- * @return Non-zero if error indicator is set, 0 otherwise.
- */
-int file_error(file_t* file);
-
-/**
- * @brief Closes the file, releases resources, and resets the file_t structure.
  * @param file Pointer to the file_t structure.
  */
 void file_close(file_t* file);
 
 /**
- * @brief Flushes buffered data associated with the file stream to the OS.
- * @param file Pointer to the opened file_t structure.
- * @return 0 on success, -1 on failure (errno is set).
- */
-int file_flush(file_t* file);
-
-/**
- * @brief Truncates or extends the file to a specified length.
- * Requires the file to be opened in a mode that permits writing.
+ * Gets the current size of the open file.
+ * Queries the OS directly for the most up-to-date size information.
  *
  * @param file Pointer to the opened file_t structure.
- * @param length The desired length of the file in bytes.
- * @return 0 on success, -1 on failure (errno is set).
+ * @return File size in bytes on success, -1 on error (errno is set).
  */
-int file_truncate(file_t* file, int64_t length);
-
-// Returns the human-readable size of a file up to TB.
-// The size is stored in the buf parameter.
-bool filesize_tostring(size_t size, char* buf, size_t len);
+int64_t file_get_size(const file_t* file);
 
 /**
- * @brief Sets the file position indicator. Wrapper around fseek.
- * @param file Pointer to the opened file_t structure.
- * @param offset Offset value.
- * @param origin Position from where offset is added (SEEK_SET, SEEK_CUR, SEEK_END).
- * @return 0 on success, -1 on failure (errno is set).
+ * Gets the size of a file by path without opening it.
+ *
+ * @param filename Path to the file.
+ * @return File size in bytes on success, -1 on error (errno is set).
  */
-int file_seek(file_t* file, long offset, int origin);
+int64_t get_file_size(const char* filename);
 
 /**
- * @brief Gets the current value of the file position indicator. Wrapper around ftell.
+ * Truncates or extends the file to the specified length.
+ * File must be opened with write permissions.
+ *
  * @param file Pointer to the opened file_t structure.
- * @return The current file position, or -1L on error (errno is set).
+ * @param length Desired file length in bytes.
+ * @return FILE_SUCCESS on success, appropriate error code otherwise.
  */
-long file_tell(file_t* file);
+file_result_t file_truncate(file_t* file, int64_t length);
 
 /**
- * @brief Sets the file position indicator to the beginning of the file.
- * @param file Pointer to the opened file_t structure.
- * @return 0 on success, -1 on failure (errno is set).
+ * Converts a file size to a human-readable string representation.
+ *
+ * @param size File size in bytes.
+ * @param buf Buffer to store the formatted string.
+ * @param len Size of the buffer.
+ * @return FILE_SUCCESS on success, FILE_ERROR_INVALID_ARGS if buffer too small.
  */
-int file_rewind(file_t* file);
+file_result_t filesize_tostring(uint64_t size, char* buf, size_t len);
 
 /**
- * @brief Reads data from the file. Wrapper around fread.
+ * Reads data from the file using buffered I/O.
+ *
  * @param file Pointer to the opened file_t structure.
- * @param buffer Pointer to the buffer to store read data.
- * @param size Size of each element to read.
+ * @param buffer Buffer to store read data.
+ * @param size Size of each element.
  * @param count Number of elements to read.
- * @return Number of elements successfully read. Check ferror or feof for details on partial reads/errors.
+ * @return Number of elements successfully read. Use feof/ferror for status.
  */
-size_t file_read(file_t* file, void* buffer, size_t size, size_t count);
+size_t file_read(const file_t* file, void* buffer, size_t size, size_t count);
 
 /**
- * @brief Writes data to the file. Wrapper around fwrite. Does NOT automatically flush.
+ * Writes data to the file using buffered I/O.
+ * Does not automatically flush the stream.
+ *
  * @param file Pointer to the opened file_t structure.
- * @param buffer Pointer to the data to write.
- * @param size Size of each element to write.
+ * @param buffer Data to write.
+ * @param size Size of each element.
  * @param count Number of elements to write.
- * @return Number of elements successfully written. Check ferror for details on errors.
+ * @return Number of elements successfully written. Use ferror for status.
  */
 size_t file_write(file_t* file, const void* buffer, size_t size, size_t count);
 
 /**
- * @brief Writes a null-terminated string to the file (excluding the null terminator).
+ * Writes a null-terminated string to the file (excluding null terminator).
+ *
  * @param file Pointer to the opened file_t structure.
- * @param str The null-terminated string to write.
- * @return Number of bytes successfully written.
+ * @param str Null-terminated string to write.
+ * @return Number of bytes written on success, 0 if str is NULL or empty.
  */
 size_t file_write_string(file_t* file, const char* str);
 
-// --- Positional/Async (Misnomer on POSIX) I/O ---
-// NOTE: The POSIX versions are NOT asynchronous. They are positional (atomic seek+read/write).
-//       The Windows versions simulate blocking asynchronous I/O.
-
 /**
- * @brief Writes data to a specific offset in the file without changing the current file pointer.
- *        On POSIX, this uses pwrite (atomic, synchronous).
- *        On Windows, this simulates blocking asynchronous write using WriteFile + OVERLAPPED.
- *
- * @param file Pointer to the opened file_t structure.
- * @param buffer Buffer containing data to write.
- * @param size Number of bytes to write.
- * @param offset Offset in the file to write to.
- * @return Number of bytes successfully written, or -1 on error (errno is set).
- */
-ssize_t file_pwrite(file_t* file, const void* buffer, size_t size, int64_t offset);
-
-/**
- * @brief Reads data from a specific offset in the file without changing the current file pointer.
- *        On POSIX, this uses pread (atomic, synchronous).
- *        On Windows, this simulates blocking asynchronous read using ReadFile + OVERLAPPED.
+ * Performs positioned read without affecting the file pointer.
+ * This is atomic on POSIX systems and simulated on Windows.
  *
  * @param file Pointer to the opened file_t structure.
  * @param buffer Buffer to store read data.
  * @param size Number of bytes to read.
- * @param offset Offset in the file to read from.
- * @return Number of bytes successfully read, or -1 on error (errno is set).
- *         Returns 0 on EOF if offset is at or beyond EOF.
+ * @param offset File offset to read from.
+ * @return Number of bytes read on success, -1 on error (errno is set).
  */
-ssize_t file_pread(file_t* file, void* buffer, size_t size, int64_t offset);
+ssize_t file_pread(const file_t* file, void* buffer, size_t size, int64_t offset);
 
 /**
- * @brief Reads the entire file content into a newly allocated buffer.
- *
- * Gets the current file size, allocates memory, reads the content, and returns the buffer.
- * The file pointer is usually left at the end of the file after this operation.
+ * Performs positioned write without affecting the file pointer.
+ * This is atomic on POSIX systems and simulated on Windows.
  *
  * @param file Pointer to the opened file_t structure.
- * @return A pointer to the allocated buffer containing the file content,
- *         or NULL on error (e.g., allocation failure, read error, zero size).
- *         The caller is responsible for free()ing the returned buffer.
- *         errno may be set.
+ * @param buffer Data to write.
+ * @param size Number of bytes to write.
+ * @param offset File offset to write to.
+ * @return Number of bytes written on success, -1 on error (errno is set).
  */
-void* file_readall(file_t* file);
+ssize_t file_pwrite(file_t* file, const void* buffer, size_t size, int64_t offset);
 
 /**
- * @brief Attempts to acquire an advisory, non-blocking, exclusive (write) lock on the entire file.
+ * Reads the entire file content into a newly allocated buffer.
+ * The file position is reset to the beginning before reading.
  *
  * @param file Pointer to the opened file_t structure.
- * @return true if the lock was acquired successfully or was already held, false otherwise.
- *         On failure to acquire (e.g., file already locked by another process), returns false
- *         and sets errno to EACCES or EAGAIN (POSIX) or similar (Windows).
+ * @param size_out Optional pointer to store the file size read.
+ * @return Allocated buffer containing file content, or NULL on error.
+ * @note Caller must free() the returned buffer. Sets errno on failure.
  */
-bool file_lock(file_t* file);
+void* file_readall(const file_t* file, size_t* size_out);
 
 /**
- * @brief Releases an advisory lock held on the file.
- * @param file Pointer to the opened file_t structure.
- * @return true if the lock was released successfully or if no lock was held, false on error.
- */
-bool file_unlock(file_t* file);
-
-/**
- * @brief Renames the file associated with the file_t structure.
- * The file is closed first if it is open. The internal filename is updated on success.
- *
- * @param file Pointer to the file_t structure.
- * @param newname The new path/name for the file.
- * @return 0 on success, -1 on failure (errno may be set).
- */
-int file_rename(file_t* file, const char* newname);
-
-/**
- * @brief Copies the content of one open file to another open file.
- * Reads from the current position of 'src' until EOF, writes to 'dst'.
- * Flushes 'dst' after copying. Leaves file pointers at the end.
- * Does NOT manage opening/closing files.
- *
- * @param src Pointer to the source file_t structure (must be open for reading).
- * @param dst Pointer to the destination file_t structure (must be open for writing).
- * @return 0 on success, -1 on error (errno may be set).
- */
-int file_copy(file_t* file, file_t* dst);
-
-/**
- * @brief Memory maps a portion of the file.
- * File should be open. The required access (read/write) depends on usage.
+ * Attempts to acquire an exclusive advisory lock on the entire file.
+ * The lock is non-blocking and will fail immediately if unavailable.
  *
  * @param file Pointer to the opened file_t structure.
- * @param length The number of bytes to map, starting from the beginning of the file.
- * @param read_access If true, request read access to the mapping.
- * @param write_access If true, request write access to the mapping.
- * @return Pointer to the mapped memory region, or NULL on failure (errno may be set).
+ * @return FILE_SUCCESS if locked, FILE_ERROR_LOCK_FAILED if already locked,
+ *         other error codes for system failures.
  */
-void* file_mmap(file_t* file, size_t length, bool read_access, bool write_access);
+file_result_t file_lock(const file_t* file);
 
 /**
- * @brief Unmaps a previously memory-mapped region.
+ * Releases an advisory lock on the file.
+ * Safe to call on files that are not locked.
  *
- * @param addr Pointer to the start of the mapped region (returned by file_mmap).
- * @param length The length of the mapping (must match the length used in file_mmap on POSIX).
- * @return 0 on success, -1 on failure (errno may be set).
+ * @param file Pointer to the opened file_t structure.
+ * @return FILE_SUCCESS on success, appropriate error code otherwise.
  */
-int file_munmap(void* addr, size_t length);
+file_result_t file_unlock(const file_t* file);
 
-// Returns true is path is a regular file.
-bool is_file(const char* path);
+/**
+ * Copies content from source file to destination file.
+ * Reads from current position of source until EOF.
+ * Flushes destination after copying.
+ *
+ * @param src Source file (must be open for reading).
+ * @param dst Destination file (must be open for writing).
+ * @return FILE_SUCCESS on success, appropriate error code otherwise.
+ */
+file_result_t file_copy(const file_t* src, file_t* dst);
+
+/**
+ * Memory maps a portion of the file starting from the beginning.
+ *
+ * @param file Pointer to the opened file_t structure.
+ * @param length Number of bytes to map.
+ * @param read_access Request read access to the mapping.
+ * @param write_access Request write access to the mapping.
+ * @return Pointer to mapped memory on success, NULL on failure (errno is set).
+ * @note Use file_munmap() to release the mapping.
+ */
+void* file_mmap(const file_t* file, size_t length, bool read_access, bool write_access);
+
+/**
+ * Unmaps a previously memory-mapped region.
+ *
+ * @param addr Pointer to the mapped region (from file_mmap).
+ * @param length Length of the mapping (must match file_mmap parameter).
+ * @return FILE_SUCCESS on success, FILE_ERROR_INVALID_ARGS on failure.
+ */
+file_result_t file_munmap(void* addr, size_t length);
+
+/**
+ * Flushes any buffered data to the underlying file.
+ *
+ * @param file Pointer to the opened file_t structure.
+ * @return FILE_SUCCESS on success, FILE_ERROR_IO_FAILED otherwise.
+ */
+file_result_t file_flush(file_t* file);
+
+/**
+ * Gets the current file position.
+ *
+ * @param file Pointer to the opened file_t structure.
+ * @return Current file position, or -1 on error (errno is set).
+ */
+int64_t file_tell(const file_t* file);
+
+/**
+ * Sets the file position.
+ *
+ * @param file Pointer to the opened file_t structure.
+ * @param offset Offset relative to whence.
+ * @param whence Position reference (SEEK_SET, SEEK_CUR, SEEK_END).
+ * @return FILE_SUCCESS on success, FILE_ERROR_IO_FAILED otherwise.
+ */
+file_result_t file_seek(file_t* file, int64_t offset, int whence);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CB4BB606_713F_4BBD_9F44_DB223464EB5A */
+#endif /* SOLIDC_FILE_H */

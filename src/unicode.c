@@ -172,7 +172,7 @@ bool is_valid_utf8(const char* utf8) {
                 return false;
             }
             // Check for overlong encoding
-            uint32_t codepoint = ((byte & 0x1F) << 6) | (utf8[i + 1] & 0x3F);
+            uint32_t codepoint = (uint32_t)((byte & 0x1F) << 6) | (utf8[i + 1] & 0x3F);
             if (codepoint < 0x80) {
                 return false;
             }
@@ -184,7 +184,8 @@ bool is_valid_utf8(const char* utf8) {
                 return false;
             }
             // Check for overlong encoding or surrogate
-            uint32_t codepoint = ((byte & 0x0F) << 12) | ((utf8[i + 1] & 0x3F) << 6) | (utf8[i + 2] & 0x3F);
+            uint32_t codepoint = (uint32_t)((byte & 0x0F) << 12) | (uint32_t)((utf8[i + 1] & 0x3F) << 6) |
+                                 (utf8[i + 2] & 0x3F);
             if (codepoint < 0x800 || (codepoint >= 0xD800 && codepoint <= 0xDFFF)) {
                 return false;
             }
@@ -197,8 +198,8 @@ bool is_valid_utf8(const char* utf8) {
                 return false;
             }
             // Check for overlong encoding or too large value
-            uint32_t codepoint = ((byte & 0x07) << 18) | ((utf8[i + 1] & 0x3F) << 12) |
-                                 ((utf8[i + 2] & 0x3F) << 6) | (utf8[i + 3] & 0x3F);
+            uint32_t codepoint = (uint32_t)((byte & 0x07) << 18) | ((uint32_t)(utf8[i + 1] & 0x3F) << 12) |
+                                 ((uint32_t)(utf8[i + 2] & 0x3F) << 6) | (utf8[i + 3] & 0x3F);
             if (codepoint < 0x10000 || codepoint > 0x10FFFF) {
                 return false;
             }
@@ -489,21 +490,22 @@ void utf8_rtrim(char* str) {
             char_start--;
         }
 
-        // Now char_start points to the beginning of the last character sequence before i
-        // (or i-1 if it's a single-byte char)
+        // Now char_start points to the beginning of the last character sequence
+        // before i (or i-1 if it's a single-byte char)
 
         // Check if the character sequence starting at char_start is valid UTF-8
         // and represents a whitespace codepoint.
-        // We also need to ensure the character actually *ends* where we expect it to (at i-1).
-        // A simple way is to check if the length matches the distance.
+        // We also need to ensure the character actually *ends* where we expect it
+        // to (at i-1). A simple way is to check if the length matches the distance.
         size_t char_len = utf8_char_length(&str[char_start]);
 
-        // Basic validation: Does the calculated length match the distance from the start?
-        // And is the character within the original string bounds?
-        // And is it actually whitespace?
+        // Basic validation: Does the calculated length match the distance from the
+        // start? And is the character within the original string bounds? And is it
+        // actually whitespace?
         if (char_len > 0 && char_start + char_len == i && is_utf8_whitespace(&str[char_start])) {
             // It's a valid whitespace character ending at i-1.
-            // Move the potential null terminator position back to the start of this character.
+            // Move the potential null terminator position back to the start of this
+            // character.
             i = char_start;
         } else {
             // Either it's not whitespace, or it's an invalid/incomplete sequence
@@ -522,7 +524,8 @@ void utf8_trim(char* str) {
     utf8_rtrim(str);
 }
 
-// utf8_trim_chars removes leading and trailing characters specified in chars from str.
+// utf8_trim_chars removes leading and trailing characters specified in chars
+// from str.
 void utf8_trim_chars(char* str, const char* chars) {
     // --- Build the set of codepoints to trim ---
     // Consider making this dynamic or much larger if 'chars' could contain
@@ -615,7 +618,8 @@ void utf8_trim_chars(char* str, const char* chars) {
             break;
         }
 
-        // Now char_start points to the potential beginning of the last character before i.
+        // Now char_start points to the potential beginning of the last character
+        // before i.
         size_t char_len = utf8_char_length(&str[char_start]);
 
         // Validate: Does the calculated length make sense and match the position?
@@ -641,7 +645,8 @@ void utf8_trim_chars(char* str, const char* chars) {
                 break;
             }
         } else {
-            // Invalid UTF-8 sequence ending at i-1, or length mismatch. Stop trimming.
+            // Invalid UTF-8 sequence ending at i-1, or length mismatch. Stop
+            // trimming.
             break;
         }
     }

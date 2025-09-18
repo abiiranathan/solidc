@@ -19,7 +19,7 @@ typedef enum { STO_SUCCESS, STO_OVERFLOW, STO_INVALID } StoError;
  * @return StoError STO_SUCCESS on success, STO_OVERFLOW if out of range,
  * STO_INVALID if invalid input.
  */
-StoError sto_uint8(const char* str, uint8_t* result);
+StoError str_to_u8(const char* str, uint8_t* result);
 
 /**
  * @brief Converts a string to an int8_t.
@@ -29,7 +29,7 @@ StoError sto_uint8(const char* str, uint8_t* result);
  * @return StoError STO_SUCCESS on success, STO_OVERFLOW if out of range,
  * STO_INVALID if invalid input.
  */
-StoError sto_int8(const char* str, int8_t* result);
+StoError str_to_i8(const char* str, int8_t* result);
 
 /**
  * @brief Converts a string to a uint16_t.
@@ -39,7 +39,7 @@ StoError sto_int8(const char* str, int8_t* result);
  * @return StoError STO_SUCCESS on success, STO_OVERFLOW if out of range,
  * STO_INVALID if invalid input.
  */
-StoError sto_uint16(const char* str, uint16_t* result);
+StoError str_to_u16(const char* str, uint16_t* result);
 
 /**
  * @brief Converts a string to an int16_t.
@@ -49,7 +49,7 @@ StoError sto_uint16(const char* str, uint16_t* result);
  * @return StoError STO_SUCCESS on success, STO_OVERFLOW if out of range,
  * STO_INVALID if invalid input.
  */
-StoError sto_int16(const char* str, int16_t* result);
+StoError str_to_i16(const char* str, int16_t* result);
 
 /**
  * @brief Converts a string to a uint32_t.
@@ -59,7 +59,7 @@ StoError sto_int16(const char* str, int16_t* result);
  * @return StoError STO_SUCCESS on success, STO_OVERFLOW if out of range,
  * STO_INVALID if invalid input.
  */
-StoError sto_uint32(const char* str, uint32_t* result);
+StoError str_to_u32(const char* str, uint32_t* result);
 
 /**
  * @brief Converts a string to an int32_t.
@@ -69,7 +69,7 @@ StoError sto_uint32(const char* str, uint32_t* result);
  * @return StoError STO_SUCCESS on success, STO_OVERFLOW if out of range,
  * STO_INVALID if invalid input.
  */
-StoError sto_int32(const char* str, int32_t* result);
+StoError str_to_i32(const char* str, int32_t* result);
 
 /**
  * @brief Converts a string to a uint64_t.
@@ -79,7 +79,7 @@ StoError sto_int32(const char* str, int32_t* result);
  * @return StoError STO_SUCCESS on success, STO_OVERFLOW if out of range,
  * STO_INVALID if invalid input.
  */
-StoError sto_uint64(const char* str, uint64_t* result);
+StoError str_to_u64(const char* str, uint64_t* result);
 
 /**
  * @brief Converts a string to an int64_t.
@@ -89,7 +89,7 @@ StoError sto_uint64(const char* str, uint64_t* result);
  * @return StoError STO_SUCCESS on success, STO_OVERFLOW if out of range,
  * STO_INVALID if invalid input.
  */
-StoError sto_int64(const char* str, int64_t* result);
+StoError str_to_i64(const char* str, int64_t* result);
 
 /**
  * @brief Converts a string to an unsigned long.
@@ -99,7 +99,7 @@ StoError sto_int64(const char* str, int64_t* result);
  * @return StoError STO_SUCCESS on success, STO_OVERFLOW if out of range,
  * STO_INVALID if invalid input.
  */
-StoError sto_ulong(const char* str, unsigned long* result);
+StoError str_to_ulong(const char* str, unsigned long* result);
 
 /**
  * @brief Converts a string to a long.
@@ -109,7 +109,7 @@ StoError sto_ulong(const char* str, unsigned long* result);
  * @return StoError STO_SUCCESS on success, STO_OVERFLOW if out of range,
  * STO_INVALID if invalid input.
  */
-StoError sto_long(const char* str, long* result);
+StoError str_to_long(const char* str, long* result);
 
 /**
  * @brief Converts a string to a double.
@@ -119,7 +119,7 @@ StoError sto_long(const char* str, long* result);
  * @return StoError STO_SUCCESS on success, STO_OVERFLOW if out of range,
  * STO_INVALID if invalid input.
  */
-StoError sto_double(const char* str, double* result);
+StoError str_to_double(const char* str, double* result);
 
 /**
  * @brief Converts a string to a float.
@@ -129,7 +129,7 @@ StoError sto_double(const char* str, double* result);
  * @return StoError STO_SUCCESS on success, STO_OVERFLOW if out of range,
  * STO_INVALID if invalid input.
  */
-StoError sto_float(const char* str, float* result);
+StoError str_to_float(const char* str, float* result);
 
 /**
  * @brief Converts a string to an unsigned int.
@@ -139,7 +139,7 @@ StoError sto_float(const char* str, float* result);
  * @return StoError STO_SUCCESS on success, STO_OVERFLOW if out of range,
  * STO_INVALID if invalid input.
  */
-StoError sto_uint(const char* str, unsigned int* result);
+StoError str_to_uint(const char* str, unsigned int* result);
 
 /** uintptr_t is an unsigned integer type that is capable of storing a data
  * pointer. */
@@ -150,7 +150,7 @@ StoError sto_uint(const char* str, unsigned int* result);
  * @param result Pointer to the result variable.
  * @return StoError STO_SUCCESS on success, STO_INVALID if invalid input.
  */
-StoError sto_uintptr(const char* str, uintptr_t* result);
+StoError str_to_uintptr(const char* str, uintptr_t* result);
 
 /**
  * @brief Converts a string to an int.
@@ -160,7 +160,7 @@ StoError sto_uintptr(const char* str, uintptr_t* result);
  * @return StoError STO_SUCCESS on success, STO_OVERFLOW if out of range,
  * STO_INVALID if invalid input.
  */
-StoError sto_int(const char* str, int* result);
+StoError str_to_int(const char* str, int* result);
 
 /**
  * @brief Converts a string to an unsigned long with a specified base.
@@ -171,7 +171,7 @@ StoError sto_int(const char* str, int* result);
  * @return StoError STO_SUCCESS on success, STO_OVERFLOW if out of range,
  * STO_INVALID if invalid input.
  */
-StoError sto_ulong_b(const char* str, int base, unsigned long* result);
+StoError str_to_ulong_base(const char* str, int base, unsigned long* result);
 
 /**
  * @brief Converts a string to a long with a specified base.
@@ -182,7 +182,7 @@ StoError sto_ulong_b(const char* str, int base, unsigned long* result);
  * @return StoError STO_SUCCESS on success, STO_OVERFLOW if out of range,
  * STO_INVALID if invalid input.
  */
-StoError sto_long_b(const char* str, int base, long* result);
+StoError str_to_long_base(const char* str, int base, long* result);
 
 /**
  * @brief Converts a string to an int with a specified base.
@@ -193,7 +193,7 @@ StoError sto_long_b(const char* str, int base, long* result);
  * @return StoError STO_SUCCESS on success, STO_OVERFLOW if out of range,
  * STO_INVALID if invalid input.
  */
-StoError sto_int_b(const char* str, int base, int* result);
+StoError str_to_int_base(const char* str, int base, int* result);
 
 /**
  * @brief Converts a string to a boolean.
@@ -203,9 +203,12 @@ StoError sto_int_b(const char* str, int base, int* result);
  * @param result Pointer to the result variable.
  * @return StoError STO_SUCCESS on success, STO_INVALID if invalid input.
  */
-StoError sto_bool(const char* str, bool* result);
+StoError str_to_bool(const char* str, bool* result);
 
-const char* sto_error(StoError code);
+/**
+Report the numerical conversion error from code.
+*/
+const char* sto_error_string(StoError code);
 
 #ifdef __cplusplus
 }

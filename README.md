@@ -1,7 +1,3 @@
-Absolutely! Here's an updated and more exhaustive version of your README with improved **installation**, **usage**, and **clarity on build targets** including the `SYSTEM_NAME` explanation:
-
----
-
 # **Solidc**
 
 **Solidc** is a robust collection of general-purpose cross-platform C libraries and data structures designed for rapid and safe development in C.

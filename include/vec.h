@@ -262,7 +262,8 @@ static inline Vec2 vec2_lerp(Vec2 a, Vec2 b, float t) {
 }
 
 /**
- * @brief Returns a vector that is perpendicular (rotated 90 degrees counter-clockwise) to the input Vec2.
+ * @brief Returns a vector that is perpendicular (rotated 90 degrees
+ * counter-clockwise) to the input Vec2.
  *
  * @param v The input vector.
  * @return Vec2 The perpendicular vector.
@@ -535,7 +536,8 @@ static inline SimdVec2 simd_vec2_mul(SimdVec2 a, float scalar) {
 }
 
 /**
- * @brief Computes the dot product of two SimdVec2 vectors using SIMD multiplication.
+ * @brief Computes the dot product of two SimdVec2 vectors using SIMD
+ * multiplication.
  *
  * @param a The first vector.
  * @param b The second vector.
@@ -543,7 +545,8 @@ static inline SimdVec2 simd_vec2_mul(SimdVec2 a, float scalar) {
  */
 static inline float simd_vec2_dot(SimdVec2 a, SimdVec2 b) {
     // Perform element-wise multiplication of the x and y components
-    __m128 mul = _mm_mul_ps(a.m128, b.m128);  // Multiply the entire 128-bit register (containing 4 floats)
+    __m128 mul = _mm_mul_ps(a.m128,
+                            b.m128);  // Multiply the entire 128-bit register (containing 4 floats)
 
     // Store the result in a float array to sum up the first two components
     float result[4];
@@ -575,7 +578,8 @@ static inline SimdVec3 simd_vec3_add(SimdVec3 a, SimdVec3 b) {
 }
 
 /**
- * @brief Performs SIMD subtraction of two SimdVec3 vectors using `_mm256_sub_ps`.
+ * @brief Performs SIMD subtraction of two SimdVec3 vectors using
+ * `_mm256_sub_ps`.
  */
 static inline SimdVec3 simd_vec3_sub(SimdVec3 a, SimdVec3 b) {
     SimdVec3 result;
@@ -620,8 +624,8 @@ static inline SimdVec3 simd_vec3_cross(SimdVec3 a, SimdVec3 b) {
 }
 
 /**
- * @brief Rotates a SimdVec3 vector around a given axis by a specified angle using Rodrigues' rotation
- * formula.
+ * @brief Rotates a SimdVec3 vector around a given axis by a specified angle
+ * using Rodrigues' rotation formula.
  *
  * @param v The vector to rotate.
  * @param axis The axis to rotate around (will be normalized).
@@ -818,7 +822,8 @@ static inline SimdVec4 simd_vec4_rotate_z(SimdVec4 v, float angle) {
 // ======================
 
 /**
- * @brief Compares two Vec2 vectors for approximate equality within a given epsilon.
+ * @brief Compares two Vec2 vectors for approximate equality within a given
+ * epsilon.
  *
  * @param a The first vector.
  * @param b The second vector.
@@ -830,7 +835,8 @@ static inline bool vec2_equals(Vec2 a, Vec2 b, float epsilon) {
 }
 
 /**
- * @brief Compares two Vec3 vectors for approximate equality within a given epsilon.
+ * @brief Compares two Vec3 vectors for approximate equality within a given
+ * epsilon.
  *
  * @param a The first vector.
  * @param b The second vector.
@@ -847,18 +853,19 @@ static inline bool vec3_equals(Vec3 a, Vec3 b, float epsilon) {
  *
  * @param a The vector to project.
  * @param b The vector to project onto.
- * @return Vec3 The projection of a onto b. If b has near-zero length, returns a zero vector.
+ * @return Vec3 The projection of a onto b. If b has near-zero length, returns a
+ * zero vector.
  */
 static inline Vec3 vec3_project(Vec3 a, Vec3 b) {
     float b_len_sq = vec3_dot(b, b);
-    if (b_len_sq < FLT_EPSILON)
-        return (Vec3){0};
+    if (b_len_sq < FLT_EPSILON) return (Vec3){0};
     float scale = vec3_dot(a, b) / b_len_sq;
     return vec3_mul(b, scale);
 }
 
 /**
- * @brief Rejects vector a from vector b (i.e., computes the component of a perpendicular to b).
+ * @brief Rejects vector a from vector b (i.e., computes the component of a
+ * perpendicular to b).
  *
  * @param a The vector to reject.
  * @param b The vector to reject from.
@@ -869,7 +876,8 @@ static inline Vec3 vec3_reject(Vec3 a, Vec3 b) {
 }
 
 /**
- * @brief Compares two Vec4 vectors for approximate equality within a given epsilon.
+ * @brief Compares two Vec4 vectors for approximate equality within a given
+ * epsilon.
  *
  * @param a The first vector.
  * @param b The second vector.

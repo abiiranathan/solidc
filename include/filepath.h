@@ -14,8 +14,9 @@
 #include <windows.h>
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0400  // Required for syncapi
+#define PATH_SEP     '\\'
+#define PATH_SEP_STR "\\"
 #endif
-
 #else
 #include <dirent.h>
 #include <pwd.h>
@@ -23,6 +24,12 @@
 #include <sys/random.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#define PATH_SEP     '/'
+#define PATH_SEP_STR "/"
+#endif
+
+#ifndef MAX_PATH
+#define MAX_PATH 1024
 #endif
 
 #ifdef __cplusplus
@@ -54,7 +61,7 @@ char* dir_next(Directory* dir) __attribute__((warn_unused_result));
 int dir_create(const char* path);
 
 // Remove a directory. Returns 0 if successful, -1 otherwise
-int dir_remove(const char* path);
+int dir_remove(const char* path, bool recursive);
 
 // Rename a directory. Returns 0 if successful, -1 otherwise
 int dir_rename(const char* oldpath, const char* newpath);
@@ -68,11 +75,19 @@ int dir_chdir(const char* path);
 // directory tree recursively and may be slow for large directories.
 char** dir_list(const char* path, size_t* count) __attribute__((warn_unused_result));
 
-// List all contents of the directory and passes the name of file/dir in a callback.
+// List all contents of the directory and passes the name of file/dir in a
+// callback. Skips over "." and ".." to avoid infinite loops.
 void dir_list_with_callback(const char* path, void (*callback)(const char* name));
 
 // Returns true if the path is a directory
 bool is_dir(const char* path);
+
+// Returns true if a path is a regular file.
+bool is_file(const char* path);
+
+// Returns true if path is a symbolic link.
+// This function does nothing on Windows.
+bool is_symlink(const char* path);
 
 // Create a directory recursively
 bool filepath_makedirs(const char* path);
@@ -89,10 +104,6 @@ char* make_tempfile(void) __attribute__((warn_unused_result));
 
 // Create a temporary directory.
 char* make_tempdir(void) __attribute__((warn_unused_result));
-
-// Returns true if path is a symbolic link.
-// This function does nothing on Windows.
-bool is_symlink(const char* path);
 
 typedef enum WalkDirOption {
     DirContinue,  // Continue walking the directory recursively
@@ -111,6 +122,14 @@ typedef WalkDirOption (*WalkDirCallback)(const char* path, const char* name, voi
 // Return from the callback 0 to continue or non-zero to stop the walk.
 // Returns 0 if successful, -1 otherwise
 int dir_walk(const char* path, WalkDirCallback callback, void* data);
+
+/*
+ * Depth-first *post-order* walk.
+ * Callback is called AFTER a directory's children are processed.
+ * Suitable for recursive deletion.
+ * Returns 0 if successful, -1 otherwise
+ */
+int dir_walk_depth_first(const char* path, WalkDirCallback callback, void* data);
 
 // Find the size of the directory.
 // This is slow on large directories since it walks the directory.

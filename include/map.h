@@ -33,19 +33,21 @@ typedef void (*KeyFreeFunction)(void* key);
 typedef void (*ValueFreeFunction)(void* value);
 
 typedef struct {
-    size_t initial_capacity;       // Initial size of the map. If zero, the default size is used.
+    size_t initial_capacity;       // Initial size of the map. If zero, the default size
+                                   // is used.
     KeyCmpFunction key_compare;    // Required: Key comparison function
     KeyLenFunction key_len_func;   // Required: Key length function
     KeyFreeFunction key_free;      // Optional: Key cleanup function. Default is free from libc.
-    ValueFreeFunction value_free;  // Optional: Value cleanup function. Default is free from libc.
+    ValueFreeFunction value_free;  // Optional: Value cleanup function. Default is
+                                   // free from libc.
     float max_load_factor;         // Optional: When to resize (default 0.75)
     HashFunction hash_func;        // Optional: Custom hash function
 } MapConfig;
 
-#define MapConfigInt (&(MapConfig){.key_compare = key_compare_int, .key_len_func = key_len_int})
-#define MapConfigFloat (&(MapConfig){.key_compare = key_compare_float, .key_len_func = key_len_float})
+#define MapConfigInt    (&(MapConfig){.key_compare = key_compare_int, .key_len_func = key_len_int})
+#define MapConfigFloat  (&(MapConfig){.key_compare = key_compare_float, .key_len_func = key_len_float})
 #define MapConfigDouble (&(MapConfig){.key_compare = key_compare_double, .key_len_func = key_len_double})
-#define MapConfigStr (&(MapConfig){.key_compare = key_compare_char_ptr, .key_len_func = key_len_char_ptr})
+#define MapConfigStr    (&(MapConfig){.key_compare = key_compare_char_ptr, .key_len_func = key_len_char_ptr})
 
 // Generic map implementation using xxhash as the hash function.
 typedef struct hash_map Map;
@@ -109,11 +111,11 @@ static inline bool key_compare_char_ptr(const void* a, const void* b) {
 }
 
 static inline bool key_compare_float(const void* a, const void* b) {
-    return a && b && FLOAT_EQUAL(*(float*)a, *(float*)b);
+    return a && b && cmp_float(*(float*)a, *(float*)b, (cmp_config_t){.epsilon = FLT_EPSILON});
 }
 
 static inline bool key_compare_double(const void* a, const void* b) {
-    return a && b && FLOAT_EQUAL(*(double*)a, *(double*)b);
+    return a && b && cmp_double(*(double*)a, *(double*)b, (cmp_config_t){.epsilon = DBL_EPSILON});
 }
 
 // Key Len functions

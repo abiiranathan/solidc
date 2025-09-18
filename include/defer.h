@@ -40,7 +40,7 @@ struct Deferrer {
 };
 
 #define _DEFER_CONCAT_IMPL(a, b) a##b
-#define _DEFER_CONCAT(a, b) _DEFER_CONCAT_IMPL(a, b)
+#define _DEFER_CONCAT(a, b)      _DEFER_CONCAT_IMPL(a, b)
 
 #define defer(block)                                                                                         \
     auto _DEFER_CONCAT(__defer, __COUNTER__) = Deferrer<std::function<void()>>([&]() { block; })
@@ -53,7 +53,7 @@ struct Deferrer {
 //******************************************************************************
 
 #define _DEFER_CONCAT_IMPL(a, b) a##b
-#define _DEFER_CONCAT(a, b) _DEFER_CONCAT_IMPL(a, b)
+#define _DEFER_CONCAT(a, b)      _DEFER_CONCAT_IMPL(a, b)
 
 #if defined(__GNUC__) && !defined(__clang__)
 typedef void (*defer_block)(void);
@@ -70,10 +70,13 @@ typedef void (*defer_block)(void);
 #elif defined(__clang__)
 // Clang/zig cc
 typedef void (^defer_block)(void);
+
 #define defer_block_create(body) ^body
+
 #define defer(block)                                                                                         \
     defer_block __attribute__((cleanup(do_defer))) _DEFER_CONCAT(__defer, __COUNTER__) =                     \
         defer_block_create(block)
+
 #elif defined(_MSC_VER)
 // MSVC Implementation using try-finally
 #define defer(block)                                                                                         \
@@ -86,7 +89,7 @@ typedef void (^defer_block)(void);
 #endif
 
 ATTR_UNUSED static inline void do_defer(defer_block* ptr) {
-    (*ptr)();
+    if (ptr) (*ptr)();
 }
 
 #endif

@@ -44,8 +44,7 @@ double latency_ms(Benchmark* bench) {
 }
 
 double throughput(Benchmark* bench, uint64_t operations) {
-    if (bench->elapsed_ns == 0)
-        return 0.0;
+    if (bench->elapsed_ns == 0) return 0.0;
     return (double)operations / ((double)bench->elapsed_ns / 1000000000.0);
 }
 

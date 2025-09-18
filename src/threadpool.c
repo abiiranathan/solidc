@@ -58,7 +58,7 @@ typedef struct thread {
 // Threadpool represents a thread pool that manages a group of threads
 typedef struct threadpool {
     thread** threads;                // Array of threads
-    int num_threads;                 // Total number of threads
+    size_t num_threads;              // Total number of threads
     atomic_int num_threads_alive;    // Number of threads currently alive
     atomic_int num_threads_working;  // Number of threads currently working
     Lock thcount_lock;               // Protects thread counts (reduced usage)
@@ -128,7 +128,7 @@ static int ringbuffer_push(TaskRingBuffer* rb, Task* task) {
 }
 
 // Lock-free batch pull with yielding and blocking (no spinning)
-static int ringbuffer_pull_batch_optimized(TaskRingBuffer* rb, Task* tasks, int max_tasks) {
+static int ringbuffer_pull_batch_optimized(TaskRingBuffer* rb, Task* tasks, size_t max_tasks) {
     int yield_count = 0;
 
     while (1) {
@@ -137,14 +137,14 @@ static int ringbuffer_pull_batch_optimized(TaskRingBuffer* rb, Task* tasks, int 
 
         if (head != tail) {
             // Calculate available tasks
-            int available = (int)((head - tail) & RING_BUFFER_MASK);
-            int to_take   = (available < max_tasks) ? available : max_tasks;
+            size_t available = ((head - tail) & RING_BUFFER_MASK);
+            size_t to_take   = (available < max_tasks) ? available : max_tasks;
 
             // Try to reserve tasks atomically
             uint32_t new_tail = (tail + to_take) & RING_BUFFER_MASK;
             if (atomic_compare_exchange_weak(&rb->tail, &tail, new_tail)) {
                 // Successfully reserved tasks, now copy them
-                for (int i = 0; i < to_take; i++) {
+                for (size_t i = 0; i < to_take; i++) {
                     tasks[i] = rb->tasks[(tail + i) & RING_BUFFER_MASK];
                 }
 
@@ -212,41 +212,36 @@ static inline void update_pending_tasks(threadpool* pool, int delta) {
 }
 
 // Fast work stealing with minimal locking
-static int thread_steal_tasks_fast(threadpool* pool, thread* thief, Task* tasks, int max_tasks) {
+static int thread_steal_tasks_fast(threadpool* pool, thread* thief, Task* tasks, size_t max_tasks) {
     // Use fast random to pick starting thread
-    int start_idx = xorshift32(&thief->steal_seed) % pool->num_threads;
+    size_t start_idx = xorshift32(&thief->steal_seed) % pool->num_threads;
 
-    for (int i = 0; i < pool->num_threads; i++) {
+    for (size_t i = 0; i < pool->num_threads; i++) {
         int idx        = (start_idx + i) % pool->num_threads;
         thread* target = pool->threads[idx];
 
-        if (target == thief)
-            continue;
+        if (target == thief) continue;
 
         // Quick check without locking
-        if (atomic_load(&target->local_pending) == 0)
-            continue;
+        if (atomic_load(&target->local_pending) == 0) continue;
 
         // Try lock-free steal first
         uint32_t tail = atomic_load(&target->queue.tail);
         uint32_t head = atomic_load(&target->queue.head);
 
-        if (head == tail)
-            continue;
+        if (head == tail) continue;
 
         // Calculate how many to steal (at most half)
-        int available   = (int)((head - tail) & RING_BUFFER_MASK);
-        int steal_count = (available + 1) / 2;
-        if (steal_count > max_tasks)
-            steal_count = max_tasks;
-        if (steal_count == 0)
-            continue;
+        size_t available   = ((head - tail) & RING_BUFFER_MASK);
+        size_t steal_count = (available + 1) / 2;
+        if (steal_count > max_tasks) steal_count = max_tasks;
+        if (steal_count == 0) continue;
 
         // Try to steal atomically
         uint32_t new_tail = (tail + steal_count) & RING_BUFFER_MASK;
         if (atomic_compare_exchange_weak(&target->queue.tail, &tail, new_tail)) {
             // Successfully stole tasks
-            for (int j = 0; j < steal_count; j++) {
+            for (size_t j = 0; j < steal_count; j++) {
                 tasks[j] = target->queue.tasks[(tail + j) & RING_BUFFER_MASK];
             }
 
@@ -268,7 +263,7 @@ static void* thread_worker(void* arg) {
     int batch_count = 0;
 
     // Initialize fast random seed
-    thp->steal_seed = (uint32_t)(time(NULL) ^ (uintptr_t)thp);
+    thp->steal_seed = (uint32_t)((unsigned long)time(NULL) ^ (uintptr_t)thp);
 
     atomic_fetch_add(&pool->num_threads_alive, 1);
 
@@ -332,8 +327,7 @@ static void* thread_worker(void* arg) {
 // Initialize thread
 static int thread_init(threadpool* pool, thread** t, int id) {
     *t = (thread*)malloc(sizeof(thread));
-    if (*t == NULL)
-        return -1;
+    if (*t == NULL) return -1;
 
     (*t)->pool = pool;
     (*t)->id   = id;
@@ -349,13 +343,11 @@ static int thread_init(threadpool* pool, thread** t, int id) {
 }
 
 // Create thread pool
-threadpool* threadpool_create(int num_threads) {
-    if (num_threads <= 0)
-        num_threads = 1;
+threadpool* threadpool_create(size_t num_threads) {
+    if (num_threads <= 0) num_threads = 1;
 
     threadpool* pool = (threadpool*)malloc(sizeof(threadpool));
-    if (pool == NULL)
-        return NULL;
+    if (pool == NULL) return NULL;
 
     atomic_store(&pool->num_threads_alive, 0);
     atomic_store(&pool->num_threads_working, 0);
@@ -379,7 +371,7 @@ threadpool* threadpool_create(int num_threads) {
     lock_init(&pool->thcount_lock);
     cond_init(&pool->threads_all_idle);
 
-    for (int i = 0; i < num_threads; i++) {
+    for (size_t i = 0; i < num_threads; i++) {
         if (thread_init(pool, &pool->threads[i], i) != 0) {
             threadpool_destroy(pool);
             return NULL;
@@ -395,7 +387,7 @@ int threadpool_submit(threadpool* pool, void (*function)(void*), void* arg) {
 
     // Use fast random to pick thread (avoid expensive system random)
     static atomic_uint submit_counter = 0;
-    int thread_id                     = atomic_fetch_add(&submit_counter, 1) % pool->num_threads;
+    size_t thread_id                  = atomic_fetch_add(&submit_counter, 1) % pool->num_threads;
     thread* thp                       = pool->threads[thread_id];
 
     // Try local queue first
@@ -416,8 +408,7 @@ int threadpool_submit(threadpool* pool, void (*function)(void*), void* arg) {
 
 // Destroy thread pool
 void threadpool_destroy(threadpool* pool) {
-    if (pool == NULL)
-        return;
+    if (pool == NULL) return;
 
     // Wait for all tasks to complete
     lock_acquire(&pool->thcount_lock);
@@ -430,7 +421,7 @@ void threadpool_destroy(threadpool* pool) {
     lock_release(&pool->thcount_lock);
 
     // Wake up all threads
-    for (int i = 0; i < pool->num_threads; i++) {
+    for (size_t i = 0; i < pool->num_threads; i++) {
         cond_broadcast(&pool->threads[i]->queue.not_empty);
         cond_broadcast(&pool->threads[i]->queue.not_full);
     }
@@ -443,7 +434,7 @@ void threadpool_destroy(threadpool* pool) {
     }
 
     // Clean up
-    for (int i = 0; i < pool->num_threads; i++) {
+    for (size_t i = 0; i < pool->num_threads; i++) {
         thread* thp = pool->threads[i];
         thread_join(thp->pthread, NULL);
         ringbuffer_destroy(&thp->queue);

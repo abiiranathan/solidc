@@ -3,7 +3,7 @@
 
 #define ARENA_SIZE 1024 * 1024
 #define BLOCK_SIZE 128
-#define COUNT (ARENA_SIZE / BLOCK_SIZE)
+#define COUNT      (ARENA_SIZE / BLOCK_SIZE)
 
 int main() {
     LArena* arena = larena_create(ARENA_SIZE);

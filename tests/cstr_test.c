@@ -1,5 +1,6 @@
 #include "../include/cstr.h"
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -44,16 +45,21 @@ int main(void) {
 
     // Test str_new
     {
-        printf("Testing str_new...\n");
+        printf("Testing str_init...\n");
         cstr* s = cstr_init(0);
         assert_cstr_equals(s, "", "str_new with zero capacity");
         assert(cstr_capacity(s) >= 1);
         cstr_free(s);
 
-        s = cstr_init(20);
-        assert_cstr_equals(s, "", "str_new with large capacity");
-        assert(cstr_capacity(s) >= 20);
+        s = cstr_init(2048);
+        assert_cstr_equals(s, "", "str_init with large capacity");
+        assert(cstr_capacity(s) >= 2048);
         cstr_free(s);
+
+        // Make sure large strings fail to overflow
+        s = cstr_init(SIZE_MAX);
+        ASSERT_EQ(s, NULL);  // overflow should be handled
+        puts("Overflow check passed");
     }
 
     // Test cstr_new
@@ -131,6 +137,10 @@ int main(void) {
         assert(cstr_resize(s, 10) && "str_resize failed");
         assert(cstr_capacity(s) >= 10 && "str_resize capacity incorrect");
         assert_cstr_equals(s, "Test", "str_resize content preserved");
+
+        // Resize with large capacity should fail.
+        assert(cstr_resize(s, SIZE_MAX) == false && "Resize overflow detection failed");
+
         cstr_free(s);
 
         assert(!cstr_resize(NULL, 10) && "str_resize with NULL should fail");

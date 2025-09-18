@@ -14,9 +14,9 @@ Supports UTF-8 encoding and Unicode version 1.0.
 extern "C" {
 #endif
 
-#define UNICODE_VERSION 0x0100          // 1.0
-#define UNICODE_MAX_CODEPOINT 0x10FFFF  // 1,114,111
-#define UNICODE_MAX_UTF8_BYTES 4        // 4 bytes
+#define UNICODE_VERSION        0x0100    // 1.0
+#define UNICODE_MAX_CODEPOINT  0x10FFFF  // 1,114,111
+#define UNICODE_MAX_UTF8_BYTES 4         // 4 bytes
 
 typedef struct utf8_string {
     char* data;     // utf-8 string

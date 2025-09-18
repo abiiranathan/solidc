@@ -7,10 +7,10 @@
 #include <string.h>
 
 #define MEMORY_SIZE 1024  // Total memory size in bytes
-#define ALIGNMENT 8       // Alignment requirement (e.g., 8 bytes)
+#define ALIGNMENT   8     // Alignment requirement (e.g., 8 bytes)
 
 // Magic numbers for block validation
-#define MAGIC_FREE 0xDEADBEEF
+#define MAGIC_FREE      0xDEADBEEF
 #define MAGIC_ALLOCATED 0xBEEFDEAD
 
 // Global memory pool
@@ -75,8 +75,7 @@ static void coalesce_blocks() {
 
 // Validate that a pointer belongs to our memory pool.
 static bool is_valid_ptr(void* ptr) {
-    if (ptr == NULL)
-        return false;
+    if (ptr == NULL) return false;
 
     uint8_t* byte_ptr = (uint8_t*)ptr;
     return (byte_ptr >= memory + header_size() && byte_ptr < memory + MEMORY_SIZE);
@@ -139,22 +138,19 @@ void my_free(void* ptr) {
 // Additional helper: calloc implementation.
 void* my_calloc(size_t nmemb, size_t size) {
     // Check for overflow.
-    if (nmemb != 0 && size > (size_t)-1 / nmemb)
-        return NULL;
+    if (nmemb != 0 && size > (size_t)-1 / nmemb) return NULL;
 
     size_t total = nmemb * size;
     void* ptr    = my_malloc(total);
 
-    if (ptr)
-        memset(ptr, 0, total);
+    if (ptr) memset(ptr, 0, total);
     return ptr;
 }
 
 // Additional helper: realloc implementation.
 void* my_realloc(void* ptr, size_t size) {
     // If ptr is NULL, behave like malloc.
-    if (ptr == NULL)
-        return my_malloc(size);
+    if (ptr == NULL) return my_malloc(size);
 
     // If size is 0, free the block and return NULL.
     if (size == 0) {

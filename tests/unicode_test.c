@@ -71,7 +71,8 @@ void test_codepoint_conversion() {
     // Test invalid UTF-8 sequence
     const char invalid_utf8[] = {0xC0, 0xAF, 0x00};  // Invalid 2-byte sequence
     result                    = utf8_to_codepoint(invalid_utf8);
-    record_test("Invalid UTF-8 sequence", result == 0xFFFD, NULL);  // Should return replacement character
+    record_test("Invalid UTF-8 sequence", result == 0xFFFD,
+                NULL);  // Should return replacement character
 }
 
 // Test for utf8_byte_length and utf8_count_codepoints
@@ -90,7 +91,8 @@ void test_length_functions() {
     byte_len          = utf8_valid_byte_count(mixed);
     cp_count          = utf8_count_codepoints(mixed);
     record_test("Mixed string byte length", byte_len == strlen(mixed), NULL);
-    record_test("Mixed string codepoint count", cp_count == 10, NULL);  // 8 ASCII + 2 Chinese chars
+    record_test("Mixed string codepoint count", cp_count == 10,
+                NULL);  // 8 ASCII + 2 Chinese chars
 
     // Test emoji string
     const char* emoji = "😀👍🌍";  // Three emoji
@@ -150,8 +152,10 @@ void test_validation() {
 
     // Valid codepoints
     record_test("ASCII codepoint validity", is_valid_codepoint('A'), NULL);
-    record_test("BMP codepoint validity", is_valid_codepoint(0x20AC), NULL);   // Euro symbol
-    record_test("SMP codepoint validity", is_valid_codepoint(0x1F600), NULL);  // Emoji
+    record_test("BMP codepoint validity", is_valid_codepoint(0x20AC),
+                NULL);  // Euro symbol
+    record_test("SMP codepoint validity", is_valid_codepoint(0x1F600),
+                NULL);  // Emoji
     record_test("Max valid codepoint", is_valid_codepoint(0x10FFFF), NULL);
 
     // Invalid codepoints

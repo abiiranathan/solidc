@@ -54,8 +54,7 @@ static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
             max = fabsf(A.m[1][2]);
         }
 
-        if (max < EPSILON)
-            break;
+        if (max < EPSILON) break;
 
         float app = A.m[p][p];
         float aqq = A.m[q][q];
@@ -202,8 +201,7 @@ static inline void mat4_qr(Mat4 A, Mat4* Q, Mat4* R) {
             q[i]       = vec4_sub(q[i], vec4_scale(q[j], r));
         }
         float norm = vec4_length(q[i]);
-        if (norm < 1e-6f)
-            norm = 1e-6f;
+        if (norm < 1e-6f) norm = 1e-6f;
         R->m[i][i] = norm;
         q[i]       = vec4_scale(q[i], 1.0f / norm);
     }
@@ -279,15 +277,13 @@ static inline float mat4_norm_frobenius(Mat4 A) {
  */
 static inline bool mat3_is_positive_definite(Mat3 A) {
     float det1 = mat3_determinant(A);
-    if (det1 <= 0.0f)
-        return false;
+    if (det1 <= 0.0f) return false;
 
     Mat3 A1    = A;
     A1.m[2][0] = A1.m[2][1] = A1.m[2][2] = 0.0f;
 
     float det2 = mat3_determinant(A1);
-    if (det2 <= 0.0f)
-        return false;
+    if (det2 <= 0.0f) return false;
 
     return true;
 }
@@ -410,7 +406,8 @@ static inline Vec4 backward_substitution_mat4(Mat4 U, Vec4 b) {
 
     // i = 0
     x_arr[0] = (b.x - (U.m[1][0] * x_arr[1] + U.m[2][0] * x_arr[2] + U.m[3][0] * x_arr[3])) /
-               U.m[0][0];  // U.m[1][0] is U_0,1; U.m[2][0] is U_0,2; U.m[3][0] is U_0,3; U.m[0][0] is U_0,0
+               U.m[0][0];  // U.m[1][0] is U_0,1; U.m[2][0] is U_0,2; U.m[3][0] is
+                           // U_0,3; U.m[0][0] is U_0,0
 
     return x;
 }
@@ -433,7 +430,8 @@ static inline bool mat4_lu(Mat4 A, Mat4* L, Mat4* U, Mat4* P) {
     // Initialize U to A (assuming A is already column-major)
     *U = A;
 
-    // Initialize L to identity (column-major identity: m[col][row] is 1 if col==row)
+    // Initialize L to identity (column-major identity: m[col][row] is 1 if
+    // col==row)
     for (int i = 0; i < 4; ++i) {                 // row index
         for (int j = 0; j < 4; ++j) {             // column index
             L->m[j][i] = (i == j) ? 1.0f : 0.0f;  // m[col][row] = (row == col) ? 1 : 0
@@ -450,7 +448,8 @@ static inline bool mat4_lu(Mat4 A, Mat4* L, Mat4* U, Mat4* P) {
     // LU Decomposition with partial pivoting
     for (int k = 0; k < 4; ++k) {  // k is the column index being processed
 
-        // Find pivot row (find max absolute value in column k, from row k downwards)
+        // Find pivot row (find max absolute value in column k, from row k
+        // downwards)
         int pivot_row = k;                  // mathematical row index
         float max_val = fabsf(U->m[k][k]);  // U.m[col][row] -> U.m[k][k] is U_k,k
         for (int i = k + 1; i < 4; ++i) {   // i is the mathematical row index below k
@@ -481,8 +480,8 @@ static inline bool mat4_lu(Mat4 A, Mat4* L, Mat4* U, Mat4* P) {
                 P->m[j][k]         = P->m[j][pivot_row];
                 P->m[j][pivot_row] = tmp_P;
 
-                // Swap L elements in math rows k and pivot_row, but ONLY for columns j < k
-                // L.m[j][k] is L_k,j ; L.m[j][pivot_row] is L_pivot_row,j
+                // Swap L elements in math rows k and pivot_row, but ONLY for columns j
+                // < k L.m[j][k] is L_k,j ; L.m[j][pivot_row] is L_pivot_row,j
                 if (j < k) {
                     float tmp_L        = L->m[j][k];
                     L->m[j][k]         = L->m[j][pivot_row];
@@ -497,10 +496,12 @@ static inline bool mat4_lu(Mat4 A, Mat4* L, Mat4* U, Mat4* P) {
             // U.m[k][i] is U_i,k ; U.m[k][k] is U_k,k
             float factor = U->m[k][i] / U->m[k][k];
 
-            // Store factor in L (L_i,k = factor). L.m[col][row] -> L.m[k][i] stores L_i,k
+            // Store factor in L (L_i,k = factor). L.m[col][row] -> L.m[k][i] stores
+            // L_i,k
             L->m[k][i] = factor;
 
-            // Perform row operation on U: U_i,j = U_i,j - factor * U_k,j for j from k to 3
+            // Perform row operation on U: U_i,j = U_i,j - factor * U_k,j for j from k
+            // to 3
             for (int j = k; j < 4; ++j) {  // j is the column index
                 // U.m[j][i] is U_i,j ; U.m[j][k] is U_k,j
                 U->m[j][i] -= factor * U->m[j][k];

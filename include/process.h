@@ -64,12 +64,14 @@ typedef int PipeFd;  // Pipe file descriptor.
 typedef enum { PROCESS_STREAM_STDIN = 0, PROCESS_STREAM_STDOUT = 1, PROCESS_STREAM_STDERR = 2 } ProcessStream;
 
 /**
- * @brief Process handle type (platform-specific details hidden in implementation)
+ * @brief Process handle type (platform-specific details hidden in
+ * implementation)
  */
 typedef struct ProcessHandle ProcessHandle;
 
 /**
- * @brief Pipe handle type for IPC (platform-specific details hidden in implementation)
+ * @brief Pipe handle type for IPC (platform-specific details hidden in
+ * implementation)
  */
 typedef struct PipeHandle PipeHandle;
 
@@ -133,7 +135,8 @@ typedef struct {
  *
  * @param[out] handle Pointer to receive the process handle
  * @param[in] command Path to executable
- * @param[in] argv NULL-terminated array of arguments (argv[0] should be command name)
+ * @param[in] argv NULL-terminated array of arguments (argv[0] should be command
+ * name)
  * @param[in] options Process creation options (NULL for defaults)
  * @return PROCESS_SUCCESS on success, error code otherwise
  */
@@ -154,7 +157,8 @@ ProcessError process_wait(ProcessHandle* handle, ProcessResult* result, int time
  * @brief Terminate a running process
  *
  * @param[in] handle Process handle
- * @param[in] force If true, force immediate termination (SIGKILL/TerminateProcess)
+ * @param[in] force If true, force immediate termination
+ * (SIGKILL/TerminateProcess)
  * @return PROCESS_SUCCESS on success, error code otherwise
  */
 ProcessError process_terminate(ProcessHandle* handle, bool force);
@@ -200,7 +204,8 @@ ProcessError pipe_create(PipeHandle** pipe);
  * @param[in] pipe Pipe handle
  * @param[out] buffer Buffer to receive the data
  * @param[in] size Buffer size
- * @param[out] bytes_read Pointer to receive the number of bytes read (can be NULL)
+ * @param[out] bytes_read Pointer to receive the number of bytes read (can be
+ * NULL)
  * @param[in] timeout_ms Timeout in milliseconds (-1 = wait indefinitely)
  * @return PROCESS_SUCCESS on success, error code otherwise
  */
@@ -212,7 +217,8 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
  * @param[in] pipe Pipe handle
  * @param[in] buffer Data to write
  * @param[in] size Number of bytes to write
- * @param[out] bytes_written Pointer to receive the number of bytes written (can be NULL)
+ * @param[out] bytes_written Pointer to receive the number of bytes written (can
+ * be NULL)
  * @param[in] timeout_ms Timeout in milliseconds (-1 = wait indefinitely)
  * @return PROCESS_SUCCESS on success, error code otherwise
  */
@@ -280,15 +286,19 @@ ProcessError process_redirect_to_fd(FileRedirection** redirection, int fd, bool 
 void process_close_redirection(FileRedirection* redirection);
 
 /**
- * @brief Run the command in a process that duplicates output to multiple destinations.
+ * @brief Run the command in a process that duplicates output to multiple
+ * destinations.
  *
- * This function sets up a process whose output is duplicated to multiple files/pipes
+ * This function sets up a process whose output is duplicated to multiple
+ * files/pipes
  *
  * @param[out] result Will hold process exit information.
  * @param[in] cmd Command to execute
  * @param[in] argv Arguments (NULL-terminated)
- * @param[in] output_fds Array of file descriptors to duplicate output to (NULL-terminated)
- * @param[in] error_fds Array of file descriptors to duplicate errors to (NULL-terminated)
+ * @param[in] output_fds Array of file descriptors to duplicate output to
+ * (NULL-terminated)
+ * @param[in] error_fds Array of file descriptors to duplicate errors to
+ * (NULL-terminated)
  * @return ProcessError
  */
 ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd, const char* args[],
@@ -307,7 +317,8 @@ ProcessError process_create_with_redirection(ProcessHandle** handle, const char*
                                              const char* const argv[], const ExtProcessOptions* options);
 
 /**
- * @brief Create a process that redirects its output from stdout and/or stderr to files.
+ * @brief Create a process that redirects its output from stdout and/or stderr
+ * to files.
  *
  * @param[in] handle Pointer to process handle
  * @param[in] command Command to run

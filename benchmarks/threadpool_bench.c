@@ -7,7 +7,7 @@
 #include <time.h>
 #include "../include/threadpool.h"
 
-#define NUM_TASKS 1000000
+#define NUM_TASKS   1000000
 #define NUM_THREADS 8
 
 void dummy_task(void* arg) {

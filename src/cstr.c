@@ -1,44 +1,53 @@
 #include "../include/cstr.h"
 #include <assert.h>
 #include <ctype.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdckdint.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../include/aligned_alloc.h"
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 // Small String Optimization (SSO) constants
-#define SSO_MAX_SIZE (sizeof(size_t) + sizeof(size_t) + sizeof(char*) - 1)
-#define SSO_HEAP_FLAG 0x80
+#define SSO_MAX_SIZE    (sizeof(size_t) + sizeof(size_t) + sizeof(char*) - 1)
+#define SSO_HEAP_FLAG   0x80
 #define SSO_LENGTH_MASK 0x7F
-#define HEAP_FLAG_BIT (1ULL << 63)
+#define HEAP_FLAG_BIT   (1ULL << 63)
 
 // Security and performance constants
-#define CSTR_GROWTH_FACTOR 2
+#define CSTR_GROWTH_FACTOR     2
 #define CSTR_MIN_HEAP_CAPACITY 16
-#define CSTR_MAX_REASONABLE_SIZE (SIZE_MAX / 4)  // Prevent overflow attacks
-#define STR_MIN_CAPACITY 16                      // Renamed for clarity
+#define CSTR_MAX_SIZE          (SIZE_MAX / 2)  // Prevent overflow attacks
+#define STR_MIN_CAPACITY       16
+
+// Optimized string alignment for heap data.
+#if defined(__x86_64__) && defined(__AVX2__)
+#define STR_ALIGNMENT 32  // AVX2 alignment
+#elif defined(__x86_64__) && defined(__SSE2__)
+#define STR_ALIGNMENT 16  // SSE alignment
+#else
+#define STR_ALIGNMENT sizeof(max_align_t)  // Portable fallback
+#endif
 
 // Macros for capacity manipulation
 #define CSTR_SET_HEAP_CAPACITY(cap) ((cap) | HEAP_FLAG_BIT)
 #define CSTR_GET_HEAP_CAPACITY(cap) ((cap) & ~HEAP_FLAG_BIT)
-
-#define CSTR_IS_HEAP(s) ((s->heap.capacity & HEAP_FLAG_BIT) != 0)
-
-#define WOULD_OVERFLOW_ADD(a, b) (a > SIZE_MAX - b)
-#define would_overflow_mul(a, b) (b != 0 && a > SIZE_MAX / b)
+#define CSTR_IS_HEAP(s)             ((s->heap.capacity & HEAP_FLAG_BIT) != 0)
 
 /**
  * @brief A dynamically resizable C-string with Small String Optimization (SSO).
  *
  * This structure implements an efficient string type that stores small strings
- * (up to SSO_MAX_SIZE bytes) directly in the structure to avoid heap allocation,
- * and larger strings on the heap. This provides optimal performance for both
- * small and large strings while maintaining a consistent API.
+ * (up to SSO_MAX_SIZE bytes) directly in the structure to avoid heap
+ * allocation, and larger strings on the heap. This provides optimal performance
+ * for both small and large strings while maintaining a consistent API.
+ * Heap strings can grow dynamically up CSTR_MAX_SIZE.
  *
  * The structure uses a union to overlay stack and heap storage modes:
  * - Stack mode: For strings up to SSO_MAX_SIZE-1 characters
@@ -53,8 +62,8 @@ typedef struct cstr {
             /// @brief Length of the string (excluding null terminator)
             size_t length;
 
-            /// @brief Capacity with heap flag in MSB. Use CSTR_GET_HEAP_CAPACITY() to extract actual
-            /// capacity.
+            /// @brief Capacity with heap flag in MSB. Use CSTR_GET_HEAP_CAPACITY() to
+            /// extract actual capacity.
             size_t capacity;
 
             /// @brief Pointer to heap-allocated string data
@@ -67,7 +76,7 @@ typedef struct cstr {
 
             /// @brief Length of stack string (with potential flags in upper bits)
             unsigned char len;
-        } stack;
+        } stack;  // stack data. Do not use directly!!
     };
 } cstr;
 
@@ -104,7 +113,7 @@ static inline char* cstr_get_data(cstr* s) {
  * @pre s != NULL
  */
 static inline const char* cstr_get_data_const(const cstr* s) {
-    return CSTR_IS_HEAP(s) ? s->heap.data : s->stack.data;
+    return (const char*)(CSTR_IS_HEAP(s) ? s->heap.data : s->stack.data);
 }
 
 /**
@@ -120,9 +129,9 @@ static inline size_t cstr_get_capacity(const cstr* s) {
 /**
  * @brief Sets the length of the string.
  *
- * This function updates the length field without modifying the actual string data.
- * The caller is responsible for ensuring the string data is properly null-terminated
- * and that the length is accurate.
+ * This function updates the length field without modifying the actual string
+ * data. The caller is responsible for ensuring the string data is properly
+ * null-terminated and that the length is accurate.
  *
  * @param s Pointer to the cstr (must not be NULL)
  * @param len New length (must be less than current capacity)
@@ -150,25 +159,21 @@ static inline void cstr_set_length(cstr* s, size_t len) {
  * @return Optimal new capacity, or 0 if overflow would occur
  */
 static size_t calculate_growth_capacity(size_t current_cap, size_t min_needed) {
-    if (min_needed > CSTR_MAX_REASONABLE_SIZE) {
-        return 0;  // Prevent unreasonable allocations
-    }
+    if (min_needed > CSTR_MAX_SIZE) return 0;
 
-    // Ensure minimum heap capacity
-    if (min_needed < CSTR_MIN_HEAP_CAPACITY) {
-        min_needed = CSTR_MIN_HEAP_CAPACITY;
-    }
+    min_needed  = MAX(min_needed, CSTR_MIN_HEAP_CAPACITY);   // ensure min heap capacity
+    current_cap = MAX(current_cap, CSTR_MIN_HEAP_CAPACITY);  // avoid multiplying by 0.
 
-    // Try growth factor approach
-    if (!would_overflow_mul(current_cap, CSTR_GROWTH_FACTOR)) {
-        size_t grown = current_cap * CSTR_GROWTH_FACTOR;
-        if (grown >= min_needed && grown <= CSTR_MAX_REASONABLE_SIZE) {
-            return grown;
-        }
-    }
+    size_t capacity = 0;
+    bool overflow   = false;
 
-    // Fallback to minimum needed
-    return min_needed;
+    // grow capacity as long as we haven't overflow'd and still below required memory.
+    while (!(overflow = ckd_mul(&capacity, current_cap, CSTR_GROWTH_FACTOR)) && capacity < min_needed) {
+        current_cap = capacity;  // update current capacity.
+    };
+
+    if (overflow) return 0;
+    return (overflow || capacity > CSTR_MAX_SIZE) ? 0 : capacity;
 }
 
 /**
@@ -186,10 +191,9 @@ static size_t calculate_growth_capacity(size_t current_cap, size_t min_needed) {
  */
 static bool cstr_promote_to_heap(cstr* s, size_t capacity_needed) {
     assert(!CSTR_IS_HEAP(s));
-    assert(capacity_needed > SSO_MAX_SIZE);
 
     // Prevent overflow attacks
-    if (capacity_needed > CSTR_MAX_REASONABLE_SIZE) {
+    if (capacity_needed > CSTR_MAX_SIZE) {
         return false;
     }
 
@@ -199,12 +203,12 @@ static bool cstr_promote_to_heap(cstr* s, size_t capacity_needed) {
     memcpy(stack_data, s->stack.data, current_len + 1);
 
     // Calculate optimal capacity
-    size_t optimal_capacity = calculate_growth_capacity(SSO_MAX_SIZE, capacity_needed);
-    if (optimal_capacity == 0) {
+    size_t new_capacity = calculate_growth_capacity(SSO_MAX_SIZE, capacity_needed);
+    if (new_capacity == 0) {
         return false;
     }
 
-    char* new_data = malloc(optimal_capacity);
+    char* new_data = ALIGNED_ALLOC(STR_ALIGNMENT, new_capacity);
     if (!new_data) {
         return false;
     }
@@ -214,7 +218,7 @@ static bool cstr_promote_to_heap(cstr* s, size_t capacity_needed) {
 
     s->heap.data     = new_data;
     s->heap.length   = current_len;
-    s->heap.capacity = CSTR_SET_HEAP_CAPACITY(optimal_capacity);
+    s->heap.capacity = CSTR_SET_HEAP_CAPACITY(new_capacity);
 
     return true;
 }
@@ -237,7 +241,7 @@ static bool cstr_ensure_capacity(cstr* s, size_t new_capacity) {
     }
 
     // Prevent overflow attacks
-    if (new_capacity > CSTR_MAX_REASONABLE_SIZE) {
+    if (new_capacity > CSTR_MAX_SIZE) {
         return false;
     }
 
@@ -266,9 +270,9 @@ static bool cstr_ensure_capacity(cstr* s, size_t new_capacity) {
 /**
  * @brief Creates a new empty cstr with specified initial capacity.
  *
- * Creates a new dynamically allocated cstr with at least the requested capacity.
- * The string is initialized to empty but can grow up to the specified capacity
- * without reallocation.
+ * Creates a new dynamically allocated cstr with at least the requested
+ * capacity. The string is initialized to empty but can grow up to the specified
+ * capacity without reallocation.
  *
  * @param initial_capacity Requested initial capacity including null terminator
  * @return Pointer to new cstr on success, NULL on allocation failure
@@ -276,15 +280,10 @@ static bool cstr_ensure_capacity(cstr* s, size_t new_capacity) {
  * @note Actual capacity may be larger than requested for optimization
  */
 cstr* cstr_init(size_t initial_capacity) {
-    // Prevent overflow attacks
-    if (initial_capacity > CSTR_MAX_REASONABLE_SIZE) {
-        return NULL;
-    }
+    if (initial_capacity > CSTR_MAX_SIZE) return NULL;
 
     cstr* s = malloc(sizeof(cstr));
-    if (!s) {
-        return NULL;
-    }
+    if (!s) return NULL;
 
     initial_capacity = MAX(initial_capacity, STR_MIN_CAPACITY);
 
@@ -301,7 +300,7 @@ cstr* cstr_init(size_t initial_capacity) {
             return NULL;
         }
 
-        char* data = malloc(optimal_capacity);
+        char* data = ALIGNED_ALLOC(STR_ALIGNMENT, optimal_capacity);
         if (!data) {
             free(s);
             return NULL;
@@ -320,10 +319,12 @@ cstr* cstr_init(size_t initial_capacity) {
  * @brief Creates a new cstr from a C string.
  *
  * Creates a new cstr containing a copy of the input C string. The new string
- * will have exactly the capacity needed to store the input plus room for growth.
+ * will have exactly the capacity needed to store the input plus room for
+ * growth.
  *
  * @param input C string to copy (must be null-terminated, can be NULL)
- * @return Pointer to new cstr on success, NULL on allocation failure or if input is NULL
+ * @return Pointer to new cstr on success, NULL on allocation failure or if
+ * input is NULL
  * @note Caller must call str_free() to release memory
  */
 cstr* cstr_new(const char* input) {
@@ -417,7 +418,7 @@ void cstr_free(cstr* s) {
     }
 
     if (CSTR_IS_HEAP(s)) {
-        free(s->heap.data);
+        ALIGNED_FREE(s->heap.data);
     }
 
     // Clear memory for security
@@ -493,13 +494,8 @@ bool cstr_append(cstr* s, const char* append_str) {
     }
 
     size_t current_len = cstr_get_length(s);
+    size_t new_len     = current_len + append_len;
 
-    // Check for overflow
-    if (WOULD_OVERFLOW_ADD(current_len, append_len) || WOULD_OVERFLOW_ADD(current_len + append_len, 1)) {
-        return false;
-    }
-
-    size_t new_len = current_len + append_len;
     if (!cstr_ensure_capacity(s, new_len + 1)) {
         return false;
     }
@@ -577,7 +573,7 @@ cstr* cstr_format(const char* format, ...) {
     }
 
     // Prevent unreasonably large format results
-    if ((size_t)len >= CSTR_MAX_REASONABLE_SIZE) {
+    if ((size_t)len >= CSTR_MAX_SIZE) {
         va_end(args);
         return NULL;
     }
@@ -602,6 +598,9 @@ cstr* cstr_format(const char* format, ...) {
     return s;
 }
 
+#include <stdarg.h>
+#include <stdio.h>
+
 /**
  * @brief Appends a formatted string to the cstr.
  *
@@ -614,9 +613,7 @@ cstr* cstr_format(const char* format, ...) {
  * @return true on success, false on allocation failure or formatting error
  */
 bool cstr_append_fmt(cstr* s, const char* format, ...) {
-    if (!s || !format) {
-        return false;
-    }
+    if (!s || !format) return false;
 
     va_list args;
     va_start(args, format);
@@ -632,21 +629,9 @@ bool cstr_append_fmt(cstr* s, const char* format, ...) {
         return false;
     }
 
-    if (append_len == 0) {
-        va_end(args);
-        return true;
-    }
-
     size_t current_len = cstr_get_length(s);
+    size_t new_len     = current_len + (size_t)append_len;
 
-    // Check for overflow
-    if (WOULD_OVERFLOW_ADD(current_len, (size_t)append_len) ||
-        WOULD_OVERFLOW_ADD(current_len + (size_t)append_len, 1)) {
-        va_end(args);
-        return false;
-    }
-
-    size_t new_len = current_len + (size_t)append_len;
     if (!cstr_ensure_capacity(s, new_len + 1)) {
         va_end(args);
         return false;
@@ -656,9 +641,7 @@ bool cstr_append_fmt(cstr* s, const char* format, ...) {
     int written = vsnprintf(dest + current_len, (size_t)append_len + 1, format, args);
     va_end(args);
 
-    if (written < 0 || written != append_len) {
-        return false;
-    }
+    if (written != append_len) return false;
 
     cstr_set_length(s, new_len);
     return true;
@@ -677,12 +660,6 @@ bool cstr_append_char(cstr* s, char c) {
     }
 
     size_t current_len = cstr_get_length(s);
-
-    // Check for overflow
-    if (WOULD_OVERFLOW_ADD(current_len, 2)) {
-        return false;
-    }
-
     if (!cstr_ensure_capacity(s, current_len + 2)) {
         return false;
     }
@@ -716,13 +693,7 @@ bool cstr_prepend(cstr* s, const char* prepend_str) {
     }
 
     size_t current_len = cstr_get_length(s);
-
-    // Check for overflow
-    if (WOULD_OVERFLOW_ADD(current_len, prepend_len) || WOULD_OVERFLOW_ADD(current_len + prepend_len, 1)) {
-        return false;
-    }
-
-    size_t new_len = current_len + prepend_len;
+    size_t new_len     = current_len + prepend_len;
     if (!cstr_ensure_capacity(s, new_len + 1)) {
         return false;
     }
@@ -790,12 +761,6 @@ bool cstr_insert(cstr* s, size_t index, const char* insert_str) {
     size_t insert_len = strlen(insert_str);
     if (insert_len == 0) {
         return true;
-    }
-
-    // Check for overflow
-    if (WOULD_OVERFLOW_ADD(current_length, insert_len) ||
-        WOULD_OVERFLOW_ADD(current_length + insert_len, 1)) {
-        return false;
     }
 
     size_t new_length = current_length + insert_len;
@@ -869,7 +834,8 @@ void cstr_clear(cstr* s) {
  *
  * @param s Pointer to the cstr (must not be NULL).
  * @param substr Substring to remove (must not be NULL and not empty).
- * @return Number of occurrences removed. Returns 0 on invalid input or if substring is not found.
+ * @return Number of occurrences removed. Returns 0 on invalid input or if
+ * substring is not found.
  */
 size_t cstr_remove_all(cstr* s, const char* substr) {
     if (!s || !substr || !*substr) {
@@ -906,7 +872,8 @@ size_t cstr_remove_all(cstr* s, const char* substr) {
  *
  * @param s Pointer to the cstr (can be NULL).
  * @param index Index of the character (0-based).
- * @return The character at the index, or '\0' if s is NULL or index is out of bounds.
+ * @return The character at the index, or '\0' if s is NULL or index is out of
+ * bounds.
  */
 char cstr_at(const cstr* s, size_t index) {
     if (!s || index >= cstr_get_length(s)) {
@@ -1051,7 +1018,8 @@ bool cstr_ends_with(const cstr* s, const char* suffix) {
  *
  * @param s Pointer to the cstr (can be NULL).
  * @param substr Substring to find (can be NULL).
- * @return Index of the first occurrence (0-based), or STR_NPOS (-1) if not found or invalid input.
+ * @return Index of the first occurrence (0-based), or STR_NPOS (-1) if not
+ * found or invalid input.
  */
 int cstr_find(const cstr* s, const char* substr) {
     if (!s || !substr) {
@@ -1066,7 +1034,8 @@ int cstr_find(const cstr* s, const char* substr) {
  *
  * @param s Pointer to the cstr (can be NULL).
  * @param substr Substring to find (can be NULL).
- * @return Index of the last occurrence (0-based), or STR_NPOS (-1) if not found or invalid input.
+ * @return Index of the last occurrence (0-based), or STR_NPOS (-1) if not found
+ * or invalid input.
  */
 int cstr_rfind(const cstr* s, const char* substr) {
     if (!s || !substr || !*substr) {
@@ -1099,13 +1068,13 @@ int cstr_rfind(const cstr* s, const char* substr) {
 /**
  * @brief Converts the cstr to lowercase in place.
  *
- * Converts all uppercase characters in the string to their lowercase equivalents.
+ * Converts all uppercase characters in the string to their lowercase
+ * equivalents.
  *
  * @param s Pointer to the cstr (can be NULL).
  */
 void cstr_lower(cstr* s) {
-    if (!s)
-        return;
+    if (!s) return;
 
     char* data    = cstr_get_data(s);
     size_t length = cstr_get_length(s);
@@ -1117,13 +1086,13 @@ void cstr_lower(cstr* s) {
 /**
  * @brief Converts the cstr to uppercase in place.
  *
- * Converts all lowercase characters in the string to their uppercase equivalents.
+ * Converts all lowercase characters in the string to their uppercase
+ * equivalents.
  *
  * @param s Pointer to the cstr (can be NULL).
  */
 void cstr_upper(cstr* s) {
-    if (!s)
-        return;
+    if (!s) return;
     size_t length = cstr_get_length(s);
     char* data    = cstr_get_data(s);
     for (size_t i = 0; i < length; ++i) {
@@ -1142,8 +1111,7 @@ void cstr_upper(cstr* s) {
  * @return true on success, false on allocation failure or invalid input.
  */
 bool cstr_snakecase(cstr* s) {
-    if (!s)
-        return false;
+    if (!s) return false;
 
     size_t original_length = cstr_get_length(s);
     if (original_length == 0) {
@@ -1161,12 +1129,6 @@ bool cstr_snakecase(cstr* s) {
     }
 
     size_t new_length = original_length + underscores;
-
-    // Check for overflow
-    if (WOULD_OVERFLOW_ADD(new_length, 1)) {
-        return false;
-    }
-
     if (!cstr_ensure_capacity(s, new_length + 1)) {
         return false;  // Allocation failure
     }
@@ -1198,8 +1160,8 @@ bool cstr_snakecase(cstr* s) {
  * @brief Converts the cstr to camelCase in place.
  *
  * Converts a string like "snake_case_string" or "PascalCaseString" to
- * "camelCaseString". Removes underscores/spaces and capitalizes the following letter.
- * The first character is converted to lowercase.
+ * "camelCaseString". Removes underscores/spaces and capitalizes the following
+ * letter. The first character is converted to lowercase.
  *
  * @param s Pointer to the cstr (can be NULL).
  */
@@ -1248,8 +1210,8 @@ void cstr_camelcase(cstr* s) {
  * @brief Converts the cstr to PascalCase in place.
  *
  * Converts a string like "snake_case_string" or "camelCaseString" to
- * "PascalCaseString". Removes underscores/spaces and capitalizes the following letter.
- * The first character is converted to uppercase.
+ * "PascalCaseString". Removes underscores/spaces and capitalizes the following
+ * letter. The first character is converted to uppercase.
  *
  * @param s Pointer to the cstr (can be NULL).
  */
@@ -1294,8 +1256,8 @@ void cstr_pascalcase(cstr* s) {
 /**
  * @brief Converts the cstr to Title Case in place.
  *
- * Capitalizes the first character of each word and converts the rest to lowercase.
- * Words are delimited by spaces.
+ * Capitalizes the first character of each word and converts the rest to
+ * lowercase. Words are delimited by spaces.
  *
  * @param s Pointer to the cstr (can be NULL).
  */
@@ -1436,7 +1398,8 @@ void cstr_ltrim(cstr* s) {
 }
 
 /**
- * @brief Removes leading and trailing characters from the cstr in place based on a set of characters.
+ * @brief Removes leading and trailing characters from the cstr in place based
+ * on a set of characters.
  *
  * Removes characters specified in the 'chars' string from both the beginning
  * and the end of the string.
@@ -1475,7 +1438,8 @@ void cstr_trim_chars(cstr* s, const char* chars) {
 
     size_t len = (size_t)(end - start + 1);  // length of the remaining string
     if (start > 0) {
-        memmove(data, data + start, len);  // move the remaining string to the beginning
+        memmove(data, data + start,
+                len);  // move the remaining string to the beginning
     }
     data[len] = '\0';
     cstr_set_length(s, len);
@@ -1486,7 +1450,8 @@ void cstr_trim_chars(cstr* s, const char* chars) {
  *
  * @param str Pointer to the cstr (can be NULL).
  * @param substr Substring to count (can be NULL).
- * @return Number of occurrences. Returns 0 on invalid input or if substring is not found.
+ * @return Number of occurrences. Returns 0 on invalid input or if substring is
+ * not found.
  */
 size_t cstr_count_substr(const cstr* str, const char* substr) {
     if (!str || !substr) {
@@ -1508,14 +1473,11 @@ size_t cstr_count_substr(const cstr* str, const char* substr) {
 
 // Remove characters in str from start index, up to start + length.
 void cstr_remove_substr(cstr* str, size_t start, size_t substr_length) {
-    if (!str)
-        return;
+    if (!str) return;
 
     size_t length = cstr_get_length(str);
-    if (start >= length)
-        return;
-    if (substr_length == 0)
-        return;  // Nothing to remove
+    if (start >= length) return;
+    if (substr_length == 0) return;  // Nothing to remove
 
     // Calculate safe removal length
     if (substr_length > length - start) {
@@ -1574,7 +1536,8 @@ void cstr_remove_char(cstr* s, char c) {
  * @param s Pointer to the cstr (can be NULL).
  * @param start Starting index of the substring (0-based).
  * @param length Length of the substring.
- * @return Pointer to the new cstr containing the substring, or NULL on invalid input or allocation failure.
+ * @return Pointer to the new cstr containing the substring, or NULL on invalid
+ * input or allocation failure.
  */
 cstr* cstr_substr(const cstr* s, size_t start, size_t length) {
     if (!s || start > cstr_get_length(s)) {
@@ -1602,13 +1565,14 @@ cstr* cstr_substr(const cstr* s, size_t start, size_t length) {
 /**
  * @brief Replaces the first occurrence of a substring with another in the cstr.
  *
- * Creates a new cstr where the first occurrence of 'old_str' is replaced by 'new_str'.
+ * Creates a new cstr where the first occurrence of 'old_str' is replaced by
+ * 'new_str'.
  *
  * @param s Pointer to the cstr (can be NULL).
  * @param old_str Substring to replace (can be NULL). Cannot be empty.
  * @param new_str Replacement substring (can be NULL).
- * @return Pointer to the new cstr with the first occurrence replaced, or NULL on invalid input or allocation
- * failure.
+ * @return Pointer to the new cstr with the first occurrence replaced, or NULL
+ * on invalid input or allocation failure.
  */
 cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) {
     if (!s || !old_str || !new_str) {
@@ -1628,17 +1592,14 @@ cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) {
         return cstr_new(s_data);  // No occurrence found, return a copy
     }
 
-    size_t new_len       = strlen(new_str);
-    size_t pos           = (size_t)(found - s_data);
-    size_t remaining_len = s_len - pos - old_len;
+    size_t new_len           = strlen(new_str);
+    size_t pos               = (size_t)(found - s_data);
+    size_t remaining_len     = s_len - pos - old_len;
+    size_t required_capacity = 0;
 
-    // Calculate required capacity for the new string
-    size_t required_capacity;
-    if (WOULD_OVERFLOW_ADD(pos, new_len) || WOULD_OVERFLOW_ADD(pos + new_len, remaining_len) ||
-        WOULD_OVERFLOW_ADD(pos + new_len + remaining_len, 1)) {
-        return NULL;  // Potential overflow
+    if (ckd_add(&required_capacity, (pos + new_len), (remaining_len + 1))) {
+        return NULL;
     }
-    required_capacity = pos + new_len + remaining_len + 1;
 
     cstr* result = cstr_init(required_capacity);
     if (!result) {
@@ -1672,7 +1633,8 @@ cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) {
  * @param s Pointer to the cstr (can be NULL).
  * @param old_sub Substring to replace (can be NULL). Cannot be empty.
  * @param new_sub Replacement substring (can be NULL).
- * @return Pointer to the new cstr with replacements, or NULL on invalid input or allocation failure.
+ * @return Pointer to the new cstr with replacements, or NULL on invalid input
+ * or allocation failure.
  */
 cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) {
     if (!s || !old_sub || !new_sub) {
@@ -1702,15 +1664,18 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
     }
 
     // Calculate estimated result length
-    size_t result_len_estimate;
+    size_t result_len_estimate = 0;
     if (new_len > old_len) {
-        if (would_overflow_mul(count, new_len - old_len) ||
-            WOULD_OVERFLOW_ADD(s_len, count * (new_len - old_len))) {
-            return NULL;  // Potential overflow
+        size_t delta = 0;
+        if (ckd_mul(&delta, count, new_len - old_len) || ckd_add(&result_len_estimate, s_len, delta)) {
+            return 0;  // Overflow detected
         }
-        result_len_estimate = s_len + count * (new_len - old_len);
     } else {
-        result_len_estimate = s_len - count * (old_len - new_len);
+        size_t delta = 0;
+        if (ckd_mul(&delta, count, old_len - new_len)) {
+            return 0;  // Overflow detected
+        }
+        result_len_estimate = s_len >= delta ? s_len - delta : 0;  // Prevent underflow
     }
 
     cstr* result = cstr_init(result_len_estimate + 1);
@@ -1724,9 +1689,9 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
 
     while (*p) {
         // Check if the current position matches the old substring
-        if ((s_len - (p - s_data)) >= old_len && strncmp(p, old_sub, old_len) == 0) {
+        if ((s_len - (size_t)(p - s_data)) >= old_len && strncmp(p, old_sub, old_len) == 0) {
             // Append the new substring
-            if (!cstr_ensure_capacity(result, pos + new_len + (s_len - (p - s_data) - old_len) + 1)) {
+            if (!cstr_ensure_capacity(result, pos + new_len + (s_len - (size_t)(p - s_data) - old_len) + 1)) {
                 cstr_free(result);
                 return NULL;
             }
@@ -1736,7 +1701,7 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
             p += old_len;  // Move past the old substring
         } else {
             // Append the current character
-            if (!cstr_ensure_capacity(result, pos + (s_len - (p - s_data)) + 1)) {
+            if (!cstr_ensure_capacity(result, pos + (s_len - (size_t)(p - s_data)) + 1)) {
                 cstr_free(result);
                 return NULL;
             }
@@ -1753,19 +1718,21 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
  * @brief Splits the cstr into substrings based on a delimiter.
  *
  * Divides the string into an array of new cstr objects, using the delimiter
- * as the separator. Consecutive delimiters result in empty strings in the output array.
+ * as the separator. Consecutive delimiters result in empty strings in the
+ * output array.
  *
  * @param s Pointer to the cstr (can be NULL).
- * @param delim Delimiter string (can be NULL). If empty, returns an array containing a copy of the original
- * string.
- * @param count_out Pointer to store the number of resulting substrings (must not be NULL).
- * @return Array of cstr pointers, or NULL on invalid input or allocation failure.
- *         The caller is responsible for freeing the array and each cstr within it.
+ * @param delim Delimiter string (can be NULL). If empty, returns an array
+ * containing a copy of the original string.
+ * @param count_out Pointer to store the number of resulting substrings (must
+ * not be NULL).
+ * @return Array of cstr pointers, or NULL on invalid input or allocation
+ * failure. The caller is responsible for freeing the array and each cstr within
+ * it.
  */
 cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
     if (!s || !count_out) {
-        if (count_out)
-            *count_out = 0;
+        if (count_out) *count_out = 0;
         return NULL;
     }
 
@@ -1776,8 +1743,7 @@ cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
     // Handle empty delimiter case
     if (!delim || !*delim) {
         cstr** result = malloc(sizeof(cstr*));
-        if (!result)
-            return NULL;
+        if (!result) return NULL;
         result[0] = cstr_new(s_data);
         if (!result[0]) {
             free(result);
@@ -1795,8 +1761,7 @@ cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
     // Estimate capacity (avoid scanning entire string)
     size_t capacity = (s_len / (delim_len * 2)) + 4;  // Heuristic
     cstr** result   = malloc(capacity * sizeof(cstr*));
-    if (!result)
-        return NULL;
+    if (!result) return NULL;
 
     const char* start = s_data;
     const char* end   = s_data + s_len;
@@ -1804,38 +1769,33 @@ cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
 
     while (1) {
         const char* found = strstr(start, delim);
-        if (!found || found >= end)
-            found = end;
+        if (!found || found >= end) found = end;
 
         // Grow array if needed (but less frequently)
         if (count >= capacity) {
             capacity *= 2;
             cstr** new_result = realloc(result, capacity * sizeof(cstr*));
-            if (!new_result)
-                goto error;
+            if (!new_result) goto error;
             result = new_result;
         }
 
-        size_t token_len = found - start;
+        size_t token_len = (size_t)(found - start);
         result[count]    = cstr_init(token_len + 1);
-        if (!result[count])
-            goto error;
+        if (!result[count]) goto error;
 
         memcpy(cstr_get_data(result[count]), start, token_len);
         cstr_get_data(result[count])[token_len] = '\0';
         cstr_set_length(result[count], token_len);
         count++;
 
-        if (found == end)
-            break;
+        if (found == end) break;
         start = found + delim_len;
     }
 
     // Trim to exact size if we over-allocated significantly
     if (capacity > count * 2 && count > 8) {
         cstr** trimmed = realloc(result, count * sizeof(cstr*));
-        if (trimmed)
-            result = trimmed;  // Accept if successful, keep old if not
+        if (trimmed) result = trimmed;  // Accept if successful, keep old if not
     }
 
     *count_out = count;
@@ -1856,11 +1816,12 @@ error:
  * Concatenates an array of cstrs into a single new cstr, separated by the
  * specified delimiter.
  *
- * @param strings Array of cstr pointers (can be NULL or empty). Each cstr pointer must not be NULL.
+ * @param strings Array of cstr pointers (can be NULL or empty). Each cstr
+ * pointer must not be NULL.
  * @param count Number of cstrs in the array.
  * @param delim Delimiter string (can be NULL for no delimiter).
- * @return Pointer to the new cstr with joined strings, or NULL on invalid input or allocation failure.
- *         Returns a new empty cstr if the input array is empty.
+ * @return Pointer to the new cstr with joined strings, or NULL on invalid input
+ * or allocation failure. Returns a new empty cstr if the input array is empty.
  */
 cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
     if (!strings || count == 0) {
@@ -1872,30 +1833,30 @@ cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
 
     // Calculate total length needed
     for (size_t i = 0; i < count; i++) {
+
+        // Invalid input array
         if (!strings[i]) {
-            // Invalid input array
             return NULL;
         }
+
         size_t string_len = cstr_get_length(strings[i]);
-        if (WOULD_OVERFLOW_ADD(total_len, string_len)) {
-            return NULL;  // Potential overflow
+        if (ckd_add(&total_len, total_len, string_len)) {
+            return NULL;
         }
-        total_len += string_len;
 
         if (i < count - 1 && delim_len > 0) {
-            if (WOULD_OVERFLOW_ADD(total_len, delim_len)) {
-                return NULL;  // Potential overflow
+            if (ckd_add(&total_len, total_len, delim_len)) {
+                return NULL;
             }
-            total_len += delim_len;
         }
     }
 
     // Check for overflow with null terminator
-    if (WOULD_OVERFLOW_ADD(total_len, 1)) {
+    if (ckd_add(&total_len, total_len, 1)) {
         return NULL;
     }
 
-    cstr* result = cstr_init(total_len + 1);
+    cstr* result = cstr_init(total_len);
     if (!result) {
         return NULL;
     }
@@ -1909,6 +1870,7 @@ cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
             memcpy(dest + pos, cstr_get_data_const(strings[i]), len);
             pos += len;
         }
+
         if (delim_len > 0 && i < count - 1) {
             memcpy(dest + pos, delim, delim_len);
             pos += delim_len;
@@ -1923,7 +1885,8 @@ cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
  * @brief Creates a new cstr with the contents of the input cstr reversed.
  *
  * @param s Pointer to the cstr (can be NULL).
- * @return Pointer to the new reversed cstr, or NULL on invalid input or allocation failure.
+ * @return Pointer to the new reversed cstr, or NULL on invalid input or
+ * allocation failure.
  */
 cstr* cstr_reverse(const cstr* s) {
     if (!s) {

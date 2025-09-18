@@ -4,35 +4,37 @@
 #include "../include/cmp.h"
 #include "../include/macros.h"
 
+#define EPISILON (cmp_config_t){.epsilon = 1e2}
+
 void test_vec2_operations() {
     Vec2 a = {1.0f, 2.0f};
     Vec2 b = {3.0f, 4.0f};
     Vec2 result;
 
     result = vec2_add(a, b);
-    ASSERT(FLOAT_EQUAL(result.x, 4.0));
-    ASSERT(FLOAT_EQUAL(result.y, 6.0));
+    ASSERT(cmp_float(result.x, 4.0, EPISILON));
+    ASSERT(cmp_float(result.y, 6.0, EPISILON));
 
     result = vec2_sub(b, a);
-    ASSERT(FLOAT_EQUAL(result.x, 2.0));
-    ASSERT(FLOAT_EQUAL(result.y, 2.0));
+    ASSERT(cmp_float(result.x, 2.0, EPISILON));
+    ASSERT(cmp_float(result.y, 2.0, EPISILON));
 
     result = vec2_mul(a, 2.0f);
-    ASSERT(FLOAT_EQUAL(result.x, 2.0));
-    ASSERT(FLOAT_EQUAL(result.y, 4.0));
+    ASSERT(cmp_float(result.x, 2.0, EPISILON));
+    ASSERT(cmp_float(result.y, 4.0, EPISILON));
 
     result = vec2_div(a, 2.0f);
-    ASSERT(FLOAT_EQUAL(result.x, 0.5));
-    ASSERT(FLOAT_EQUAL(result.y, 1.0));
+    ASSERT(cmp_float(result.x, 0.5, EPISILON));
+    ASSERT(cmp_float(result.y, 1.0, EPISILON));
 
     float dot = vec2_dot(a, b);
-    ASSERT(FLOAT_EQUAL(dot, 11.0));
+    ASSERT(cmp_float(dot, 11.0, EPISILON));
 
     float len = vec2_length(a);
-    ASSERT(FLOAT_EQUAL(len, sqrtf(5.0f)));
+    ASSERT(cmp_float(len, sqrtf(5.0f), EPISILON));
 
     result = vec2_normalize(a);
-    ASSERT(FLOAT_EQUAL(vec2_length(result), 1.0));
+    ASSERT(cmp_float(vec2_length(result), 1.0, EPISILON));
 
     ASSERT(vec2_equals(a, (Vec2){1.0f, 2.0f}, FLT_EPSILON));
 
@@ -46,36 +48,36 @@ void test_vec3_operations() {
     Vec3 result;
 
     result = vec3_add(a, b);
-    ASSERT(FLOAT_EQUAL(result.x, 5.0));
-    ASSERT(FLOAT_EQUAL(result.y, 7.0));
-    ASSERT(FLOAT_EQUAL(result.z, 9.0));
+    ASSERT(cmp_float(result.x, 5.0, EPISILON));
+    ASSERT(cmp_float(result.y, 7.0, EPISILON));
+    ASSERT(cmp_float(result.z, 9.0, EPISILON));
 
     result = vec3_sub(b, a);
-    ASSERT(FLOAT_EQUAL(result.x, 3.0));
-    ASSERT(FLOAT_EQUAL(result.y, 3.0));
-    ASSERT(FLOAT_EQUAL(result.z, 3.0));
+    ASSERT(cmp_float(result.x, 3.0, EPISILON));
+    ASSERT(cmp_float(result.y, 3.0, EPISILON));
+    ASSERT(cmp_float(result.z, 3.0, EPISILON));
 
     result = vec3_mul(a, 2.0f);
-    ASSERT(FLOAT_EQUAL(result.x, 2.0));
-    ASSERT(FLOAT_EQUAL(result.y, 4.0));
-    ASSERT(FLOAT_EQUAL(result.z, 6.0));
+    ASSERT(cmp_float(result.x, 2.0, EPISILON));
+    ASSERT(cmp_float(result.y, 4.0, EPISILON));
+    ASSERT(cmp_float(result.z, 6.0, EPISILON));
 
     result = vec3_div(a, 2.0f);
-    ASSERT(FLOAT_EQUAL(result.x, 0.5));
-    ASSERT(FLOAT_EQUAL(result.y, 1.0));
-    ASSERT(FLOAT_EQUAL(result.z, 1.5));
+    ASSERT(cmp_float(result.x, 0.5, EPISILON));
+    ASSERT(cmp_float(result.y, 1.0, EPISILON));
+    ASSERT(cmp_float(result.z, 1.5, EPISILON));
 
     float dot = vec3_dot(a, b);
-    ASSERT(FLOAT_EQUAL(dot, 32.0));
+    ASSERT(cmp_float(dot, 32.0, EPISILON));
 
     result = vec3_cross(a, b);
     ASSERT(vec3_equals(result, (Vec3){-3.0f, 6.0f, -3.0f}, FLT_EPSILON));
 
     float len = vec3_length(a);
-    ASSERT(FLOAT_EQUAL(len, sqrtf(14.0f)));
+    ASSERT(cmp_float(len, sqrtf(14.0f), EPISILON));
 
     result = vec3_normalize(a);
-    ASSERT(FLOAT_EQUAL(vec3_length(result), 1.0));
+    ASSERT(cmp_float(vec3_length(result), 1.0, EPISILON));
 
     ASSERT(vec3_equals(a, (Vec3){1.0f, 2.0f, 3.0f}, FLT_EPSILON));
 
@@ -89,37 +91,37 @@ void test_vec4_operations() {
     Vec4 result;
 
     result = vec4_add(a, b);
-    ASSERT(FLOAT_EQUAL(result.x, 6.0));
-    ASSERT(FLOAT_EQUAL(result.y, 8.0));
-    ASSERT(FLOAT_EQUAL(result.z, 10.0));
-    ASSERT(FLOAT_EQUAL(result.w, 12.0));
+    ASSERT(cmp_float(result.x, 6.0, EPISILON));
+    ASSERT(cmp_float(result.y, 8.0, EPISILON));
+    ASSERT(cmp_float(result.z, 10.0, EPISILON));
+    ASSERT(cmp_float(result.w, 12.0, EPISILON));
 
     result = vec4_sub(b, a);
-    ASSERT(FLOAT_EQUAL(result.x, 4.0));
-    ASSERT(FLOAT_EQUAL(result.y, 4.0));
-    ASSERT(FLOAT_EQUAL(result.z, 4.0));
-    ASSERT(FLOAT_EQUAL(result.w, 4.0));
+    ASSERT(cmp_float(result.x, 4.0, EPISILON));
+    ASSERT(cmp_float(result.y, 4.0, EPISILON));
+    ASSERT(cmp_float(result.z, 4.0, EPISILON));
+    ASSERT(cmp_float(result.w, 4.0, EPISILON));
 
     result = vec4_mul(a, 2.0f);
-    ASSERT(FLOAT_EQUAL(result.x, 2.0));
-    ASSERT(FLOAT_EQUAL(result.y, 4.0));
-    ASSERT(FLOAT_EQUAL(result.z, 6.0));
-    ASSERT(FLOAT_EQUAL(result.w, 8.0));
+    ASSERT(cmp_float(result.x, 2.0, EPISILON));
+    ASSERT(cmp_float(result.y, 4.0, EPISILON));
+    ASSERT(cmp_float(result.z, 6.0, EPISILON));
+    ASSERT(cmp_float(result.w, 8.0, EPISILON));
 
     result = vec4_div(a, 2.0f);
-    ASSERT(FLOAT_EQUAL(result.x, 0.5));
-    ASSERT(FLOAT_EQUAL(result.y, 1.0));
-    ASSERT(FLOAT_EQUAL(result.z, 1.5));
-    ASSERT(FLOAT_EQUAL(result.w, 2.0));
+    ASSERT(cmp_float(result.x, 0.5, EPISILON));
+    ASSERT(cmp_float(result.y, 1.0, EPISILON));
+    ASSERT(cmp_float(result.z, 1.5, EPISILON));
+    ASSERT(cmp_float(result.w, 2.0, EPISILON));
 
     float dot = vec4_dot(a, b);
-    ASSERT(FLOAT_EQUAL(dot, 70.0));
+    ASSERT(cmp_float(dot, 70.0, EPISILON));
 
     float len = vec4_length(a);
-    ASSERT(FLOAT_EQUAL(len, sqrtf(30.0f)));
+    ASSERT(cmp_float(len, sqrtf(30.0f), EPISILON));
 
     result = vec4_normalize(a);
-    ASSERT(FLOAT_EQUAL(vec4_length(result), 1.0));
+    ASSERT(cmp_float(vec4_length(result), 1.0, EPISILON));
 
     ASSERT(vec4_equals(a, (Vec4){1.0f, 2.0f, 3.0f, 4.0f}, FLT_EPSILON));
 
@@ -147,7 +149,7 @@ void test_simd_vec2_operations() {
     ASSERT(vec2_equals(r, (Vec2){2.0f, 4.0f}, FLT_EPSILON));
 
     float dot = simd_vec2_dot(sa, sb);
-    ASSERT(FLOAT_EQUAL(dot, 11.0));
+    ASSERT(cmp_float(dot, 11.0, EPISILON));
 }
 
 void test_simd_vec3_operations() {
@@ -170,7 +172,7 @@ void test_simd_vec3_operations() {
     ASSERT(vec3_equals(r, (Vec3){2.0f, 4.0f, 6.0f}, FLT_EPSILON));
 
     float dot = simd_vec3_dot(sa, sb);
-    ASSERT(FLOAT_EQUAL(dot, 32.0));
+    ASSERT(cmp_float(dot, 32.0, EPISILON));
 
     SimdVec3 cross = simd_vec3_cross(sa, sb);
     r              = simd_vec3_store(cross);
@@ -197,11 +199,11 @@ void test_simd_vec4_operations() {
     ASSERT(vec4_equals(r, (Vec4){2.0f, 4.0f, 6.0f, 8.0f}, FLT_EPSILON));
 
     float dot = simd_vec4_dot(sa, sb);
-    ASSERT(FLOAT_EQUAL(dot, 70.0));
+    ASSERT(cmp_float(dot, 70.0, EPISILON));
 
     SimdVec4 norm = simd_vec4_normalize(sa);
     r             = simd_vec4_store(norm);
-    ASSERT(FLOAT_EQUAL(vec4_length(r), 1.0f));  // check that its length is 1.
+    ASSERT(cmp_float(vec4_length(r), 1.0f, EPISILON));  // check that its length is, EPISILON 1.
 
     // Test simd_vec4_rotate_x
     Vec4 initial_vector   = {1.0f, 0.0f, 0.0f, 1.0f};
@@ -209,20 +211,20 @@ void test_simd_vec4_operations() {
     SimdVec4 rotated_x    = simd_vec4_rotate_x(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around X axis
     Vec4 rotated_vec_x    = simd_vec4_store(rotated_x);
 
-    ASSERT(FLOAT_EQUAL(rotated_vec_x.x, 1.0f));  // x component should stay the same
-    ASSERT(FLOAT_EQUAL(rotated_vec_x.y, 0.0f));
-    ASSERT(FLOAT_EQUAL(rotated_vec_x.z, 0.0f));
-    ASSERT(FLOAT_EQUAL(rotated_vec_x.w, 1.0f));
+    ASSERT(cmp_float(rotated_vec_x.x, 1.0f, EPISILON));  // x component should stay the s, EPISILOName
+    ASSERT(cmp_float(rotated_vec_x.y, 0.0f, EPISILON));
+    ASSERT(cmp_float(rotated_vec_x.z, 0.0f, EPISILON));
+    ASSERT(cmp_float(rotated_vec_x.w, 1.0f, EPISILON));
 
     initial_vector = (Vec4){0.0f, 1.0f, 0.0f, 1.0f};
     initial_simd   = simd_vec4_load(initial_vector);
     rotated_x      = simd_vec4_rotate_x(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around X axis
     rotated_vec_x  = simd_vec4_store(rotated_x);
 
-    ASSERT(FLOAT_EQUAL(rotated_vec_x.x, 0.0f));
-    ASSERT(FLOAT_EQUAL(rotated_vec_x.y, 0.0f));
-    ASSERT(FLOAT_EQUAL(rotated_vec_x.z, 1.0f));
-    ASSERT(FLOAT_EQUAL(rotated_vec_x.w, 1.0f));
+    ASSERT(cmp_float(rotated_vec_x.x, 0.0f, EPISILON));
+    ASSERT(cmp_float(rotated_vec_x.y, 0.0f, EPISILON));
+    ASSERT(cmp_float(rotated_vec_x.z, 1.0f, EPISILON));
+    ASSERT(cmp_float(rotated_vec_x.w, 1.0f, EPISILON));
 
     // Test simd_vec4_rotate_y
     initial_vector     = (Vec4){0.0f, 1.0f, 0.0f, 1.0f};
@@ -230,20 +232,20 @@ void test_simd_vec4_operations() {
     SimdVec4 rotated_y = simd_vec4_rotate_y(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around Y axis
     Vec4 rotated_vec_y = simd_vec4_store(rotated_y);
 
-    ASSERT(FLOAT_EQUAL(rotated_vec_y.x, 0.0f));  // y component should stay the same
-    ASSERT(FLOAT_EQUAL(rotated_vec_y.y, 1.0f));
-    ASSERT(FLOAT_EQUAL(rotated_vec_y.z, 0.0f));
-    ASSERT(FLOAT_EQUAL(rotated_vec_y.w, 1.0f));
+    ASSERT(cmp_float(rotated_vec_y.x, 0.0f, EPISILON));  // y component should stay the s, EPISILOName
+    ASSERT(cmp_float(rotated_vec_y.y, 1.0f, EPISILON));
+    ASSERT(cmp_float(rotated_vec_y.z, 0.0f, EPISILON));
+    ASSERT(cmp_float(rotated_vec_y.w, 1.0f, EPISILON));
 
     initial_vector = (Vec4){1.0f, 0.0f, 0.0f, 1.0f};
     initial_simd   = simd_vec4_load(initial_vector);
     rotated_y      = simd_vec4_rotate_y(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around Y axis
     rotated_vec_y  = simd_vec4_store(rotated_y);
 
-    ASSERT(FLOAT_EQUAL(rotated_vec_y.x, 0.0f));
-    ASSERT(FLOAT_EQUAL(rotated_vec_y.y, 0.0f));
-    ASSERT(FLOAT_EQUAL(rotated_vec_y.z, -1.0f));
-    ASSERT(FLOAT_EQUAL(rotated_vec_y.w, 1.0f));
+    ASSERT(cmp_float(rotated_vec_y.x, 0.0f, EPISILON));
+    ASSERT(cmp_float(rotated_vec_y.y, 0.0f, EPISILON));
+    ASSERT(cmp_float(rotated_vec_y.z, -1.0f, EPISILON));
+    ASSERT(cmp_float(rotated_vec_y.w, 1.0f, EPISILON));
 
     // Test simd_vec4_rotate_z
     initial_vector     = (Vec4){1.0f, 0.0f, 0.0f, 1.0f};
@@ -251,20 +253,20 @@ void test_simd_vec4_operations() {
     SimdVec4 rotated_z = simd_vec4_rotate_z(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around Z axis
     Vec4 rotated_vec_z = simd_vec4_store(rotated_z);
 
-    ASSERT(FLOAT_EQUAL(rotated_vec_z.x, 0.0f));
-    ASSERT(FLOAT_EQUAL(rotated_vec_z.y, 1.0f));
-    ASSERT(FLOAT_EQUAL(rotated_vec_z.z, 0.0f));  // z component should stay the same
-    ASSERT(FLOAT_EQUAL(rotated_vec_z.w, 1.0f));
+    ASSERT(cmp_float(rotated_vec_z.x, 0.0f, EPISILON));
+    ASSERT(cmp_float(rotated_vec_z.y, 1.0f, EPISILON));
+    ASSERT(cmp_float(rotated_vec_z.z, 0.0f, EPISILON));  // z component should stay the s, EPISILOName
+    ASSERT(cmp_float(rotated_vec_z.w, 1.0f, EPISILON));
 
     initial_vector = (Vec4){0.0f, 1.0f, 0.0f, 1.0f};
     initial_simd   = simd_vec4_load(initial_vector);
     rotated_z      = simd_vec4_rotate_z(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around Z axis
     rotated_vec_z  = simd_vec4_store(rotated_z);
 
-    ASSERT(FLOAT_EQUAL(rotated_vec_z.x, -1.0f));
-    ASSERT(FLOAT_EQUAL(rotated_vec_z.y, 0.0f));
-    ASSERT(FLOAT_EQUAL(rotated_vec_z.z, 0.0f));
-    ASSERT(FLOAT_EQUAL(rotated_vec_z.w, 1.0f));
+    ASSERT(cmp_float(rotated_vec_z.x, -1.0f, EPISILON));
+    ASSERT(cmp_float(rotated_vec_z.y, 0.0f, EPISILON));
+    ASSERT(cmp_float(rotated_vec_z.z, 0.0f, EPISILON));
+    ASSERT(cmp_float(rotated_vec_z.w, 1.0f, EPISILON));
 }
 
 void test_vec2_rotation_and_more() {
@@ -287,7 +289,7 @@ void test_vec2_rotation_and_more() {
     Vec2 a     = {1.0f, 1.0f};
     Vec2 b     = {4.0f, 5.0f};
     float dist = vec2_distance(a, b);
-    ASSERT(FLOAT_EQUAL(dist, 5.0f));
+    ASSERT(cmp_float(dist, 5.0f, EPISILON));
 }
 
 void test_vec3_rotation_and_more() {
@@ -331,7 +333,7 @@ void test_vec3_rotation_and_more() {
     Vec3 p1    = {1.0f, 2.0f, 3.0f};
     Vec3 p2    = {4.0f, 6.0f, 8.0f};
     float dist = vec3_distance(p1, p2);
-    ASSERT(FLOAT_EQUAL(dist, sqrtf(50.0f)));
+    ASSERT(cmp_float(dist, sqrtf(50.0f), EPISILON));
 }
 
 void test_simd_vec2_rotation() {

@@ -8,7 +8,7 @@
 #include <string.h>
 #include <time.h>
 
-#define NUM_THREADS 4
+#define NUM_THREADS            16
 #define STRESS_TEST_ITERATIONS 100000
 
 // Helper function to print test results
@@ -18,8 +18,7 @@ void print_test_result(const char* test_name, int success) {
 
 // Helper function to validate writing to a pointer
 int validate_writing(void* ptr, size_t size) {
-    if (!ptr)
-        return 0;
+    if (!ptr) return 0;
 
     // Write a pattern to the memory
     memset(ptr, 0xAA, size);
@@ -36,8 +35,7 @@ int validate_writing(void* ptr, size_t size) {
 
 // Helper function to validate string allocation
 int validate_string_allocation(char* str, const char* expected) {
-    if (!str)
-        return 0;
+    if (!str) return 0;
 
     // Verify the string content and length
     size_t length = strlen(expected);
@@ -52,20 +50,12 @@ int validate_string_allocation(char* str, const char* expected) {
 static void* thread_func(void* arg) {
     Arena* arena = (Arena*)arg;
 
-    // Allocate and reallocate memory in the thread
-    char* str = arena_alloc_string(arena, "Thread initial allocation");
-    if (!str || !validate_writing(str, strlen("Thread initial allocation") + 1)) {
-        printf("Thread %zu: Initial allocation failed\n", thread_self());
+    const char s[] = "Thread initial allocation";
+    char* str      = arena_alloc_string(arena, s);
+    if (!str || !validate_writing(str, sizeof(s))) {
+        printf("Thread %zu: arena_alloc_string failed\n", thread_self());
         return NULL;
     }
-
-    // Reallocate to a larger size
-    str = arena_realloc(arena, str, 50);
-    if (!str || !validate_writing(str, 50)) {
-        printf("Thread %zu: Reallocation failed\n", thread_self());
-        return NULL;
-    }
-    strcpy(str, "Thread reallocated string");
 
     // Allocate another chunk
     int* numbers = arena_alloc(arena, sizeof(int) * 10);
@@ -73,15 +63,9 @@ static void* thread_func(void* arg) {
         printf("Thread %zu: Array allocation failed\n", thread_self());
         return NULL;
     }
+
     for (int i = 0; i < 10; i++) {
         numbers[i] = i;
-    }
-
-    // Reallocate the array to a smaller size
-    numbers = arena_realloc(arena, numbers, sizeof(int) * 5);
-    if (!numbers || !validate_writing(numbers, sizeof(int) * 5)) {
-        printf("Thread %zu: Array reallocation failed\n", thread_self());
-        return NULL;
     }
 
     return NULL;
@@ -106,35 +90,6 @@ void test_basic_allocations(void) {
     void* zero_alloc = arena_alloc(arena, 0);
     int test3_pass   = (zero_alloc == NULL);
     print_test_result("Allocation of zero bytes", test3_pass);
-
-    arena_destroy(arena);
-}
-
-// Test reallocations
-void test_reallocations(void) {
-    Arena* arena = arena_create(1024);  // 1 KB arena
-    ASSERT(arena);
-
-    // Allocate a string and reallocate to a larger size
-    char* str      = arena_alloc_string(arena, "Hello");
-    str            = arena_realloc(arena, str, 20);
-    int test1_pass = validate_string_allocation(str, "Hello");
-    print_test_result("Reallocation to larger size", test1_pass);
-
-    // Reallocate to a smaller size
-    str            = arena_realloc(arena, str, 5);
-    int test2_pass = (str != NULL && strncmp(str, "Hello", 4) == 0);
-    print_test_result("Reallocation to smaller size", test2_pass);
-
-    // Reallocate NULL (should act like alloc)
-    char* new_str  = arena_realloc(arena, NULL, 10);
-    int test3_pass = (new_str != NULL && validate_writing(new_str, 10));
-    print_test_result("Reallocation of NULL pointer", test3_pass);
-
-    // Reallocate to zero bytes (should free the memory)
-    new_str        = arena_realloc(arena, new_str, 0);
-    int test4_pass = (new_str == NULL);
-    print_test_result("Reallocation to zero bytes", test4_pass);
 
     arena_destroy(arena);
 }
@@ -174,24 +129,6 @@ void stress_test_arena(void) {
             arena_destroy(arena);
             return;
         }
-
-        // Reallocate to a larger size
-        str = arena_realloc(arena, str, 100);
-        if (!str || !validate_writing(str, 100)) {
-            printf("Stress test failed at iteration %d\n", i);
-            ASSERT(str);
-            arena_destroy(arena);
-            return;
-        }
-
-        // Reallocate to a smaller size
-        str = arena_realloc(arena, str, 10);
-        if (!str || !validate_writing(str, 10)) {
-            printf("Stress test failed at iteration %d\n", i);
-            ASSERT(str);
-            arena_destroy(arena);
-            return;
-        }
     }
 
     print_test_result("Stress test (alloc/realloc)", 1);  // Pass if no crashes
@@ -217,11 +154,21 @@ void test_arena_allocbatch(void) {
     arena_destroy(arena);
 }
 
+void test_arena_alloc_array(void) {
+    Arena* arena = arena_create(sizeof(int) * 10);
+    ASSERT(arena);
+
+    int* arr = arena_alloc_array(arena, sizeof(int), 10);
+    ASSERT(arr);
+    print_test_result("Arena Alloc Array", 1);
+    arena_destroy(arena);
+}
+
 int main(void) {
     // Run all tests
     test_basic_allocations();
-    test_reallocations();
     test_arena_allocbatch();
+    test_arena_alloc_array();
     test_multithreaded_allocations();
     stress_test_arena();
 

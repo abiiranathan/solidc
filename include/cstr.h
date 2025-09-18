@@ -25,9 +25,9 @@ STATIC_CHECK_POWER_OF_2(STR_MIN_CAPACITY);
  * @brief A dynamically resizable C-string with Small String Optimization (SSO).
  *
  * This structure implements an efficient string type that stores small strings
- * (up to SSO_MAX_SIZE (24 bytes) ) directly in the structure to avoid heap allocation,
- * and larger strings on the heap. This provides optimal performance for both
- * small and large strings while maintaining a consistent API.
+ * (up to SSO_MAX_SIZE (24 bytes) ) directly in the structure to avoid heap
+ * allocation, and larger strings on the heap. This provides optimal performance
+ * for both small and large strings while maintaining a consistent API.
  *
  * The structure uses a union to overlay stack and heap storage modes:
  * - Stack mode: For strings up to SSO_MAX_SIZE-1 characters
@@ -48,9 +48,9 @@ typedef struct {
 /**
  * @brief Creates a new empty cstr with specified initial capacity.
  *
- * Creates a new dynamically allocated cstr with at least the requested capacity.
- * The string is initialized to empty but can grow up to the specified capacity
- * without reallocation.
+ * Creates a new dynamically allocated cstr with at least the requested
+ * capacity. The string is initialized to empty but can grow up to the specified
+ * capacity without reallocation.
  *
  * @param initial_capacity Requested initial capacity including null terminator
  * @return Pointer to new cstr on success, NULL on allocation failure
@@ -63,10 +63,12 @@ typedef struct {
  * @brief Creates a new cstr from a C string.
  *
  * Creates a new cstr containing a copy of the input C string. The new string
- * will have exactly the capacity needed to store the input plus room for growth.
+ * will have exactly the capacity needed to store the input plus room for
+ * growth.
  *
  * @param input C string to copy (must be null-terminated, can be NULL)
- * @return Pointer to new cstr on success, NULL on allocation failure or if input is NULL
+ * @return Pointer to new cstr on success, NULL on allocation failure or if
+ * input is NULL
  * @note Caller must call str_free() to release memory
  */
 [[nodiscard]] cstr* cstr_new(const char* input);
@@ -264,7 +266,8 @@ void cstr_clear(cstr* s);
  *
  * @param s Pointer to the cstr (must not be NULL).
  * @param substr Substring to remove (must not be NULL and not empty).
- * @return Number of occurrences removed. Returns 0 on invalid input or if substring is not found.
+ * @return Number of occurrences removed. Returns 0 on invalid input or if
+ * substring is not found.
  */
 size_t cstr_remove_all(cstr* s, const char* substr);
 
@@ -273,7 +276,8 @@ size_t cstr_remove_all(cstr* s, const char* substr);
  *
  * @param s Pointer to the cstr (can be NULL).
  * @param index Index of the character (0-based).
- * @return The character at the index, or '\0' if s is NULL or index is out of bounds.
+ * @return The character at the index, or '\0' if s is NULL or index is out of
+ * bounds.
  */
 char cstr_at(const cstr* s, size_t index);
 
@@ -364,7 +368,8 @@ bool cstr_ends_with(const cstr* s, const char* suffix);
  *
  * @param s Pointer to the cstr (can be NULL).
  * @param substr Substring to find (can be NULL).
- * @return Index of the first occurrence (0-based), or STR_NPOS (-1) if not found or invalid input.
+ * @return Index of the first occurrence (0-based), or STR_NPOS (-1) if not
+ * found or invalid input.
  */
 int cstr_find(const cstr* s, const char* substr);
 
@@ -373,7 +378,8 @@ int cstr_find(const cstr* s, const char* substr);
  *
  * @param s Pointer to the cstr (can be NULL).
  * @param substr Substring to find (can be NULL).
- * @return Index of the last occurrence (0-based), or STR_NPOS (-1) if not found or invalid input.
+ * @return Index of the last occurrence (0-based), or STR_NPOS (-1) if not found
+ * or invalid input.
  */
 int cstr_rfind(const cstr* s, const char* substr);
 
@@ -382,7 +388,8 @@ int cstr_rfind(const cstr* s, const char* substr);
 /**
  * @brief Converts the cstr to lowercase in place.
  *
- * Converts all uppercase characters in the string to their lowercase equivalents.
+ * Converts all uppercase characters in the string to their lowercase
+ * equivalents.
  *
  * @param s Pointer to the cstr (can be NULL).
  */
@@ -391,7 +398,8 @@ void cstr_lower(cstr* s);
 /**
  * @brief Converts the cstr to uppercase in place.
  *
- * Converts all lowercase characters in the string to their uppercase equivalents.
+ * Converts all lowercase characters in the string to their uppercase
+ * equivalents.
  *
  * @param s Pointer to the cstr (can be NULL).
  */
@@ -413,8 +421,8 @@ bool cstr_snakecase(cstr* s);
  * @brief Converts the cstr to camelCase in place.
  *
  * Converts a string like "snake_case_string" or "PascalCaseString" to
- * "camelCaseString". Removes underscores/spaces and capitalizes the following letter.
- * The first character is converted to lowercase.
+ * "camelCaseString". Removes underscores/spaces and capitalizes the following
+ * letter. The first character is converted to lowercase.
  *
  * @param s Pointer to the cstr (can be NULL).
  */
@@ -424,8 +432,8 @@ void cstr_camelcase(cstr* s);
  * @brief Converts the cstr to PascalCase in place.
  *
  * Converts a string like "snake_case_string" or "camelCaseString" to
- * "PascalCaseString". Removes underscores/spaces and capitalizes the following letter.
- * The first character is converted to uppercase.
+ * "PascalCaseString". Removes underscores/spaces and capitalizes the following
+ * letter. The first character is converted to uppercase.
  *
  * @param s Pointer to the cstr (can be NULL).
  */
@@ -434,8 +442,8 @@ void cstr_pascalcase(cstr* s);
 /**
  * @brief Converts the cstr to Title Case in place.
  *
- * Capitalizes the first character of each word and converts the rest to lowercase.
- * Words are delimited by spaces.
+ * Capitalizes the first character of each word and converts the rest to
+ * lowercase. Words are delimited by spaces.
  *
  * @param s Pointer to the cstr (can be NULL).
  */
@@ -472,7 +480,8 @@ void cstr_rtrim(cstr* s);
 void cstr_ltrim(cstr* s);
 
 /**
- * @brief Removes leading and trailing characters from the cstr in place based on a set of characters.
+ * @brief Removes leading and trailing characters from the cstr in place based
+ * on a set of characters.
  *
  * Removes characters specified in the 'chars' string from both the beginning
  * and the end of the string.
@@ -487,7 +496,8 @@ void cstr_trim_chars(cstr* str, const char* chars);
  *
  * @param str Pointer to the cstr (can be NULL).
  * @param substr Substring to count (can be NULL).
- * @return Number of occurrences. Returns 0 on invalid input or if substring is not found.
+ * @return Number of occurrences. Returns 0 on invalid input or if substring is
+ * not found.
  */
 size_t cstr_count_substr(const cstr* str, const char* substr);
 
@@ -522,20 +532,22 @@ void cstr_remove_char(cstr* s, char c);
  * @param s Pointer to the cstr (can be NULL).
  * @param start Starting index of the substring (0-based).
  * @param length Length of the substring.
- * @return Pointer to the new cstr containing the substring, or NULL on invalid input or allocation failure.
+ * @return Pointer to the new cstr containing the substring, or NULL on invalid
+ * input or allocation failure.
  */
 [[nodiscard]] cstr* cstr_substr(const cstr* s, size_t start, size_t length);
 
 /**
  * @brief Replaces the first occurrence of a substring with another in the cstr.
  *
- * Creates a new cstr where the first occurrence of 'old_str' is replaced by 'new_str'.
+ * Creates a new cstr where the first occurrence of 'old_str' is replaced by
+ * 'new_str'.
  *
  * @param s Pointer to the cstr (can be NULL).
  * @param old_str Substring to replace (can be NULL). Cannot be empty.
  * @param new_str Replacement substring (can be NULL).
- * @return Pointer to the new cstr with the first occurrence replaced, or NULL on invalid input or allocation
- * failure.
+ * @return Pointer to the new cstr with the first occurrence replaced, or NULL
+ * on invalid input or allocation failure.
  */
 [[nodiscard]] cstr* cstr_replace(const cstr* s, const char* old, const char* new_str);
 
@@ -548,7 +560,8 @@ void cstr_remove_char(cstr* s, char c);
  * @param s Pointer to the cstr (can be NULL).
  * @param old_sub Substring to replace (can be NULL). Cannot be empty.
  * @param new_sub Replacement substring (can be NULL).
- * @return Pointer to the new cstr with replacements, or NULL on invalid input or allocation failure.
+ * @return Pointer to the new cstr with replacements, or NULL on invalid input
+ * or allocation failure.
  */
 [[nodiscard]] cstr* cstr_replace_all(const cstr* s, const char* old, const char* new_str);
 
@@ -558,14 +571,17 @@ void cstr_remove_char(cstr* s, char c);
  * @brief Splits the cstr into substrings based on a delimiter.
  *
  * Divides the string into an array of new cstr objects, using the delimiter
- * as the separator. Consecutive delimiters result in empty strings in the output array.
+ * as the separator. Consecutive delimiters result in empty strings in the
+ * output array.
  *
  * @param s Pointer to the cstr (can be NULL).
- * @param delim Delimiter string (can be NULL). If empty, returns an array containing a copy of the original
- * string.
- * @param count_out Pointer to store the number of resulting substrings (must not be NULL).
- * @return Array of cstr pointers, or NULL on invalid input or allocation failure.
- *         The caller is responsible for freeing the array and each cstr within it.
+ * @param delim Delimiter string (can be NULL). If empty, returns an array
+ * containing a copy of the original string.
+ * @param count_out Pointer to store the number of resulting substrings (must
+ * not be NULL).
+ * @return Array of cstr pointers, or NULL on invalid input or allocation
+ * failure. The caller is responsible for freeing the array and each cstr within
+ * it.
  */
 [[nodiscard]] cstr** cstr_split(const cstr* s, const char* delim, size_t* count);
 
@@ -575,11 +591,12 @@ void cstr_remove_char(cstr* s, char c);
  * Concatenates an array of cstrs into a single new cstr, separated by the
  * specified delimiter.
  *
- * @param strings Array of cstr pointers (can be NULL or empty). Each cstr pointer must not be NULL.
+ * @param strings Array of cstr pointers (can be NULL or empty). Each cstr
+ * pointer must not be NULL.
  * @param count Number of cstrs in the array.
  * @param delim Delimiter string (can be NULL for no delimiter).
- * @return Pointer to the new cstr with joined strings, or NULL on invalid input or allocation failure.
- *         Returns a new empty cstr if the input array is empty.
+ * @return Pointer to the new cstr with joined strings, or NULL on invalid input
+ * or allocation failure. Returns a new empty cstr if the input array is empty.
  */
 [[nodiscard]] cstr* cstr_join(const cstr** strings, size_t count, const char* delim);
 
@@ -587,12 +604,14 @@ void cstr_remove_char(cstr* s, char c);
  * @brief Creates a new cstr with the contents of the input cstr reversed.
  *
  * @param s Pointer to the cstr (can be NULL).
- * @return Pointer to the new reversed cstr, or NULL on invalid input or allocation failure.
+ * @return Pointer to the new reversed cstr, or NULL on invalid input or
+ * allocation failure.
  */
 [[nodiscard]] cstr* cstr_reverse(const cstr* s);
 
 /**
- * @brief Removes leading and trailing characters from the cstr in place based on a set of characters.
+ * @brief Removes leading and trailing characters from the cstr in place based
+ * on a set of characters.
  *
  * Removes characters specified in the 'chars' string from both the beginning
  * and the end of the string.

@@ -726,7 +726,8 @@ ProcessError process_wait(ProcessHandle* handle, ProcessResult* result, int time
  * @brief Terminate a running process
  *
  * @param[in] handle Process handle
- * @param[in] force If true, force immediate termination (SIGKILL/TerminateProcess)
+ * @param[in] force If true, force immediate termination
+ * (SIGKILL/TerminateProcess)
  * @return PROCESS_SUCCESS on success, error code otherwise
  */
 ProcessError process_terminate(ProcessHandle* handle, bool force) {
@@ -1045,7 +1046,8 @@ ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd
             exit(EXIT_FAILURE);
         }
 
-        // Close the write ends of the pipes (they are now duplicated to stdout/stderr)
+        // Close the write ends of the pipes (they are now duplicated to
+        // stdout/stderr)
         close(stdout_pipe[1]);
         close(stderr_pipe[1]);
 
@@ -1103,7 +1105,8 @@ ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd
     pid_t stderr_tee_pid = fork();
     if (stderr_tee_pid < 0) {
         perror("fork tee (stderr)");
-        // Clean up pipes and wait for the command and stdout tee processes if fork fails
+        // Clean up pipes and wait for the command and stdout tee processes if fork
+        // fails
         close(stdout_pipe[0]);
         close(stderr_pipe[0]);
         waitpid(cmd_pid, NULL, 0);         // Wait for the command process

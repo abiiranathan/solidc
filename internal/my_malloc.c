@@ -14,14 +14,14 @@
 
 /********************* Configuration *********************/
 
-#define INITIAL_POOL_SIZE (1024 * 1024)  // 1MB initial pool size
-#define POOL_GROWTH_FACTOR 2             // How much to grow pool when full
-#define MAX_POOLS 16                     // Maximum number of memory pools
-#define ALIGNMENT 16                     // Alignment requirement (16 bytes)
-#define MIN_BLOCK_SIZE 32                // Minimum block size including header
+#define INITIAL_POOL_SIZE  (1024 * 1024)  // 1MB initial pool size
+#define POOL_GROWTH_FACTOR 2              // How much to grow pool when full
+#define MAX_POOLS          16             // Maximum number of memory pools
+#define ALIGNMENT          16             // Alignment requirement (16 bytes)
+#define MIN_BLOCK_SIZE     32             // Minimum block size including header
 
 // Magic numbers for block validation
-#define MAGIC_FREE 0xDEADBEEF
+#define MAGIC_FREE      0xDEADBEEF
 #define MAGIC_ALLOCATED 0xBEEFDEAD
 
 /********************* Data Structures *********************/

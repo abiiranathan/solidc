@@ -13,7 +13,7 @@
 
 #define CACHE_LINE_SIZE 64
 
-#define LOCK_INIT(mutex) (ARENA_NOLOCK == 0 ? lock_init(mutex) : (void)mutex)
+#define LOCK_INIT(mutex)    (ARENA_NOLOCK == 0 ? lock_init(mutex) : (void)mutex)
 #define LOCK_ACQUIRE(mutex) (ARENA_NOLOCK == 0 ? lock_acquire(mutex) : (void)mutex)
 #define LOCK_RELEASE(mutex) (ARENA_NOLOCK == 0 ? lock_release(mutex) : (void)mutex)
 #define LOCK_DESTROY(mutex) (ARENA_NOLOCK == 0 ? lock_free(mutex) : (void)mutex)
@@ -98,8 +98,7 @@ Arena* arena_create(size_t chunk_size) {
 }
 
 void arena_destroy(Arena* arena) {
-    if (!arena)
-        return;
+    if (!arena) return;
 
     Chunk* chunk = arena->head;
     while (chunk != NULL) {
@@ -238,8 +237,7 @@ void* arena_realloc(Arena* arena, void* ptr, size_t size) {
                 // Ensure null termination if shrinking past original data
                 if (size < old_size) {
                     char* new_end = (char*)ptr + size - 1;
-                    if (size > 1 && *new_end != '\0')
-                        *new_end = '\0';
+                    if (size > 1 && *new_end != '\0') *new_end = '\0';
                 }
                 LOCK_RELEASE(&arena->lock);
                 return ptr;

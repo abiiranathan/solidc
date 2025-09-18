@@ -75,15 +75,12 @@ entry* map_get_entries(Map* m) {
 
 // Map destruction
 void map_destroy(Map* m) {
-    if (!m)
-        return;
+    if (!m) return;
 
     if (m->free_entries) {
         for (size_t i = 0; i < m->capacity; i++) {
-            if (m->entries[i].key)
-                free((void*)m->entries[i].key);
-            if (m->entries[i].value)
-                free(m->entries[i].value);
+            if (m->entries[i].key) free((void*)m->entries[i].key);
+            if (m->entries[i].value) free(m->entries[i].value);
         }
     }
 
@@ -151,8 +148,7 @@ void map_set(Map* m, void* key, void* value) {
         index = (index + i * i) % m->capacity;  // Quadratic probing
     }
 
-    if (!m->entries[index].key)
-        m->size++;
+    if (!m->entries[index].key) m->size++;
     m->entries[index].key   = key;
     m->entries[index].value = value;
     m->deleted_bitmap[index / 8] &= ~(1 << (index % 8));  // Clear deleted flag

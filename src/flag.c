@@ -1,7 +1,7 @@
 #include <stdarg.h>
 
 #include "../include/flag.h"
-#include "../include/strton.h"
+#include "../include/str_to_num.h"
 
 typedef struct Flag {
     bool required;              // Whether this flag must be passed
@@ -20,8 +20,7 @@ typedef struct Command {
     char* description;                 // Description
     void (*handler)(struct Command*);  // The handler function
     size_t num_flags;                  // Subcommand flags
-    Flag flags[MAX_SUBCOMMAND_FLAGS];  // Array of flags registered for this
-                                       // subcommand
+    Flag flags[MAX_SUBCOMMAND_FLAGS];  // Array of flags registered for this subcommand
 } Command;
 
 // Global flag context.
@@ -36,8 +35,8 @@ static FlagCtx* ctx       = &(FlagCtx){0};  // Initialize global context pointer
 static char* PROGRAM_NAME = NULL;           // Program name, argv[0]
 
 // Comparison for the (cstr) vs (const char*)
-#define STREQ(s1, s2) (strcmp(s1, s2) == 0)
-#define SAFE_STR(s) ((s) ? (s) : "")
+#define STREQ(s1, s2)      (strcmp(s1, s2) == 0)
+#define SAFE_STR(s)        ((s) ? (s) : "")
 #define IS_VALID_STRING(s) ((s) != NULL && (s)[0] != '\0')
 
 static inline bool is_valid_flag_type(FlagType type) {
@@ -164,8 +163,7 @@ Flag* AddFlag(FlagType type, const char* name, char short_name, const char* desc
 
 static inline void format_flag_str(char* buf, size_t buf_size, const char* name, char short_name,
                                    size_t max_name_len) {
-    if (buf_size < 1)
-        return;
+    if (buf_size < 1) return;
     int written = snprintf(buf, buf_size, "--%-*s | -%c", (int)max_name_len, SAFE_STR(name), short_name);
     if (written < 0 || (size_t)written >= buf_size) {
         buf[buf_size - 1] = '\0';  // Ensure null-termination
@@ -187,8 +185,7 @@ void FlagUsage(const char* program_name) {
     // Check global flags
     for (size_t i = 0; i < ctx->num_flags; i++) {
         const Flag* flag = &ctx->flags[i];
-        if (!flag->name)
-            continue;
+        if (!flag->name) continue;
         size_t len = strlen(flag->name);
         if (len > max_long_flag_name_len) {
             max_long_flag_name_len = len;
@@ -218,8 +215,7 @@ void FlagUsage(const char* program_name) {
     // Calculate lengths for other global flags
     for (size_t i = 0; i < ctx->num_flags; i++) {
         const Flag* flag = &ctx->flags[i];
-        if (!flag->name)
-            continue;
+        if (!flag->name) continue;
 
         format_flag_str(test_buf, sizeof(test_buf), flag->name, flag->short_name, max_long_flag_name_len);
 
@@ -240,8 +236,7 @@ void FlagUsage(const char* program_name) {
     // Print each global flag
     for (size_t i = 0; i < ctx->num_flags; i++) {
         const Flag* flag = &ctx->flags[i];
-        if (!flag->name || !flag->description)
-            continue;
+        if (!flag->name || !flag->description) continue;
 
         char flag_str[LINE_BUF_SIZE];
         format_flag_str(flag_str, sizeof(flag_str), flag->name, flag->short_name, max_long_flag_name_len);
@@ -265,8 +260,7 @@ void FlagUsage(const char* program_name) {
         const Command* subcmd = &ctx->commands[i];
         for (size_t j = 0; j < subcmd->num_flags; j++) {
             const Flag* flag = &subcmd->flags[j];
-            if (!flag->name)
-                continue;
+            if (!flag->name) continue;
 
             format_flag_str(test_buf, sizeof(test_buf), flag->name, flag->short_name, max_long_flag_name_len);
             size_t len = strlen(test_buf);
@@ -282,8 +276,7 @@ void FlagUsage(const char* program_name) {
     // Print each subcommand
     for (size_t i = 0; i < ctx->num_cmd; i++) {
         const Command* subcmd = &ctx->commands[i];
-        if (!subcmd->name || !subcmd->description)
-            continue;
+        if (!subcmd->name || !subcmd->description) continue;
 
         printf("  %-*s: %s\n", (int)max_subcmd_len, subcmd->name, subcmd->description);
 
@@ -292,8 +285,7 @@ void FlagUsage(const char* program_name) {
             // length
             for (size_t j = 0; j < subcmd->num_flags; j++) {
                 const Flag* flag = &subcmd->flags[j];
-                if (!flag->name || !flag->description)
-                    continue;
+                if (!flag->name || !flag->description) continue;
 
                 char flag_str[LINE_BUF_SIZE];
                 format_flag_str(flag_str, sizeof(flag_str), flag->name, flag->short_name,
@@ -361,44 +353,44 @@ static void parse_flag_value(Flag* flag, const char* value) {
             if (value == NULL || strlen(value) == 1 || strncmp(value, "-", 1) == 0) {
                 *(bool*)flag->value = true;
             } else {
-                code = sto_bool(value, (bool*)flag->value);
+                code = str_to_bool(value, (bool*)flag->value);
             }
             break;
         case FLAG_FLOAT:
-            code = sto_float(value, (float*)flag->value);
+            code = str_to_float(value, (float*)flag->value);
             break;
         case FLAG_DOUBLE:
-            code = sto_double(value, (double*)flag->value);
+            code = str_to_double(value, (double*)flag->value);
             break;
         case FLAG_INT:
-            code = sto_int(value, (int*)flag->value);
+            code = str_to_int(value, (int*)flag->value);
             break;
         case FLAG_INT8:
-            code = sto_int8(value, (int8_t*)flag->value);
+            code = str_to_i8(value, (int8_t*)flag->value);
             break;
         case FLAG_INT16:
-            code = sto_int16(value, (int16_t*)flag->value);
+            code = str_to_i16(value, (int16_t*)flag->value);
             break;
         case FLAG_INT32:
-            code = sto_int32(value, (int32_t*)flag->value);
+            code = str_to_i32(value, (int32_t*)flag->value);
             break;
         case FLAG_INT64:
-            code = sto_int64(value, (int64_t*)flag->value);
+            code = str_to_i64(value, (int64_t*)flag->value);
             break;
         case FLAG_UINT:
-            code = sto_uint(value, (unsigned int*)flag->value);
+            code = str_to_uint(value, (unsigned int*)flag->value);
             break;
         case FLAG_UINT8:
-            code = sto_uint8(value, (uint8_t*)flag->value);
+            code = str_to_u8(value, (uint8_t*)flag->value);
             break;
         case FLAG_UINT16:
-            code = sto_int16(value, (int16_t*)flag->value);
+            code = str_to_u16(value, (uint16_t*)flag->value);
             break;
         case FLAG_UINT32:
-            code = sto_uint32(value, (uint32_t*)flag->value);
+            code = str_to_u32(value, (uint32_t*)flag->value);
             break;
         case FLAG_UINT64:
-            code = sto_uint64(value, (uint64_t*)flag->value);
+            code = str_to_u64(value, (uint64_t*)flag->value);
             break;
 
         default:
@@ -406,7 +398,7 @@ static void parse_flag_value(Flag* flag, const char* value) {
     }
 
     if (code != STO_SUCCESS) {
-        FATAL_ERROR("conversion error for flag: --%s: %s(%s)\n", flag->name, sto_error(code), value);
+        FATAL_ERROR("conversion error for flag: --%s: %s(%s)\n", flag->name, sto_error_string(code), value);
     }
 }
 
@@ -558,11 +550,12 @@ validation:
 }
 
 void FlagInvoke(Command* subcommand) {
+    if (!subcommand || !subcommand->handler) return;
     subcommand->handler(subcommand);
 }
 
 void SetValidators(Flag* flag, size_t count, FlagValidator validator, ...) {
-    if (count == 0) {
+    if (!flag || count == 0 || !validator) {
         return;
     }
 

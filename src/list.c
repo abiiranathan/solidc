@@ -10,8 +10,7 @@ static void list_node_free(list_node_t* node);
 // Create a new list
 list_t* list_new(size_t elem_size) {
     list_t* list = (list_t*)malloc(sizeof(list_t));
-    if (!list)
-        return NULL;
+    if (!list) return NULL;
     list->head      = NULL;
     list->tail      = NULL;
     list->size      = 0;
@@ -30,8 +29,7 @@ void list_remove(list_t* list, void* elem) {
         current = current->next;
     }
 
-    if (!current)
-        return;
+    if (!current) return;
 
     if (current->prev) {
         current->prev->next = current->next;
@@ -49,8 +47,7 @@ void list_remove(list_t* list, void* elem) {
 
 // Free the list
 void list_free(list_t* list) {
-    if (!list)
-        return;
+    if (!list) return;
     list_clear(list);
     free(list);
 }
@@ -58,8 +55,7 @@ void list_free(list_t* list) {
 // Push an element to the end of the list
 void list_push_back(list_t* list, void* elem) {
     list_node_t* new_node = list_node_new(list->elem_size, elem);
-    if (!new_node)
-        return;
+    if (!new_node) return;
     if (list->tail) {
         new_node->prev   = list->tail;
         list->tail->next = new_node;
@@ -73,8 +69,7 @@ void list_push_back(list_t* list, void* elem) {
 
 // Pop an element from the end of the list
 void list_pop_back(list_t* list) {
-    if (!list || !list->tail)
-        return;
+    if (!list || !list->tail) return;
     list_node_t* to_remove = list->tail;
     list->tail             = to_remove->prev;
     if (list->tail) {
@@ -89,8 +84,7 @@ void list_pop_back(list_t* list) {
 // Push an element to the front of the list
 void list_push_front(list_t* list, void* elem) {
     list_node_t* new_node = list_node_new(list->elem_size, elem);
-    if (!new_node)
-        return;
+    if (!new_node) return;
     if (list->head) {
         new_node->next   = list->head;
         list->head->prev = new_node;
@@ -104,8 +98,7 @@ void list_push_front(list_t* list, void* elem) {
 
 // Pop an element from the front of the list
 void list_pop_front(list_t* list) {
-    if (!list || !list->head)
-        return;
+    if (!list || !list->head) return;
     list_node_t* to_remove = list->head;
     list->head             = to_remove->next;
     if (list->head) {
@@ -119,21 +112,18 @@ void list_pop_front(list_t* list) {
 
 // Get the element at the given index
 void* list_get(list_t* list, size_t index) {
-    if (!list || index >= list->size)
-        return NULL;
+    if (!list || index >= list->size) return NULL;
     list_node_t* current = list->head;
     for (size_t i = 0; i < index; i++) {
         current = current->next;
     }
 
-    if (!current)
-        return NULL;
+    if (!current) return NULL;
     return current->data;
 }
 
 int list_index_of(list_t* list, void* elem) {
-    if (!list)
-        return -1;
+    if (!list) return -1;
 
     list_node_t* current = list->head;
     int index            = 0;
@@ -175,8 +165,7 @@ void list_insert(list_t* list, size_t index, void* elem) {
     }
 
     list_node_t* new_node = list_node_new(list->elem_size, elem);
-    if (!new_node)
-        return;
+    if (!new_node) return;
 
     list_node_t* current = list->head;
     for (size_t i = 0; i < index; i++) {
@@ -206,15 +195,13 @@ void list_insert(list_t* list, size_t index, void* elem) {
 
 // Get the size of the list
 size_t list_size(list_t* list) {
-    if (!list)
-        return 0;
+    if (!list) return 0;
     return list->size;
 }
 
 // Clear the list
 void list_clear(list_t* list) {
-    if (!list)
-        return;
+    if (!list) return;
     list_node_t* current = list->head;
     while (current) {
         list_node_t* next = current->next;
@@ -229,8 +216,7 @@ void list_clear(list_t* list) {
 // Implementation
 static list_node_t* list_node_new(size_t elem_size, void* data) {
     list_node_t* node = (list_node_t*)malloc(sizeof(list_node_t));
-    if (!node)
-        return NULL;
+    if (!node) return NULL;
     node->data = malloc(elem_size);
     if (!node->data) {
         free(node);
@@ -243,8 +229,7 @@ static list_node_t* list_node_new(size_t elem_size, void* data) {
 }
 
 static void list_node_free(list_node_t* node) {
-    if (!node)
-        return;
+    if (!node) return;
 
     if (node->data) {
         free(node->data);

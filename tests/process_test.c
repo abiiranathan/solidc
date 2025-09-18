@@ -111,7 +111,8 @@ void test_process_pipe_integration() {
         .io.stdout_pipe      = pipe_handle,
     };
 
-    // Assuming process creation and handling is done correctly, simulate using the pipe
+    // Assuming process creation and handling is done correctly, simulate using
+    // the pipe
     ProcessHandle* process;
     ProcessResult result;
     err = process_create(&process, cmd, argv, &options);

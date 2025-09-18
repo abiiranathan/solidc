@@ -40,40 +40,40 @@ extern "C" {
 
 /**
  * @brief Opaque structure representing a CSV parser.
- * Create a new CSV parser with csvparser_new and free it with
- * csvparser_free. Use csvparser_parse to parse the CSV data and retrieve all
- * the rows at once. Use csvparser_parse_async to parse the CSV data and pass
- * each processed row back in a callback. Use csvparser_getnumrows to get the
- * number of rows in the CSV data. Use csvparser_setdelim to set the
+ * Create a new CSV parser with csv_reader_new and free it with
+ * csv_reader_free. Use csv_reader_parse to parse the CSV data and retrieve all
+ * the rows at once. Use csv_reader_parse_async to parse the CSV data and pass
+ * each processed row back in a callback. Use csv_reader_getnumrows to get the
+ * number of rows in the CSV data. Use csv_reader_setdelim to set the
  * delimiter character for CSV fields.
  *
  * You can redefine before including header the MAX_FIELD_SIZE macro to
  * change the maximum size of the csv line and the CSV_ARENA_BLOCK_SIZE macro
  * to change the size of the arena block.
  */
-typedef struct CsvParser CsvParser;
+typedef struct CsvReader CsvReader;
 
 /**
  * @brief Structure representing a CSV row.
  */
-typedef struct CsvRow {
-    char** fields;     ///< Array of fields in each row.
-    size_t numFields;  ///< Number of fields in each row.
-} CsvRow;
+typedef struct {
+    char** fields;  ///< Array of fields in each row.
+    size_t count;   ///< Number of fields in each row.
+} Row;
 
-// callback to process every row as its parsed.
-typedef void (*RowCallback)(size_t rowIndex, CsvRow* row);
+// Async callback for processed rows.
+typedef void (*CsvRowCallback)(size_t row_index, Row* row);
 
 /**
- * @brief Create a new CSV parser associated with a filename.
+ * @brief Create a new CSV reader associated with a filename.
  *
- * This function initializes a new CSV parser and associates it with the
+ * This function initializes a new CSV reader and associates it with the
  * given filename.
  *
  * @param filename The filename of the CSV file to parse.
- * @return A pointer to the created CsvParser, or NULL on failure.
+ * @return A pointer to the created CsvReader, or NULL on failure.
  */
-CsvParser* csvparser_new(const char* filename);
+CsvReader* csv_reader_new(const char* filename);
 
 /**
  * @brief Parse the CSV data and retrieve all the rows at once.
@@ -85,11 +85,11 @@ CsvParser* csvparser_new(const char* filename);
  * Note that this function allocates an array of all items on the heap
  * that you must free with csv_parser_free.
  *
- * @param self A pointer to the CsvParser.
+ * @param reader A pointer to the CsvReader.
  * @return A pointer to the next CsvRow, or NULL if there are no more rows or
  * an error occurs.
  */
-CsvRow** csvparser_parse(CsvParser* self);
+Row** csv_reader_parse(CsvReader* reader);
 
 /**
  * @brief Parse the CSV data and pass each processed row back in a callback.
@@ -99,11 +99,11 @@ CsvRow** csvparser_parse(CsvParser* self);
  * If alloc_max is 0, the parser will allocate all rows at once;
  * otherwise it will allocate alloc_max rows.
  *
- * @param self A pointer to the CsvParser.
+ * @param reader A pointer to the CsvReader.
  * @param alloc_max The maximum number of rows to allocate at once.
  * @return void.
  */
-void csvparser_parse_async(CsvParser* self, RowCallback callback, size_t alloc_max);
+void csv_reader_parse_async(CsvReader* reader, CsvRowCallback callback, size_t alloc_max);
 
 /**
  * @brief Get the number of rows in the CSV data.
@@ -111,22 +111,22 @@ void csvparser_parse_async(CsvParser* self, RowCallback callback, size_t alloc_m
  * This function returns the total number of rows in the CSV data,
  * excluding empty lines and comments.
  *
- * @param self A pointer to the CsvParser.
+ * @param reader A pointer to the CsvReader.
  * @return The number of rows.
  */
-size_t csvparser_numrows(const CsvParser* self);
+size_t csv_reader_numrows(const CsvReader* reader);
 
 /**
- * @brief Free memory used by the CsvParser and CsvRow structures.
+ * @brief Free memory used by the CsvReader and CsvRow structures.
  *
- * This function releases the memory used by the CsvParser and any CsvRow
+ * This function releases the memory used by the CsvReader and any CsvRow
  * structures created with it.
  *
- * @param self A pointer to the CsvParser.
+ * @param reader A pointer to the CsvReader.
  */
-void csvparser_free(CsvParser* self);
+void csv_reader_free(CsvReader* reader);
 
-struct CsvParserConfig {
+struct CsvReaderConfig {
     char delim;
     char quote;
     char comment;
@@ -145,22 +145,20 @@ struct CsvWriterConfig {
                      // file
 };
 
-typedef struct CsvParserConfig CsvParserConfig;
+typedef struct CsvReaderConfig CsvReaderConfig;
 typedef struct CsvWriterConfig CsvWriterConfig;
 
-void csvparser_setconfig(CsvParser* parser, CsvParserConfig config);
+void csv_reader_setconfig(CsvReader* reader, CsvReaderConfig config);
 
-#define CsvParserConfigure(parser, ...)                                                                      \
-    csvparser_setconfig(parser, (CsvParserConfig){.delim       = ',',                                        \
-                                                  .quote       = '"',                                        \
-                                                  .comment     = '#',                                        \
-                                                  .has_header  = true,                                       \
-                                                  .skip_header = true,                                       \
-                                                  __VA_ARGS__})
+#define CsvReaderConfigure(reader, ...)                                                                      \
+    csv_reader_setconfig(reader, (CsvReaderConfig){.delim       = ',',                                       \
+                                                   .quote       = '"',                                       \
+                                                   .comment     = '#',                                       \
+                                                   .has_header  = true,                                      \
+                                                   .skip_header = true,                                      \
+                                                   __VA_ARGS__})
 
-/*
-CSV Writer struct. Usage example:
-
+/**
 CsvWriter* writer = csvwriter_new("test.csv");
 if (!writer) {
     printf("Error creating CSV writer\n");
@@ -189,10 +187,10 @@ typedef struct CsvWriter CsvWriter;
 CsvWriter* csvwriter_new(const char* filename);
 
 // Set the configuration for the CSV writer.
-void csvwriter_write_row(CsvWriter* self, const char** fields, size_t numfields);
+bool csvwriter_write_row(CsvWriter* writer, const char** fields, size_t numfields);
 
 // Free memory used by the CsvWriter and close the file stream.
-void csvwriter_free(CsvWriter* self);
+void csvwriter_free(CsvWriter* writer);
 
 #ifdef __cplusplus
 }

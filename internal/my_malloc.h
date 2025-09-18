@@ -33,7 +33,8 @@ void* my_malloc(size_t size);
  * Thread-safe release of memory. Will detect and report double-free errors
  * and invalid pointers.
  *
- * @param ptr Pointer to memory previously allocated with my_malloc, my_calloc or my_realloc
+ * @param ptr Pointer to memory previously allocated with my_malloc, my_calloc
+ * or my_realloc
  */
 void my_free(void* ptr);
 
@@ -57,7 +58,8 @@ void* my_calloc(size_t nmemb, size_t size);
  *
  * @param ptr Pointer to previously allocated memory or NULL
  * @param size New size in bytes
- * @return void* Pointer to the newly allocated memory, or NULL if reallocation fails
+ * @return void* Pointer to the newly allocated memory, or NULL if reallocation
+ * fails
  */
 void* my_realloc(void* ptr, size_t size);
 

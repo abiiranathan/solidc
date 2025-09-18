@@ -2,7 +2,6 @@
 set(TEST_MODULES
     arena
     cstr
-    cstr_array
     flag
     file
     filepath
@@ -13,7 +12,7 @@ set(TEST_MODULES
     map
     socket
     stdstreams
-    strton
+    str_to_num
     hash
     csvparser
     array

@@ -16,7 +16,7 @@
 #define ALIGNMENT sizeof(void*)
 
 // Magic numbers for block validation
-#define MAGIC_FREE 0xDEADBEEF
+#define MAGIC_FREE      0xDEADBEEF
 #define MAGIC_ALLOCATED 0xBEEFDEAD
 
 // Global memory pool
@@ -75,7 +75,8 @@ __attribute__((constructor)) static void initialize_memory() {
 
 // Split a block if the remainder is large enough for a new block.
 // 'header' points to the block to split.
-// 'required_size' is the total size needed for the allocation (header + payload).
+// 'required_size' is the total size needed for the allocation (header +
+// payload).
 static void split_block_if_possible(block_header* header, size_t required_size) {
     // Calculate remaining size
     size_t remaining_size = header->size - required_size;
@@ -101,7 +102,8 @@ static void split_block_if_possible(block_header* header, size_t required_size) 
                                         // header->magic is set by the caller (FMALLOC)
     }
     // Else: Not enough space to split, allocate the whole block.
-    // The original header's size remains unchanged, encompassing the "wasted" space.
+    // The original header's size remains unchanged, encompassing the "wasted"
+    // space.
 }
 
 // Coalesce a free block 'header' with its next neighbor if it's also free.
@@ -112,8 +114,8 @@ static bool coalesce_with_next(block_header* header) {
     }
 
     block_header* next_block = header->next;
-    // printf("Coalescing %p (size %zu) with next %p (size %zu)\n", (void*)header, header->size,
-    // (void*)next_block, next_block->size);
+    // printf("Coalescing %p (size %zu) with next %p (size %zu)\n", (void*)header,
+    // header->size, (void*)next_block, next_block->size);
 
     header->size += next_block->size;  // Combine sizes
     header->next = next_block->next;   // Link past the merged block
@@ -133,8 +135,7 @@ static bool coalesce_with_next(block_header* header) {
 // This is a basic check. More robust checks could involve iterating the list,
 // but that defeats the purpose of speed.
 static bool is_valid_payload_ptr(void* ptr) {
-    if (ptr == NULL)
-        return false;
+    if (ptr == NULL) return false;
 
     uintptr_t ptr_addr      = (uintptr_t)ptr;
     uintptr_t mem_start     = (uintptr_t)memory;
@@ -207,7 +208,8 @@ void FFREE(void* ptr) {
     // 1. Basic Pointer Validation
     if (!is_valid_payload_ptr(ptr)) {
         // Optional: Add logging here for invalid frees
-        // fprintf(stderr, "Warning: Attempt to FFREE potentially invalid pointer %p\n", ptr);
+        // fprintf(stderr, "Warning: Attempt to FFREE potentially invalid pointer
+        // %p\n", ptr);
         return;
     }
 
@@ -218,8 +220,8 @@ void FFREE(void* ptr) {
     // If it's already free, or doesn't have the allocated magic, bail.
     if (header->magic != MAGIC_ALLOCATED) {
         // Optional: Add logging for double free or corruption
-        // fprintf(stderr, "Warning: Double free or corruption detected for pointer %p (header %p, magic
-        // 0x%x)\n", ptr, (void*)header, header->magic);
+        // fprintf(stderr, "Warning: Double free or corruption detected for pointer
+        // %p (header %p, magic 0x%x)\n", ptr, (void*)header, header->magic);
         return;
     }
 
@@ -240,7 +242,8 @@ void FFREE(void* ptr) {
     // We access 'header->prev' which points to the physically preceding block.
     if (header->prev && is_block_free(header->prev)) {
         // The previous block is free, merge 'header' into 'header->prev'.
-        // The 'coalesce_with_next' function can be reused by calling it on the previous block.
+        // The 'coalesce_with_next' function can be reused by calling it on the
+        // previous block.
         coalesce_with_next(header->prev);
     }
 
@@ -257,11 +260,12 @@ void* FCALLOC(size_t nmemb, size_t size) {
         return NULL;
     }
 
-    // If total_size is 0 after check, malloc(0) behavior is implementation-defined.
-    // Some return NULL, some return a unique pointer. We'll aim for NULL if size is 0.
-    // If nmemb or size was 0, total_size is 0.
+    // If total_size is 0 after check, malloc(0) behavior is
+    // implementation-defined. Some return NULL, some return a unique pointer.
+    // We'll aim for NULL if size is 0. If nmemb or size was 0, total_size is 0.
     if (total_size == 0) {
-        // Consistent approach: Call FMALLOC(0) which should return NULL per our logic.
+        // Consistent approach: Call FMALLOC(0) which should return NULL per our
+        // logic.
         return FMALLOC(0);
         // Or explicitly return NULL here if desired.
         // return NULL;
@@ -290,11 +294,9 @@ void* FREALLOC(void* ptr, size_t size) {
 
     // --- Get header and current size ---
     // Basic validation first (can enhance later if needed)
-    if (!is_valid_payload_ptr(ptr))
-        return NULL;  // Invalid ptr for realloc
+    if (!is_valid_payload_ptr(ptr)) return NULL;  // Invalid ptr for realloc
     block_header* header = payload_to_header(ptr);
-    if (header->magic != MAGIC_ALLOCATED)
-        return NULL;  // Realloc on non-allocated block
+    if (header->magic != MAGIC_ALLOCATED) return NULL;  // Realloc on non-allocated block
 
     size_t current_payload_size     = header->size - HEADER_SIZE;
     size_t aligned_new_payload_size = align_up(size, ALIGNMENT);
@@ -310,7 +312,8 @@ void* FREALLOC(void* ptr, size_t size) {
     }
 
     // --- Optimization 2: Expanding in place (if next block is free) ---
-    // Check if the next block exists, is free, and provides enough combined space.
+    // Check if the next block exists, is free, and provides enough combined
+    // space.
     if (header->next && is_block_free(header->next) &&
         (header->size + header->next->size >= total_required_size)) {
         // Yes, we can expand by consuming the next block.
@@ -351,11 +354,13 @@ void FDEBUG_MEMORY() {
     printf("Memory state (Total Size: %d, Header Size: %zu):\n", MEMORY_SIZE, HEADER_SIZE);
     int i = 0;
     while (current) {
-        printf(" [%d] Block @ %p: size = %-6zu, magic = 0x%x (%s), prev = %-10p, next = %p\n", i++,
-               (void*)current, current->size, current->magic,
-               (current->magic == MAGIC_ALLOCATED ? "ALLOC"
-                                                  : (current->magic == MAGIC_FREE ? "FREE " : "?????")),
-               (void*)current->prev, (void*)current->next);
+        printf(
+            " [%d] Block @ %p: size = %-6zu, magic = 0x%x (%s), prev = %-10p, "
+            "next = %p\n",
+            i++, (void*)current, current->size, current->magic,
+            (current->magic == MAGIC_ALLOCATED ? "ALLOC"
+                                               : (current->magic == MAGIC_FREE ? "FREE " : "?????")),
+            (void*)current->prev, (void*)current->next);
 
         // Sanity checks (optional)
         if (current->next && (uintptr_t)current->next != (uintptr_t)current + current->size) {

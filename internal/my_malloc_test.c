@@ -12,9 +12,9 @@
 #include <string.h>
 #include <time.h>
 
-#define NUM_THREADS 4
+#define NUM_THREADS       4
 #define ALLOCS_PER_THREAD 1000
-#define MAX_ALLOC_SIZE 8192
+#define MAX_ALLOC_SIZE    8192
 
 // Structure to track allocations
 typedef struct allocation {

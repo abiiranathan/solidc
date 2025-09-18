@@ -7,7 +7,7 @@
 #include "../include/fast_mem.h"
 
 // Configuration
-#define NUM_THREADS 8          // Number of threads
+#define NUM_THREADS    8       // Number of threads
 #define NUM_OPERATIONS 100000  // Operations per thread
 #define MAX_ALLOC_SIZE 4096    // Maximum allocation size (bytes)
 

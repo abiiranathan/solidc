@@ -5,8 +5,8 @@
 #include <string.h>
 
 #ifdef _WIN32
-#define pipe(fds) _pipe(fds, 4096, _O_BINARY)
-#define close(fd) _close(fd)
+#define pipe(fds)          _pipe(fds, 4096, _O_BINARY)
+#define close(fd)          _close(fd)
 #define dup2(oldfd, newfd) _dup2(oldfd, newfd)
 #endif
 
@@ -32,7 +32,8 @@ CommandNode* create_command_node(char** args) {
  * @brief Execute a pipeline of commands on Windows.
  *
  * @param head Pointer to the first CommandNode in the pipeline.
- * @param output_fd Optional file descriptor to capture the output of the last command.
+ * @param output_fd Optional file descriptor to capture the output of the last
+ * command.
  */
 void execute_pipeline(CommandNode* head, int output_fd) {
     int pipefd[2];
@@ -158,8 +159,8 @@ void execute_pipeline(CommandNode* head, int output_fd) {
  * @brief Execute a pipeline of commands on UNIX.
  *
  * @param head Pointer to the first CommandNode in the pipeline.
- * @param output_fd Optional file descriptor to capture the output of the last command.
- * If -1, the output is not redirected.
+ * @param output_fd Optional file descriptor to capture the output of the last
+ * command. If -1, the output is not redirected.
  */
 void execute_pipeline(CommandNode* head, int output_fd) {
     int pipefd[2];
@@ -242,13 +243,13 @@ void free_pipeline(CommandNode* head) {
 }
 
 /**
- * @brief Build the pipeline using a NULL-terminated array of CommandNode pointers.
+ * @brief Build the pipeline using a NULL-terminated array of CommandNode
+ * pointers.
  *
  * @param commands Array of CommandNode pointers, terminated by NULL.
  */
 void build_pipeline(CommandNode** commands) {
-    if (!commands)
-        return;  // Handle NULL input
+    if (!commands) return;  // Handle NULL input
 
     int i = 0;
     while (commands[i]) {

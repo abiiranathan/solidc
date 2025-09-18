@@ -23,7 +23,7 @@ STATIC_CHECK_POWER_OF_2(THREADLOCAL_QUEUE_SIZE);
 typedef struct threadpool ThreadPool;
 
 // Create and initialize a new threadpool with the given number of threads.
-ThreadPool* threadpool_create(int num_threads);
+ThreadPool* threadpool_create(size_t num_threads);
 
 // Add a new task to the threadpool. The function will be executed by one of
 // the threads in the pool.

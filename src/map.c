@@ -13,7 +13,7 @@
 #include "../include/map.h"
 
 // Default maximum load factor
-#define DEFAULT_MAX_LOAD_FACTOR 0.75
+#define DEFAULT_MAX_LOAD_FACTOR   0.75
 #define TOMBSTONE_RATIO_THRESHOLD 0.5  // Rehash when tombstones > 50% of size
 
 // Map structure with optimized layout
@@ -81,12 +81,9 @@ Map* map_create(const MapConfig* config) {
     m->deleted = (bool*)calloc(capacity, sizeof(bool));
 
     if (!m->keys || !m->values || !m->deleted) {
-        if (m->keys)
-            free(m->keys);
-        if (m->values)
-            free(m->values);
-        if (m->deleted)
-            free(m->deleted);
+        if (m->keys) free(m->keys);
+        if (m->values) free(m->values);
+        if (m->deleted) free(m->deleted);
         free(m);
         perror("Failed to allocate memory for map entries");
         return NULL;
@@ -279,16 +276,13 @@ void map_remove(Map* m, void* key) {
 
 // Map destruction with proper cleanup
 void map_destroy(Map* m) {
-    if (!m)
-        return;
+    if (!m) return;
 
     if (m->key_free || m->value_free) {
         for (size_t i = 0; i < m->capacity; i++) {
             if (m->keys[i] && !m->deleted[i]) {
-                if (m->key_free)
-                    m->key_free((void*)m->keys[i]);
-                if (m->value_free)
-                    m->value_free(m->values[i]);
+                if (m->key_free) m->key_free((void*)m->keys[i]);
+                if (m->value_free) m->value_free(m->values[i]);
             }
         }
     }
@@ -312,10 +306,8 @@ map_iterator map_iter(Map* m) {
 bool map_next(map_iterator* it, void** key, void** value) {
     while (it->index < it->m->capacity) {
         if (it->m->keys[it->index] && !it->m->deleted[it->index]) {
-            if (key)
-                *key = it->m->keys[it->index];
-            if (value)
-                *value = it->m->values[it->index];
+            if (key) *key = it->m->keys[it->index];
+            if (value) *value = it->m->values[it->index];
             it->index++;
 
             // Prepare for next call
