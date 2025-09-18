@@ -24,7 +24,7 @@
 #include "slist.h"
 #include "socket.h"
 #include "stdstreams.h"
-#include "strton.h"
+#include "str_to_num.h"
 #include "thread.h"
 #include "threadpool.h"
 #include "unicode.h"
