@@ -76,7 +76,8 @@ static Row** csv_allocate_rows(Arena* arena, size_t num_rows) {
 
     Row** rows = arena_alloc(arena, num_rows * sizeof(Row*));
     if (!rows) {
-        fprintf(stderr, "csv_allocate_rows(): error allocating memory for %lu rows in arena\n", num_rows);
+        fprintf(stderr, "csv_allocate_rows(): error allocating memory for %lu rows in arena\n",
+                num_rows);
         return NULL;
     }
 
@@ -332,7 +333,8 @@ static bool parse_csv_line(csv_line_params* args) {
 
     // If inside quotes at the end of the line, the line is not terminated
     if (insideQuotes) {
-        fprintf(stderr, "ERROR: unterminated quoted field:%s in line %zu\n", args->line, args->rowIndex);
+        fprintf(stderr, "ERROR: unterminated quoted field:%s in line %zu\n", args->line,
+                args->rowIndex);
         return false;
     }
 
@@ -536,6 +538,8 @@ bool csvwriter_write_row(CsvWriter* writer, const char** fields, size_t numfield
         return false;
     }
 
+    FILE* fp = NULL;
+
     if (numfields == 0) {
         // Writing empty row - just write newline
         if (fputc(writer->newline, writer->stream) == EOF) {
@@ -544,7 +548,7 @@ bool csvwriter_write_row(CsvWriter* writer, const char** fields, size_t numfield
         goto flush_and_exit;
     }
 
-    FILE* fp = writer->stream;
+    fp = writer->stream;
 
     // Check if stream is valid before proceeding
     if (ferror(fp)) {
@@ -574,7 +578,7 @@ bool csvwriter_write_row(CsvWriter* writer, const char** fields, size_t numfield
 
 flush_and_exit:
     // Flush if requested
-    if (writer->flush) {
+    if (writer->flush && fp) {
         if (fflush(fp) != 0) {
             return false;
         }

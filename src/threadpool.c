@@ -14,75 +14,70 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#define usleep(microSec) Sleep(microSec / 1e6);
+#define thread_yield() SwitchToThread()
 #else
+#include <sched.h>
 #include <unistd.h>
+#define thread_yield() sched_yield()
 #endif
 
 #define RING_BUFFER_MASK (RING_BUFFER_SIZE - 1)
 #ifndef BATCH_SIZE
-// Increased batch size for better amortization
-#define BATCH_SIZE 8
+#define BATCH_SIZE 64
 #endif
 
-#define YIELD_LIMIT 100  // Number of yields before sleeping
+#define CACHE_LINE_SIZE 64
+#define YIELD_THRESHOLD 4
 
-// Task represents a work item that should be executed by a thread
-typedef struct Task {
-    void (*function)(void* arg);  // Function to be executed
-    void* arg;                    // Argument to be passed to the function
-} Task;
+/** Align to cache line to prevent false sharing. */
+#ifdef _WIN32
+#define CACHE_ALIGNED __declspec(align(CACHE_LINE_SIZE))
+#else
+#define CACHE_ALIGNED __attribute__((aligned(CACHE_LINE_SIZE)))
+#endif
 
-// Lock-free ring buffer for tasks
 typedef struct TaskRingBuffer {
-    Task tasks[RING_BUFFER_SIZE];
-    atomic_uint head;              // Producer index (atomic)
-    atomic_uint tail;              // Consumer index (atomic)
-    Lock mutex;                    // Only for condition variables
-    Condition not_empty;           // Signaled when items are added
-    Condition not_full;            // Signaled when items are removed
-    struct threadpool* pool;       // Pointer to owning threadpool
-    atomic_int waiting_consumers;  // Number of threads waiting for tasks
+    CACHE_ALIGNED atomic_uint head;
+    CACHE_ALIGNED atomic_uint tail;
+    CACHE_ALIGNED Task tasks[RING_BUFFER_SIZE];
+    CACHE_ALIGNED Lock mutex;
+    CACHE_ALIGNED atomic_int waiting_consumers;
+
+    Condition not_empty;
+    Condition not_full;
+    struct Threadpool* pool;
 } TaskRingBuffer;
 
-// Thread represents a cross-platform wrapper around a thread
 typedef struct thread {
-    int id;                    // Thread ID
-    struct threadpool* pool;   // Pointer to the thread pool
-    Thread pthread;            // Thread handle
-    TaskRingBuffer queue;      // Per-thread ring buffer
-    uint32_t steal_seed;       // Fast random seed for work stealing
-    atomic_int local_pending;  // Cache for local queue size
+    CACHE_ALIGNED TaskRingBuffer queue;
+    CACHE_ALIGNED Thread pthread;
+    struct Threadpool* pool;
 } thread;
 
-// Threadpool represents a thread pool that manages a group of threads
-typedef struct threadpool {
-    thread** threads;                // Array of threads
-    size_t num_threads;              // Total number of threads
-    atomic_int num_threads_alive;    // Number of threads currently alive
-    atomic_int num_threads_working;  // Number of threads currently working
-    Lock thcount_lock;               // Protects thread counts (reduced usage)
-    Condition threads_all_idle;      // Signaled when all threads are idle
-    TaskRingBuffer queue;            // Global task queue
-    atomic_int shutdown;             // Shutdown flag (atomic)
-    atomic_int total_pending_tasks;  // Total tasks across all queues
-} threadpool;
+/** Threadpool with minimal cache footprint. */
+struct Threadpool {
+    // Core control atomics - minimal set
+    CACHE_ALIGNED atomic_int shutdown;
+    CACHE_ALIGNED atomic_int num_threads_alive;
 
-// Fast random number generator (xorshift32)
-static inline uint32_t xorshift32(uint32_t* state) {
-    uint32_t x = *state;
-    x ^= x << 13;
-    x ^= x >> 17;
-    x ^= x << 5;
-    *state = x;
-    return x;
-}
+    // Thread array and count (read-mostly)
+    CACHE_ALIGNED thread** threads;
+    CACHE_ALIGNED size_t num_threads;
 
-// Initialize ring buffer
+    // Global queue
+    CACHE_ALIGNED TaskRingBuffer queue;
+
+    // Synchronization (cold path)
+    CACHE_ALIGNED Lock thcount_lock;
+    Condition threads_all_idle;
+};
+
+/** Initialize ring buffer with optimized defaults. */
 static int ringbuffer_init(TaskRingBuffer* rb) {
-    atomic_store(&rb->head, 0);
-    atomic_store(&rb->tail, 0);
-    atomic_store(&rb->waiting_consumers, 0);
+    atomic_store_explicit(&rb->head, 0, memory_order_relaxed);
+    atomic_store_explicit(&rb->tail, 0, memory_order_relaxed);
+    atomic_store_explicit(&rb->waiting_consumers, 0, memory_order_relaxed);
+
     lock_init(&rb->mutex);
     cond_init(&rb->not_empty);
     cond_init(&rb->not_full);
@@ -90,18 +85,19 @@ static int ringbuffer_init(TaskRingBuffer* rb) {
     return 0;
 }
 
-// Lock-free push task to ring buffer (with fallback to blocking)
+/** Lock-free push with minimal blocking fallback. */
 static int ringbuffer_push(TaskRingBuffer* rb, Task* task) {
-    uint32_t head      = atomic_load(&rb->head);
+    // Fast path: try lock-free push
+    uint32_t head      = atomic_load_explicit(&rb->head, memory_order_acquire);
     uint32_t next_head = (head + 1) & RING_BUFFER_MASK;
+    uint32_t tail      = atomic_load_explicit(&rb->tail, memory_order_acquire);
 
-    // Try lock-free push first
-    if (next_head != atomic_load(&rb->tail)) {
+    if (next_head != tail) {
         rb->tasks[head] = *task;
-        atomic_store(&rb->head, next_head);
+        atomic_store_explicit(&rb->head, next_head, memory_order_release);
 
-        // Only signal if there are waiting consumers
-        if (atomic_load(&rb->waiting_consumers) > 0) {
+        // Only signal if consumers are actually waiting
+        if (atomic_load_explicit(&rb->waiting_consumers, memory_order_acquire) > 0) {
             lock_acquire(&rb->mutex);
             cond_signal(&rb->not_empty);
             lock_release(&rb->mutex);
@@ -109,229 +105,179 @@ static int ringbuffer_push(TaskRingBuffer* rb, Task* task) {
         return 0;
     }
 
-    // Fallback to blocking push
+    // Slow path: blocking push (queue full)
     lock_acquire(&rb->mutex);
-    while (((atomic_load(&rb->head) + 1) & RING_BUFFER_MASK) == atomic_load(&rb->tail)) {
-        if (atomic_load(&rb->pool->shutdown)) {
+
+    // Re-check condition under lock
+    while (((atomic_load_explicit(&rb->head, memory_order_relaxed) + 1) & RING_BUFFER_MASK) ==
+           atomic_load_explicit(&rb->tail, memory_order_relaxed)) {
+
+        if (atomic_load_explicit(&rb->pool->shutdown, memory_order_acquire)) {
             lock_release(&rb->mutex);
             return -1;
         }
         cond_wait(&rb->not_full, &rb->mutex);
     }
 
-    head            = atomic_load(&rb->head);
+    head            = atomic_load_explicit(&rb->head, memory_order_relaxed);
     rb->tasks[head] = *task;
-    atomic_store(&rb->head, (head + 1) & RING_BUFFER_MASK);
+    atomic_store_explicit(&rb->head, (head + 1) & RING_BUFFER_MASK, memory_order_release);
     cond_signal(&rb->not_empty);
     lock_release(&rb->mutex);
     return 0;
 }
 
-// Lock-free batch pull with yielding and blocking (no spinning)
+/** Cache-optimized batch pull with reduced memory barriers. */
 static int ringbuffer_pull_batch_optimized(TaskRingBuffer* rb, Task* tasks, size_t max_tasks) {
     int yield_count = 0;
 
     while (1) {
-        uint32_t tail = atomic_load(&rb->tail);
-        uint32_t head = atomic_load(&rb->head);
+        // Single memory barrier for both loads
+        uint32_t tail = atomic_load_explicit(&rb->tail, memory_order_acquire);
+        uint32_t head = atomic_load_explicit(
+            &rb->head, memory_order_relaxed);  // relaxed since tail has acquire
 
         if (head != tail) {
             // Calculate available tasks
-            size_t available = ((head - tail) & RING_BUFFER_MASK);
+            size_t available = (head - tail) & RING_BUFFER_MASK;
             size_t to_take   = (available < max_tasks) ? available : max_tasks;
 
-            // Try to reserve tasks atomically
+            // Atomic reservation with single CAS
             uint32_t new_tail = (tail + to_take) & RING_BUFFER_MASK;
-            if (atomic_compare_exchange_weak(&rb->tail, &tail, new_tail)) {
-                // Successfully reserved tasks, now copy them
+            if (atomic_compare_exchange_weak_explicit(&rb->tail, &tail, new_tail,
+                                                      memory_order_release, memory_order_relaxed)) {
+
+                // Bulk copy tasks (optimized for cache)
                 for (size_t i = 0; i < to_take; i++) {
                     tasks[i] = rb->tasks[(tail + i) & RING_BUFFER_MASK];
                 }
 
-                // Signal producers if buffer was full
-                if (((tail + RING_BUFFER_SIZE - 1) & RING_BUFFER_MASK) == head) {
+                // Signal producers only if buffer was full
+                if (available == RING_BUFFER_SIZE - 1) {
                     lock_acquire(&rb->mutex);
                     cond_signal(&rb->not_full);
                     lock_release(&rb->mutex);
                 }
 
-                return to_take;
+                return (int)to_take;
             }
-            // CAS failed, retry immediately
+            // CAS failed, retry without delay
             continue;
         }
 
-        // No tasks available, check shutdown
-        if (atomic_load(&rb->pool->shutdown)) {
+        // Check shutdown (single load)
+        if (atomic_load_explicit(&rb->pool->shutdown, memory_order_acquire)) {
             return -1;
         }
 
-        // Skip spinning entirely - go straight to yielding
-        if (yield_count < YIELD_LIMIT) {
+        // Reduced yielding to minimize cache pollution
+        if (yield_count < YIELD_THRESHOLD) {
             yield_count++;
-#ifdef _WIN32
-            SwitchToThread();
-#else
-            sched_yield();
-#endif
+            thread_yield();
             continue;
         }
 
-        // After yielding limit reached, block and wait
-        atomic_fetch_add(&rb->waiting_consumers, 1);
-        lock_acquire(&rb->mutex);
+        // Block efficiently
+        atomic_fetch_add_explicit(&rb->waiting_consumers, 1, memory_order_relaxed);
 
-        // Double-check condition
-        if (atomic_load(&rb->head) == atomic_load(&rb->tail) && !atomic_load(&rb->pool->shutdown)) {
+        lock_acquire(&rb->mutex);
+        // Single check under lock
+        if (atomic_load_explicit(&rb->head, memory_order_relaxed) ==
+                atomic_load_explicit(&rb->tail, memory_order_relaxed) &&
+            !atomic_load_explicit(&rb->pool->shutdown, memory_order_relaxed)) {
             cond_wait(&rb->not_empty, &rb->mutex);
         }
-
         lock_release(&rb->mutex);
-        atomic_fetch_sub(&rb->waiting_consumers, 1);
 
-        // Reset yield counter for next iteration
+        atomic_fetch_sub_explicit(&rb->waiting_consumers, 1, memory_order_relaxed);
         yield_count = 0;
     }
 }
 
-// Destroy ring buffer
+/** Destroy ring buffer. */
 static void ringbuffer_destroy(TaskRingBuffer* rb) {
     lock_free(&rb->mutex);
     cond_free(&rb->not_empty);
     cond_free(&rb->not_full);
 }
 
-// Fast check if any thread queues have tasks (lock-free)
-static inline int has_pending_tasks(threadpool* pool) {
-    return atomic_load(&pool->total_pending_tasks) > 0;
-}
+/** Check if pool has any work (minimal overhead). */
+static inline int has_work(Threadpool* pool) {
+    // Check global queue first (most common case)
+    if (atomic_load_explicit(&pool->queue.head, memory_order_relaxed) !=
+        atomic_load_explicit(&pool->queue.tail, memory_order_relaxed)) {
+        return 1;
+    }
 
-// Update pending task count
-static inline void update_pending_tasks(threadpool* pool, int delta) {
-    atomic_fetch_add(&pool->total_pending_tasks, delta);
-}
-
-// Fast work stealing with minimal locking
-static int thread_steal_tasks_fast(threadpool* pool, thread* thief, Task* tasks, size_t max_tasks) {
-    // Use fast random to pick starting thread
-    size_t start_idx = xorshift32(&thief->steal_seed) % pool->num_threads;
-
+    // Check thread queues
     for (size_t i = 0; i < pool->num_threads; i++) {
-        int idx        = (start_idx + i) % pool->num_threads;
-        thread* target = pool->threads[idx];
-
-        if (target == thief) continue;
-
-        // Quick check without locking
-        if (atomic_load(&target->local_pending) == 0) continue;
-
-        // Try lock-free steal first
-        uint32_t tail = atomic_load(&target->queue.tail);
-        uint32_t head = atomic_load(&target->queue.head);
-
-        if (head == tail) continue;
-
-        // Calculate how many to steal (at most half)
-        size_t available   = ((head - tail) & RING_BUFFER_MASK);
-        size_t steal_count = (available + 1) / 2;
-        if (steal_count > max_tasks) steal_count = max_tasks;
-        if (steal_count == 0) continue;
-
-        // Try to steal atomically
-        uint32_t new_tail = (tail + steal_count) & RING_BUFFER_MASK;
-        if (atomic_compare_exchange_weak(&target->queue.tail, &tail, new_tail)) {
-            // Successfully stole tasks
-            for (size_t j = 0; j < steal_count; j++) {
-                tasks[j] = target->queue.tasks[(tail + j) & RING_BUFFER_MASK];
-            }
-
-            // Update pending count
-            atomic_fetch_sub(&target->local_pending, steal_count);
-            update_pending_tasks(pool, -steal_count);
-
-            return steal_count;
+        if (atomic_load_explicit(&pool->threads[i]->queue.head, memory_order_relaxed) !=
+            atomic_load_explicit(&pool->threads[i]->queue.tail, memory_order_relaxed)) {
+            return 1;
         }
     }
     return 0;
 }
 
-// Optimized thread worker function
+/** Streamlined worker thread with minimal atomic operations. */
 static void* thread_worker(void* arg) {
-    thread* thp      = (thread*)arg;
-    threadpool* pool = thp->pool;
-    Task batch[BATCH_SIZE];
-    int batch_count = 0;
+    thread* thp            = (thread*)arg;
+    Threadpool* pool       = thp->pool;
+    Task batch[BATCH_SIZE] = {};
+    int batch_count        = 0;
 
-    // Initialize fast random seed
-    thp->steal_seed = (uint32_t)((unsigned long)time(NULL) ^ (uintptr_t)thp);
+    atomic_fetch_add_explicit(&pool->num_threads_alive, 1, memory_order_relaxed);
 
-    atomic_fetch_add(&pool->num_threads_alive, 1);
-
-    while (!atomic_load(&pool->shutdown)) {
-        batch_count = 0;
-
-        // Try local queue first (lock-free batch)
+    while (!atomic_load_explicit(&pool->shutdown, memory_order_acquire)) {
+        // Try local queue first (better cache locality)
         batch_count = ringbuffer_pull_batch_optimized(&thp->queue, batch, BATCH_SIZE);
         if (batch_count > 0) {
-            atomic_fetch_sub(&thp->local_pending, batch_count);
-            update_pending_tasks(pool, -batch_count);
             goto execute_batch;
         }
 
-        // Try global queue (lock-free batch)
+        // Try global queue
         batch_count = ringbuffer_pull_batch_optimized(&pool->queue, batch, BATCH_SIZE);
         if (batch_count > 0) {
-            update_pending_tasks(pool, -batch_count);
             goto execute_batch;
         }
 
-        // Try work stealing (fast)
-        batch_count = thread_steal_tasks_fast(pool, thp, batch, BATCH_SIZE);
-        if (batch_count > 0) {
-            goto execute_batch;
-        }
-
-        // No work found, continue to next iteration
+        // No work found - continue loop
         continue;
 
     execute_batch:
-        atomic_fetch_add(&pool->num_threads_working, 1);
-
-        // Execute all tasks in the batch
+        // Execute batch without tracking
         for (int i = 0; i < batch_count; i++) {
             batch[i].function(batch[i].arg);
         }
 
-        int working = atomic_fetch_sub(&pool->num_threads_working, 1) - 1;
-
-        // Only check for idle condition if this was the last working thread
-        if (working == 0 && !has_pending_tasks(pool)) {
+        // Signal idle condition only after completing work
+        if (!has_work(pool)) {
             lock_acquire(&pool->thcount_lock);
             // Double-check under lock
-            if (atomic_load(&pool->num_threads_working) == 0 && !has_pending_tasks(pool)) {
+            if (!has_work(pool)) {
                 cond_broadcast(&pool->threads_all_idle);
             }
             lock_release(&pool->thcount_lock);
         }
     }
 
-    int alive = atomic_fetch_sub(&pool->num_threads_alive, 1) - 1;
+    // Thread cleanup
+    int alive = atomic_fetch_sub_explicit(&pool->num_threads_alive, 1, memory_order_acq_rel) - 1;
     if (alive == 0) {
         lock_acquire(&pool->thcount_lock);
         cond_broadcast(&pool->threads_all_idle);
         lock_release(&pool->thcount_lock);
     }
+
     return NULL;
 }
 
-// Initialize thread
-static int thread_init(threadpool* pool, thread** t, int id) {
-    *t = (thread*)malloc(sizeof(thread));
+/** Initialize a worker thread. */
+static int thread_init(Threadpool* pool, thread** t) {
+    *t = (thread*)aligned_alloc(CACHE_LINE_SIZE, sizeof(thread));
     if (*t == NULL) return -1;
 
     (*t)->pool = pool;
-    (*t)->id   = id;
-    atomic_store(&(*t)->local_pending, 0);
 
     if (ringbuffer_init(&(*t)->queue) != 0) {
         free(*t);
@@ -342,17 +288,16 @@ static int thread_init(threadpool* pool, thread** t, int id) {
     return thread_create(&(*t)->pthread, thread_worker, *t);
 }
 
-// Create thread pool
-threadpool* threadpool_create(size_t num_threads) {
-    if (num_threads <= 0) num_threads = 1;
+/** Create thread pool with specified number of threads. */
+Threadpool* threadpool_create(size_t num_threads) {
+    if (num_threads == 0) num_threads = 1;
 
-    threadpool* pool = (threadpool*)malloc(sizeof(threadpool));
+    Threadpool* pool = (Threadpool*)aligned_alloc(CACHE_LINE_SIZE, sizeof(Threadpool));
     if (pool == NULL) return NULL;
 
-    atomic_store(&pool->num_threads_alive, 0);
-    atomic_store(&pool->num_threads_working, 0);
-    atomic_store(&pool->shutdown, 0);
-    atomic_store(&pool->total_pending_tasks, 0);
+    // Initialize minimal atomics
+    atomic_store_explicit(&pool->num_threads_alive, 0, memory_order_relaxed);
+    atomic_store_explicit(&pool->shutdown, 0, memory_order_relaxed);
     pool->num_threads = num_threads;
 
     if (ringbuffer_init(&pool->queue) != 0) {
@@ -361,7 +306,7 @@ threadpool* threadpool_create(size_t num_threads) {
     }
     pool->queue.pool = pool;
 
-    pool->threads = (thread**)malloc((size_t)num_threads * sizeof(thread*));
+    pool->threads = (thread**)malloc(num_threads * sizeof(thread*));
     if (pool->threads == NULL) {
         ringbuffer_destroy(&pool->queue);
         free(pool);
@@ -371,56 +316,50 @@ threadpool* threadpool_create(size_t num_threads) {
     lock_init(&pool->thcount_lock);
     cond_init(&pool->threads_all_idle);
 
+    // Create worker threads
     for (size_t i = 0; i < num_threads; i++) {
-        if (thread_init(pool, &pool->threads[i], i) != 0) {
+        if (thread_init(pool, &pool->threads[i]) != 0) {
             threadpool_destroy(pool);
             return NULL;
         }
     }
-
     return pool;
 }
 
-// Optimized task submission
-int threadpool_submit(threadpool* pool, void (*function)(void*), void* arg) {
+/** Submit task with simplified load balancing. */
+int threadpool_submit(Threadpool* pool, void (*function)(void*), void* arg) {
+    if (pool == NULL || function == NULL) return -1;
+
     Task task = {function, arg};
 
-    // Use fast random to pick thread (avoid expensive system random)
-    static atomic_uint submit_counter = 0;
-    size_t thread_id                  = atomic_fetch_add(&submit_counter, 1) % pool->num_threads;
-    thread* thp                       = pool->threads[thread_id];
+    // Simple round-robin (no atomic counter)
+    static _Thread_local size_t thread_counter = 0;
+    size_t thread_id                           = (thread_counter++) % pool->num_threads;
 
     // Try local queue first
-    if (ringbuffer_push(&thp->queue, &task) == 0) {
-        atomic_fetch_add(&thp->local_pending, 1);
-        update_pending_tasks(pool, 1);
+    if (ringbuffer_push(&pool->threads[thread_id]->queue, &task) == 0) {
         return 0;
     }
 
-    // Try global queue
-    if (ringbuffer_push(&pool->queue, &task) == 0) {
-        update_pending_tasks(pool, 1);
-        return 0;
-    }
-
-    return -1;  // All queues full
+    // Fallback to global queue
+    return ringbuffer_push(&pool->queue, &task);
 }
 
-// Destroy thread pool
-void threadpool_destroy(threadpool* pool) {
+/** Destroy thread pool efficiently. */
+void threadpool_destroy(Threadpool* pool) {
     if (pool == NULL) return;
 
-    // Wait for all tasks to complete
+    // Wait for work completion
     lock_acquire(&pool->thcount_lock);
-    while (atomic_load(&pool->num_threads_working) > 0 || has_pending_tasks(pool)) {
+    while (has_work(pool)) {
         cond_wait(&pool->threads_all_idle, &pool->thcount_lock);
     }
 
     // Signal shutdown
-    atomic_store(&pool->shutdown, 1);
+    atomic_store_explicit(&pool->shutdown, 1, memory_order_release);
     lock_release(&pool->thcount_lock);
 
-    // Wake up all threads
+    // Wake all threads
     for (size_t i = 0; i < pool->num_threads; i++) {
         cond_broadcast(&pool->threads[i]->queue.not_empty);
         cond_broadcast(&pool->threads[i]->queue.not_full);
@@ -428,12 +367,12 @@ void threadpool_destroy(threadpool* pool) {
     cond_broadcast(&pool->queue.not_empty);
     cond_broadcast(&pool->queue.not_full);
 
-    // Wait for threads to exit
-    while (atomic_load(&pool->num_threads_alive) > 0) {
-        usleep(100);
+    // Wait for thread termination
+    while (atomic_load_explicit(&pool->num_threads_alive, memory_order_acquire) > 0) {
+        thread_yield();
     }
 
-    // Clean up
+    // Cleanup
     for (size_t i = 0; i < pool->num_threads; i++) {
         thread* thp = pool->threads[i];
         thread_join(thp->pthread, NULL);

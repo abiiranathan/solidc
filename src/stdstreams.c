@@ -109,8 +109,9 @@ int getpassword(const char* prompt, char* buffer, size_t buffer_len) {
     if (tcsetattr(fileno(stdin), TCSAFLUSH, &old) != 0) {
         return -1;
     }
-    // Add a newline
-    printf("\n");
+
+    // Add a newline to stdout
+    putc('\n', stdout);
     return nread;
 #endif
 }

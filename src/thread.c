@@ -1,203 +1,330 @@
 #include "../include/thread.h"
-#include <stddef.h>
-#include <time.h>
+#include <stddef.h>  // for NULL
+#include <stdio.h>   // for perror, fprintf
+#include <stdlib.h>  // for malloc, free
+#include <string.h>  // for strerror
+#include <time.h>    // for nanosleep
 
 #ifdef _WIN32
+#include <process.h>  // for Windows threading
+#else
+#include <sys/syscall.h>  // for syscall numbers
+#endif
+
+/* Windows-specific thread parameter wrapper */
+#ifdef _WIN32
+/** Internal structure to pass parameters to Windows thread start wrapper. */
 typedef struct {
-    ThreadStartRoutine start_routine;
-    void* data;
+    ThreadStartRoutine start_routine; /**< User's thread start function. */
+    void* data;                       /**< User's thread argument. */
 } ThreadParams;
 
+/**
+ * Internal Windows thread start wrapper.
+ * Converts between Windows WINAPI calling convention and our generic interface.
+ * @param lpParameter Pointer to ThreadParams structure.
+ * @return Thread exit code as DWORD.
+ */
 DWORD WINAPI thread_start_wrapper(LPVOID lpParameter) {
-    ThreadParams* params = (ThreadParams*)lpParameter;
-    void* result         = params->start_routine(params->data);
+    if (lpParameter == NULL) {
+        return (DWORD)-1;  // Invalid parameter
+    }
 
-    free(params);  // Free the parameter
-    // Use uintptr_t to ensure proper casting
+    ThreadParams* params             = (ThreadParams*)lpParameter;
+    ThreadStartRoutine start_routine = params->start_routine;
+    void* data                       = params->data;
+
+    free(params);  // Free the parameter structure immediately
+
+    if (start_routine == NULL) {
+        return (DWORD)-1;  // Invalid start routine
+    }
+
+    void* result = start_routine(data);
+
+    // Convert pointer to DWORD safely
     return (DWORD)(uintptr_t)result;
 }
 #endif
 
 int thread_create(Thread* thread, ThreadStartRoutine start_routine, void* data) {
-    int ret = -1;
-#ifdef _WIN32
-    ThreadParams* params = (ThreadParams*)malloc(sizeof(ThreadParams));
-    if (!params) {
-        perror("malloc");
-        return -1;
+    if (thread == NULL || start_routine == NULL) {
+        return EINVAL;  // Invalid parameter
     }
-    params->start_routine = start_routine;
-    params->data          = data;
-    HANDLE t              = CreateThread(NULL, 0, thread_start_wrapper, params, 0, NULL);
-    if (t) {
-        *thread = t;
-        ret     = 0;
-    }
-#else
-    ret = pthread_create(thread, NULL, start_routine, data);
-#endif
-    return ret;
-}
-
-// Init thread attributes
-int thread_attr_init(ThreadAttr* attr) {
-    int ret = -1;
-#ifdef _WIN32
-    attr->stackSize               = 0;
-    attr->sa.nLength              = sizeof(SECURITY_ATTRIBUTES);
-    attr->sa.lpSecurityDescriptor = NULL;
-    attr->sa.bInheritHandle       = TRUE;
-    ret                           = 0;
-#else
-    ret = pthread_attr_init(attr);
-#endif
-    return ret;
-}
-
-// Destroy thread attributes
-int thread_attr_destroy(ThreadAttr* attr) {
-    int ret = -1;
-#ifdef _WIN32
-    (void)attr;
-    ret = 0;
-#else
-    ret = pthread_attr_destroy(attr);
-#endif
-    return ret;
-}
-
-// Create a new thread with attributes
-int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine start_routine, void* data) {
-    int ret = -1;
 
 #ifdef _WIN32
     ThreadParams* params = (ThreadParams*)malloc(sizeof(ThreadParams));
-    if (!params) {
-        perror("malloc");
-        return -1;
+    if (params == NULL) {
+        return ENOMEM;  // Out of memory
     }
+
     params->start_routine = start_routine;
     params->data          = data;
-    HANDLE t              = CreateThread(&attr->sa, attr->stackSize, thread_start_wrapper, params, 0, NULL);
-    if (t) {
-        *thread = t;
-        ret     = 0;
+
+    HANDLE handle = CreateThread(NULL,                  // Security attributes (default)
+                                 0,                     // Stack size (default)
+                                 thread_start_wrapper,  // Thread start function
+                                 params,                // Thread parameter
+                                 0,                     // Creation flags (run immediately)
+                                 NULL                   // Thread ID (not needed)
+    );
+
+    if (handle == NULL) {
+        free(params);
+        DWORD error = GetLastError();
+        fprintf(stderr, "CreateThread failed with error: %lu\n", error);
+        return (int)error;
     }
-#else
-    ret = pthread_create(thread, attr, start_routine, data);
-#endif
+
+    *thread = handle;
+    return 0;
+
+#else  // POSIX
+    int ret = pthread_create(thread, NULL, start_routine, data);
+    if (ret != 0) {
+        fprintf(stderr, "pthread_create failed: %s\n", strerror(ret));
+    }
     return ret;
+#endif
 }
 
-// Wait for this thread to terminate.
+int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine start_routine,
+                       void* data) {
+    if (thread == NULL || attr == NULL || start_routine == NULL) {
+        return EINVAL;  // Invalid parameter
+    }
+
+#ifdef _WIN32
+    ThreadParams* params = (ThreadParams*)malloc(sizeof(ThreadParams));
+    if (params == NULL) {
+        return ENOMEM;  // Out of memory
+    }
+
+    params->start_routine = start_routine;
+    params->data          = data;
+
+    HANDLE handle = CreateThread(&attr->sa,             // Security attributes
+                                 attr->stackSize,       // Stack size
+                                 thread_start_wrapper,  // Thread start function
+                                 params,                // Thread parameter
+                                 0,                     // Creation flags (run immediately)
+                                 NULL                   // Thread ID (not needed)
+    );
+
+    if (handle == NULL) {
+        free(params);
+        DWORD error = GetLastError();
+        fprintf(stderr, "CreateThread failed with error: %lu\n", error);
+        return (int)error;
+    }
+
+    *thread = handle;
+    return 0;
+
+#else  // POSIX
+    int ret = pthread_create(thread, attr, start_routine, data);
+    if (ret != 0) {
+        fprintf(stderr, "pthread_create failed: %s\n", strerror(ret));
+    }
+    return ret;
+#endif
+}
+
 int thread_join(Thread tid, void** retval) {
-    int ret = -1;
 #ifdef _WIN32
-    if (WaitForSingleObject(tid, INFINITE) == WAIT_OBJECT_0) {
-        if (retval) {
-            GetExitCodeThread(tid, (DWORD*)retval);
+    DWORD wait_result = WaitForSingleObject(tid, INFINITE);
+    if (wait_result != WAIT_OBJECT_0) {
+        DWORD error = GetLastError();
+        fprintf(stderr, "WaitForSingleObject failed with error: %lu\n", error);
+        return (int)error;
+    }
+
+    if (retval != NULL) {
+        DWORD exit_code;
+        if (GetExitCodeThread(tid, &exit_code)) {
+            *retval = (void*)(uintptr_t)exit_code;
+        } else {
+            *retval     = NULL;
+            DWORD error = GetLastError();
+            fprintf(stderr, "GetExitCodeThread failed with error: %lu\n", error);
+            // Continue anyway - we successfully waited
         }
-        CloseHandle(tid);
-        ret = 0;
     }
-#else
-    // Unix
-    if (pthread_join(tid, retval) == 0) {
-        ret = 0;
+
+    CloseHandle(tid);  // Clean up the handle
+    return 0;
+
+#else  // POSIX
+    int ret = pthread_join(tid, retval);
+    if (ret != 0) {
+        fprintf(stderr, "pthread_join failed: %s\n", strerror(ret));
     }
-#endif
     return ret;
+#endif
 }
 
-// Get the current thread id
+int thread_detach(Thread tid) {
+#ifdef _WIN32
+    // Windows threads are always "detached" in the POSIX sense
+    // Just close the handle to release resources
+    if (CloseHandle(tid)) {
+        return 0;
+    } else {
+        DWORD error = GetLastError();
+        fprintf(stderr, "CloseHandle failed with error: %lu\n", error);
+        return (int)error;
+    }
+
+#else  // POSIX
+    int ret = pthread_detach(tid);
+    if (ret != 0) {
+        fprintf(stderr, "pthread_detach failed: %s\n", strerror(ret));
+    }
+    return ret;
+#endif
+}
+
 #ifdef _WIN32
 DWORD thread_self(void) {
     return GetCurrentThreadId();
 }
 #else
-// Get the current thread id
 pthread_t thread_self(void) {
     return pthread_self();
 }
 #endif
 
-// Detach a thread after creation.
-// Detach a thread. Returns 0 if successful, -1 otherwise
-// This does nothing on Windows.
-int thread_detach(Thread tid) {
+/* Thread Attribute Management */
+
+int thread_attr_init(ThreadAttr* attr) {
+    if (attr == NULL) {
+        return EINVAL;  // Invalid parameter
+    }
+
 #ifdef _WIN32
-    // Windows does not have detached threads.
-    (void)tid;
+    // Initialize to safe defaults
+    attr->stackSize               = 0;  // Use system default stack size
+    attr->sa.nLength              = sizeof(SECURITY_ATTRIBUTES);
+    attr->sa.lpSecurityDescriptor = NULL;   // Default security
+    attr->sa.bInheritHandle       = FALSE;  // Don't inherit handles by default
     return 0;
-#else
-    return pthread_detach(tid);
+
+#else  // POSIX
+    int ret = pthread_attr_init(attr);
+    if (ret != 0) {
+        fprintf(stderr, "pthread_attr_init failed: %s\n", strerror(ret));
+    }
+    return ret;
 #endif
 }
 
-// Sleep for a number of milliseconds
-void sleep_ms(int ms) {
+int thread_attr_destroy(ThreadAttr* attr) {
+    if (attr == NULL) {
+        return EINVAL;  // Invalid parameter
+    }
+
 #ifdef _WIN32
-    Sleep(ms);
-#else
+    // No-op on Windows, but still validate parameter
+    (void)attr;  // Suppress unused parameter warning
+    return 0;
+
+#else  // POSIX
+    int ret = pthread_attr_destroy(attr);
+    if (ret != 0) {
+        fprintf(stderr, "pthread_attr_destroy failed: %s\n", strerror(ret));
+    }
+    return ret;
+#endif
+}
+
+/* Utility Functions */
+
+void sleep_ms(int ms) {
+    if (ms <= 0) {
+        return;  // Invalid or zero sleep time
+    }
+
+#ifdef _WIN32
+    Sleep((DWORD)ms);
+
+#else  // POSIX
     struct timespec ts;
     ts.tv_sec  = ms / 1000;
-    ts.tv_nsec = (__syscall_slong_t)((ms % 1000) * 1000000);
-    nanosleep(&ts, NULL);
+    ts.tv_nsec = (ms % 1000) * 1000000L;  // Convert remaining ms to nanoseconds
+
+    // Handle EINTR by continuing to sleep for remaining time
+    struct timespec remaining;
+    while (nanosleep(&ts, &remaining) == -1) {
+        if (errno != EINTR) {
+            break;  // Some other error occurred
+        }
+        ts = remaining;  // Sleep for remaining time
+    }
 #endif
 }
 
-// Get the current process id
 int get_pid(void) {
 #ifdef _WIN32
-    return GetCurrentProcessId();
-#else
-    return getpid();
+    return (int)GetCurrentProcessId();
+#else  // POSIX
+    return (int)getpid();
 #endif
 }
 
-// Get the current thread id
 unsigned long get_tid(void) {
 #ifdef _WIN32
     return (unsigned long)GetCurrentThreadId();
-#else
+#else  // POSIX
     return pthread_self();
 #endif
 }
 
-// Get the number of CPU cores
 long get_ncpus(void) {
 #ifdef _WIN32
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
-    return sysinfo.dwNumberOfProcessors;
-#else
-    return sysconf(_SC_NPROCESSORS_ONLN);
+    return (long)sysinfo.dwNumberOfProcessors;
+
+#else  // POSIX
+    long ncpus = sysconf(_SC_NPROCESSORS_ONLN);
+    if (ncpus == -1) {
+        perror("sysconf(_SC_NPROCESSORS_ONLN)");
+    }
+    return ncpus;
 #endif
 }
 
 #ifndef _WIN32
-// Get the parent process id
+/* POSIX-only System Information Functions */
+
 int get_ppid(void) {
-    return getppid();
+    return (int)getppid();
 }
 
-// Get the current user id
 unsigned int get_uid(void) {
-    return getuid();
+    return (unsigned int)getuid();
 }
 
-// Get the current group id
 unsigned int get_gid(void) {
-    return getgid();
+    return (unsigned int)getgid();
 }
 
-// Get the current user name
 char* get_username(void) {
-    return getpwuid(getuid())->pw_name;
+    struct passwd* pw = getpwuid(getuid());
+    if (pw == NULL) {
+        perror("getpwuid");
+        return NULL;
+    }
+    return pw->pw_name;
 }
 
-// Get the current group name
 char* get_groupname(void) {
-    return getgrgid(getgid())->gr_name;
+    struct group* gr = getgrgid(getgid());
+    if (gr == NULL) {
+        perror("getgrgid");
+        return NULL;
+    }
+    return gr->gr_name;
 }
-#endif
+
+#endif  // _WIN32

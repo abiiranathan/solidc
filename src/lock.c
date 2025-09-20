@@ -2,153 +2,329 @@
 #define _GNU_SOURCE
 #endif
 
-#include <errno.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
+#include <errno.h>   // for errno constants
+#include <stdio.h>   // for fprintf, stderr
+#include <stdlib.h>  // for NULL
+#include <string.h>  // for strerror
+#include <time.h>    // for clock_gettime, timespec
 
 #include "../include/lock.h"
 
 #ifdef _WIN32
-void lock_init(Lock* lock) {
+
+int lock_init(Lock* lock) {
+    if (lock == NULL) {
+        return -1;
+    }
     InitializeCriticalSection(lock);
+    return 0;
 }
 
-void lock_acquire(Lock* lock) {
+int lock_acquire(Lock* lock) {
+    if (lock == NULL) {
+        return -1;
+    }
+
     EnterCriticalSection(lock);
+    return 0;
 }
 
-void lock_release(Lock* lock) {
+int lock_release(Lock* lock) {
+    if (lock == NULL) {
+        return -1;
+    }
+
     LeaveCriticalSection(lock);
+    return 0;
 }
 
-void lock_free(Lock* lock) {
+int lock_free(Lock* lock) {
+    if (lock == NULL) {
+        return 0;
+    }
+
     DeleteCriticalSection(lock);
+    return 0;
 }
 
 int lock_try_acquire(Lock* lock) {
-    return TryEnterCriticalSection(lock);
+    if (lock == NULL) {
+        return -1;
+    }
+
+    if (TryEnterCriticalSection(lock)) {
+        return 0;
+    }
+    return -1;
 }
 
-void lock_wait(Lock* lock, Condition* condition, int timeout) {
-    SleepConditionVariableCS(condition, lock, timeout);
+int lock_wait(Lock* lock, Condition* condition, int timeout_ms) {
+    if (lock == NULL || condition == NULL) {
+        return -1;
+    }
+
+    DWORD timeout = (timeout_ms < 0) ? INFINITE : (DWORD)timeout_ms;
+    if (SleepConditionVariableCS(condition, lock, timeout)) {
+        return 0;
+    }
+    return -1;
 }
 
-void cond_init(Condition* condition) {
+int cond_init(Condition* condition) {
+    if (condition == NULL) {
+        return -1;
+    }
+
     InitializeConditionVariable(condition);
+    return 0;
 }
 
-void cond_signal(Condition* condition) {
+int cond_signal(Condition* condition) {
+    if (condition == NULL) {
+        return -1;
+    }
+
     WakeConditionVariable(condition);
+    return 0;
 }
 
-void cond_broadcast(Condition* condition) {
+int cond_broadcast(Condition* condition) {
+    if (condition == NULL) {
+        return -1;
+    }
+
     WakeAllConditionVariable(condition);
+    return 0;
 }
 
-void cond_wait(Condition* condition, Lock* lock) {
-    SleepConditionVariableCS(condition, lock, INFINITE);
+int cond_wait(Condition* condition, Lock* lock) {
+    if (condition == NULL || lock == NULL) {
+        return -1;
+    }
+
+    if (SleepConditionVariableCS(condition, lock, INFINITE)) {
+        return 0;
+    }
+    return -1;
 }
 
-void cond_wait_timeout(Condition* condition, Lock* lock, int timeout) {
-    SleepConditionVariableCS(condition, lock, timeout);
+int cond_wait_timeout(Condition* condition, Lock* lock, int timeout_ms) {
+    if (condition == NULL || lock == NULL) {
+        return -1;
+    }
+
+    DWORD timeout = (timeout_ms < 0) ? INFINITE : (DWORD)timeout_ms;
+    if (SleepConditionVariableCS(condition, lock, timeout)) {
+        return 0;
+    }
+
+    return -1;
 }
 
-void cond_free(Condition* condition) {
-    // No-op
+int cond_free(Condition* condition) {
+    // Windows condition variables don't require explicit cleanup
     (void)condition;
+    return 0;
 }
-#else
-void lock_init(Lock* lock) {
+
+#else  // POSIX implementation
+
+int lock_init(Lock* lock) {
+    if (lock == NULL) {
+        return -1;
+    }
+
     int ret = pthread_mutex_init(lock, NULL);
     if (ret != 0) {
-        fprintf(stderr, "Failed to initialize mutex: %d\n", ret);
-        exit(1);
+        fprintf(stderr, "pthread_mutex_init failed: %s\n", strerror(ret));
+        return -1;
     }
+    return 0;
 }
 
-void lock_acquire(Lock* lock) {
+int lock_acquire(Lock* lock) {
+    if (lock == NULL) {
+        return -1;
+    }
+
     int ret = pthread_mutex_lock(lock);
     if (ret != 0) {
         switch (ret) {
             case EDEADLK:
-                fprintf(stderr,
-                        "A deadlock condition was detected or the current "
-                        "thread already owns the "
-                        "mutex.\n");
-                break;
+                fprintf(stderr, "Deadlock detected in pthread_mutex_lock\n");
+                return -1;
             case EINVAL:
-                fprintf(stderr,
-                        "The value specified by mutex does not refer to an "
-                        "initialized mutex "
-                        "object.\n");
-                break;
+                fprintf(stderr, "Invalid mutex in pthread_mutex_lock\n");
+                return -1;
             default:
-                fprintf(stderr, "Failed to lock mutex: %d\n", ret);
+                fprintf(stderr, "pthread_mutex_lock failed: %s\n", strerror(ret));
+                return -1;
         }
-        exit(1);
     }
+
+    return 0;
 }
 
-void lock_release(Lock* lock) {
+int lock_release(Lock* lock) {
+    if (lock == NULL) {
+        return -1;
+    }
+
     int ret = pthread_mutex_unlock(lock);
     if (ret != 0) {
-        fprintf(stderr, "Failed to unlock mutex: %d\n", ret);
-        exit(1);
+        fprintf(stderr, "pthread_mutex_unlock failed: %s\n", strerror(ret));
+        return -1;
     }
+
+    return 0;
 }
 
-void lock_free(Lock* lock) {
-    if (!lock) {
-        return;
+int lock_free(Lock* lock) {
+    if (lock == NULL) {
+        return 0;  // NULL is valid for cleanup functions
     }
 
     int ret = pthread_mutex_destroy(lock);
     if (ret != 0) {
-        fprintf(stderr, "Failed to destroy mutex: %d\n", ret);
-        exit(1);
+        fprintf(stderr, "pthread_mutex_destroy failed: %s\n", strerror(ret));
+        return -1;
     }
+
+    return 0;
 }
 
 int lock_try_acquire(Lock* lock) {
-    return pthread_mutex_trylock(lock);
+    if (lock == NULL) {
+        return -1;
+    }
+
+    int ret = pthread_mutex_trylock(lock);
+    switch (ret) {
+        case 0:
+            return 0;
+        case EBUSY:
+            return -1;
+        case EINVAL:
+            fprintf(stderr, "Invalid mutex in pthread_mutex_trylock\n");
+            return -1;
+        default:
+            fprintf(stderr, "pthread_mutex_trylock failed: %s\n", strerror(ret));
+            return -1;
+    }
 }
 
-void lock_wait(Lock* lock, Condition* condition, int timeout) {
+int lock_wait(Lock* lock, Condition* condition, int timeout_ms) {
+    return cond_wait_timeout(condition, lock, timeout_ms);
+}
+
+int cond_init(Condition* condition) {
+    if (condition == NULL) {
+        return -1;
+    }
+
+    int ret = pthread_cond_init(condition, NULL);
+    if (ret != 0) {
+        fprintf(stderr, "pthread_cond_init failed: %s\n", strerror(ret));
+        return -1;
+    }
+
+    return 0;
+}
+
+int cond_signal(Condition* condition) {
+    if (condition == NULL) {
+        return -1;
+    }
+
+    int ret = pthread_cond_signal(condition);
+    if (ret != 0) {
+        fprintf(stderr, "pthread_cond_signal failed: %s\n", strerror(ret));
+        return -1;
+    }
+
+    return 0;
+}
+
+int cond_broadcast(Condition* condition) {
+    if (condition == NULL) {
+        return -1;
+    }
+
+    int ret = pthread_cond_broadcast(condition);
+    if (ret != 0) {
+        fprintf(stderr, "pthread_cond_broadcast failed: %s\n", strerror(ret));
+        return -1;
+    }
+
+    return 0;
+}
+
+int cond_wait(Condition* condition, Lock* lock) {
+    if (condition == NULL || lock == NULL) {
+        return -1;
+    }
+
+    int ret = pthread_cond_wait(condition, lock);
+    if (ret != 0) {
+        fprintf(stderr, "pthread_cond_wait failed: %s\n", strerror(ret));
+        return -1;
+    }
+    return 0;
+}
+
+int cond_wait_timeout(Condition* condition, Lock* lock, int timeout_ms) {
+    if (condition == NULL || lock == NULL) {
+        return -1;
+    }
+
+    if (timeout_ms < 0) {
+        // Negative timeout means wait indefinitely
+        return cond_wait(condition, lock);
+    }
+
     struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    ts.tv_sec += timeout / 1000;
-    ts.tv_nsec += (__syscall_slong_t)((timeout % 1000) * 1000000);
-    pthread_cond_timedwait(condition, lock, &ts);
+    if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
+        fprintf(stderr, "clock_gettime failed: %s\n", strerror(errno));
+        return -1;
+    }
+
+    // Add timeout to current time
+    ts.tv_sec += timeout_ms / 1000;
+    ts.tv_nsec += (timeout_ms % 1000) * 1000000L;
+
+    // Handle nanosecond overflow
+    if (ts.tv_nsec >= 1000000000L) {
+        ts.tv_sec++;
+        ts.tv_nsec -= 1000000000L;
+    }
+
+    int ret = pthread_cond_timedwait(condition, lock, &ts);
+    switch (ret) {
+        case 0:
+            return 0;
+        case ETIMEDOUT:
+            return -1;
+        case EINVAL:
+            fprintf(stderr, "Invalid parameters in pthread_cond_timedwait\n");
+            return -1;
+        default:
+            fprintf(stderr, "pthread_cond_timedwait failed: %s\n", strerror(ret));
+            return -1;
+    }
 }
 
-void cond_init(Condition* condition) {
-    pthread_cond_init(condition, NULL);
+int cond_free(Condition* condition) {
+    if (condition == NULL) {
+        return 0;  // NULL is valid for cleanup functions
+    }
+
+    int ret = pthread_cond_destroy(condition);
+    if (ret != 0) {
+        fprintf(stderr, "pthread_cond_destroy failed: %s\n", strerror(ret));
+        return -1;
+    }
+
+    return 0;
 }
 
-void cond_signal(Condition* condition) {
-    pthread_cond_signal(condition);
-}
-
-void cond_broadcast(Condition* condition) {
-    pthread_cond_broadcast(condition);
-}
-
-void cond_wait(Condition* condition, Lock* lock) {
-    pthread_cond_wait(condition, lock);
-}
-
-void cond_wait_timeout(Condition* condition, Lock* lock, int timeout) {
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    ts.tv_sec += timeout / 1000;
-    ts.tv_nsec += (__syscall_slong_t)((timeout % 1000) * 1000000);
-    pthread_cond_timedwait(condition, lock, &ts);
-}
-
-void cond_free(Condition* condition) {
-    pthread_cond_destroy(condition);
-}
-
-#endif  // _WIN32
+#endif

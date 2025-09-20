@@ -35,8 +35,9 @@ void start_benchmark(Benchmark* bench) {
 
 void stop_benchmark(Benchmark* bench) {
     clock_gettime(CLOCK_MONOTONIC, &bench->end_time);
-    bench->elapsed_ns = ((unsigned long)(bench->end_time.tv_sec - bench->start_time.tv_sec) * 1000000000UL +
-                         ((unsigned long)bench->end_time.tv_nsec - (unsigned long)bench->start_time.tv_nsec));
+    bench->elapsed_ns =
+        ((unsigned long)(bench->end_time.tv_sec - bench->start_time.tv_sec) * 1000000000UL +
+         ((unsigned long)bench->end_time.tv_nsec - (unsigned long)bench->start_time.tv_nsec));
 }
 
 double latency_ms(Benchmark* bench) {
@@ -73,9 +74,9 @@ double get_cpu_time() {
 }
 
 // Benchmark function
-void run_benchmark(int num_threads, size_t iterations, size_t workload) {
+void run_benchmark(size_t num_threads, size_t iterations, size_t workload) {
     Benchmark bench  = {0};
-    ThreadPool* pool = threadpool_create(num_threads);
+    Threadpool* pool = threadpool_create(num_threads);
     if (!pool) {
         fprintf(stderr, "Failed to create thread pool\n");
         return;
@@ -97,7 +98,7 @@ void run_benchmark(int num_threads, size_t iterations, size_t workload) {
     double cpu_time         = cpu_time_end - cpu_time_start;
     double tasks_per_second = throughput(&bench, iterations);
 
-    printf("Threads: %d, Iterations: %zu, Workload: %zu\n", num_threads, iterations, workload);
+    printf("Threads: %ld, Iterations: %zu, Workload: %zu\n", num_threads, iterations, workload);
     printf("Wall Time: %.3f seconds\n", wall_time);
     printf("CPU Time: %.3f seconds\n", cpu_time);
     printf("CPU Utilization: %.2f%%\n", (cpu_time / wall_time / num_threads) * 100);
@@ -110,18 +111,18 @@ int main() {
     srand((unsigned int)time(NULL));
 
     // Test different thread counts
-    int thread_counts[] = {1, 2, 4, 8, 16};
-    size_t iterations   = 100000;
-    size_t workload     = 10000;
+    size_t thread_counts[] = {1, 2, 4, 8, 16};
+    size_t iterations      = 100000;
+    size_t workload        = 10000;
 
     for (size_t i = 0; i < sizeof(thread_counts) / sizeof(thread_counts[0]); i++) {
-        int num_threads = thread_counts[i];
+        size_t num_threads = thread_counts[i];
         run_benchmark(num_threads, iterations, workload);
     }
 
     // Test different workloads
     size_t workloads[] = {1000, 10000, 100000};
-    int num_threads    = 8;
+    size_t num_threads = 8;
 
     for (size_t i = 0; i < sizeof(workloads) / sizeof(workloads[0]); i++) {
         workload = workloads[i];

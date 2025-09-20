@@ -1,6 +1,7 @@
-#ifndef A02E572A_DD85_4D77_AC81_41037EDE290A
-#define A02E572A_DD85_4D77_AC81_41037EDE290A
+#ifndef SOLIDC_MAP_H
+#define A02E572A_DDD85_4D77_AC81_41037EDE290A
 
+#include <float.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -56,21 +57,21 @@ typedef struct hash_map Map;
 // capacity is used, otherwise its used as it.
 // key_compare is a function pointer used to compare 2 keys for equality.
 // If free_entries is true, the keys and values are also freed.
-Map* map_create(const MapConfig* config) __attribute__((warn_unused_result()));
+Map* map_create(const MapConfig* config) __attribute__((warn_unused_result));
 
 // Destroy the map and free the memory.
 void map_destroy(Map* m);
 
 // Set a key-value pair in the map
-// This is idempotent.
-void map_set(Map* m, void* key, void* value);
+// This is idempotent. Returns true on success, false on failure.
+bool map_set(Map* m, void* key, void* value);
 
-// A thread-safe version of map_set.
-void map_set_safe(Map* m, void* key, void* value);
+// A thread-safe version of map_set. Returns true on success, false on failure.
+bool map_set_safe(Map* m, void* key, void* value);
 
 // Set multiple key-value pairs in the map from arrays.
-// This is thread safe.
-void map_set_from_array(Map* m, void** keys, void** values, size_t num_keys);
+// This is thread safe. Returns true on success, false on failure.
+bool map_set_from_array(Map* m, void** keys, void** values, size_t num_keys);
 
 // Get the value for a key in the map without locking
 void* map_get(Map* m, void* key);
@@ -78,11 +79,11 @@ void* map_get(Map* m, void* key);
 // Get the value for a key in the map with locking
 void* map_get_safe(Map* m, void* key);
 
-// Remove a key from the map without locking
-void map_remove(Map* m, void* key);
+// Remove a key from the map without locking. Returns true if key was found and removed.
+bool map_remove(Map* m, void* key);
 
-// Remove a key from the map with locking
-void map_remove_safe(Map* m, void* key);
+// Remove a key from the map with locking. Returns true if key was found and removed.
+bool map_remove_safe(Map* m, void* key);
 
 // Iterator implementation
 typedef struct {
@@ -103,19 +104,19 @@ size_t map_length(Map* m);
 size_t map_capacity(Map* m);
 
 static inline bool key_compare_int(const void* a, const void* b) {
-    return a && b && *(int*)a == *(int*)b;
+    return a && b && *(const int*)a == *(const int*)b;
 }
 
 static inline bool key_compare_char_ptr(const void* a, const void* b) {
-    return a && b && strcmp((char*)a, (char*)b) == 0;
+    return a && b && strcmp((const char*)a, (const char*)b) == 0;
 }
 
 static inline bool key_compare_float(const void* a, const void* b) {
-    return a && b && cmp_float(*(float*)a, *(float*)b, (cmp_config_t){.epsilon = FLT_EPSILON});
+    return a && b && cmp_float(*(const float*)a, *(const float*)b, (cmp_config_t){.epsilon = FLT_EPSILON});
 }
 
 static inline bool key_compare_double(const void* a, const void* b) {
-    return a && b && cmp_double(*(double*)a, *(double*)b, (cmp_config_t){.epsilon = DBL_EPSILON});
+    return a && b && cmp_double(*(const double*)a, *(const double*)b, (cmp_config_t){.epsilon = DBL_EPSILON});
 }
 
 // Key Len functions
@@ -139,17 +140,19 @@ static inline size_t key_len_float(const void* key) {
     return sizeof(float);
 }
 
-// Return the strlen of the NULL-terninated key.
+// Return the strlen of the NULL-terminated key.
 static inline size_t key_len_char_ptr(const void* key) {
-    return strlen((char*)key);
+    return strlen((const char*)key);
 }
 
 // Satisfies KeyFreeFunction and ValueFreeFunction.
 // Used for keys and values that should not be freed.
-static inline void NOFREE(void*) {}
+static inline void NOFREE(void* ptr) {
+    (void)ptr;  // Do nothing
+}
 
 #if defined(__cplusplus)
 }
 #endif
 
-#endif /* A02E572A_DD85_4D77_AC81_41037EDE290A */
+#endif /* SOLIDC_MAP_H */

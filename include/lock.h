@@ -1,66 +1,151 @@
-#ifndef AB1DC3C5_00AA_4460_BD6A_65D8301B4779
-#define AB1DC3C5_00AA_4460_BD6A_65D8301B4779
+/**
+ * @file lock.h
+ * @brief Cross-platform mutex and condition variable wrapper.
+ *
+ * Provides a unified interface for synchronization primitives across
+ * Windows (Critical Sections/Condition Variables) and POSIX systems
+ * (pthread mutexes/condition variables).
+ *
+ * All functions return integer error codes instead of terminating the program,
+ * allowing for proper error handling and recovery.
+ *
+ * @note This library is thread-safe where documented, but initialization
+ *       and destruction functions are NOT thread-safe.
+ */
 
-#include <stddef.h>
-
-#ifdef _WIN32
-#include <windows.h>
-typedef CRITICAL_SECTION Lock;
-typedef CONDITION_VARIABLE Condition;
-#else
-#include <pthread.h>
-
-// Lock is a pthread_mutex_t
-typedef pthread_mutex_t Lock;
-
-// Condition is a pthread_cond_t
-typedef pthread_cond_t Condition;
-#endif
+#ifndef LOCK_H
+#define LOCK_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/// Initializes a lock
-void lock_init(Lock* lock);
+#ifdef _WIN32
+#include <windows.h>
+/** Platform-specific lock type (Windows Critical Section). */
+typedef CRITICAL_SECTION Lock;
+/** Platform-specific condition variable type (Windows Condition Variable). */
+typedef CONDITION_VARIABLE Condition;
+#else
+#include <pthread.h>
+/** Platform-specific lock type (POSIX mutex). */
+typedef pthread_mutex_t Lock;
+/** Platform-specific condition variable type (POSIX condition variable). */
+typedef pthread_cond_t Condition;
+#endif
 
-// Acquires a lock
-void lock_acquire(Lock* lock);
+/* Lock (Mutex) Functions */
 
-// Releases a lock
-void lock_release(Lock* lock);
+/**
+ * Initializes a lock.
+ * @param lock Pointer to the lock to initialize. Must not be NULL.
+ * @return 0 on success, -1 on failure.
+ * @note Not thread-safe. Caller must ensure exclusive access during initialization.
+ */
+int lock_init(Lock* lock);
 
-// Frees a lock
-void lock_free(Lock* lock);
+/**
+ * Acquires a lock, blocking until available.
+ * @param lock Pointer to an initialized lock. Must not be NULL.
+ * @return 0 on success, -1 on failure.
+ * @note Thread-safe. This function will block until the lock is acquired.
+ */
+int lock_acquire(Lock* lock);
 
-// Tries to acquire a lock.
-// Returns 0 if the lock was acquired, 1 if it was not.
+/**
+ * Releases a previously acquired lock.
+ * @param lock Pointer to an initialized lock currently held by this thread. Must not be NULL.
+ * @return 0 on success, -1 on failure.
+ * @note Thread-safe, but only the thread that acquired the lock should release it.
+ */
+int lock_release(Lock* lock);
+
+/**
+ * Destroys a lock and releases its resources.
+ * @param lock Pointer to the lock to destroy. NULL is allowed (no-op).
+ * @return 0 on success, -1 on failure.
+ * @note Not thread-safe. Caller must ensure no other threads are using the lock.
+ */
+int lock_free(Lock* lock);
+
+/**
+ * Attempts to acquire a lock without blocking.
+ * @param lock Pointer to an initialized lock. Must not be NULL.
+ * @return 0 if acquired, LOCK_ERROR_TRYLOCK if busy, other error codes on failure.
+ * @note Thread-safe. Returns immediately whether the lock was acquired or not.
+ */
 int lock_try_acquire(Lock* lock);
 
-// Waits for a condition to be signaled or a timeout to occur.
-// timeout is in milliseconds
-void lock_wait(Lock* lock, Condition* condition, int timeout);
+/**
+ * Waits on a condition variable with a timeout while holding a lock.
+ * This is a convenience function equivalent to cond_wait_timeout().
+ * @param lock Pointer to an initialized lock currently held by this thread. Must not be NULL.
+ * @param condition Pointer to an initialized condition variable. Must not be NULL.
+ * @param timeout_ms Timeout in milliseconds. Negative values mean wait indefinitely.
+ * @return 0 on success, -1 on timeout, other error codes on failure.
+ * @note Thread-safe, but lock must be held by calling thread.
+ */
+int lock_wait(Lock* lock, Condition* condition, int timeout_ms);
 
-// Initializes a condition variable
-void cond_init(Condition* condition);
+/* Condition Variable Functions */
 
-// Signals a condition variable
-void cond_signal(Condition* condition);
+/**
+ * Initializes a condition variable.
+ * @param condition Pointer to the condition variable to initialize. Must not be NULL.
+ * @return 0 on success, -1 on failure.
+ * @note Not thread-safe. Caller must ensure exclusive access during initialization.
+ */
+int cond_init(Condition* condition);
 
-// Broadcasts a condition variable
-void cond_broadcast(Condition* condition);
+/**
+ * Signals one thread waiting on the condition variable.
+ * @param condition Pointer to an initialized condition variable. Must not be NULL.
+ * @return 0 on success, -1 on failure.
+ * @note Thread-safe. Wakes up at most one waiting thread.
+ */
+int cond_signal(Condition* condition);
 
-// Waits for a condition to be signaled indefinitely
-void cond_wait(Condition* condition, Lock* lock);
+/**
+ * Signals all threads waiting on the condition variable.
+ * @param condition Pointer to an initialized condition variable. Must not be NULL.
+ * @return 0 on success, -1 on failure.
+ * @note Thread-safe. Wakes up all waiting threads.
+ */
+int cond_broadcast(Condition* condition);
 
-// Waits for a condition to be signaled or a timeout to occur.
-void cond_wait_timeout(Condition* condition, Lock* lock, int timeout);
+/**
+ * Waits indefinitely on a condition variable while holding a lock.
+ * @param condition Pointer to an initialized condition variable. Must not be NULL.
+ * @param lock Pointer to an initialized lock currently held by this thread. Must not be NULL.
+ * @return 0 on success, -1 on failure.
+ * @note Thread-safe, but lock must be held by calling thread. Lock is atomically
+ *       released during wait and re-acquired before returning.
+ */
+int cond_wait(Condition* condition, Lock* lock);
 
-// Frees a condition variable
-void cond_free(Condition* condition);
+/**
+ * Waits on a condition variable with a timeout while holding a lock.
+ * @param condition Pointer to an initialized condition variable. Must not be NULL.
+ * @param lock Pointer to an initialized lock currently held by this thread. Must not be NULL.
+ * @param timeout_ms Timeout in milliseconds. Negative values mean wait indefinitely.
+ * @return 0 on success, -1 on timeout, other error codes on failure.
+ * @note Thread-safe, but lock must be held by calling thread. Lock is atomically
+ *       released during wait and re-acquired before returning.
+ */
+int cond_wait_timeout(Condition* condition, Lock* lock, int timeout_ms);
+
+/**
+ * Destroys a condition variable and releases its resources.
+ * @param condition Pointer to the condition variable to destroy. NULL is allowed (no-op).
+ * @return 0 on success, -1 on failure.
+ * @note Not thread-safe. Caller must ensure no other threads are using the condition variable.
+ */
+int cond_free(Condition* condition);
+
+/* Utility Functions */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* AB1DC3C5_00AA_4460_BD6A_65D8301B4779 */
+#endif  // LOCK_H

@@ -72,9 +72,9 @@ format:
 # Benchmarking (native only)
 bench:
 ifeq ($(TARGET),native)
-	gcc -D_GNU_SOURCE benchmarks/bench_arena.c src/larena.c src/lock.c \
+	gcc -D_GNU_SOURCE benchmarks/bench_arena.c src/arena.c src/lock.c \
 		-lpthread -O3 -std=c23 -Wall -Wextra -Wpedantic -march=native -flto
-	./a.out 4096 100000 8
+	./a.out 4096 1000000 8
 else
 	@echo "Benchmarking only supported for native target"
 endif

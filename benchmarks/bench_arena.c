@@ -8,7 +8,7 @@
 #include <string.h>
 #include <strings.h>
 #include <time.h>
-#include "../include/larena.h"
+#include "../include/arena.h"
 
 // Number of iterations for each benchmark
 #define NUM_ITERATIONS 1024
@@ -19,7 +19,7 @@
 
 // Structure to pass data to threads
 typedef struct ThreadData {
-    LArena* arena;
+    Arena* arena;
     size_t size;
     size_t n;
     double* elapsed_time;
@@ -27,18 +27,18 @@ typedef struct ThreadData {
     void* (*allocator_func)(struct ThreadData*);
 } ThreadData;
 
-void* larena_allocator(ThreadData* data) {
-    void* ptr = larena_alloc(data->arena, data->size);
+void* arena_allocator(ThreadData* data) {
+    volatile void* ptr = arena_alloc(data->arena, data->size);
     if (ptr == NULL) {
         fprintf(stderr, "larena_alloc failed\n");
         exit(1);
     }
 
-    ptr = larena_alloc_string(data->arena, "Hello World");
+    ptr = arena_alloc_string(data->arena, "Hello World");
 
     // Resets should be rare!
-    larena_reset(data->arena);
-    return ptr;
+    arena_reset(data->arena);
+    return (void*)ptr;
 }
 
 void* malloc_allocator(ThreadData* data) {
@@ -71,7 +71,7 @@ void* thread_runner(void* arg) {
     }
 
     clock_gettime(CLOCK_MONOTONIC, &end);
-    double elapsed        = (double)((end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec)) / 1e9;
+    double elapsed = (double)((end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec)) / 1e9;
     *(data->elapsed_time) = elapsed;
     *(data->throughput)   = (double)data->n / elapsed;  // Allocations per second
 
@@ -79,7 +79,8 @@ void* thread_runner(void* arg) {
 }
 
 // Benchmarking function
-double benchmark(ThreadData* thread_data, void* (*allocator_func)(ThreadData*), double* total_throughput) {
+double benchmark(ThreadData* thread_data, void* (*allocator_func)(ThreadData*),
+                 double* total_throughput) {
 
     // Declare the arrays as usual
     pthread_t threads[NUM_THREADS];
@@ -94,7 +95,8 @@ double benchmark(ThreadData* thread_data, void* (*allocator_func)(ThreadData*), 
         thread_data[i].elapsed_time   = &elapsed_times[i];
         thread_data[i].throughput     = &throughputs[i];
         thread_data[i].allocator_func = allocator_func;
-        if (pthread_create(&threads[i], NULL, (void* (*)(void*))thread_runner, &thread_data[i]) != 0) {
+        if (pthread_create(&threads[i], NULL, (void* (*)(void*))thread_runner, &thread_data[i]) !=
+            0) {
             perror("pthread_create failed");
             return -1.0;
         }
@@ -130,10 +132,10 @@ int main() {
     double total_malloc_throughput = 0;
 
     ThreadData thread_data[NUM_THREADS];
-    LArena* arenas[NUM_THREADS];
+    Arena* arenas[NUM_THREADS];
 
     for (int i = 0; i < NUM_THREADS; i++) {
-        arenas[i] = larena_create(1024);
+        arenas[i] = arena_create(1024);
         if (arenas[i] == NULL) {
             printf("Error allocating arenas\n");
             return 1;
@@ -149,7 +151,7 @@ int main() {
             thread_data[i].n = n / (size_t)NUM_THREADS;
         }
 
-        total_arena_time += benchmark(thread_data, larena_allocator, &total_arena_throughput);
+        total_arena_time += benchmark(thread_data, arena_allocator, &total_arena_throughput);
 
         // Benchmark malloc
         for (int i = 0; i < NUM_THREADS; i++) {
@@ -161,19 +163,21 @@ int main() {
     }
 
     for (int i = 0; i < NUM_THREADS; i++) {
-        larena_destroy(arenas[i]);
+        arena_destroy(arenas[i]);
     }
 
     // Print average results
     printf(
         "larena_alloc (average over %d runs): %.6f ms, throughput: %.2f "
         "allocations/s\n",
-        NUM_ITERATIONS, (total_arena_time / NUM_ITERATIONS) * 1e3, total_arena_throughput / NUM_ITERATIONS);
+        NUM_ITERATIONS, (total_arena_time / NUM_ITERATIONS) * 1e3,
+        total_arena_throughput / NUM_ITERATIONS);
 
     printf(
         "malloc      (average over %d runs): %.6f ms, throughput: %.2f "
         "allocations/s\n",
-        NUM_ITERATIONS, (total_malloc_time / NUM_ITERATIONS) * 1e3, total_malloc_throughput / NUM_ITERATIONS);
+        NUM_ITERATIONS, (total_malloc_time / NUM_ITERATIONS) * 1e3,
+        total_malloc_throughput / NUM_ITERATIONS);
 
     return 0;
 }
