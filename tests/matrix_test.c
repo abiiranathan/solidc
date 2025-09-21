@@ -184,7 +184,8 @@ void test_mat4_mul() {
     Mat4 a        = {{{{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}, {13, 14, 15, 16}}}};
     Mat4 b        = {{{{16, 15, 14, 13}, {12, 11, 10, 9}, {8, 7, 6, 5}, {4, 3, 2, 1}}}};
     Mat4 result   = mat4_mul(a, b);
-    Mat4 expected = {{{{80, 70, 60, 50}, {240, 214, 188, 162}, {400, 358, 316, 274}, {560, 502, 444, 386}}}};
+    Mat4 expected = {
+        {{{80, 70, 60, 50}, {240, 214, 188, 162}, {400, 358, 316, 274}, {560, 502, 444, 386}}}};
 
     if (mat4_equal(result, expected)) {
         printf("PASSED\n");
@@ -226,7 +227,8 @@ void test_mat4_mul_vec4() {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
-        printf("Expected: [%.2f, %.2f, %.2f, %.2f]\n", expected.x, expected.y, expected.z, expected.w);
+        printf("Expected: [%.2f, %.2f, %.2f, %.2f]\n", expected.x, expected.y, expected.z,
+               expected.w);
         printf("Got:      [%.2f, %.2f, %.2f, %.2f]\n", result.x, result.y, result.z, result.w);
     }
     printf("\n");
@@ -434,12 +436,13 @@ void test_mat4_look_at() {
     Vec4 eye_homogeneous = {eye.x, eye.y, eye.z, 1};
     Vec4 transformed     = mat4_mul_vec4(result, eye_homogeneous);
 
-    if (float_equal(transformed.x, 0) && float_equal(transformed.y, 0) && float_equal(transformed.z, 0)) {
+    if (float_equal(transformed.x, 0) && float_equal(transformed.y, 0) &&
+        float_equal(transformed.z, 0)) {
         printf("PASSED\n");
     } else {
         printf("FAILED\n");
-        printf("Expected eye to map to [0, 0, 0], got [%.2f, %.2f, %.2f]\n", transformed.x, transformed.y,
-               transformed.z);
+        printf("Expected eye to map to [0, 0, 0], got [%.2f, %.2f, %.2f]\n", transformed.x,
+               transformed.y, transformed.z);
     }
     printf("\n");
 }

@@ -64,7 +64,7 @@ void* thrd_func(void* arg) {
 
 void test_system_thread_ident() {
     printf("PID: %d\n", get_pid());
-    printf("TID: %d\n", get_tid());
+    printf("TID: %ld\n", get_tid());
     printf("Number of CPUs: %lu\n", get_ncpus());
 
 #ifndef _WIN32

@@ -4,6 +4,7 @@ project(solidc VERSION 0.2.5 LANGUAGES C)
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
+set(CMAKE_BUILD_TYPE "Release")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows" OR WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
     set(IS_WINDOWS_TARGET TRUE)
@@ -99,6 +100,9 @@ set(SOURCES
     src/unicode.c
 )
 
+# Include math.h constants e.g M_PI in C23
+add_compile_definitions(_USE_MATH_DEFINES _GNU_SOURCE)
+
 # Create the library
 add_library(solidc STATIC ${SOURCES})
 add_library(solidc::solidc ALIAS solidc)
@@ -116,10 +120,11 @@ if(WIN32 OR MINGW)
         _CRT_SECURE_NO_WARNINGS
         WIN32_LEAN_AND_MEAN
         NOMINMAX
+        _USE_MATH_DEFINES
     )
 
     # Windows-specific linker flags
-    target_link_libraries(solidc PUBLIC ws2_32 advapi32 kernel32)
+    target_link_libraries(solidc PUBLIC m ws2_32 advapi32 kernel32)
 
     # Disable warnings that are too noisy on MSVC
     if(MSVC)
@@ -130,37 +135,18 @@ if(WIN32 OR MINGW)
         )
     endif()
 else()
-    # Unix-like compiler flags
-    target_link_libraries(solidc PUBLIC m pthread)
     
-    # Common warnings for GCC/Clang
-    target_compile_options(solidc PRIVATE
-        -Wall
-        -Wextra
-        -pedantic
-        -Werror
-        -std=c23
-    )
+    target_compile_options(solidc PUBLIC -Wall -Wextra -Werror -std=c23 -mavx2 -msse4.2 -mtune=native -march=native -flto)
+    target_link_libraries(solidc PUBLIC m pthread)
     
     # Security hardening in Release mode
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        target_compile_options(solidc PRIVATE
-            -fstack-protector-strong
-            -D_FORTIFY_SOURCE=2
-            -fPIE
-            -fPIC
-        )
-        target_link_options(solidc PRIVATE
-            -pie
-        )
+        target_compile_options(solidc PRIVATE -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE -fPIC)
     endif()
     
     # Clang-specific settings
     if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
-        target_compile_options(solidc PRIVATE 
-            -Wno-gnu-zero-variadic-macro-arguments
-            -fblocks
-        )
+        target_compile_options(solidc PRIVATE -Wno-gnu-zero-variadic-macro-arguments -fblocks)
         target_link_libraries(solidc PRIVATE BlocksRuntime)
     endif()
 endif()

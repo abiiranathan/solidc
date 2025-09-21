@@ -26,9 +26,28 @@ extern "C" {
 
 // Define alignment for cache line optimization
 #define CACHE_LINE_SIZE 64
+// Cross-platform prefetch macros
+#if defined(__GNUC__) || defined(__clang__)
+#define PREFETCH_READ(addr)  __builtin_prefetch((addr), 0, 3)
+#define PREFETCH_WRITE(addr) __builtin_prefetch((addr), 1, 3)
+#elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
+#include <intrin.h>
+#define PREFETCH_READ(addr)  _mm_prefetch((char*)(addr), _MM_HINT_T0)
+#define PREFETCH_WRITE(addr) _mm_prefetch((char*)(addr), _MM_HINT_T0)
+#elif defined(__has_builtin)
+#if __has_builtin(__builtin_prefetch)
+#define PREFETCH_READ(addr)  __builtin_prefetch((addr), 0, 3)
+#define PREFETCH_WRITE(addr) __builtin_prefetch((addr), 1, 3)
+#else
+#define PREFETCH_READ(addr)  ((void)0)
+#define PREFETCH_WRITE(addr) ((void)0)
+#endif
+#else
+#define PREFETCH_READ(addr)  ((void)0)
+#define PREFETCH_WRITE(addr) ((void)0)
+#endif
 
 typedef size_t (*HashFunction)(const void* key, size_t size);
-typedef size_t (*KeyLenFunction)(const void* key);
 typedef bool (*KeyCmpFunction)(const void* key1, const void* key2);
 typedef void (*KeyFreeFunction)(void* key);
 typedef void (*ValueFreeFunction)(void* value);
@@ -37,7 +56,6 @@ typedef struct {
     size_t initial_capacity;       // Initial size of the map. If zero, the default size
                                    // is used.
     KeyCmpFunction key_compare;    // Required: Key comparison function
-    KeyLenFunction key_len_func;   // Required: Key length function
     KeyFreeFunction key_free;      // Optional: Key cleanup function. Default is free from libc.
     ValueFreeFunction value_free;  // Optional: Value cleanup function. Default is
                                    // free from libc.
@@ -45,63 +63,59 @@ typedef struct {
     HashFunction hash_func;        // Optional: Custom hash function
 } MapConfig;
 
-#define MapConfigInt    (&(MapConfig){.key_compare = key_compare_int, .key_len_func = key_len_int})
-#define MapConfigFloat  (&(MapConfig){.key_compare = key_compare_float, .key_len_func = key_len_float})
-#define MapConfigDouble (&(MapConfig){.key_compare = key_compare_double, .key_len_func = key_len_double})
-#define MapConfigStr    (&(MapConfig){.key_compare = key_compare_char_ptr, .key_len_func = key_len_char_ptr})
+#define MapConfigInt    (&(MapConfig){.key_compare = key_compare_int})
+#define MapConfigFloat  (&(MapConfig){.key_compare = key_compare_float})
+#define MapConfigDouble (&(MapConfig){.key_compare = key_compare_double})
+#define MapConfigStr    (&(MapConfig){.key_compare = key_compare_char_ptr})
 
 // Generic map implementation using xxhash as the hash function.
-typedef struct hash_map Map;
+typedef struct hash_map HashMap;
 
 // Create a new map and initialize it. If the initial capacity is 0, a default
 // capacity is used, otherwise its used as it.
 // key_compare is a function pointer used to compare 2 keys for equality.
 // If free_entries is true, the keys and values are also freed.
-Map* map_create(const MapConfig* config) __attribute__((warn_unused_result));
+HashMap* map_create(const MapConfig* config) __attribute__((warn_unused_result));
 
 // Destroy the map and free the memory.
-void map_destroy(Map* m);
+void map_destroy(HashMap* m);
 
 // Set a key-value pair in the map
 // This is idempotent. Returns true on success, false on failure.
-bool map_set(Map* m, void* key, void* value);
+bool map_set(HashMap* m, void* key, size_t key_len, void* value);
 
 // A thread-safe version of map_set. Returns true on success, false on failure.
-bool map_set_safe(Map* m, void* key, void* value);
-
-// Set multiple key-value pairs in the map from arrays.
-// This is thread safe. Returns true on success, false on failure.
-bool map_set_from_array(Map* m, void** keys, void** values, size_t num_keys);
+bool map_set_safe(HashMap* m, void* key, size_t key_len, void* value);
 
 // Get the value for a key in the map without locking
-void* map_get(Map* m, void* key);
+void* map_get(HashMap* m, void* key, size_t key_len);
 
 // Get the value for a key in the map with locking
-void* map_get_safe(Map* m, void* key);
+void* map_get_safe(HashMap* m, void* key, size_t key_len);
 
 // Remove a key from the map without locking. Returns true if key was found and removed.
-bool map_remove(Map* m, void* key);
+bool map_remove(HashMap* m, void* key, size_t key_len);
 
 // Remove a key from the map with locking. Returns true if key was found and removed.
-bool map_remove_safe(Map* m, void* key);
+bool map_remove_safe(HashMap* m, void* key, size_t key_len);
 
 // Iterator implementation
 typedef struct {
-    Map* m;
+    HashMap* map;
     size_t index;
 } map_iterator;
 
 // Create a map iterator.
-map_iterator map_iter(Map* m);
+map_iterator map_iter(HashMap* m);
 
 // Advance to the next valid entry in the map.
 bool map_next(map_iterator* it, void** key, void** value);
 
 // Get the number of key-value pairs in the map
-size_t map_length(Map* m);
+size_t map_length(HashMap* m);
 
 // Get the capacity of the map
-size_t map_capacity(Map* m);
+size_t map_capacity(HashMap* m);
 
 static inline bool key_compare_int(const void* a, const void* b) {
     return a && b && *(const int*)a == *(const int*)b;
@@ -112,43 +126,13 @@ static inline bool key_compare_char_ptr(const void* a, const void* b) {
 }
 
 static inline bool key_compare_float(const void* a, const void* b) {
-    return a && b && cmp_float(*(const float*)a, *(const float*)b, (cmp_config_t){.epsilon = FLT_EPSILON});
+    return a && b &&
+           cmp_float(*(const float*)a, *(const float*)b, (cmp_config_t){.epsilon = FLT_EPSILON});
 }
 
 static inline bool key_compare_double(const void* a, const void* b) {
-    return a && b && cmp_double(*(const double*)a, *(const double*)b, (cmp_config_t){.epsilon = DBL_EPSILON});
-}
-
-// Key Len functions
-// ==================================
-
-// Returns sizeof(int).
-static inline size_t key_len_int(const void* key) {
-    (void)key;
-    return sizeof(int);
-}
-
-// Returns sizeof(double).
-static inline size_t key_len_double(const void* key) {
-    (void)key;
-    return sizeof(double);
-}
-
-// Returns sizeof(float).
-static inline size_t key_len_float(const void* key) {
-    (void)key;
-    return sizeof(float);
-}
-
-// Return the strlen of the NULL-terminated key.
-static inline size_t key_len_char_ptr(const void* key) {
-    return strlen((const char*)key);
-}
-
-// Satisfies KeyFreeFunction and ValueFreeFunction.
-// Used for keys and values that should not be freed.
-static inline void NOFREE(void* ptr) {
-    (void)ptr;  // Do nothing
+    return a && b &&
+           cmp_double(*(const double*)a, *(const double*)b, (cmp_config_t){.epsilon = DBL_EPSILON});
 }
 
 #if defined(__cplusplus)

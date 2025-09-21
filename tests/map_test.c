@@ -1,33 +1,40 @@
-#include <time.h>
-#define MAX_THREADS 4  // override the default value in threadpool.h
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 
-#include "../include/macros.h"
+#define MAX_THREADS 4
+
 #include "../include/map.h"
+#include "../include/macros.h"
 #include "../include/threadpool.h"
 
-// Uncomment this to test with 100m rows
-// Be sure to have enough memory and storage space > 2GB
-#define MAP_SIZE 1000000  // 1m rows take about 100ms
+#include <time.h>
+
+#define MAP_SIZE 1000000
 
 typedef struct {
     int* key;
     int* value;
-    Map* m;
-} Arg;
+    HashMap* map;
+} ThreadData;
 
 void concurrent_insert(void* arg) {
-    Arg* a = (Arg*)arg;
-    map_set_safe(a->m, a->key, a->value);
+    ThreadData* thread_data = (ThreadData*)arg;
+    map_set_safe(thread_data->map, thread_data->key, sizeof(int), thread_data->value);
 }
 
 void test_concurrent_map() {
     Threadpool* pool = threadpool_create(4);
     ASSERT(pool);
 
-    Map* m = map_create(MapConfigInt);
+    MapConfig* config  = MapConfigInt;
+    config->key_free   = free;
+    config->value_free = free;
+
+    HashMap* m = map_create(config);
     ASSERT(m);
 
-    Arg args[MAX_THREADS];
+    ThreadData args[MAX_THREADS];
     for (int i = 0; i < MAX_THREADS; ++i) {
         args[i].key = malloc(sizeof(int));
         ASSERT(args[i].key);
@@ -35,7 +42,7 @@ void test_concurrent_map() {
         ASSERT(args[i].value);
         *args[i].key   = i;
         *args[i].value = i;
-        args[i].m      = m;
+        args[i].map    = m;
         threadpool_submit(pool, concurrent_insert, &args[i]);
     }
 
@@ -43,7 +50,7 @@ void test_concurrent_map() {
 
     // check if all values are inserted
     for (int i = 0; i < MAX_THREADS; ++i) {
-        const int* value = map_get(m, args[i].key);
+        const int* value = map_get(m, args[i].key, sizeof(int));
         ASSERT(value);
         ASSERT(*value == i);
     }
@@ -60,26 +67,26 @@ int main(void) {
     MapConfig cfg = {
         .initial_capacity = MAP_SIZE,
         .key_compare      = key_compare_int,
-        .key_len_func     = key_len_int,
-        .key_free         = NOFREE,
-        .value_free       = NOFREE,
+        .key_free         = NULL,
+        .value_free       = NULL,
     };
 
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
-    Map* m = map_create(&cfg);
+
+    HashMap* m = map_create(&cfg);
     ASSERT(m);
 
     for (int i = 0; i < MAP_SIZE; ++i) {
         arr[i] = i;
-        map_set(m, &arr[i], &arr[i]);
+        map_set(m, &arr[i], sizeof(int), &arr[i]);
     }
 
-    const int* one = map_get(m, &arr[1]);
+    const int* one = map_get(m, &arr[1], sizeof(int));
     ASSERT(one);
 
     // test map_get_safe
-    const int* two = map_get_safe(m, &arr[2]);
+    const int* two = map_get_safe(m, &arr[2], sizeof(int));
     ASSERT(two);
 
     map_iterator it = map_iter(m);

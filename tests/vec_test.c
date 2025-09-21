@@ -1,8 +1,9 @@
-#include "../include/vec.h"
 #include <math.h>
 #include <stdio.h>
+
 #include "../include/cmp.h"
 #include "../include/macros.h"
+#include "../include/vec.h"
 
 #define EPISILON (cmp_config_t){.epsilon = 1e2}
 
@@ -208,18 +209,20 @@ void test_simd_vec4_operations() {
     // Test simd_vec4_rotate_x
     Vec4 initial_vector   = {1.0f, 0.0f, 0.0f, 1.0f};
     SimdVec4 initial_simd = simd_vec4_load(initial_vector);
-    SimdVec4 rotated_x    = simd_vec4_rotate_x(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around X axis
-    Vec4 rotated_vec_x    = simd_vec4_store(rotated_x);
+    SimdVec4 rotated_x =
+        simd_vec4_rotate_x(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around X axis
+    Vec4 rotated_vec_x = simd_vec4_store(rotated_x);
 
-    ASSERT(cmp_float(rotated_vec_x.x, 1.0f, EPISILON));  // x component should stay the s, EPISILOName
+    ASSERT(
+        cmp_float(rotated_vec_x.x, 1.0f, EPISILON));  // x component should stay the s, EPISILOName
     ASSERT(cmp_float(rotated_vec_x.y, 0.0f, EPISILON));
     ASSERT(cmp_float(rotated_vec_x.z, 0.0f, EPISILON));
     ASSERT(cmp_float(rotated_vec_x.w, 1.0f, EPISILON));
 
     initial_vector = (Vec4){0.0f, 1.0f, 0.0f, 1.0f};
     initial_simd   = simd_vec4_load(initial_vector);
-    rotated_x      = simd_vec4_rotate_x(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around X axis
-    rotated_vec_x  = simd_vec4_store(rotated_x);
+    rotated_x = simd_vec4_rotate_x(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around X axis
+    rotated_vec_x = simd_vec4_store(rotated_x);
 
     ASSERT(cmp_float(rotated_vec_x.x, 0.0f, EPISILON));
     ASSERT(cmp_float(rotated_vec_x.y, 0.0f, EPISILON));
@@ -227,20 +230,22 @@ void test_simd_vec4_operations() {
     ASSERT(cmp_float(rotated_vec_x.w, 1.0f, EPISILON));
 
     // Test simd_vec4_rotate_y
-    initial_vector     = (Vec4){0.0f, 1.0f, 0.0f, 1.0f};
-    initial_simd       = simd_vec4_load(initial_vector);
-    SimdVec4 rotated_y = simd_vec4_rotate_y(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around Y axis
+    initial_vector = (Vec4){0.0f, 1.0f, 0.0f, 1.0f};
+    initial_simd   = simd_vec4_load(initial_vector);
+    SimdVec4 rotated_y =
+        simd_vec4_rotate_y(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around Y axis
     Vec4 rotated_vec_y = simd_vec4_store(rotated_y);
 
-    ASSERT(cmp_float(rotated_vec_y.x, 0.0f, EPISILON));  // y component should stay the s, EPISILOName
+    ASSERT(
+        cmp_float(rotated_vec_y.x, 0.0f, EPISILON));  // y component should stay the s, EPISILOName
     ASSERT(cmp_float(rotated_vec_y.y, 1.0f, EPISILON));
     ASSERT(cmp_float(rotated_vec_y.z, 0.0f, EPISILON));
     ASSERT(cmp_float(rotated_vec_y.w, 1.0f, EPISILON));
 
     initial_vector = (Vec4){1.0f, 0.0f, 0.0f, 1.0f};
     initial_simd   = simd_vec4_load(initial_vector);
-    rotated_y      = simd_vec4_rotate_y(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around Y axis
-    rotated_vec_y  = simd_vec4_store(rotated_y);
+    rotated_y = simd_vec4_rotate_y(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around Y axis
+    rotated_vec_y = simd_vec4_store(rotated_y);
 
     ASSERT(cmp_float(rotated_vec_y.x, 0.0f, EPISILON));
     ASSERT(cmp_float(rotated_vec_y.y, 0.0f, EPISILON));
@@ -248,20 +253,22 @@ void test_simd_vec4_operations() {
     ASSERT(cmp_float(rotated_vec_y.w, 1.0f, EPISILON));
 
     // Test simd_vec4_rotate_z
-    initial_vector     = (Vec4){1.0f, 0.0f, 0.0f, 1.0f};
-    initial_simd       = simd_vec4_load(initial_vector);
-    SimdVec4 rotated_z = simd_vec4_rotate_z(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around Z axis
+    initial_vector = (Vec4){1.0f, 0.0f, 0.0f, 1.0f};
+    initial_simd   = simd_vec4_load(initial_vector);
+    SimdVec4 rotated_z =
+        simd_vec4_rotate_z(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around Z axis
     Vec4 rotated_vec_z = simd_vec4_store(rotated_z);
 
     ASSERT(cmp_float(rotated_vec_z.x, 0.0f, EPISILON));
     ASSERT(cmp_float(rotated_vec_z.y, 1.0f, EPISILON));
-    ASSERT(cmp_float(rotated_vec_z.z, 0.0f, EPISILON));  // z component should stay the s, EPISILOName
+    ASSERT(
+        cmp_float(rotated_vec_z.z, 0.0f, EPISILON));  // z component should stay the s, EPISILOName
     ASSERT(cmp_float(rotated_vec_z.w, 1.0f, EPISILON));
 
     initial_vector = (Vec4){0.0f, 1.0f, 0.0f, 1.0f};
     initial_simd   = simd_vec4_load(initial_vector);
-    rotated_z      = simd_vec4_rotate_z(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around Z axis
-    rotated_vec_z  = simd_vec4_store(rotated_z);
+    rotated_z = simd_vec4_rotate_z(initial_simd, M_PI / 2.0f);  // Rotate 90 degrees around Z axis
+    rotated_vec_z = simd_vec4_store(rotated_z);
 
     ASSERT(cmp_float(rotated_vec_z.x, -1.0f, EPISILON));
     ASSERT(cmp_float(rotated_vec_z.y, 0.0f, EPISILON));

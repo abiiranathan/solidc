@@ -6,19 +6,15 @@
 #include <string.h>
 #include <unistd.h>
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-
-#define LOG_ERROR(fmt, ...)                                                                                  \
+#define LOG_ERROR(fmt, ...)                                                                        \
     fprintf(stderr, "[ERROR]: %s:%d:%s(): " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
-#define LOG_ASSERT(condition, fmt, ...)                                                                      \
-    do {                                                                                                     \
-        if (!(condition)) {                                                                                  \
-            LOG_ERROR("Assertion failed: " #condition " " fmt, ##__VA_ARGS__);                               \
-        }                                                                                                    \
+#define LOG_ASSERT(condition, fmt, ...)                                                            \
+    do {                                                                                           \
+        if (!(condition)) {                                                                        \
+            LOG_ERROR("Assertion failed: " #condition " " fmt, ##__VA_ARGS__);                     \
+        }                                                                                          \
     } while (0)
-#pragma clang diagnostic pop
 
 void test_pipe_create() {
     PipeHandle* pipe_handle = NULL;
@@ -40,7 +36,8 @@ void test_pipe_read_write() {
     size_t bytes_written = 0;
     err                  = pipe_write(pipe_handle, msg, strlen(msg), &bytes_written, 1000);
     LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_write failed: %s", process_error_string(err));
-    LOG_ASSERT(bytes_written == strlen(msg), "Incorrect number of bytes written: %zu", bytes_written);
+    LOG_ASSERT(bytes_written == strlen(msg), "Incorrect number of bytes written: %zu",
+               bytes_written);
 
     char buffer[128]  = {0};
     size_t bytes_read = 0;
@@ -72,7 +69,8 @@ void test_pipe_timeout() {
 void test_process_error_handling() {
     // Test a scenario where process creation would fail
     ProcessError err = PROCESS_ERROR_UNKNOWN;
-    LOG_ASSERT(strcmp(process_error_string(err), "Unknown error") == 0, "process_system_error failed");
+    LOG_ASSERT(strcmp(process_error_string(err), "Unknown error") == 0,
+               "process_system_error failed");
 }
 
 void test_process_error_string() {
@@ -85,7 +83,8 @@ void test_process_error_string() {
                "Error string mismatch for PROCESS_ERROR_MEMORY");
 
     error_str = process_error_string(PROCESS_ERROR_UNKNOWN);
-    LOG_ASSERT(strcmp(error_str, "Unknown error") == 0, "Error string mismatch for PROCESS_ERROR_UNKNOWN");
+    LOG_ASSERT(strcmp(error_str, "Unknown error") == 0,
+               "Error string mismatch for PROCESS_ERROR_UNKNOWN");
 }
 
 void test_pipe_close() {

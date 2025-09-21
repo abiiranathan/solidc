@@ -28,12 +28,11 @@ typedef struct hash_map {
     size_t tombstone_count;        // Count of deleted entries
     float max_load_factor;         // Configurable load factor threshold
     HashFunction hash;             // Hash function
-    KeyLenFunction key_len_func;   // Key length function
     KeyCmpFunction key_compare;    // Key comparison function
     KeyFreeFunction key_free;      // Key free function (optional)
     ValueFreeFunction value_free;  // Value free function (optional)
     Lock lock;                     // Lock for thread safety
-} Map;
+} HashMap;
 
 // Fast hash for small keys (up to 8 bytes) - optimized version
 static inline uint64_t fast_small_hash(const void* key, size_t size) {
@@ -54,7 +53,7 @@ static inline uint64_t fast_small_hash(const void* key, size_t size) {
 }
 
 // xxHash implementation with small key optimization
-static unsigned long xxhash(const void* key, size_t size) {
+static inline unsigned long xxhash(const void* key, size_t size) {
     if (size <= sizeof(uint64_t)) {
         return fast_small_hash(key, size);
     }
@@ -62,7 +61,7 @@ static unsigned long xxhash(const void* key, size_t size) {
 }
 
 // Helper function to calculate next power of two for better hashing
-static size_t next_power_of_two(size_t n) {
+static inline size_t next_power_of_two(size_t n) {
     if (n == 0) return 1;
     n--;
     n |= n >> 1;
@@ -77,7 +76,7 @@ static size_t next_power_of_two(size_t n) {
 }
 
 // Safe capacity growth calculation
-static size_t calculate_new_capacity(size_t current) {
+static inline size_t calculate_new_capacity(size_t current) {
     if (current > SIZE_MAX / 2) {
         return SIZE_MAX;
     }
@@ -86,18 +85,16 @@ static size_t calculate_new_capacity(size_t current) {
 }
 
 // Map creation with better error handling and memory optimization
-Map* map_create(const MapConfig* config) {
-    if (!config || !config->key_compare || !config->key_len_func) {
-        fprintf(stderr, "Invalid configuration\n");
+HashMap* map_create(const MapConfig* config) {
+    if (!config || !config->key_compare) {
         return NULL;
     }
 
     size_t capacity =
-        MAX(MIN_CAPACITY,
-            config->initial_capacity > 0 ? next_power_of_two(config->initial_capacity) : INITIAL_MAP_SIZE);
+        MAX(MIN_CAPACITY, config->initial_capacity > 0 ? next_power_of_two(config->initial_capacity)
+                                                       : INITIAL_MAP_SIZE);
 
     if (capacity > SIZE_MAX / 2) {
-        fprintf(stderr, "Requested capacity too large\n");
         return NULL;
     }
 
@@ -105,9 +102,8 @@ Map* map_create(const MapConfig* config) {
                                 ? config->max_load_factor
                                 : DEFAULT_MAX_LOAD_FACTOR;
 
-    Map* m = (Map*)malloc(sizeof(Map));
+    HashMap* m = (HashMap*)malloc(sizeof(HashMap));
     if (!m) {
-        perror("Failed to allocate memory for map");
         return NULL;
     }
 
@@ -128,7 +124,6 @@ Map* map_create(const MapConfig* config) {
     m->max_load_factor = max_load_factor;
     m->hash            = config->hash_func ? config->hash_func : xxhash;
     m->key_compare     = config->key_compare;
-    m->key_len_func    = config->key_len_func;
     m->key_free        = config->key_free;
     m->value_free      = config->value_free;
 
@@ -137,17 +132,17 @@ Map* map_create(const MapConfig* config) {
 }
 
 // Helper to get key pointer from interleaved array
-static inline void** get_key_ptr(Map* m, size_t index) {
+static inline void** get_key_ptr(HashMap* m, size_t index) {
     return &m->keys_values[index * 2];
 }
 
 // Helper to get value pointer from interleaved array
-static inline void** get_value_ptr(Map* m, size_t index) {
+static inline void** get_value_ptr(HashMap* m, size_t index) {
     return &m->keys_values[index * 2 + 1];
 }
 
 // Resize the map with optimized rehashing and error handling
-static bool map_resize(Map* m, size_t new_capacity) {
+static bool map_resize(HashMap* m, size_t new_capacity, size_t key_len) {
     if (new_capacity <= m->capacity || new_capacity > SIZE_MAX / 2) {
         return false;
     }
@@ -182,7 +177,6 @@ static bool map_resize(Map* m, size_t new_capacity) {
             void* value = old_keys_values[i * 2 + 1];
 
             // Manually rehash to avoid function call overhead
-            size_t key_len     = m->key_len_func(key);
             size_t hash        = m->hash(key, key_len);
             size_t index       = hash & (new_capacity - 1);  // Use bitmask for power-of-two
             size_t hash2       = (hash >> 5) | 1;            // Ensure odd step for probing
@@ -224,31 +218,28 @@ static bool map_resize(Map* m, size_t new_capacity) {
     return true;
 }
 
-size_t map_length(Map* m) {
+size_t map_length(HashMap* m) {
     return m->size;
 }
 
 // Set a key-value pair with optimizations and better error handling
-bool map_set(Map* m, void* key, void* value) {
+bool map_set(HashMap* m, void* key, size_t key_len, void* value) {
     // Check if we need to resize
     size_t total_entries = m->size + m->tombstone_count;
     if (total_entries >= m->capacity * m->max_load_factor) {
         size_t new_capacity = calculate_new_capacity(m->capacity);
-        if (new_capacity <= m->capacity || !map_resize(m, new_capacity)) {
-            fprintf(stderr, "Map resize failed\n");
+        if (new_capacity <= m->capacity || !map_resize(m, new_capacity, key_len)) {
             return false;
         }
-    }
-    // Check for tombstone cleanup
-    else if (m->tombstone_count > 0 &&
-             (double)m->tombstone_count / (double)m->size > TOMBSTONE_RATIO_THRESHOLD) {
-        if (!map_resize(m, m->capacity)) {  // Same capacity to clean tombstones
-            fprintf(stderr, "Map tombstone cleanup failed\n");
+
+        // Check for tombstone cleanup
+    } else if (m->tombstone_count > 0 &&
+               (double)m->tombstone_count / (double)m->size > TOMBSTONE_RATIO_THRESHOLD) {
+        if (!map_resize(m, m->capacity, key_len)) {
             return false;
         }
     }
 
-    size_t key_len         = m->key_len_func(key);
     size_t hash            = m->hash(key, key_len);
     size_t index           = hash & (m->capacity - 1);  // Bitmask for power-of-two capacity
     size_t hash2           = (hash >> 5) | 1;           // Ensure odd step for probing
@@ -288,15 +279,15 @@ bool map_set(Map* m, void* key, void* value) {
     // Insert new entry
     *get_key_ptr(m, index)   = key;
     *get_value_ptr(m, index) = value;
-    m->deleted[index]        = false;
+
+    m->deleted[index] = false;
     m->size++;
 
     return true;
 }
 
 // Get a value by key with optimized probing
-void* map_get(Map* m, void* key) {
-    size_t key_len     = m->key_len_func(key);
+void* map_get(HashMap* m, void* key, size_t key_len) {
     size_t hash        = m->hash(key, key_len);
     size_t index       = hash & (m->capacity - 1);
     size_t hash2       = (hash >> 5) | 1;
@@ -321,8 +312,7 @@ void* map_get(Map* m, void* key) {
 }
 
 // Remove a key-value pair with tombstone optimization
-bool map_remove(Map* m, void* key) {
-    size_t key_len     = m->key_len_func(key);
+bool map_remove(HashMap* m, void* key, size_t key_len) {
     size_t hash        = m->hash(key, key_len);
     size_t index       = hash & (m->capacity - 1);
     size_t hash2       = (hash >> 5) | 1;
@@ -358,86 +348,79 @@ bool map_remove(Map* m, void* key) {
     return false;
 }
 
-// Map destruction with proper cleanup
-void map_destroy(Map* m) {
+void map_destroy(HashMap* m) {
     if (!m) return;
 
-    if (m->key_free || m->value_free) {
-        for (size_t i = 0; i < m->capacity; i++) {
-            if (*get_key_ptr(m, i) && !m->deleted[i]) {
-                if (m->key_free) m->key_free(*get_key_ptr(m, i));
-                if (m->value_free) m->value_free(*get_value_ptr(m, i));
-            }
+    // no cleanup functions are provided
+    if (!m->key_free && !m->value_free) {
+        goto cleanup;
+    }
+
+    void** keys_values           = m->keys_values;
+    bool* deleted                = m->deleted;
+    size_t capacity              = m->capacity;
+    KeyFreeFunction key_free     = m->key_free;
+    ValueFreeFunction value_free = m->value_free;
+
+    for (size_t i = 0; i < capacity; i++) {
+        void* key = keys_values[i * 2];
+        if (key && !deleted[i]) {
+            if (key_free) key_free(key);
+            if (value_free) value_free(keys_values[i * 2 + 1]);
         }
     }
 
+cleanup:
     free(m->keys_values);
     free(m->deleted);
     lock_free(&m->lock);
     free(m);
 }
 
-map_iterator map_iter(Map* m) {
-    map_iterator it = {.m = m, .index = 0};
-    // Advance to first non-empty, non-deleted entry
-    while (it.index < m->capacity && (*get_key_ptr(m, it.index) == NULL || m->deleted[it.index])) {
-        it.index++;
-    }
+map_iterator map_iter(HashMap* map) {
+    map_iterator it = {.map = map, .index = 0};
     return it;
 }
 
 bool map_next(map_iterator* it, void** key, void** value) {
-    Map* m = it->m;
-    while (it->index < m->capacity) {
-        if (*get_key_ptr(m, it->index) != NULL && !m->deleted[it->index]) {
-            if (key) *key = *get_key_ptr(m, it->index);
-            if (value) *value = *get_value_ptr(m, it->index);
-            it->index++;
+    HashMap* map       = it->map;
+    size_t capacity    = map->capacity;
+    bool* deleted      = map->deleted;
+    void** keys_values = map->keys_values;
+    size_t index       = it->index;
 
-            // Prepare for next call
-            while (it->index < m->capacity && (*get_key_ptr(m, it->index) == NULL || m->deleted[it->index])) {
-                it->index++;
-            }
+    while (index < capacity) {
+        void* current_key = keys_values[index * 2];
+        if (current_key && !deleted[index]) {
+            if (key) *key = current_key;
+            if (value) *value = keys_values[index * 2 + 1];
+            it->index = index + 1;
             return true;
         }
-        it->index++;
+        index++;
     }
+    it->index = capacity;
     return false;
 }
 
 // Thread-safe operations
-bool map_set_safe(Map* m, void* key, void* value) {
+bool map_set_safe(HashMap* m, void* key, size_t key_len, void* value) {
     lock_acquire(&m->lock);
-    bool result = map_set(m, key, value);
+    bool result = map_set(m, key, key_len, value);
     lock_release(&m->lock);
     return result;
 }
 
-void* map_get_safe(Map* m, void* key) {
+void* map_get_safe(HashMap* m, void* key, size_t key_len) {
     lock_acquire(&m->lock);
-    void* value = map_get(m, key);
+    void* value = map_get(m, key, key_len);
     lock_release(&m->lock);
     return value;
 }
 
-bool map_remove_safe(Map* m, void* key) {
+bool map_remove_safe(HashMap* m, void* key, size_t key_len) {
     lock_acquire(&m->lock);
-    bool result = map_remove(m, key);
+    bool result = map_remove(m, key, key_len);
     lock_release(&m->lock);
     return result;
-}
-
-bool map_set_from_array(Map* m, void** keys, void** values, size_t num_keys) {
-    lock_acquire(&m->lock);
-    bool success = true;
-
-    for (size_t i = 0; i < num_keys; ++i) {
-        if (!map_set(m, keys[i], values[i])) {
-            success = false;
-            break;
-        }
-    }
-
-    lock_release(&m->lock);
-    return success;
 }

@@ -1,9 +1,9 @@
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "../include/array.h"
+#include "../include/macros.h"
 
 DARRAY_DEFINE(intarray, int)
 DARRAY_DEFINE(strarray, char*)
@@ -23,10 +23,10 @@ int str_qsort_cmp(const void* a, const void* b) {
 void test_init() {
     intarray* arr;
     arr = intarray_new();
-    assert(arr != NULL);
-    assert(arr->items != NULL);
-    assert(arr->count == 0);
-    assert(arr->capacity == DARRAY_INIT_CAPACITY);
+    ASSERT(arr != NULL);
+    ASSERT(arr->items != NULL);
+    ASSERT(arr->count == 0);
+    ASSERT(arr->capacity == DARRAY_INIT_CAPACITY);
     intarray_free(arr);
     printf("test_init passed\n");
 }
@@ -34,10 +34,10 @@ void test_init() {
 void test_with_capacity() {
     intarray* arr;
     arr = intarray_with_capacity(100);
-    assert(arr != NULL);
-    assert(arr->items != NULL);
-    assert(arr->count == 0);
-    assert(arr->capacity == 100);
+    ASSERT(arr != NULL);
+    ASSERT(arr->items != NULL);
+    ASSERT(arr->count == 0);
+    ASSERT(arr->capacity == 100);
     intarray_free(arr);
     printf("test_with_capacity passed\n");
 }
@@ -46,12 +46,12 @@ void test_append() {
     intarray* arr;
     arr = intarray_new();
     for (int i = 0; i < 100; i++) {
-        assert(intarray_push(arr, i) == true);
+        ASSERT(intarray_push(arr, i) == true);
     }
-    assert(arr->count == 100);
-    assert(arr->capacity >= 100);
+    ASSERT(arr->count == 100);
+    ASSERT(arr->capacity >= 100);
     for (int i = 0; i < 100; i++) {
-        assert(arr->items[i] == i);
+        ASSERT(arr->items[i] == i);
     }
     intarray_free(arr);
     printf("test_append passed\n");
@@ -65,20 +65,20 @@ void test_get() {
     }
 
     // Test get by index
-    assert(intarray_get(arr, 5) == 50);
+    ASSERT(intarray_get(arr, 5) == 50);
 
     // Test get pointer
     int* ptr = intarray_get_ptr(arr, 3);
-    assert(ptr != NULL);
-    assert(*ptr == 30);
+    ASSERT(ptr != NULL);
+    ASSERT(*ptr == 30);
     *ptr = 99;
-    assert(arr->items[3] == 99);
+    ASSERT(arr->items[3] == 99);
 
     // Test get const pointer
     const intarray* carr = arr;
     const int* cptr      = intarray_get_const_ptr(carr, 7);
-    assert(cptr != NULL);
-    assert(*cptr == 70);
+    ASSERT(cptr != NULL);
+    ASSERT(*cptr == 70);
 
     intarray_free(arr);
     printf("test_get passed\n");
@@ -90,11 +90,11 @@ void test_set() {
     for (int i = 0; i < 10; i++) {
         intarray_push(arr, i);
     }
-    assert(intarray_set(arr, 5, 50) == true);
-    assert(arr->items[5] == 50);
+    ASSERT(intarray_set(arr, 5, 50) == true);
+    ASSERT(arr->items[5] == 50);
 
     // Test out of bounds
-    assert(intarray_set(arr, 15, 100) == false);
+    ASSERT(intarray_set(arr, 15, 100) == false);
 
     intarray_free(arr);
     printf("test_set passed\n");
@@ -106,17 +106,17 @@ void test_insert() {
     for (int i = 0; i < 5; i++) {
         intarray_push(arr, i);
     }
-    assert(intarray_insert(arr, 2, 100) == true);
-    assert(arr->count == 6);
-    assert(arr->items[2] == 100);
-    assert(arr->items[3] == 2);
+    ASSERT(intarray_insert(arr, 2, 100) == true);
+    ASSERT(arr->count == 6);
+    ASSERT(arr->items[2] == 100);
+    ASSERT(arr->items[3] == 2);
 
     // Test insert at end
-    assert(intarray_insert(arr, arr->count, 200) == true);
-    assert(arr->items[6] == 200);
+    ASSERT(intarray_insert(arr, arr->count, 200) == true);
+    ASSERT(arr->items[6] == 200);
 
     // Test out of bounds
-    assert(intarray_insert(arr, 10, 300) == false);
+    ASSERT(intarray_insert(arr, 10, 300) == false);
 
     intarray_free(arr);
     printf("test_insert passed\n");
@@ -128,12 +128,12 @@ void test_remove() {
     for (int i = 0; i < 5; i++) {
         intarray_push(arr, i);
     }
-    assert(intarray_remove(arr, 2) == true);
-    assert(arr->count == 4);
-    assert(arr->items[2] == 3);
+    ASSERT(intarray_remove(arr, 2) == true);
+    ASSERT(arr->count == 4);
+    ASSERT(arr->items[2] == 3);
 
     // Test out of bounds
-    assert(intarray_remove(arr, 10) == false);
+    ASSERT(intarray_remove(arr, 10) == false);
 
     intarray_free(arr);
     printf("test_remove passed\n");
@@ -147,20 +147,20 @@ void test_pop() {
     }
 
     int value;
-    assert(intarray_pop(arr, &value) == true);
-    assert(value == 4);
-    assert(arr->count == 4);
+    ASSERT(intarray_pop(arr, &value) == true);
+    ASSERT(value == 4);
+    ASSERT(arr->count == 4);
 
     // Test pop without storing value
-    assert(intarray_pop(arr, NULL) == true);
-    assert(arr->count == 3);
+    ASSERT(intarray_pop(arr, NULL) == true);
+    ASSERT(arr->count == 3);
 
     // Pop until empty
     while (intarray_pop(arr, NULL)) {}
-    assert(arr->count == 0);
+    ASSERT(arr->count == 0);
 
     // Test pop from empty array
-    assert(intarray_pop(arr, &value) == false);
+    ASSERT(intarray_pop(arr, &value) == false);
 
     intarray_free(arr);
     printf("test_pop passed\n");
@@ -174,8 +174,8 @@ void test_clear() {
     }
 
     intarray_clear(arr);
-    assert(arr->count == 0);
-    assert(arr->capacity > 0);  // Capacity should remain unchanged
+    ASSERT(arr->count == 0);
+    ASSERT(arr->capacity > 0);  // Capacity should remain unchanged
 
     intarray_free(arr);
     printf("test_clear passed\n");
@@ -189,17 +189,17 @@ void test_copy() {
     }
 
     arr2 = intarray_copy(arr1);
-    assert(arr2 != NULL);
-    assert(arr2->count == arr1->count);
-    assert(arr2->capacity == arr1->capacity);
+    ASSERT(arr2 != NULL);
+    ASSERT(arr2->count == arr1->count);
+    ASSERT(arr2->capacity == arr1->capacity);
 
     for (size_t i = 0; i < arr1->count; i++) {
-        assert(arr2->items[i] == arr1->items[i]);
+        ASSERT(arr2->items[i] == arr1->items[i]);
     }
 
     // Modify original and ensure copy is unchanged
     intarray_set(arr1, 0, 99);
-    assert(arr2->items[0] == 0);  // Should still be original value
+    ASSERT(arr2->items[0] == 0);  // Should still be original value
 
     intarray_free(arr1);
     intarray_free(arr2);
@@ -227,12 +227,12 @@ void test_swap() {
 
     intarray_swap(arr1, arr2);
 
-    assert(arr1->count == count2);
-    assert(arr2->count == count1);
-    assert(arr1->capacity == cap2);
-    assert(arr2->capacity == cap1);
-    assert(arr1->items[0] == 5);
-    assert(arr2->items[0] == 0);
+    ASSERT(arr1->count == count2);
+    ASSERT(arr2->count == count1);
+    ASSERT(arr1->capacity == cap2);
+    ASSERT(arr2->capacity == cap1);
+    ASSERT(arr1->items[0] == 5);
+    ASSERT(arr2->items[0] == 0);
 
     intarray_free(arr1);
     intarray_free(arr2);
@@ -250,7 +250,7 @@ void test_reverse() {
     // Test single element
     intarray_push(arr, 42);
     intarray_reverse(arr);
-    assert(arr->items[0] == 42);
+    ASSERT(arr->items[0] == 42);
 
     // Clear array and test multiple elements
     intarray_clear(arr);
@@ -259,7 +259,7 @@ void test_reverse() {
     }
     intarray_reverse(arr);
     for (int i = 0; i < 5; i++) {
-        assert(arr->items[i] == 4 - i);
+        ASSERT(arr->items[i] == 4 - i);
     }
 
     intarray_free(arr);
@@ -271,12 +271,12 @@ void test_sort() {
     arr = intarray_new();
 
     // Test empty array
-    assert(intarray_sort(arr, int_cmp) == true);
+    ASSERT(intarray_sort(arr, int_cmp) == true);
 
     // Test single element
     intarray_push(arr, 42);
-    assert(intarray_sort(arr, int_cmp) == true);
-    assert(arr->items[0] == 42);
+    ASSERT(intarray_sort(arr, int_cmp) == true);
+    ASSERT(arr->items[0] == 42);
 
     // Test multiple elements
     intarray_push(arr, 3);
@@ -284,10 +284,10 @@ void test_sort() {
     intarray_push(arr, 4);
     intarray_push(arr, 1);
     intarray_push(arr, 5);
-    assert(intarray_sort(arr, int_cmp) == true);
+    ASSERT(intarray_sort(arr, int_cmp) == true);
 
     for (size_t i = 1; i < arr->count; i++) {
-        assert(arr->items[i - 1] <= arr->items[i]);
+        ASSERT(arr->items[i - 1] <= arr->items[i]);
     }
 
     intarray_free(arr);
@@ -306,23 +306,23 @@ void test_resize() {
     size_t original_count = arr->count;
 
     // Resize to larger capacity
-    assert(intarray_resize(arr, 50) == true);
-    assert(arr->capacity == 50);
-    assert(arr->count == original_count);  // Count should remain the same
+    ASSERT(intarray_resize(arr, 50) == true);
+    ASSERT(arr->capacity == 50);
+    ASSERT(arr->count == original_count);  // Count should remain the same
 
     // Verify elements are preserved
     for (int i = 0; i < 10; i++) {
-        assert(arr->items[i] == i);
+        ASSERT(arr->items[i] == i);
     }
 
     // Resize to smaller capacity
-    assert(intarray_resize(arr, 5) == true);
-    assert(arr->capacity == 5);
-    assert(arr->count == 5);  // Count should be truncated
+    ASSERT(intarray_resize(arr, 5) == true);
+    ASSERT(arr->capacity == 5);
+    ASSERT(arr->count == 5);  // Count should be truncated
 
     // Verify first 5 elements are preserved
     for (int i = 0; i < 5; i++) {
-        assert(arr->items[i] == i);
+        ASSERT(arr->items[i] == i);
     }
 
     intarray_free(arr);
@@ -334,15 +334,15 @@ void test_reserve() {
     arr = intarray_new();
 
     // Reserve more capacity
-    assert(intarray_reserve(arr, 100) == true);
-    assert(arr->capacity >= 100);
-    assert(arr->count == 0);  // Count should remain unchanged
+    ASSERT(intarray_reserve(arr, 100) == true);
+    ASSERT(arr->capacity >= 100);
+    ASSERT(arr->count == 0);  // Count should remain unchanged
 
     // Add elements to verify the reserved space works
     for (int i = 0; i < 100; i++) {
-        assert(intarray_push(arr, i) == true);
+        ASSERT(intarray_push(arr, i) == true);
     }
-    assert(arr->count == 100);
+    ASSERT(arr->count == 100);
 
     intarray_free(arr);
     printf("test_reserve passed\n");
@@ -364,17 +364,17 @@ void test_shrink_to_fit() {
         intarray_remove(arr, 0);
     }
 
-    assert(arr->count == 10);
-    assert(arr->capacity == old_capacity);  // Capacity should still be large
+    ASSERT(arr->count == 10);
+    ASSERT(arr->capacity == old_capacity);  // Capacity should still be large
 
     // Shrink to fit
-    assert(intarray_shrink_to_fit(arr) == true);
-    assert(arr->capacity == arr->count);
-    assert(arr->capacity == 10);
+    ASSERT(intarray_shrink_to_fit(arr) == true);
+    ASSERT(arr->capacity == arr->count);
+    ASSERT(arr->capacity == 10);
 
     // Verify elements are preserved
     for (int i = 0; i < 10; i++) {
-        assert(arr->items[i] == 90 + i);
+        ASSERT(arr->items[i] == 90 + i);
     }
 
     intarray_free(arr);
@@ -392,25 +392,25 @@ void test_find() {
     // Test finding existing elements
     int target1     = 6;
     ptrdiff_t index = intarray_find(arr, &target1, int_cmp);
-    assert(index == 3);
+    ASSERT(index == 3);
 
     int target2 = 0;
     index       = intarray_find(arr, &target2, int_cmp);
-    assert(index == 0);
+    ASSERT(index == 0);
 
     int target3 = 18;
     index       = intarray_find(arr, &target3, int_cmp);
-    assert(index == 9);
+    ASSERT(index == 9);
 
     // Test finding non-existing elements
     int target4 = 7;
     index       = intarray_find(arr, &target4, int_cmp);
-    assert(index == -1);
+    ASSERT(index == -1);
 
     // Test with NULL comparison function (should use memcmp)
     int target5 = 8;
     index       = intarray_find(arr, &target5, NULL);
-    assert(index == 4);
+    ASSERT(index == 4);
 
     intarray_free(arr);
     printf("test_find passed\n");
@@ -424,25 +424,25 @@ void test_string_array() {
     char* str2 = strdup("World");
     char* str3 = strdup("Test");
 
-    assert(strarray_push(arr, str1) == true);
-    assert(strarray_push(arr, str2) == true);
-    assert(strarray_push(arr, str3) == true);
+    ASSERT(strarray_push(arr, str1) == true);
+    ASSERT(strarray_push(arr, str2) == true);
+    ASSERT(strarray_push(arr, str3) == true);
 
-    assert(arr->count == 3);
-    assert(strcmp(arr->items[0], "Hello") == 0);
-    assert(strcmp(arr->items[1], "World") == 0);
-    assert(strcmp(arr->items[2], "Test") == 0);
+    ASSERT(arr->count == 3);
+    ASSERT(strcmp(arr->items[0], "Hello") == 0);
+    ASSERT(strcmp(arr->items[1], "World") == 0);
+    ASSERT(strcmp(arr->items[2], "Test") == 0);
 
     // Test string sorting
-    assert(strarray_sort(arr, str_qsort_cmp) == true);
-    assert(strcmp(arr->items[0], "Hello") == 0);
-    assert(strcmp(arr->items[1], "Test") == 0);
-    assert(strcmp(arr->items[2], "World") == 0);
+    ASSERT(strarray_sort(arr, str_qsort_cmp) == true);
+    ASSERT(strcmp(arr->items[0], "Hello") == 0);
+    ASSERT(strcmp(arr->items[1], "Test") == 0);
+    ASSERT(strcmp(arr->items[2], "World") == 0);
 
     // Test string finding
     const char* target = "Test";
     ptrdiff_t index    = strarray_find(arr, &target, str_qsort_cmp);
-    assert(index == 1);
+    ASSERT(index == 1);
 
     // Clean up
     for (size_t i = 0; i < arr->count; i++) {
@@ -456,21 +456,21 @@ void test_utility_functions() {
     intarray* arr;
     arr = intarray_new();
 
-    assert(intarray_empty(arr) == true);
-    assert(intarray_size(arr) == 0);
-    assert(intarray_capacity(arr) == DARRAY_INIT_CAPACITY);
-    assert(intarray_data(arr) == arr->items);
-    assert(intarray_const_data(arr) == arr->items);
+    ASSERT(intarray_empty(arr) == true);
+    ASSERT(intarray_size(arr) == 0);
+    ASSERT(intarray_capacity(arr) == DARRAY_INIT_CAPACITY);
+    ASSERT(intarray_data(arr) == arr->items);
+    ASSERT(intarray_const_data(arr) == arr->items);
 
     for (int i = 0; i < 5; i++) {
         intarray_push(arr, i);
     }
 
-    assert(intarray_empty(arr) == false);
-    assert(intarray_size(arr) == 5);
-    assert(intarray_capacity(arr) >= 5);
-    assert(intarray_data(arr) == arr->items);
-    assert(intarray_const_data(arr) == arr->items);
+    ASSERT(intarray_empty(arr) == false);
+    ASSERT(intarray_size(arr) == 5);
+    ASSERT(intarray_capacity(arr) >= 5);
+    ASSERT(intarray_data(arr) == arr->items);
+    ASSERT(intarray_const_data(arr) == arr->items);
 
     intarray_free(arr);
     printf("test_utility_functions passed\n");
@@ -480,32 +480,32 @@ void test_null_safety() {
     intarray* arr = NULL;
 
     // All these should handle NULL gracefully
-    assert(intarray_is_valid(arr) == false);
-    assert(intarray_resize(arr, 10) == false);
-    assert(intarray_reserve(arr, 10) == false);
-    assert(intarray_shrink_to_fit(arr) == false);
-    assert(intarray_push(arr, 42) == false);
-    assert(intarray_get(arr, 0) == 0);
-    assert(intarray_get_ptr(arr, 0) == NULL);
-    assert(intarray_get_const_ptr(arr, 0) == NULL);
-    assert(intarray_set(arr, 0, 42) == false);
-    assert(intarray_insert(arr, 0, 42) == false);
-    assert(intarray_remove(arr, 0) == false);
-    assert(intarray_pop(arr, NULL) == false);
+    ASSERT(intarray_is_valid(arr) == false);
+    ASSERT(intarray_resize(arr, 10) == false);
+    ASSERT(intarray_reserve(arr, 10) == false);
+    ASSERT(intarray_shrink_to_fit(arr) == false);
+    ASSERT(intarray_push(arr, 42) == false);
+    ASSERT(intarray_get(arr, 0) == 0);
+    ASSERT(intarray_get_ptr(arr, 0) == NULL);
+    ASSERT(intarray_get_const_ptr(arr, 0) == NULL);
+    ASSERT(intarray_set(arr, 0, 42) == false);
+    ASSERT(intarray_insert(arr, 0, 42) == false);
+    ASSERT(intarray_remove(arr, 0) == false);
+    ASSERT(intarray_pop(arr, NULL) == false);
     intarray_clear(arr);  // Should not crash
     intarray_free(arr);   // Should not crash
-    assert(intarray_copy(arr) == NULL);
+    ASSERT(intarray_copy(arr) == NULL);
     intarray_swap(arr, arr);  // Should not crash
     intarray_reverse(arr);    // Should not crash
-    assert(intarray_sort(arr, int_cmp) == false);
-    assert(intarray_size(arr) == 0);
-    assert(intarray_capacity(arr) == 0);
-    assert(intarray_empty(arr) == true);
-    assert(intarray_data(arr) == NULL);
-    assert(intarray_const_data(arr) == NULL);
+    ASSERT(intarray_sort(arr, int_cmp) == false);
+    ASSERT(intarray_size(arr) == 0);
+    ASSERT(intarray_capacity(arr) == 0);
+    ASSERT(intarray_empty(arr) == true);
+    ASSERT(intarray_data(arr) == NULL);
+    ASSERT(intarray_const_data(arr) == NULL);
 
     int target = 42;
-    assert(intarray_find(arr, &target, int_cmp) == -1);
+    ASSERT(intarray_find(arr, &target, int_cmp) == -1);
 
     printf("test_null_safety passed\n");
 }

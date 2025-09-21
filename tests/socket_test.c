@@ -1,7 +1,7 @@
 #include "../include/socket.h"
+#include "../include/macros.h"
 #include "../include/thread.h"
 
-#include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,7 +20,7 @@ void handle_client(void* client_socket_ptr) {
     if (bytes_read > 0) {
         buffer[bytes_read] = '\0';
         printf("Received message: %s\n", buffer);
-        assert(strcmp(buffer, "Hello, world!") == 0);
+        ASSERT(strcmp(buffer, "Hello, world!") == 0);
     }
 
     socket_close(client_socket);
@@ -31,15 +31,15 @@ void* send_message_to_server(void* arg) {
     sleep_ms(1000);  // wait for server to start
 
     Socket* s = socket_create(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    assert(s != NULL);
+    ASSERT(s != NULL);
 
     struct sockaddr_in addr;
     init_afinet_addr(&addr, port);
 
-    assert(socket_connect(s, (struct sockaddr*)&addr, sizeof(addr)) == 0);
+    ASSERT(socket_connect(s, (struct sockaddr*)&addr, sizeof(addr)) == 0);
 
     const char* message = "Hello, world!";
-    assert(socket_send(s, message, strlen(message), 0) == (ssize_t)strlen(message));
+    ASSERT(socket_send(s, message, strlen(message), 0) == (ssize_t)strlen(message));
 
     socket_close(s);
     return NULL;
@@ -50,7 +50,7 @@ int main() {
     socket_initialize();
 
     Socket* s = socket_create(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    assert(s != NULL);
+    ASSERT(s != NULL);
 
     uint16_t port = 9999;
     struct sockaddr_in addr;
@@ -59,16 +59,16 @@ int main() {
     int enable = 1;
     socket_reuse_port(s, enable);
 
-    assert(socket_bind(s, (struct sockaddr*)&addr, sizeof(addr)) == 0);
+    ASSERT(socket_bind(s, (struct sockaddr*)&addr, sizeof(addr)) == 0);
 
-    assert(socket_listen(s, 10) == 0);
+    ASSERT(socket_listen(s, 10) == 0);
 
     struct sockaddr_in addr2;
     socklen_t len = sizeof addr2;
-    assert(socket_get_address(s, (struct sockaddr*)&addr2, &len) == 0);
-    assert(addr.sin_family == addr2.sin_family);
-    assert(addr.sin_port == addr2.sin_port);
-    assert(addr.sin_addr.s_addr == addr2.sin_addr.s_addr);
+    ASSERT(socket_get_address(s, (struct sockaddr*)&addr2, &len) == 0);
+    ASSERT(addr.sin_family == addr2.sin_family);
+    ASSERT(addr.sin_port == addr2.sin_port);
+    ASSERT(addr.sin_addr.s_addr == addr2.sin_addr.s_addr);
 
     // start a thread that will send message to server after 5 seconds
     Thread t;
@@ -76,7 +76,7 @@ int main() {
 
     // wait for a client to connect
     Socket* client_socket = socket_accept(s, (struct sockaddr*)&addr2, &len);
-    assert(client_socket != NULL);
+    ASSERT(client_socket != NULL);
 
     // handle the client in a separate thread
     handle_client(client_socket);
