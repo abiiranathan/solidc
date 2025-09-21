@@ -34,7 +34,7 @@ Threadpool* threadpool_create(size_t num_threads);
 
 // Add a new task to the threadpool. The function will be executed by one of
 // the threads in the pool.
-int threadpool_submit(Threadpool* pool, void (*task)(void*), void* arg_p);
+bool threadpool_submit(Threadpool* pool, void (*task)(void*), void* arg_p);
 
 /**
  * Zero-allocation batch task submission API.
@@ -48,7 +48,10 @@ int threadpool_submit_batch(Threadpool* pool, const Task* tasks, size_t count);
 
 // Destroy the threadpool and free all resources associated with it.
 // It will wait for all threads to finish their tasks before freeing them.
-void threadpool_destroy(Threadpool* pool);
+// @param pool Thread pool instance
+// @param timeout_ms Number of milliseconds to wait for before forceful exit (-1) to wait
+// indefinitely.
+void threadpool_destroy(Threadpool* pool, int timeout_ms);
 
 /**
  * Get performance statistics from the thread pool.

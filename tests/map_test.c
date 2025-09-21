@@ -46,7 +46,7 @@ void test_concurrent_map() {
         threadpool_submit(pool, concurrent_insert, &args[i]);
     }
 
-    threadpool_destroy(pool);
+    threadpool_destroy(pool, -1);
 
     // check if all values are inserted
     for (int i = 0; i < MAX_THREADS; ++i) {

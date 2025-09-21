@@ -47,7 +47,8 @@ void printHandler(Command* cmd) {
 
 static void run_assertions(void) {
     FLAG_ASSERT(integer_flag == 10, "int should be 10");
-    FLAG_ASSERT((cmp_float(float32_flag, 3.14f, (cmp_config_t){.epsilon = 1e2})), "float32 should be 3.14");
+    FLAG_ASSERT((cmp_float(float32_flag, 3.14f, (cmp_config_t){.epsilon = 1e2})),
+                "float32 should be 3.14");
     FLAG_ASSERT(float64_flag == 100.5, "float64 should be 100.5");
     FLAG_ASSERT(verbose, "verbose should be true");
     FLAG_ASSERT(strcmp(string_flag, "hello") == 0, "string should be hello");

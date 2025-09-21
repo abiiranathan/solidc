@@ -59,7 +59,7 @@ benchmark_result run_benchmark(size_t num_threads) {
     }
 
     // Wait for threads and clean up
-    threadpool_destroy(pool);
+    threadpool_destroy(pool, -1);
 
     // Stop timing
     clock_gettime(CLOCK_MONOTONIC, &end);

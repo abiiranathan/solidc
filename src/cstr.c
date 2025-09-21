@@ -168,7 +168,8 @@ static size_t calculate_growth_capacity(size_t current_cap, size_t min_needed) {
     bool overflow   = false;
 
     // grow capacity as long as we haven't overflow'd and still below required memory.
-    while (!(overflow = ckd_mul(&capacity, current_cap, CSTR_GROWTH_FACTOR)) && capacity < min_needed) {
+    while (!(overflow = ckd_mul(&capacity, current_cap, CSTR_GROWTH_FACTOR)) &&
+           capacity < min_needed) {
         current_cap = capacity;  // update current capacity.
     };
 
@@ -1009,8 +1010,9 @@ bool cstr_ends_with(const cstr* s, const char* suffix) {
     }
     size_t suffix_len = strlen(suffix);
     size_t s_len      = cstr_get_length(s);
-    return suffix_len == 0 || (suffix_len <= s_len &&
-                               memcmp(cstr_get_data_const(s) + s_len - suffix_len, suffix, suffix_len) == 0);
+    return suffix_len == 0 ||
+           (suffix_len <= s_len &&
+            memcmp(cstr_get_data_const(s) + s_len - suffix_len, suffix, suffix_len) == 0);
 }
 
 /**
@@ -1667,7 +1669,8 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
     size_t result_len_estimate = 0;
     if (new_len > old_len) {
         size_t delta = 0;
-        if (ckd_mul(&delta, count, new_len - old_len) || ckd_add(&result_len_estimate, s_len, delta)) {
+        if (ckd_mul(&delta, count, new_len - old_len) ||
+            ckd_add(&result_len_estimate, s_len, delta)) {
             return 0;  // Overflow detected
         }
     } else {
@@ -1691,7 +1694,8 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
         // Check if the current position matches the old substring
         if ((s_len - (size_t)(p - s_data)) >= old_len && strncmp(p, old_sub, old_len) == 0) {
             // Append the new substring
-            if (!cstr_ensure_capacity(result, pos + new_len + (s_len - (size_t)(p - s_data) - old_len) + 1)) {
+            if (!cstr_ensure_capacity(
+                    result, pos + new_len + (s_len - (size_t)(p - s_data) - old_len) + 1)) {
                 cstr_free(result);
                 return NULL;
             }

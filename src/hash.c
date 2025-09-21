@@ -169,7 +169,8 @@ static uint32_t XXH_rotl32(uint32_t x, int r) {
 
 static uint32_t XXH_readLE32(const void* ptr) {
     const uint8_t* p = (const uint8_t*)ptr;
-    return ((uint32_t)p[0] << 0) | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
+    return ((uint32_t)p[0] << 0) | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) |
+           ((uint32_t)p[3] << 24);
 }
 
 static uint32_t XXH32_round(uint32_t seed, uint32_t input) {

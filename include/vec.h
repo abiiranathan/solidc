@@ -417,7 +417,8 @@ static inline Vec4 vec4_normalize(Vec4 v) {
  * @return Vec4 The interpolated vector.
  */
 static inline Vec4 vec4_lerp(Vec4 a, Vec4 b, float t) {
-    return (Vec4){a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t, a.w + (b.w - a.w) * t};
+    return (Vec4){a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t,
+                  a.w + (b.w - a.w) * t};
 }
 
 /**
@@ -655,11 +656,11 @@ static inline SimdVec3 simd_vec3_rotate(SimdVec3 v, SimdVec3 axis, float angle) 
     __m256 term1 = _mm256_mul_ps(v.m256, cos_vec);
 
     // Term 2: (axis × v)*sinθ
-    __m256 cross =
-        _mm256_sub_ps(_mm256_mul_ps(_mm256_shuffle_ps(norm_axis, norm_axis, _MM_SHUFFLE(3, 0, 2, 1)),
-                                    _mm256_shuffle_ps(v.m256, v.m256, _MM_SHUFFLE(3, 1, 0, 2))),
-                      _mm256_mul_ps(_mm256_shuffle_ps(norm_axis, norm_axis, _MM_SHUFFLE(3, 1, 0, 2)),
-                                    _mm256_shuffle_ps(v.m256, v.m256, _MM_SHUFFLE(3, 0, 2, 1))));
+    __m256 cross = _mm256_sub_ps(
+        _mm256_mul_ps(_mm256_shuffle_ps(norm_axis, norm_axis, _MM_SHUFFLE(3, 0, 2, 1)),
+                      _mm256_shuffle_ps(v.m256, v.m256, _MM_SHUFFLE(3, 1, 0, 2))),
+        _mm256_mul_ps(_mm256_shuffle_ps(norm_axis, norm_axis, _MM_SHUFFLE(3, 1, 0, 2)),
+                      _mm256_shuffle_ps(v.m256, v.m256, _MM_SHUFFLE(3, 0, 2, 1))));
     __m256 term2 = _mm256_mul_ps(cross, sin_vec);
 
     // Term 3: axis*(axis·v)(1 - cosθ)

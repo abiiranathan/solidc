@@ -73,7 +73,7 @@ struct Threadpool {
 };
 
 /** Initialize ring buffer with optimized defaults. */
-static int ringbuffer_init(TaskRingBuffer* rb) {
+static void ringbuffer_init(TaskRingBuffer* rb) {
     atomic_store_explicit(&rb->head, 0, memory_order_relaxed);
     atomic_store_explicit(&rb->tail, 0, memory_order_relaxed);
     atomic_store_explicit(&rb->waiting_consumers, 0, memory_order_relaxed);
@@ -82,11 +82,10 @@ static int ringbuffer_init(TaskRingBuffer* rb) {
     cond_init(&rb->not_empty);
     cond_init(&rb->not_full);
     rb->pool = NULL;
-    return 0;
 }
 
 /** Lock-free push with minimal blocking fallback. */
-static int ringbuffer_push(TaskRingBuffer* rb, Task* task) {
+static bool ringbuffer_push(TaskRingBuffer* rb, Task* task) {
     // Fast path: try lock-free push
     uint32_t head      = atomic_load_explicit(&rb->head, memory_order_acquire);
     uint32_t next_head = (head + 1) & RING_BUFFER_MASK;
@@ -102,7 +101,7 @@ static int ringbuffer_push(TaskRingBuffer* rb, Task* task) {
             cond_signal(&rb->not_empty);
             lock_release(&rb->mutex);
         }
-        return 0;
+        return true;
     }
 
     // Slow path: blocking push (queue full)
@@ -114,7 +113,7 @@ static int ringbuffer_push(TaskRingBuffer* rb, Task* task) {
 
         if (atomic_load_explicit(&rb->pool->shutdown, memory_order_acquire)) {
             lock_release(&rb->mutex);
-            return -1;
+            return false;
         }
         cond_wait(&rb->not_full, &rb->mutex);
     }
@@ -124,10 +123,9 @@ static int ringbuffer_push(TaskRingBuffer* rb, Task* task) {
     atomic_store_explicit(&rb->head, (head + 1) & RING_BUFFER_MASK, memory_order_release);
     cond_signal(&rb->not_empty);
     lock_release(&rb->mutex);
-    return 0;
+    return true;
 }
 
-/** Cache-optimized batch pull with reduced memory barriers. */
 static int ringbuffer_pull_batch_optimized(TaskRingBuffer* rb, Task* tasks, size_t max_tasks) {
     int yield_count = 0;
 
@@ -279,10 +277,7 @@ static int thread_init(Threadpool* pool, thread** t) {
 
     (*t)->pool = pool;
 
-    if (ringbuffer_init(&(*t)->queue) != 0) {
-        free(*t);
-        return -1;
-    }
+    ringbuffer_init(&(*t)->queue);
     (*t)->queue.pool = pool;
 
     return thread_create(&(*t)->pthread, thread_worker, *t);
@@ -298,13 +293,9 @@ Threadpool* threadpool_create(size_t num_threads) {
     // Initialize minimal atomics
     atomic_store_explicit(&pool->num_threads_alive, 0, memory_order_relaxed);
     atomic_store_explicit(&pool->shutdown, 0, memory_order_relaxed);
+    ringbuffer_init(&pool->queue);
     pool->num_threads = num_threads;
-
-    if (ringbuffer_init(&pool->queue) != 0) {
-        free(pool);
-        return NULL;
-    }
-    pool->queue.pool = pool;
+    pool->queue.pool  = pool;
 
     pool->threads = (thread**)malloc(num_threads * sizeof(thread*));
     if (pool->threads == NULL) {
@@ -319,7 +310,7 @@ Threadpool* threadpool_create(size_t num_threads) {
     // Create worker threads
     for (size_t i = 0; i < num_threads; i++) {
         if (thread_init(pool, &pool->threads[i]) != 0) {
-            threadpool_destroy(pool);
+            threadpool_destroy(pool, -1);
             return NULL;
         }
     }
@@ -327,7 +318,7 @@ Threadpool* threadpool_create(size_t num_threads) {
 }
 
 /** Submit task with simplified load balancing. */
-int threadpool_submit(Threadpool* pool, void (*function)(void*), void* arg) {
+bool threadpool_submit(Threadpool* pool, void (*function)(void*), void* arg) {
     if (pool == NULL || function == NULL) return -1;
 
     Task task = {function, arg};
@@ -337,8 +328,8 @@ int threadpool_submit(Threadpool* pool, void (*function)(void*), void* arg) {
     size_t thread_id                           = (thread_counter++) % pool->num_threads;
 
     // Try local queue first
-    if (ringbuffer_push(&pool->threads[thread_id]->queue, &task) == 0) {
-        return 0;
+    if (ringbuffer_push(&pool->threads[thread_id]->queue, &task)) {
+        return true;
     }
 
     // Fallback to global queue
@@ -346,13 +337,19 @@ int threadpool_submit(Threadpool* pool, void (*function)(void*), void* arg) {
 }
 
 /** Destroy thread pool efficiently. */
-void threadpool_destroy(Threadpool* pool) {
+void threadpool_destroy(Threadpool* pool, int timeout_ms) {
     if (pool == NULL) return;
 
     // Wait for work completion
     lock_acquire(&pool->thcount_lock);
+
+    int ret;
     while (has_work(pool)) {
-        cond_wait(&pool->threads_all_idle, &pool->thcount_lock);
+        ret = cond_wait_timeout(&pool->threads_all_idle, &pool->thcount_lock, timeout_ms);
+        if (ret == -1) {
+            perror("cond_wait_timeout");
+        }
+        break;
     }
 
     // Signal shutdown
@@ -364,6 +361,7 @@ void threadpool_destroy(Threadpool* pool) {
         cond_broadcast(&pool->threads[i]->queue.not_empty);
         cond_broadcast(&pool->threads[i]->queue.not_full);
     }
+
     cond_broadcast(&pool->queue.not_empty);
     cond_broadcast(&pool->queue.not_full);
 

@@ -1,17 +1,17 @@
+#include "../include/str_to_num.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include "../include/cmp.h"
-#include "../include/str_to_num.h"
 
 // Utility macro for logging
-#define LOG_TEST_RESULT(test_name, condition)                                                                \
-    do {                                                                                                     \
-        if (condition) {                                                                                     \
-            printf("[PASS] %s\n", test_name);                                                                \
-        } else {                                                                                             \
-            printf("[FAIL] %s\n", test_name);                                                                \
-        }                                                                                                    \
+#define LOG_TEST_RESULT(test_name, condition)                                                      \
+    do {                                                                                           \
+        if (condition) {                                                                           \
+            printf("[PASS] %s\n", test_name);                                                      \
+        } else {                                                                                   \
+            printf("[FAIL] %s\n", test_name);                                                      \
+        }                                                                                          \
     } while (0)
 
 // Test function prototypes
@@ -351,7 +351,8 @@ void test_str_to_u64(void) {
 
     // Valid input
     err = str_to_u64("18446744073709551615", &result);
-    LOG_TEST_RESULT("str_to_u64 valid input", err == STO_SUCCESS && result == 18446744073709551615ULL);
+    LOG_TEST_RESULT("str_to_u64 valid input",
+                    err == STO_SUCCESS && result == 18446744073709551615ULL);
 
     // Invalid input
     err = str_to_u64("abc", &result);
@@ -372,7 +373,8 @@ void test_str_to_i64(void) {
 
     // Valid input
     err = str_to_i64("9223372036854775807", &result);
-    LOG_TEST_RESULT("str_to_i64 valid input", err == STO_SUCCESS && result == 9223372036854775807LL);
+    LOG_TEST_RESULT("str_to_i64 valid input",
+                    err == STO_SUCCESS && result == 9223372036854775807LL);
 
     // Invalid input
     err = str_to_i64("abc", &result);

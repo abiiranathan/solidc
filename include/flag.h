@@ -27,21 +27,21 @@ extern "C" {
 #define MAX_SUBCOMMANDS 20
 #endif
 
-#define FLAG_TYPES                                                                                           \
-    X(BOOL, bool)                                                                                            \
-    X(INT, int)                                                                                              \
-    X(SIZE_T, size_t)                                                                                        \
-    X(INT8, int8_t)                                                                                          \
-    X(INT16, int16_t)                                                                                        \
-    X(INT32, int32_t)                                                                                        \
-    X(INT64, int64_t)                                                                                        \
-    X(UINT, unsigned int)                                                                                    \
-    X(UINT8, uint8_t)                                                                                        \
-    X(UINT16, uint16_t)                                                                                      \
-    X(UINT32, uint32_t)                                                                                      \
-    X(UINT64, uint64_t)                                                                                      \
-    X(FLOAT, float)                                                                                          \
-    X(DOUBLE, double)                                                                                        \
+#define FLAG_TYPES                                                                                 \
+    X(BOOL, bool)                                                                                  \
+    X(INT, int)                                                                                    \
+    X(SIZE_T, size_t)                                                                              \
+    X(INT8, int8_t)                                                                                \
+    X(INT16, int16_t)                                                                              \
+    X(INT32, int32_t)                                                                              \
+    X(INT64, int64_t)                                                                              \
+    X(UINT, unsigned int)                                                                          \
+    X(UINT8, uint8_t)                                                                              \
+    X(UINT16, uint16_t)                                                                            \
+    X(UINT32, uint32_t)                                                                            \
+    X(UINT64, uint64_t)                                                                            \
+    X(FLOAT, float)                                                                                \
+    X(DOUBLE, double)                                                                              \
     X(STRING, char*)
 
 typedef enum {
@@ -68,7 +68,8 @@ Flag* AddFlagCmd(Command* cmd, FlagType type, const char* name, char short_name,
                  void* value, bool required);
 
 //  Register a new global flag.
-Flag* AddFlag(FlagType type, const char* name, char short_name, const char* desc, void* value, bool required);
+Flag* AddFlag(FlagType type, const char* name, char short_name, const char* desc, void* value,
+              bool required);
 
 // Print the usage information for the program.
 void FlagUsage(const char* program_name);
@@ -91,48 +92,52 @@ void* FlagValue(Command* cmd, const char* name);
 void* FlagValueG(const char* name);
 
 // Generate helper functions for adding flags with concrete types
-#define X(name, type)                                                                                        \
-    static inline Flag* AddFlag_##name(const char* flag_name, char short_name, const char* description,      \
-                                       type* value, bool required) {                                         \
-        return AddFlag(FLAG_##name, flag_name, short_name, description, value, required);                    \
-    }                                                                                                        \
-    static inline Flag* AddFlagCmd_##name(Command* subcommand, const char* flag_name, char short_name,       \
-                                          const char* description, type* value, bool required) {             \
-        return AddFlagCmd(subcommand, FLAG_##name, flag_name, short_name, description, value, required);     \
+#define X(name, type)                                                                              \
+    static inline Flag* AddFlag_##name(const char* flag_name, char short_name,                     \
+                                       const char* description, type* value, bool required) {      \
+        return AddFlag(FLAG_##name, flag_name, short_name, description, value, required);          \
+    }                                                                                              \
+    static inline Flag* AddFlagCmd_##name(Command* subcommand, const char* flag_name,              \
+                                          char short_name, const char* description, type* value,   \
+                                          bool required) {                                         \
+        return AddFlagCmd(subcommand, FLAG_##name, flag_name, short_name, description, value,      \
+                          required);                                                               \
     }
 FLAG_TYPES
 #undef X
 
 // Generate helper functions for adding flags with concrete types
-#define X(name, type)                                                                                        \
-    static inline type FlagValue_##name(Command* subcommand, const char* flag_name,                          \
-                                        const type defaultValue) {                                           \
-        const char* FLAG_TYPE = #name;                                                                       \
-        type* value           = (type*)FlagValue(subcommand, flag_name);                                     \
-        if (value != NULL) {                                                                                 \
-            return strcmp(FLAG_TYPE, "STRING") == 0 ? ((bool)(*value) ? *value : (type)defaultValue)         \
-                                                    : *value;                                                \
-        }                                                                                                    \
-        return (type)defaultValue;                                                                           \
-    }                                                                                                        \
-    static inline type FlagValueG_##name(const char* flag_name, const type defaultValue) {                   \
-        const char* FLAG_TYPE = #name;                                                                       \
-        type* value           = (type*)FlagValueG(flag_name);                                                \
-        if (value != NULL) {                                                                                 \
-            return strcmp(FLAG_TYPE, "STRING") == 0 ? ((bool)(*value) ? *value : (type)defaultValue)         \
-                                                    : *value;                                                \
-        }                                                                                                    \
-        return (type)defaultValue;                                                                           \
+#define X(name, type)                                                                              \
+    static inline type FlagValue_##name(Command* subcommand, const char* flag_name,                \
+                                        const type defaultValue) {                                 \
+        const char* FLAG_TYPE = #name;                                                             \
+        type* value           = (type*)FlagValue(subcommand, flag_name);                           \
+        if (value != NULL) {                                                                       \
+            return strcmp(FLAG_TYPE, "STRING") == 0                                                \
+                       ? ((bool)(*value) ? *value : (type)defaultValue)                            \
+                       : *value;                                                                   \
+        }                                                                                          \
+        return (type)defaultValue;                                                                 \
+    }                                                                                              \
+    static inline type FlagValueG_##name(const char* flag_name, const type defaultValue) {         \
+        const char* FLAG_TYPE = #name;                                                             \
+        type* value           = (type*)FlagValueG(flag_name);                                      \
+        if (value != NULL) {                                                                       \
+            return strcmp(FLAG_TYPE, "STRING") == 0                                                \
+                       ? ((bool)(*value) ? *value : (type)defaultValue)                            \
+                       : *value;                                                                   \
+        }                                                                                          \
+        return (type)defaultValue;                                                                 \
     }
 FLAG_TYPES
 #undef X
 
-#define FLAG_ASSERT(cond, msg)                                                                               \
-    do {                                                                                                     \
-        if (!(cond)) {                                                                                       \
-            fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, msg);                                          \
-            exit(EXIT_FAILURE);                                                                              \
-        }                                                                                                    \
+#define FLAG_ASSERT(cond, msg)                                                                     \
+    do {                                                                                           \
+        if (!(cond)) {                                                                             \
+            fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, msg);                                \
+            exit(EXIT_FAILURE);                                                                    \
+        }                                                                                          \
     } while (0)
 
 #ifdef __cplusplus

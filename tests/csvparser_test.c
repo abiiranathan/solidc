@@ -6,31 +6,34 @@
 #include <string.h>  // for strcmp, strlen
 
 /** Test framework macros for better assertion handling. */
-#define ASSERT(condition, message, ...)                                                                      \
-    do {                                                                                                     \
-        if (!(condition)) {                                                                                  \
-            fprintf(stderr, "ASSERTION FAILED at %s:%d in %s(): " message "\n", __FILE__, __LINE__,          \
-                    __func__, ##__VA_ARGS__);                                                                \
-            abort();                                                                                         \
-        }                                                                                                    \
+#define ASSERT(condition, message, ...)                                                            \
+    do {                                                                                           \
+        if (!(condition)) {                                                                        \
+            fprintf(stderr, "ASSERTION FAILED at %s:%d in %s(): " message "\n", __FILE__,          \
+                    __LINE__, __func__, ##__VA_ARGS__);                                            \
+            abort();                                                                               \
+        }                                                                                          \
     } while (0)
 
-#define ASSERT_EQ(expected, actual, message, ...)                                                            \
-    do {                                                                                                     \
-        if ((expected) != (actual)) {                                                                        \
-            fprintf(stderr, "ASSERTION FAILED at %s:%d in %s(): Expected %ld, got %ld. " message "\n",       \
-                    __FILE__, __LINE__, __func__, (long)(expected), (long)(actual), ##__VA_ARGS__);          \
-            abort();                                                                                         \
-        }                                                                                                    \
+#define ASSERT_EQ(expected, actual, message, ...)                                                  \
+    do {                                                                                           \
+        if ((expected) != (actual)) {                                                              \
+            fprintf(                                                                               \
+                stderr, "ASSERTION FAILED at %s:%d in %s(): Expected %ld, got %ld. " message "\n", \
+                __FILE__, __LINE__, __func__, (long)(expected), (long)(actual), ##__VA_ARGS__);    \
+            abort();                                                                               \
+        }                                                                                          \
     } while (0)
 
-#define ASSERT_STR_EQ(expected, actual, message, ...)                                                        \
-    do {                                                                                                     \
-        if (strcmp((expected), (actual)) != 0) {                                                             \
-            fprintf(stderr, "ASSERTION FAILED at %s:%d in %s(): Expected \"%s\", got \"%s\". " message "\n", \
-                    __FILE__, __LINE__, __func__, (expected), (actual), ##__VA_ARGS__);                      \
-            abort();                                                                                         \
-        }                                                                                                    \
+#define ASSERT_STR_EQ(expected, actual, message, ...)                                              \
+    do {                                                                                           \
+        if (strcmp((expected), (actual)) != 0) {                                                   \
+            fprintf(stderr,                                                                        \
+                    "ASSERTION FAILED at %s:%d in %s(): Expected \"%s\", got \"%s\". " message     \
+                    "\n",                                                                          \
+                    __FILE__, __LINE__, __func__, (expected), (actual), ##__VA_ARGS__);            \
+            abort();                                                                               \
+        }                                                                                          \
     } while (0)
 
 #define ASSERT_NOT_NULL(ptr, message, ...) ASSERT((ptr) != nullptr, message, ##__VA_ARGS__)
@@ -42,18 +45,18 @@ static size_t test_count  = 0;
 static size_t test_passed = 0;
 
 /** Marks the start of a test case. */
-#define TEST_START(test_name)                                                                                \
-    do {                                                                                                     \
-        test_count++;                                                                                        \
-        printf("Running test %zu: %s... ", test_count, (test_name));                                         \
-        fflush(stdout);                                                                                      \
+#define TEST_START(test_name)                                                                      \
+    do {                                                                                           \
+        test_count++;                                                                              \
+        printf("Running test %zu: %s... ", test_count, (test_name));                               \
+        fflush(stdout);                                                                            \
     } while (0)
 
 /** Marks successful completion of a test case. */
-#define TEST_PASS()                                                                                          \
-    do {                                                                                                     \
-        test_passed++;                                                                                       \
-        printf("PASSED\n");                                                                                  \
+#define TEST_PASS()                                                                                \
+    do {                                                                                           \
+        test_passed++;                                                                             \
+        printf("PASSED\n");                                                                        \
     } while (0)
 
 /**
@@ -73,7 +76,8 @@ static bool compare_csv_rows(const Row* expected, const Row* actual, size_t row_
         ASSERT_NOT_NULL(expected->fields[i], "Expected field %zu in row %zu is null", i, row_index);
         ASSERT_NOT_NULL(actual->fields[i], "Actual field %zu in row %zu is null", i, row_index);
 
-        ASSERT_STR_EQ(expected->fields[i], actual->fields[i], "Field %zu mismatch in row %zu", i, row_index);
+        ASSERT_STR_EQ(expected->fields[i], actual->fields[i], "Field %zu mismatch in row %zu", i,
+                      row_index);
     }
 
     return true;

@@ -67,8 +67,8 @@ uint32_t utf8_to_codepoint(const char* utf8) {
         // 4-byte sequence
         if ((u[1] & 0xC0) == 0x80 && (u[2] & 0xC0) == 0x80 &&
             (u[3] & 0xC0) == 0x80) {  // Validate continuation bytes
-            codepoint =
-                ((u[0] & 0x07U) << 18) | ((u[1] & 0x3FU) << 12) | ((u[2] & 0x3FU) << 6) | (u[3] & 0x3F);
+            codepoint = ((u[0] & 0x07U) << 18) | ((u[1] & 0x3FU) << 12) | ((u[2] & 0x3FU) << 6) |
+                        (u[3] & 0x3F);
             // Overlong encoding check
             if (codepoint < 0x10000) {
                 return 0xFFFD;  // Replacement character
@@ -123,9 +123,11 @@ size_t utf8_valid_byte_count(const char* s) {
                 // Invalid UTF-8 sequence, skip this byte
                 i++;
             }
-        } else if ((byte & 0xF8) == 0xF0 && s[i + 1] != '\0' && s[i + 2] != '\0' && s[i + 3] != '\0') {
+        } else if ((byte & 0xF8) == 0xF0 && s[i + 1] != '\0' && s[i + 2] != '\0' &&
+                   s[i + 3] != '\0') {
             // Check that next 3 bytes are continuation bytes
-            if ((s[i + 1] & 0xC0) == 0x80 && (s[i + 2] & 0xC0) == 0x80 && (s[i + 3] & 0xC0) == 0x80) {
+            if ((s[i + 1] & 0xC0) == 0x80 && (s[i + 2] & 0xC0) == 0x80 &&
+                (s[i + 3] & 0xC0) == 0x80) {
                 count += 4;
                 i += 4;
             } else {
@@ -184,8 +186,8 @@ bool is_valid_utf8(const char* utf8) {
                 return false;
             }
             // Check for overlong encoding or surrogate
-            uint32_t codepoint = (uint32_t)((byte & 0x0F) << 12) | (uint32_t)((utf8[i + 1] & 0x3F) << 6) |
-                                 (utf8[i + 2] & 0x3F);
+            uint32_t codepoint = (uint32_t)((byte & 0x0F) << 12) |
+                                 (uint32_t)((utf8[i + 1] & 0x3F) << 6) | (utf8[i + 2] & 0x3F);
             if (codepoint < 0x800 || (codepoint >= 0xD800 && codepoint <= 0xDFFF)) {
                 return false;
             }
@@ -198,7 +200,8 @@ bool is_valid_utf8(const char* utf8) {
                 return false;
             }
             // Check for overlong encoding or too large value
-            uint32_t codepoint = (uint32_t)((byte & 0x07) << 18) | ((uint32_t)(utf8[i + 1] & 0x3F) << 12) |
+            uint32_t codepoint = (uint32_t)((byte & 0x07) << 18) |
+                                 ((uint32_t)(utf8[i + 1] & 0x3F) << 12) |
                                  ((uint32_t)(utf8[i + 2] & 0x3F) << 6) | (utf8[i + 3] & 0x3F);
             if (codepoint < 0x10000 || codepoint > 0x10FFFF) {
                 return false;

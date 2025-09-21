@@ -136,8 +136,8 @@ Flag* AddFlagCmd(Command* cmd, FlagType type, const char* name, char short_name,
     return flag;
 }
 
-Flag* AddFlag(FlagType type, const char* name, char short_name, const char* description, void* value,
-              bool required) {
+Flag* AddFlag(FlagType type, const char* name, char short_name, const char* description,
+              void* value, bool required) {
     FLAG_ASSERT(ctx->num_flags < MAX_GLOBAL_FLAGS, "You have run out of global flags");
     FLAG_ASSERT(is_valid_flag_type(type), "invalid flag type");
     FLAG_ASSERT(IS_VALID_STRING(name), "flag name cannot be NULL or empty");
@@ -164,7 +164,8 @@ Flag* AddFlag(FlagType type, const char* name, char short_name, const char* desc
 static inline void format_flag_str(char* buf, size_t buf_size, const char* name, char short_name,
                                    size_t max_name_len) {
     if (buf_size < 1) return;
-    int written = snprintf(buf, buf_size, "--%-*s | -%c", (int)max_name_len, SAFE_STR(name), short_name);
+    int written =
+        snprintf(buf, buf_size, "--%-*s | -%c", (int)max_name_len, SAFE_STR(name), short_name);
     if (written < 0 || (size_t)written >= buf_size) {
         buf[buf_size - 1] = '\0';  // Ensure null-termination
     }
@@ -217,7 +218,8 @@ void FlagUsage(const char* program_name) {
         const Flag* flag = &ctx->flags[i];
         if (!flag->name) continue;
 
-        format_flag_str(test_buf, sizeof(test_buf), flag->name, flag->short_name, max_long_flag_name_len);
+        format_flag_str(test_buf, sizeof(test_buf), flag->name, flag->short_name,
+                        max_long_flag_name_len);
 
         size_t len = strlen(test_buf);
         if (len > max_global_flag_len) {
@@ -239,7 +241,8 @@ void FlagUsage(const char* program_name) {
         if (!flag->name || !flag->description) continue;
 
         char flag_str[LINE_BUF_SIZE];
-        format_flag_str(flag_str, sizeof(flag_str), flag->name, flag->short_name, max_long_flag_name_len);
+        format_flag_str(flag_str, sizeof(flag_str), flag->name, flag->short_name,
+                        max_long_flag_name_len);
 
         printf("  %-*s: %s\n", (int)max_global_flag_len, flag_str, flag->description);
     }
@@ -262,7 +265,8 @@ void FlagUsage(const char* program_name) {
             const Flag* flag = &subcmd->flags[j];
             if (!flag->name) continue;
 
-            format_flag_str(test_buf, sizeof(test_buf), flag->name, flag->short_name, max_long_flag_name_len);
+            format_flag_str(test_buf, sizeof(test_buf), flag->name, flag->short_name,
+                            max_long_flag_name_len);
             size_t len = strlen(test_buf);
             if (len > max_subcmd_flag_len) {
                 max_subcmd_flag_len = len;
@@ -398,7 +402,8 @@ static void parse_flag_value(Flag* flag, const char* value) {
     }
 
     if (code != STO_SUCCESS) {
-        FATAL_ERROR("conversion error for flag: --%s: %s(%s)\n", flag->name, sto_error_string(code), value);
+        FATAL_ERROR("conversion error for flag: --%s: %s(%s)\n", flag->name, sto_error_string(code),
+                    value);
     }
 }
 

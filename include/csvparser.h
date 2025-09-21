@@ -150,12 +150,12 @@ typedef struct CsvWriterConfig CsvWriterConfig;
 
 void csv_reader_setconfig(CsvReader* reader, CsvReaderConfig config);
 
-#define CsvReaderConfigure(reader, ...)                                                                      \
-    csv_reader_setconfig(reader, (CsvReaderConfig){.delim       = ',',                                       \
-                                                   .quote       = '"',                                       \
-                                                   .comment     = '#',                                       \
-                                                   .has_header  = true,                                      \
-                                                   .skip_header = true,                                      \
+#define CsvReaderConfigure(reader, ...)                                                            \
+    csv_reader_setconfig(reader, (CsvReaderConfig){.delim       = ',',                             \
+                                                   .quote       = '"',                             \
+                                                   .comment     = '#',                             \
+                                                   .has_header  = true,                            \
+                                                   .skip_header = true,                            \
                                                    __VA_ARGS__})
 
 /**
@@ -174,13 +174,13 @@ csvwriter_free(writer);
 */
 typedef struct CsvWriter CsvWriter;
 
-#define CsvWriterConfigure(writer, ...)                                                                      \
-    csvwriter_setconfig(writer, (CsvWriterConfig){.delim     = ',',                                          \
-                                                  .quote     = '"',                                          \
-                                                  .newline   = '\n',                                         \
-                                                  .quote_all = false,                                        \
-                                                  .flush     = false,                                        \
-                                                  .first_row = false,                                        \
+#define CsvWriterConfigure(writer, ...)                                                            \
+    csvwriter_setconfig(writer, (CsvWriterConfig){.delim     = ',',                                \
+                                                  .quote     = '"',                                \
+                                                  .newline   = '\n',                               \
+                                                  .quote_all = false,                              \
+                                                  .flush     = false,                              \
+                                                  .first_row = false,                              \
                                                   __VA_ARGS__})
 
 // Create a new CSV writer associated with a filename.

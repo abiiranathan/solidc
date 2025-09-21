@@ -148,7 +148,8 @@ static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
         if (sigma > 1e-6f) {
             for (int j = 0; j < 3; ++j) {  // row
                 U->m[i][j] =
-                    (A.m[0][j] * V->m[i][0] + A.m[1][j] * V->m[i][1] + A.m[2][j] * V->m[i][2]) / sigma;
+                    (A.m[0][j] * V->m[i][0] + A.m[1][j] * V->m[i][1] + A.m[2][j] * V->m[i][2]) /
+                    sigma;
             }
         } else {
             U->m[i][0] = U->m[i][1] = U->m[i][2] = 0.0f;
@@ -160,9 +161,9 @@ static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
     float sigma3 = S->z;
     if (sigma2 > 1e-6f && sigma3 < 1e-6f) {
         // Compute U3 = U1 × U2
-        Vec3 u0    = {U->m[0][0], U->m[0][1], U->m[0][2]};
-        Vec3 u1    = {U->m[1][0], U->m[1][1], U->m[1][2]};
-        Vec3 u2    = {u0.y * u1.z - u0.z * u1.y, u0.z * u1.x - u0.x * u1.z, u0.x * u1.y - u0.y * u1.x};
+        Vec3 u0 = {U->m[0][0], U->m[0][1], U->m[0][2]};
+        Vec3 u1 = {U->m[1][0], U->m[1][1], U->m[1][2]};
+        Vec3 u2 = {u0.y * u1.z - u0.z * u1.y, u0.z * u1.x - u0.x * u1.z, u0.x * u1.y - u0.y * u1.x};
         U->m[2][0] = u2.x;
         U->m[2][1] = u2.y;
         U->m[2][2] = u2.z;
@@ -372,7 +373,8 @@ static inline Vec4 forward_substitution_mat4(Mat4 L, Vec4 b) {
     x_arr[2] = (b.z - (L.m[0][2] * x_arr[0] + L.m[1][2] * x_arr[1])) / L.m[2][2];
 
     // i = 3
-    x_arr[3] = (b.w - (L.m[0][3] * x_arr[0] + L.m[1][3] * x_arr[1] + L.m[2][3] * x_arr[2])) / L.m[3][3];
+    x_arr[3] =
+        (b.w - (L.m[0][3] * x_arr[0] + L.m[1][3] * x_arr[1] + L.m[2][3] * x_arr[2])) / L.m[3][3];
 
     return x;
 }

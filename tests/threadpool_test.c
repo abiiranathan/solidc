@@ -135,7 +135,7 @@ int test_basic_creation_destruction() {
     Threadpool* pool = threadpool_create(4);
     TEST_ASSERT(pool != NULL, "Pool creation should succeed");
 
-    threadpool_destroy(pool);
+    threadpool_destroy(pool, -1);
     return 1;
 }
 
@@ -143,7 +143,7 @@ int test_invalid_parameters() {
     // Test creation with 0 threads (should default to 1)
     Threadpool* pool = threadpool_create(0);
     TEST_ASSERT(pool != NULL, "Pool should handle 0 threads gracefully");
-    threadpool_destroy(pool);
+    threadpool_destroy(pool, -1);
 
     // Test NULL pool submission
     int result = threadpool_submit(NULL, simple_task, NULL);
@@ -153,7 +153,7 @@ int test_invalid_parameters() {
     pool   = threadpool_create(2);
     result = threadpool_submit(pool, NULL, NULL);
     TEST_ASSERT(result != 0, "Should reject NULL function");
-    threadpool_destroy(pool);
+    threadpool_destroy(pool, -1);
 
     return 1;
 }
@@ -167,10 +167,10 @@ int test_single_thread_execution() {
 
     for (int i = 0; i < 5; i++) {
         int result = threadpool_submit(pool, simple_task, &values[i]);
-        TEST_ASSERT(result == 0, "Task submission should succeed");
+        TEST_ASSERT(result, "Task submission should succeed");
     }
 
-    threadpool_destroy(pool);
+    threadpool_destroy(pool, -1);
 
     TEST_ASSERT(atomic_load(&completed_tasks) == 5, "All tasks should complete");
     return 1;
@@ -186,10 +186,10 @@ int test_multiple_thread_execution() {
     const int num_tasks = 100;
     for (int i = 0; i < num_tasks; i++) {
         int result = threadpool_submit(pool, counter_task, NULL);
-        TEST_ASSERT(result == 0, "Task submission should succeed");
+        TEST_ASSERT(result, "Task submission should succeed");
     }
 
-    threadpool_destroy(pool);
+    threadpool_destroy(pool, -1);
 
     int final_counter   = atomic_load(&test_counter);
     int final_completed = atomic_load(&completed_tasks);
@@ -212,10 +212,10 @@ int test_task_ordering_independence() {
 
     for (int i = 0; i < num_tasks; i++) {
         int result = threadpool_submit(pool, sleep_task, &delays[i]);
-        TEST_ASSERT(result == 0, "Sleep task submission should succeed");
+        TEST_ASSERT(result, "Sleep task submission should succeed");
     }
 
-    threadpool_destroy(pool);
+    threadpool_destroy(pool, -1);
 
     TEST_ASSERT(atomic_load(&completed_tasks) == num_tasks, "All sleep tasks should complete");
     return 1;
@@ -229,11 +229,11 @@ int test_high_contention() {
 
     const int num_tasks = 1000;
     for (int i = 0; i < num_tasks; i++) {
-        int result = threadpool_submit(pool, error_task, NULL);
-        TEST_ASSERT(result == 0, "High contention task submission should succeed");
+        bool result = threadpool_submit(pool, error_task, NULL);
+        TEST_ASSERT(result, "High contention task submission should succeed");
     }
 
-    threadpool_destroy(pool);
+    threadpool_destroy(pool, -1);
 
     TEST_ASSERT(atomic_load(&completed_tasks) == num_tasks, "All contention tasks should complete");
     return 1;
@@ -250,13 +250,13 @@ int test_queue_overflow_behavior() {
     int successful_submissions = 0;
 
     for (int i = 0; i < 20; i++) {
-        int result = threadpool_submit(pool, sleep_task, &long_delay);
-        if (result == 0) {
+        bool result = threadpool_submit(pool, sleep_task, &long_delay);
+        if (result) {
             successful_submissions++;
         }
     }
 
-    threadpool_destroy(pool);
+    threadpool_destroy(pool, -1);
 
     // Should have submitted at least some tasks successfully
     TEST_ASSERT(successful_submissions > 0, "Should submit some tasks even under pressure");
@@ -276,7 +276,7 @@ int test_rapid_create_destroy() {
             threadpool_submit(pool, simple_task, NULL);
         }
 
-        threadpool_destroy(pool);
+        threadpool_destroy(pool, -1);
     }
     return 1;
 }
@@ -305,7 +305,7 @@ int test_stress_test() {
     }
 
     atomic_store(&stress_test_running, false);
-    threadpool_destroy(pool);
+    threadpool_destroy(pool, -1);
 
     int completed = atomic_load(&completed_tasks);
     safe_printf("Stress test: submitted %d, completed %d tasks in %d seconds\n", submitted_tasks,
@@ -327,10 +327,10 @@ int test_thread_safety_validation() {
     // Submit tasks that increment a shared counter
     for (int i = 0; i < num_tasks; i++) {
         int result = threadpool_submit(pool, counter_task, NULL);
-        TEST_ASSERT(result == 0, "Thread safety task submission should succeed");
+        TEST_ASSERT(result, "Thread safety task submission should succeed");
     }
 
-    threadpool_destroy(pool);
+    threadpool_destroy(pool, -1);
 
     int final_counter   = atomic_load(&test_counter);
     int final_completed = atomic_load(&completed_tasks);
@@ -356,7 +356,7 @@ int test_memory_leaks() {
             threadpool_submit(pool, simple_task, NULL);
         }
 
-        threadpool_destroy(pool);
+        threadpool_destroy(pool, -1);
     }
 
     safe_printf("Memory leak test completed (check with valgrind for verification)\n");

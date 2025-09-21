@@ -130,7 +130,8 @@ void* arena_alloc(Arena* arena, size_t size) {
     const size_t aligned_size = arena_align_up(size);
 
     // Single atomic fetch_add - this is the only contention point
-    const size_t offset = atomic_fetch_add_explicit(&arena->head, aligned_size, memory_order_relaxed);
+    const size_t offset =
+        atomic_fetch_add_explicit(&arena->head, aligned_size, memory_order_relaxed);
 
     // Check bounds after allocation attempt
     if (UNLIKELY(offset + aligned_size > arena->size)) {
@@ -160,7 +161,8 @@ bool arena_alloc_batch(Arena* arena, const size_t sizes[], size_t count, void* o
     }
 
     // Single atomic operation for entire batch
-    const size_t base_offset = atomic_fetch_add_explicit(&arena->head, total_size, memory_order_relaxed);
+    const size_t base_offset =
+        atomic_fetch_add_explicit(&arena->head, total_size, memory_order_relaxed);
 
     if (UNLIKELY(base_offset + total_size > arena->size)) {
         atomic_fetch_sub_explicit(&arena->head, total_size, memory_order_relaxed);

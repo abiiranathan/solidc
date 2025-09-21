@@ -92,7 +92,7 @@ void run_benchmark(size_t num_threads, size_t iterations, size_t workload) {
     stop_benchmark(&bench);
     double cpu_time_end = get_cpu_time();
 
-    threadpool_destroy(pool);
+    threadpool_destroy(pool, -1);
 
     double wall_time        = latency_ms(&bench) / 1000.0;  // Convert to seconds
     double cpu_time         = cpu_time_end - cpu_time_start;
