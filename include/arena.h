@@ -37,14 +37,6 @@
 extern "C" {
 #endif
 
-#ifndef ARENA_ALIGNMENT
-#define ARENA_ALIGNMENT 16
-#endif
-
-#ifndef ARENA_MIN_SIZE
-#define ARENA_MIN_SIZE 1024
-#endif
-
 /**
  * @brief Arena allocator structure
  *
@@ -58,25 +50,26 @@ typedef struct Arena Arena;
  *
  * Allocates a new arena with at least the requested size. The actual size may
  * be adjusted to meet alignment requirements. The arena memory is allocated
- * with proper alignment for optimal performance.
- *
+ * with proper alignment for optimal performance. If thread-safe, the arena operations
+ * is guarged by a mutex.
  * @param arena_size The minimum size of the arena in bytes
  * @return Arena* Pointer to the new arena, or NULL on failure
  */
-Arena* arena_create(size_t arena_size);
+Arena* arena_create(size_t arena_size, bool thread_safe);
 
 /**
  * @brief Create an arena from an existing memory buffer
  *
  * Creates an arena that uses an existing memory buffer. The arena will not free
  * this buffer when destroyed. The buffer must be properly aligned to
- * ARENA_ALIGNMENT boundaries.
+ * ARENA_ALIGNMENT boundaries. If thread-safe, the arena operations
+ * is guarged by a mutex.
  *
  * @param buffer Pointer to the memory buffer to use (must be aligned)
  * @param buffer_size Size of the buffer in bytes
  * @return Arena* Pointer to the new arena, or NULL on failure
  */
-Arena* arena_create_from_buffer(void* buffer, size_t buffer_size);
+Arena* arena_create_from_buffer(void* buffer, size_t buffer_size, bool thread_safe);
 
 /**
  * @brief Destroy an arena and free all associated memory

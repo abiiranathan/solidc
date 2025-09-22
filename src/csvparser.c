@@ -49,7 +49,7 @@ CsvReader* csv_reader_new(const char* filename) {
         return NULL;
     }
 
-    Arena* arena = arena_create(CSV_ARENA_BLOCK_SIZE);
+    Arena* arena = arena_create(CSV_ARENA_BLOCK_SIZE, false);
     if (!arena) {
         fprintf(stderr, "error creating memory arena\n");
         fclose(stream);
