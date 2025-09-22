@@ -137,7 +137,20 @@ bool arena_alloc_batch(Arena* arena, const size_t sizes[], size_t count, void* o
  * @param str The string to copy
  * @return char* Pointer to the copied string, or NULL if the allocation fails
  */
-char* arena_alloc_string(Arena* arena, const char* str);
+char* arena_strdup(Arena* arena, const char* str);
+
+/**
+ * @brief Allocate memory for a string of known length and copy the contents
+ *
+ * Allocates memory for a string and copies the contents into the arena.
+ * The resulting string is null-terminated.
+ *
+ * @param arena Pointer to the arena
+ * @param str The string to copy; does not have to be NULL-terminated.
+ * @param length The string to copy. Length of  str.
+ * @return char* Pointer to the copied string, or NULL if the allocation fails
+ */
+char* arena_strdupn(Arena* arena, const char* str, size_t length);
 
 /**
  * @brief Allocate memory for an integer and set its value

@@ -180,13 +180,24 @@ bool arena_alloc_batch(Arena* arena, const size_t sizes[], size_t count, void* o
 }
 
 // Simplified string allocation without headers
-char* arena_alloc_string(Arena* arena, const char* str) {
+char* arena_strdup(Arena* arena, const char* str) {
     if (UNLIKELY(!arena || !str)) return NULL;
 
     const size_t len = strlen(str);
     char* s          = arena_alloc(arena, len + 1);
     if (LIKELY(s)) {
         memcpy(s, str, len + 1);  // Copy null terminator too
+    }
+    return s;
+}
+
+char* arena_strdupn(Arena* arena, const char* str, size_t length) {
+    if (UNLIKELY(!arena || !str)) return NULL;
+
+    char* s = arena_alloc(arena, length + 1);
+    if (LIKELY(s)) {
+        memcpy(s, str, length);
+        s[length] = '\0';
     }
     return s;
 }

@@ -51,7 +51,7 @@ static void* thread_func(void* arg) {
     Arena* arena = (Arena*)arg;
 
     const char s[] = "Thread initial allocation";
-    char* str      = arena_alloc_string(arena, s);
+    char* str      = arena_strdup(arena, s);
     if (!str || !validate_writing(str, sizeof(s))) {
         printf("Thread %zu: arena_alloc_string failed\n", thread_self());
         return NULL;
@@ -77,9 +77,15 @@ void test_basic_allocations(void) {
     ASSERT(arena);
 
     // Allocate a small chunk
-    char* str      = arena_alloc_string(arena, "Hello, Arena!");
+    char* str      = arena_strdup(arena, "Hello, Arena!");
     int test1_pass = validate_string_allocation(str, "Hello, Arena!");
     print_test_result("Basic allocation (small chunk)", test1_pass);
+
+    // Test arena_strdupn
+    char bytes[]     = {'S', 'O', 'L', 'I', 'D'};  // not-null terminated
+    char* bytes_copy = arena_strdupn(arena, bytes, sizeof(bytes));
+    ASSERT(bytes_copy);
+    ASSERT_STR_EQ(bytes_copy, "SOLID");
 
     // Allocate a larger chunk
     int* numbers   = arena_alloc(arena, sizeof(int) * 100);
@@ -122,7 +128,7 @@ void stress_test_arena(void) {
 
     for (int i = 0; i < STRESS_TEST_ITERATIONS; i++) {
         // Allocate a small chunk
-        char* str = arena_alloc_string(arena, "Stress test");
+        char* str = arena_strdup(arena, "Stress test");
         if (!str || !validate_writing(str, strlen("Stress test") + 1)) {
             printf("Stress test failed at iteration %d\n", i);
             ASSERT(str);
@@ -172,6 +178,17 @@ int main(void) {
     test_multithreaded_allocations();
     stress_test_arena();
 
+    // Test some macros
+    TIME_BLOCK_MS("for loop duration", {
+        for (volatile int i = 0; i < 10000000; ++i) {}
+    });
+
+    int arr[] = {1, 2, 3, 4};
+    FOR_EACH_ARRAY(n, arr) {
+        printf("n=%d\n", *n);
+    }
+
     printf("All tests completed.\n");
+
     return 0;
 }

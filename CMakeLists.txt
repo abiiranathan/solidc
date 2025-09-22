@@ -136,7 +136,7 @@ if(WIN32 OR MINGW)
     endif()
 else()
     
-    target_compile_options(solidc PUBLIC -Wall -Wextra -Werror -std=c23 -mavx2 -msse4.2 -mtune=native -march=native -flto)
+    target_compile_options(solidc PUBLIC -Wall -Wextra -Werror -Wno-unused-function -std=c23 -mavx2 -msse4.2 -mtune=native -march=native -flto)
     target_link_libraries(solidc PUBLIC m pthread)
     
     # Security hardening in Release mode

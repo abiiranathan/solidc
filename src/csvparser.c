@@ -319,7 +319,7 @@ static bool parse_csv_line(csv_line_params* args) {
             insideQuotes = !insideQuotes;
         } else if (args->line[i] == args->delim && !insideQuotes) {
             field[fieldIndex]  = '\0';
-            fields[row->count] = arena_alloc_string(args->arena, field);
+            fields[row->count] = arena_strdup(args->arena, field);
             if (!fields[row->count]) {
                 fprintf(stderr, "ERROR: unable to allocate memory for fields[%zu]\n", row->count);
                 return false;
@@ -340,7 +340,7 @@ static bool parse_csv_line(csv_line_params* args) {
 
     // Add the last field.
     field[fieldIndex]  = '\0';
-    fields[row->count] = arena_alloc_string(args->arena, field);
+    fields[row->count] = arena_strdup(args->arena, field);
     if (!fields[row->count]) {
         fprintf(stderr, "ERROR: unable to allocate memory for fields[%zu]\n", row->count);
         return false;
