@@ -73,7 +73,7 @@ static void* thread_func(void* arg) {
 
 // Test basic allocations
 void test_basic_allocations(void) {
-    Arena* arena = arena_create(1024, false);  // 1 KB arena
+    Arena* arena = arena_create(0);  // use default
     ASSERT(arena);
 
     // Allocate a small chunk
@@ -102,7 +102,7 @@ void test_basic_allocations(void) {
 
 // Test multithreaded allocations
 void test_multithreaded_allocations(void) {
-    Arena* arena = arena_create(1024 * 1024, true);  // 1 MB arena
+    Arena* arena = arena_create(1024 * 1024);  // 1 MB arena
     ASSERT(arena);
 
     Thread threads[NUM_THREADS] = {0};
@@ -123,7 +123,7 @@ void test_multithreaded_allocations(void) {
 
 // Stress test the arena allocator
 void stress_test_arena(void) {
-    Arena* arena = arena_create(20 << 20, false);  // 20MB
+    Arena* arena = arena_create(20 << 20);  // 20MB
     ASSERT(arena);
 
     for (int i = 0; i < STRESS_TEST_ITERATIONS; i++) {
@@ -142,7 +142,7 @@ void stress_test_arena(void) {
 }
 
 void test_arena_allocbatch(void) {
-    Arena* arena = arena_create(1 << 20, false);
+    Arena* arena = arena_create(1 << 20);
     ASSERT(arena);
 
     size_t sizes[] = {32, 64, 128};
@@ -161,7 +161,7 @@ void test_arena_allocbatch(void) {
 }
 
 void test_arena_alloc_array(void) {
-    Arena* arena = arena_create(sizeof(int) * 10, false);
+    Arena* arena = arena_create(sizeof(int) * 10);
     ASSERT(arena);
 
     int* arr = arena_alloc_array(arena, sizeof(int), 10);
