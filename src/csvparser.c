@@ -10,19 +10,19 @@
 #include <string.h>
 
 typedef struct CsvReader {
-    FILE* stream;        // file_t pointer corresponding to the file stream.
-    Row** rows;          // Array of row pointers
-    size_t num_rows;     // Number of rows in csv, excluding empty lines
-    char delim;          // Delimiter character
-    char quote;          // Quote character
-    char comment;        // Comment character
-    bool has_header;     // Whether the CSV file has a header
-    bool skip_header;    // Whether to skip the header when parsing
-    UnsafeArena* arena;  // single-threaded arena for memory allocation
+    FILE* stream;      // file_t pointer corresponding to the file stream.
+    Row** rows;        // Array of row pointers
+    size_t num_rows;   // Number of rows in csv, excluding empty lines
+    char delim;        // Delimiter character
+    char quote;        // Quote character
+    char comment;      // Comment character
+    bool has_header;   // Whether the CSV file has a header
+    bool skip_header;  // Whether to skip the header when parsing
+    Arena* arena;      // single-threaded arena for memory allocation
 } CsvReader;
 
 typedef struct csv_line_params {
-    UnsafeArena* arena;
+    Arena* arena;
     const char* line;
     size_t num_fields;
     size_t rowIndex;
@@ -49,7 +49,7 @@ CsvReader* csv_reader_new(const char* filename) {
         return NULL;
     }
 
-    UnsafeArena* arena = unsafe_arena_create(CSV_ARENA_BLOCK_SIZE);
+    Arena* arena = arena_create(CSV_ARENA_BLOCK_SIZE);
     if (!arena) {
         fprintf(stderr, "error creating memory arena\n");
         fclose(stream);
@@ -68,13 +68,13 @@ CsvReader* csv_reader_new(const char* filename) {
 }
 
 // Allocate memory for rows and set num_rows.
-static Row** csv_allocate_rows(UnsafeArena* arena, size_t num_rows) {
+static Row** csv_allocate_rows(Arena* arena, size_t num_rows) {
     if (num_rows == 0) {
         fprintf(stderr, "No rows to allocate. Perhaps the CSV file is empty\n");
         return NULL;
     }
 
-    Row** rows = unsafe_arena_alloc(arena, num_rows * sizeof(Row*));
+    Row** rows = arena_alloc_array(arena, sizeof(Row*), num_rows);
     if (!rows) {
         fprintf(stderr, "csv_allocate_rows(): error allocating memory for %lu rows in arena\n",
                 num_rows);
@@ -82,7 +82,7 @@ static Row** csv_allocate_rows(UnsafeArena* arena, size_t num_rows) {
     }
 
     for (size_t i = 0; i < num_rows; i++) {
-        rows[i] = unsafe_arena_alloc(arena, sizeof(Row));
+        rows[i] = arena_alloc(arena, sizeof(Row));
         if (!rows[i]) {
             fprintf(stderr,
                     "csv_allocate_rows(): error allocating memory for CsvRow: "
@@ -255,7 +255,7 @@ void csv_reader_free(CsvReader* reader) {
     if (!reader) return;
 
     // The row are allocated in the arena, so we only need to free the arena.
-    unsafe_arena_destroy(reader->arena);
+    arena_destroy(reader->arena);
 
     free(reader);
     reader = NULL;
@@ -304,7 +304,7 @@ static bool parse_csv_line(csv_line_params* args) {
     int insideQuotes           = 0;
 
     Row* row    = args->row;
-    row->fields = unsafe_arena_alloc(args->arena, args->num_fields * sizeof(char*));
+    row->fields = arena_alloc(args->arena, args->num_fields * sizeof(char*));
     if (!row->fields) {
         fprintf(stderr, "ERROR: unable to allocate memory for fields\n");
         return false;
@@ -319,7 +319,7 @@ static bool parse_csv_line(csv_line_params* args) {
             insideQuotes = !insideQuotes;
         } else if (args->line[i] == args->delim && !insideQuotes) {
             field[fieldIndex]  = '\0';
-            fields[row->count] = unsafe_arena_strdupn(args->arena, field, fieldIndex);
+            fields[row->count] = arena_strdupn(args->arena, field, fieldIndex);
             if (!fields[row->count]) {
                 fprintf(stderr, "ERROR: unable to allocate memory for fields[%zu]\n", row->count);
                 return false;
@@ -340,7 +340,7 @@ static bool parse_csv_line(csv_line_params* args) {
 
     // Add the last field.
     field[fieldIndex]  = '\0';
-    fields[row->count] = unsafe_arena_strdupn(args->arena, field, fieldIndex);
+    fields[row->count] = arena_strdupn(args->arena, field, fieldIndex);
     if (!fields[row->count]) {
         fprintf(stderr, "ERROR: unable to allocate memory for fields[%zu]\n", row->count);
         return false;
