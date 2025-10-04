@@ -5,6 +5,7 @@
 
 #include "../include/process.h"
 #include <errno.h>
+#include <stddef.h>
 
 /* Platform-specific implementations of process and pipe handles */
 #ifdef _WIN32
@@ -178,8 +179,8 @@ ProcessError pipe_create(PipeHandle** pipeHandle) {
     (*pipeHandle)->write_fd = fds[1];
 
     // Set both ends to non-blocking mode
-    int flags;
-    flags = fcntl((*pipeHandle)->read_fd, F_GETFL);
+    int flags = 0;
+    flags     = fcntl((*pipeHandle)->read_fd, F_GETFL);
     fcntl((*pipeHandle)->read_fd, F_SETFL, flags | O_NONBLOCK);
     flags = fcntl((*pipeHandle)->write_fd, F_GETFL);
     fcntl((*pipeHandle)->write_fd, F_SETFL, flags | O_NONBLOCK);
@@ -249,7 +250,7 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
 
         if (timeout_ms > 0) {
             timeout.tv_sec  = timeout_ms / 1000;
-            timeout.tv_usec = (timeout_ms % 1000) * 1000;
+            timeout.tv_usec = (long)((timeout_ms % 1000) * 1000);
             timeout_ptr     = &timeout;
         }
 
@@ -339,7 +340,7 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
 
         if (timeout_ms > 0) {
             timeout.tv_sec  = timeout_ms / 1000;
-            timeout.tv_usec = (timeout_ms % 1000) * 1000;
+            timeout.tv_usec = ((long)timeout_ms % 1000) * 1000;
             timeout_ptr     = &timeout;
         }
 
@@ -684,8 +685,8 @@ ProcessError process_wait(ProcessHandle* handle, ProcessResult* result, int time
     }
 #else
     // Linux/Unix-specific code
-    int status;
-    pid_t wait_result;
+    int status        = 0;
+    pid_t wait_result = 0;
 
     if (timeout_ms < 0) {
         // Wait indefinitely
@@ -705,7 +706,7 @@ ProcessError process_wait(ProcessHandle* handle, ProcessResult* result, int time
             NANOSLEEP(ts.tv_sec, ts.tv_nsec);
 
             // Adjust remaining timeout
-            remaining_timeout_ms -= (ts.tv_sec * 1000) + (ts.tv_nsec / 1000000);
+            remaining_timeout_ms -= (int)((ts.tv_sec * 1000) + (ts.tv_nsec / 1000000));
         }
     }
 
@@ -773,9 +774,9 @@ ProcessError process_terminate(ProcessHandle* handle, bool force) {
 
 ProcessError process_run_and_capture(const char* command, const char* const argv[],
                                      ProcessOptions* options, int* exit_code) {
-    ProcessHandle* proc;
-    ProcessError err;
-    err = process_create(&proc, command, argv, options);
+    ProcessHandle* proc = NULL;
+    ProcessError err    = {};
+    err                 = process_create(&proc, command, argv, options);
     if (err != PROCESS_SUCCESS) {
         return err;
     }
@@ -809,7 +810,7 @@ ProcessError process_run_and_capture(const char* command, const char* const argv
  * @return ProcessError
  */
 ProcessError process_redirect_to_file(FileRedirection** redirection, const char* filepath,
-                                      int flags, int mode) {
+                                      int flags, unsigned int mode) {
     if (!redirection || !filepath) {
         return PROCESS_ERROR_INVALID_ARGUMENT;
     }
@@ -1083,7 +1084,7 @@ ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd
 
     if (stdout_tee_pid == 0) {  // Tee child process for stdout
         char buffer[4096];
-        ssize_t n;
+        ssize_t n = 0;
 
         // Read from the stdout pipe and write to all output_fds
         while ((n = read(stdout_pipe[0], buffer, sizeof(buffer))) > 0) {
@@ -1121,7 +1122,7 @@ ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd
 
     if (stderr_tee_pid == 0) {  // Tee child process for stderr
         char buffer[4096];
-        ssize_t n;
+        ssize_t n = 0;
 
         // Read from the stderr pipe and write to all error_fds
         while ((n = read(stderr_pipe[0], buffer, sizeof(buffer))) > 0) {
@@ -1149,7 +1150,7 @@ ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd
     close(stderr_pipe[0]);
 
     // Wait for the command process specifically to get its status
-    int cmd_status;
+    int cmd_status = 0;
     waitpid(cmd_pid, &cmd_status, 0);
     set_process_result(cmd_status, result);
 

@@ -149,8 +149,8 @@ flags: Specifies the type of message reception.
 See man 2 recv for more information.
  */
 ssize_t socket_recv(Socket* sock, void* buffer, size_t size, int flags) {
-    ssize_t bytes;
-    bytes = recv(sock->handle, buffer, size, flags);
+    ssize_t bytes = 0;
+    bytes         = recv(sock->handle, buffer, size, flags);
     return bytes;
 }
 
@@ -162,9 +162,7 @@ flags:  Specifies the type of message transmission
 See man 2 send for more information.
 */
 ssize_t socket_send(Socket* sock, const void* buffer, size_t size, int flags) {
-    ssize_t bytes;
-    bytes = send(sock->handle, buffer, size, flags);
-    return bytes;
+    return send(sock->handle, buffer, size, flags);
 }
 
 // Get the socket file descriptor
@@ -253,8 +251,8 @@ int socket_get_peer_address(Socket* sock, struct sockaddr* addr, socklen_t* addr
 }
 
 int socket_type(Socket* sock) {
-    int ret = -1;
-    int type;
+    int ret       = -1;
+    int type      = 0;
     socklen_t len = sizeof(type);
     if (socket_get_option(sock, SOL_SOCKET, SO_TYPE, &type, &len) == 0) {
         ret = type;

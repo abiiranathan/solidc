@@ -271,7 +271,7 @@ ProcessError process_run_and_capture(const char* command, const char* const argv
  * @return ProcessError
  */
 ProcessError process_redirect_to_file(FileRedirection** redirection, const char* filepath,
-                                      int flags, int mode);
+                                      int flags, unsigned int mode);
 
 /**
  * @brief Create a file redirection from an existing file descriptor

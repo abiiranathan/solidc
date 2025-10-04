@@ -343,7 +343,7 @@ void threadpool_destroy(Threadpool* pool, int timeout_ms) {
     // Wait for work completion
     lock_acquire(&pool->thcount_lock);
 
-    int ret;
+    int ret = 0;
     while (has_work(pool)) {
         ret = cond_wait_timeout(&pool->threads_all_idle, &pool->thcount_lock, timeout_ms);
         if (ret == -1) {

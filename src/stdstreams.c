@@ -30,7 +30,7 @@ bool readline(const char* prompt, char* buffer, size_t buffer_len) {
     buffer[strcspn(buffer, "\n")] = '\0';  // Remove trailing newline
 
     if (strlen(buffer) >= buffer_len - 1) {
-        char c;
+        char c = EOF;
         while ((c = (char)getchar()) != EOF) {
             if (c == '\n') break;
         }
@@ -88,7 +88,7 @@ int getpassword(const char* prompt, char* buffer, size_t buffer_len) {
     return i;
 #else
     struct termios old, new;
-    int nread;
+    int nread = 0;
 
     // Turn off echoing
     if (tcgetattr(fileno(stdin), &old) != 0) {
@@ -119,7 +119,7 @@ int getpassword(const char* prompt, char* buffer, size_t buffer_len) {
 enum stream_type {
     INVALID_STREAM = -1,
     FILE_STREAM    = 0,
-    STRING_STREAM,
+    STRING_STREAM  = 1,
 };
 
 // stream_t type wraps common FILE* operations to be work with
@@ -189,7 +189,7 @@ stream_t create_file_stream(FILE* fp) {
 
 ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size) {
     ssize_t bytes_read = 0;
-    int ch;
+    int ch             = 0;
     while ((ch = stream->read_char(stream->handle)) != EOF && ch != delim &&
            bytes_read < (int)buffer_size - 1) {
         buffer[bytes_read++] = (char)ch;

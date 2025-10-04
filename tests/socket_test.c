@@ -71,7 +71,7 @@ int main() {
     ASSERT(addr.sin_addr.s_addr == addr2.sin_addr.s_addr);
 
     // start a thread that will send message to server after 5 seconds
-    Thread t;
+    Thread t = {};
     thread_create(&t, send_message_to_server, &port);
 
     // wait for a client to connect

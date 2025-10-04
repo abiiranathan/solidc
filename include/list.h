@@ -69,9 +69,9 @@ void list_clear(list_t* list);
 
 // Iteration
 #define list_foreach(list, node_data)                                                              \
-    for (list_node_t* node = list->head; node != NULL; node = node->next)                          \
+    for (list_node_t* node = (list)->head; node != NULL; node = node->next)                        \
         for (int cont = 1; cont; cont = 0)                                                         \
-            for (void* node_data = node->data; cont; cont = 0)
+            for (void*(node_data) = node->data; cont; cont = 0)
 
 #if defined(__cplusplus)
 }

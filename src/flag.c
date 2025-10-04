@@ -316,7 +316,7 @@ static inline void validate_flag(Flag* flag) {
         return;
     }
 
-    bool is_valid;
+    bool is_valid = false;
 
     for (size_t i = 0; i < flag->num_validators; i++) {
         // Invoke validation callback with parsed value

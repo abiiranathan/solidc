@@ -246,7 +246,7 @@ static inline void mat4_power_iteration(Mat4 A, Vec4* eigenvector, float* eigenv
         vec4_normalize(Av);
 
         // Check for convergence
-        if (fabs(*eigenvalue - lambda_old) < tol) {
+        if (fabsf(*eigenvalue - lambda_old) < tol) {
             break;
         }
 
@@ -294,7 +294,7 @@ static inline bool mat3_is_positive_definite(Mat3 A) {
  */
 static inline float mat4_condition_number(Mat4 A) {
     Mat4 A_inv;
-    float norm_A, norm_A_inv;
+    float norm_A = 0, norm_A_inv = 0;
 
     // Compute the Frobenius norm of A
     norm_A = mat4_norm_frobenius(A);

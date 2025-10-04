@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdatomic.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -92,7 +93,7 @@ void counter_task(void* arg) {
 
 void sleep_task(void* arg) {
     int ms             = *(int*)arg;
-    struct timespec ts = {0, ms * 1000000};
+    struct timespec ts = {0, (long)ms * 1000000};
     nanosleep(&ts, NULL);
     atomic_fetch_add(&completed_tasks, 1);
 }

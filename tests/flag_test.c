@@ -66,8 +66,8 @@ int main(void) {
     AddFlag_STRING("string", 's', "String flag", &string_flag, true);
     AddFlag(FLAG_DOUBLE, "float64", 'd', "Float64 flag", &float64_flag, true);
 
-    Command* printCmd;
-    Flag* countFlag;
+    Command* printCmd = NULL;
+    Flag* countFlag   = NULL;
 
     printCmd  = AddCommand("print", "Prints a message", printHandler);
     countFlag = AddFlagCmd_INT(printCmd, "count", 'c', "No times to print", &count, true);

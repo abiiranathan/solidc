@@ -5,6 +5,25 @@
 #include <immintrin.h>
 #include <math.h>
 #include <stdbool.h>
+#include <stdio.h>
+
+/**
+ * @file vec.h
+ * @brief High-performance vector mathematics library with scalar and SIMD operations
+ *
+ * This library provides comprehensive vector operations for 2D, 3D, and 4D vectors,
+ * with both scalar implementations and SIMD-optimized versions using SSE/AVX instructions.
+ *
+ * Features:
+ * - Basic vector operations (add, subtract, multiply, divide)
+ * - Geometric operations (dot product, cross product, normalization)
+ * - Advanced operations (rotation, reflection, projection)
+ * - SIMD-accelerated operations for better performance
+ * - Comprehensive utility functions
+ *
+ * @version 2.0
+ * @author Enhanced Vector Library
+ */
 
 /*
 ==================================================
@@ -15,6 +34,12 @@
 /**
  * @struct Vec2
  * @brief A simple 2D float vector for basic math operations.
+ *
+ * This structure represents a 2D vector with x and y components.
+ * It's designed for simplicity and compatibility with existing code.
+ *
+ * @note This structure is not aligned for SIMD operations.
+ *       Use SimdVec2 for SIMD-optimized operations.
  */
 typedef struct Vec2 {
     float x, y;
@@ -23,6 +48,12 @@ typedef struct Vec2 {
 /**
  * @struct Vec3
  * @brief A simple 3D float vector for spatial computations.
+ *
+ * This structure represents a 3D vector with x, y, and z components.
+ * Commonly used for 3D graphics, physics simulations, and spatial calculations.
+ *
+ * @note This structure is not aligned for SIMD operations.
+ *       Use SimdVec3 for SIMD-optimized operations.
  */
 typedef struct Vec3 {
     float x, y, z;
@@ -31,6 +62,12 @@ typedef struct Vec3 {
 /**
  * @struct Vec4
  * @brief A simple 4D float vector for spatial computations.
+ *
+ * This structure represents a 4D vector with x, y, z, and w components.
+ * Often used for homogeneous coordinates in 3D graphics or quaternions.
+ *
+ * @note This structure is not aligned for SIMD operations.
+ *       Use SimdVec4 for SIMD-optimized operations.
  */
 typedef struct Vec4 {
     float x, y, z, w;
@@ -39,12 +76,16 @@ typedef struct Vec4 {
 /**
  * @union SimdVec2
  * @brief A 2D float vector backed by a 128-bit SIMD register (SSE).
- * Can be accessed as:
- * - `__m128` for SIMD operations
- * - `float f32[4]` for array-like access
- * - `x, y` for named component access
  *
- * The memory is aligned to 16 bytes for SSE compatibility.
+ * This union provides multiple ways to access the same data:
+ * - `__m128 m128` for direct SIMD operations
+ * - `float f32[4]` for array-like indexed access
+ * - `x, y` for named component access (first two elements)
+ *
+ * The memory is aligned to 16 bytes for optimal SSE performance.
+ * The last two components are typically unused but may be used for padding.
+ *
+ * @warning Always ensure proper alignment when passing to SIMD functions.
  */
 typedef union __attribute__((aligned(16))) SimdVec2 {
     __m128 m128;
@@ -57,13 +98,18 @@ typedef union __attribute__((aligned(16))) SimdVec2 {
 /**
  * @union SimdVec3
  * @brief A 3D float vector backed by a 256-bit SIMD register (AVX).
- * Can be accessed as:
- * - `__m256` for AVX-wide operations
- * - `__m128 m128[2]` for splitting into low/high halves
- * - `float f32[8]` for indexed access
- * - `x, y, z, w` for component-level access
  *
- * The memory is aligned to 32 bytes for AVX compatibility.
+ * This union provides multiple access patterns:
+ * - `__m256 m256` for AVX-wide operations (8 floats)
+ * - `__m128 m128[2]` for splitting into low/high 128-bit halves
+ * - `float f32[8]` for indexed access to all 8 float elements
+ * - `x, y, z, w` for component-level access (first four elements)
+ *
+ * The memory is aligned to 32 bytes for optimal AVX performance.
+ * Only the first three components (x, y, z) represent the actual 3D vector.
+ *
+ * @warning Ensure AVX support is available on target hardware.
+ * @note Consider using SimdVec4 for better hardware compatibility.
  */
 typedef union __attribute__((aligned(32))) SimdVec3 {
     __m256 m256;
@@ -77,12 +123,14 @@ typedef union __attribute__((aligned(32))) SimdVec3 {
 /**
  * @union SimdVec4
  * @brief A 4D float vector backed by a 128-bit SIMD register (SSE).
- * Can be accessed as:
- * - `__m128` for SIMD operations
- * - `float f32[4]` for array-like access
- * - `x, y, z, w` for component-level access
  *
- * The memory is aligned to 16 bytes for SSE compatibility.
+ * This union provides optimal access for 4-component vectors:
+ * - `__m128 m128` for direct SIMD operations (perfect fit)
+ * - `float f32[4]` for array-like indexed access
+ * - `x, y, z, w` for named component access
+ *
+ * The memory is aligned to 16 bytes for optimal SSE performance.
+ * This is often the most efficient SIMD vector type due to perfect register utilization.
  */
 typedef union __attribute__((aligned(16))) SimdVec4 {
     __m128 m128;
@@ -95,7 +143,6 @@ typedef union __attribute__((aligned(16))) SimdVec4 {
 // ===============
 // DEBUG
 //================
-#include <stdio.h>
 
 /**
  * @brief Prints a Vec2 to stdout

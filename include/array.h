@@ -88,6 +88,7 @@ typedef enum {
         }                                                                                          \
     } while (0)
 
+// NOLINTBEGIN(bugprone-macro-parentheses)
 // Core macro that creates the array code.
 #define DARRAY_DEFINE(name, type)                                                                  \
     typedef struct name {                                                                          \
@@ -406,6 +407,7 @@ typedef enum {
         return -1;                                                                                 \
     }
 
+// NOLINTEND(bugprone-macro-parentheses)
 // Convenience macros for common operations
 #define DARRAY_FOR_EACH(arr, var)                                                                  \
     for (size_t _i = 0; _i < (arr)->count && ((var) = (arr)->items[_i], 1); _i++)

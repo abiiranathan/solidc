@@ -10,7 +10,7 @@
 uint32_t solidc_djb2_hash(const void* key) {
     unsigned char* str = (unsigned char*)key;
     unsigned long hash = 5381;
-    unsigned long c;
+    unsigned long c    = 0;
     while ((c = *str++) != '\0') {
         hash = ((hash << 5) + hash) + c;  // hash * 33 + c
     }
@@ -43,7 +43,7 @@ uint64_t solidc_fnv1a_hash64(const void* key) {
 uint32_t solidc_elf_hash(const void* key) {
     const unsigned char* str = (const unsigned char*)key;
     uint32_t hash            = 0;
-    uint32_t x;
+    uint32_t x               = 0;
 
     while (*str) {
         hash = (hash << 4) + *str++;
@@ -107,8 +107,8 @@ uint32_t solidc_murmur_hash(const char* key, uint32_t len, uint32_t seed) {
 
     h = seed;
 
-    chunks = (const uint32_t*)(d + l * 4);  // body
-    tail   = (const uint8_t*)(d + l * 4);   // last 8 byte chunk of `key'
+    chunks = (const uint32_t*)(d + (size_t)(l * 4));  // body
+    tail   = (const uint8_t*)(d + (size_t)(l * 4));   // last 8 byte chunk of `key'
 
     // for each 4 byte chunk of `key'
     for (i = (int)-l; i != 0; ++i) {
@@ -129,7 +129,7 @@ uint32_t solidc_murmur_hash(const char* key, uint32_t len, uint32_t seed) {
     k = 0;
 
     // tail - last 8 byte
-    switch (len & 3) {  // `len % 4'
+    switch (len & 3) {  // `len % 4' NOLINT
         case 3:
             k ^= ((uint32_t)tail[2] << 16);
             // fall through
@@ -184,7 +184,7 @@ static uint32_t XXH32_round(uint32_t seed, uint32_t input) {
 uint32_t solidc_XXH32(const void* input, size_t len, uint32_t seed) {
     const uint8_t* p          = (const uint8_t*)input;
     const uint8_t* const bEnd = p + len;
-    uint32_t h32;
+    uint32_t h32              = 0;
 
     if (len >= 16) {
         const uint8_t* const limit = bEnd - 16;

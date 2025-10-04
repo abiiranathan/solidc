@@ -90,7 +90,8 @@ int main(void) {
     ASSERT(two);
 
     map_iterator it = map_iter(m);
-    int *key, *value;
+    int *key = NULL, *value = NULL;
+
     while (map_next(&it, (void**)&key, (void**)&value)) {
         ASSERT(key);
         ASSERT(value);

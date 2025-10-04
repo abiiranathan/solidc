@@ -13,9 +13,9 @@
 #include "../include/map.h"
 
 // Default maximum load factor
-#define DEFAULT_MAX_LOAD_FACTOR   0.75
-#define TOMBSTONE_RATIO_THRESHOLD 0.5  // Rehash when tombstones > 50% of size
-#define MIN_CAPACITY              8    // Minimum capacity to avoid frequent resizing
+#define DEFAULT_MAX_LOAD_FACTOR   0.75f
+#define TOMBSTONE_RATIO_THRESHOLD 0.5f  // Rehash when tombstones > 50% of size
+#define MIN_CAPACITY              8     // Minimum capacity to avoid frequent resizing
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
@@ -226,7 +226,7 @@ size_t map_length(HashMap* m) {
 bool map_set(HashMap* m, void* key, size_t key_len, void* value) {
     // Check if we need to resize
     size_t total_entries = m->size + m->tombstone_count;
-    if (total_entries >= m->capacity * m->max_load_factor) {
+    if (total_entries >= (size_t)((float)m->capacity * m->max_load_factor)) {
         size_t new_capacity = calculate_new_capacity(m->capacity);
         if (new_capacity <= m->capacity || !map_resize(m, new_capacity, key_len)) {
             return false;

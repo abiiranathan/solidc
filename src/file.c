@@ -195,7 +195,7 @@ file_result_t filesize_tostring(uint64_t size, char* buf, size_t len) {
     }
 
     double rounded = round(value);
-    int written;
+    int written    = -1;
 
     if (fabs(value - rounded) < HUMAN_SIZE_EPSILON) {
         written = snprintf(buf, len, "%.0f %s", rounded, units[unit_index]);
@@ -370,8 +370,8 @@ file_result_t file_unlock(const file_t* file) {
 }
 
 file_result_t file_copy(const file_t* src, file_t* dst) {
-    char buffer[COPY_BUFSIZE];
-    size_t bytes_read;
+    char buffer[COPY_BUFSIZE] = {};
+    size_t bytes_read         = 0;
 
     // Clear any previous errors
     clearerr(src->stream);

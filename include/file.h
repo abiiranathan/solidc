@@ -41,7 +41,8 @@ typedef HANDLE native_handle_t;
 
 // POSIX file handle type
 typedef int native_handle_t;
-#define INVALID_NATIVE_HANDLE (-1)
+
+enum { INVALID_NATIVE_HANDLE = (-1) };
 #endif
 
 #ifdef __cplusplus

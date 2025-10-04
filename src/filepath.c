@@ -16,7 +16,7 @@
 static inline size_t safe_strlcpy(char* dst, const char* src, size_t size) {
     if (!dst || !src || size == 0) return 0;
 
-    size_t srclen;
+    size_t srclen = 0;
 #ifdef _WIN32
 #ifndef RSIZE_MAX
 #define RSIZE_MAX ((size_t)-1)
@@ -281,11 +281,11 @@ static WalkDirOption dir_remove_callback(const char* fullpath, const char* name,
 }
 
 #define SET_DIR_STATUS(ret)                                                                        \
-    if (ret == DirError) {                                                                         \
+    if ((ret) == DirError) {                                                                       \
         status = -1;                                                                               \
         break;                                                                                     \
     }                                                                                              \
-    if (ret == DirStop) {                                                                          \
+    if ((ret) == DirStop) {                                                                        \
         status = 0;                                                                                \
         break;                                                                                     \
     }
@@ -308,9 +308,9 @@ int dir_walk_depth_first(const char* path, WalkDirCallback callback, void* data)
         return -1;  // errno set by dir_open
     }
 
-    char* name;
-    char fullpath[FILENAME_MAX];
-    int status = 0;
+    char* name                  = NULL;
+    char fullpath[FILENAME_MAX] = {};
+    int status                  = 0;
 
     while ((name = dir_next(dir)) != NULL) {
         if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) continue;
@@ -443,7 +443,7 @@ void dir_list_with_callback(const char* path, void (*callback)(const char* name)
         return;
     }
 
-    char* name;
+    char* name = NULL;
     while ((name = dir_next(dir)) != NULL) {
         if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
             continue;
@@ -823,7 +823,7 @@ void filepath_nameonly(const char* path, char* name, size_t size) {
     char base[FILENAME_MAX] = {0};
     filepath_basename(path, base, FILENAME_MAX);
     char* dot = strrchr(base, '.');
-    safe_strlcpy(name, dot ? base : base, dot ? (size_t)(dot - base + 1) : size);
+    safe_strlcpy(name, base, dot ? (size_t)(dot - base + 1) : size);
 }
 
 // Get absolute path

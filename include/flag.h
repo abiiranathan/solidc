@@ -91,6 +91,7 @@ void* FlagValue(Command* cmd, const char* name);
 // Returns the global flag value by name or NULL if the flag is not found.
 void* FlagValueG(const char* name);
 
+// NOLINTBEGIN(bugprone-macro-parentheses)
 // Generate helper functions for adding flags with concrete types
 #define X(name, type)                                                                              \
     static inline Flag* AddFlag_##name(const char* flag_name, char short_name,                     \
@@ -140,6 +141,7 @@ FLAG_TYPES
         }                                                                                          \
     } while (0)
 
+// NOLINTEND(bugprone-macro-parentheses)
 #ifdef __cplusplus
 }
 #endif

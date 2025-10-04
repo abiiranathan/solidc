@@ -6,12 +6,29 @@
 #include <stdbool.h>
 #include "vec.h"
 
-// 3x3 Matrix types with SIMD alignment and Column-Major storage.
+/**
+ * @struct Mat3
+ * @brief A 3x3 matrix for 2D transformations and 3D rotations.
+ *
+ * Matrix elements are stored in column-major order (OpenGL style):
+ * | m[0] m[3] m[6] |
+ * | m[1] m[4] m[7] |
+ * | m[2] m[5] m[8] |
+ */
 typedef struct __attribute__((aligned(16))) Mat3 {
     float m[3][3];  // Column-major storage as m[col][row]
 } Mat3;
 
-// 4x4 Matrix types with SIMD alignment and Column-Major storage.
+/**
+ * @struct Mat4
+ * @brief A 4x4 matrix for 3D transformations.
+ *
+ * Matrix elements are stored in column-major order (OpenGL style):
+ * | m[0]  m[4]  m[8]  m[12] |
+ * | m[1]  m[5]  m[9]  m[13] |
+ * | m[2]  m[6]  m[10] m[14] |
+ * | m[3]  m[7]  m[11] m[15] |
+ */
 typedef struct __attribute__((aligned(32))) Mat4 {
     union {
         float m[4][4];   // Column-major storage as m[col][row]
@@ -430,7 +447,7 @@ static inline Mat3 mat3_exp(Mat3 A, int terms) {
     float factorial = 1.0f;
 
     for (int n = 1; n < terms; ++n) {
-        factorial *= n;
+        factorial *= (float)n;
         power_A   = mat3_mul(power_A, A);                        // A^n
         Mat3 term = mat3_scalar_mul(power_A, 1.0f / factorial);  // A^n / n!
         result    = mat3_add(result, term);

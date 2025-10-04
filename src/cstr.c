@@ -684,14 +684,10 @@ bool cstr_append_char(cstr* s, char c) {
  * @return true on success, false on allocation failure or invalid input
  */
 bool cstr_prepend(cstr* s, const char* prepend_str) {
-    if (!s || !prepend_str) {
-        return false;
-    }
+    if (!s || !prepend_str) return false;
 
     size_t prepend_len = strlen(prepend_str);
-    if (prepend_len == 0) {
-        return true;
-    }
+    if (prepend_len == 0) return true;
 
     size_t current_len = cstr_get_length(s);
     size_t new_len     = current_len + prepend_len;
@@ -700,8 +696,10 @@ bool cstr_prepend(cstr* s, const char* prepend_str) {
     }
 
     char* dest = cstr_get_data(s);
-    memmove(dest + prepend_len, dest, current_len + 1);
+    memmove(dest + prepend_len, dest, current_len);
     memcpy(dest, prepend_str, prepend_len);
+    dest[new_len] = '\0';
+
     cstr_set_length(s, new_len);
 
     return true;
@@ -735,7 +733,7 @@ bool cstr_prepend_fast(cstr* s, const char* prepend_str) {
 
     char* dest = cstr_get_data(s);
     memmove(dest + prepend_len, dest, current_len + 1);
-    memcpy(dest, prepend_str, prepend_len);
+    memcpy(dest, prepend_str, prepend_len);  // NOLINT
     cstr_set_length(s, current_len + prepend_len);
 
     return true;
@@ -771,7 +769,7 @@ bool cstr_insert(cstr* s, size_t index, const char* insert_str) {
 
     char* data = cstr_get_data(s);
     memmove(data + index + insert_len, data + index, current_length - index + 1);
-    memcpy(data + index, insert_str, insert_len);
+    memcpy(data + index, insert_str, insert_len);  // NOLINT
     cstr_set_length(s, new_length);
     return true;
 }

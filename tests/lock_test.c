@@ -39,7 +39,7 @@ void test_condition_variables() {
     Condition condition;
     cond_init(&condition);
 
-    Thread thread;
+    Thread thread = {};
     thread_create(&thread, modify_shared_var, &condition);
 
     lock_init(&lock);     // re-initialize the lock

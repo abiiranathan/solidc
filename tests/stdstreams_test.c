@@ -41,10 +41,11 @@ void test_iocopy(void) {
 }
 
 void test_readuntil(void) {
-    stream_t stream;
-    stream_t fstream;
-    ssize_t n;
     char buf[256];
+
+    stream_t stream  = {};
+    stream_t fstream = {};
+    ssize_t n        = 0;
 
     stream = create_string_stream(128);
     string_stream_write(stream, "Hello, World!\n");

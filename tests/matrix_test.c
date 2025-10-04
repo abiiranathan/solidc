@@ -113,7 +113,7 @@ void test_mat3_solve() {
     // Solve the system Ax = b
     Vec3 x = mat3_solve(A, b);
     vec3_print(x, "mat3_solve SOLUTION: x");
-    if (vec3_equals(x, (Vec3){1.0, 2.0, 3.0}, 1e-04)) {
+    if (vec3_equals(x, (Vec3){1.0f, 2.0f, 3.0f}, 1e-04f)) {
         puts("mat3_solve PASSED");
         printf("Eqation has a correct solution\n");
     } else {
@@ -317,8 +317,9 @@ void test_mat4_rotate_z() {
 void test_mat4_rotate() {
     printf("Testing mat4_rotate()...\n");
     Vec3 axis   = {1, 1, 1};
-    float angle = 2 * M_PI / 3;  // 120 degrees
+    float angle = 2.0f * M_PIf / 3.0f;  // 120 degrees
     Mat4 result = mat4_rotate(axis, angle);
+
     // Expected result for 120° rotation around (1,1,1)
     Mat4 expected = {{{{0, 0, 1, 0}, {1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 0, 1}}}};
 
@@ -368,7 +369,7 @@ void test_mat4_inverse() {
     printf("Testing mat4_inverse()...\n");
     Mat4 m        = {{{{2, 0, 0, 0}, {0, 3, 0, 0}, {0, 0, 4, 0}, {0, 0, 0, 5}}}};
     Mat4 result   = mat4_inverse(m);
-    Mat4 expected = {{{{0.5, 0, 0, 0}, {0, 1.0 / 3, 0, 0}, {0, 0, 0.25, 0}, {0, 0, 0, 0.2}}}};
+    Mat4 expected = {{{{0.5f, 0, 0, 0}, {0, 1.0f / 3, 0, 0}, {0, 0, 0.25f, 0}, {0, 0, 0, 0.2f}}}};
 
     if (mat4_equal(result, expected)) {
         printf("PASSED\n");

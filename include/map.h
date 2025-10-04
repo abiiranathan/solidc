@@ -26,6 +26,7 @@ extern "C" {
 
 // Define alignment for cache line optimization
 #define CACHE_LINE_SIZE 64
+
 // Cross-platform prefetch macros
 #if defined(__GNUC__) || defined(__clang__)
 #define PREFETCH_READ(addr)  __builtin_prefetch((addr), 0, 3)

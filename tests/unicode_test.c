@@ -69,8 +69,8 @@ void test_codepoint_conversion() {
     record_test("4-byte codepoint conversion", result == codepoint, NULL);
 
     // Test invalid UTF-8 sequence
-    const char invalid_utf8[] = {0xC0, 0xAF, 0x00};  // Invalid 2-byte sequence
-    result                    = utf8_to_codepoint(invalid_utf8);
+    const char invalid_utf8[] = {(char)0xC0, (char)0xAF, 0x00};  // Invalid 2-byte sequence
+    result                    = utf8_to_codepoint((const char*)invalid_utf8);
     record_test("Invalid UTF-8 sequence", result == 0xFFFD,
                 NULL);  // Should return replacement character
 }
@@ -109,7 +109,7 @@ void test_length_functions() {
     record_test("Empty string codepoint count", cp_count == 0, NULL);
 
     // Test with invalid UTF-8
-    const char invalid[] = {0xC0, 0xAF, 'A', 0x00};  // Invalid 2-byte sequence + ASCII
+    const char invalid[] = {(char)0xC0, (char)0xAF, 'A', 0x00};  // Invalid 2-byte sequence + ASCII
     byte_len             = utf8_valid_byte_count(invalid);
     cp_count             = utf8_count_codepoints(invalid);
     record_test("Invalid UTF-8 byte length handling", byte_len == 3, NULL);
@@ -126,22 +126,23 @@ void test_char_length() {
     record_test("ASCII char length", len == 1, NULL);
 
     // 2-byte character
-    const char two_byte[] = {0xC2, 0xA9, 0x00};  // Copyright symbol ©
+    const char two_byte[] = {(char)0xC2, (char)0xA9, 0x00};  // Copyright symbol ©
     len                   = utf8_char_length(two_byte);
     record_test("2-byte char length", len == 2, NULL);
 
     // 3-byte character
-    const char three_byte[] = {0xE2, 0x82, 0xAC, 0x00};  // Euro symbol €
+    const char three_byte[] = {(char)0xE2, (char)0x82, (char)0xAC, 0x00};  // Euro symbol €
     len                     = utf8_char_length(three_byte);
     record_test("3-byte char length", len == 3, NULL);
 
     // 4-byte character (emoji)
-    const char four_byte[] = {0xF0, 0x9F, 0x98, 0x80, 0x00};  // Grinning face emoji 😀
+    const char four_byte[] = {(char)0xF0, (char)0x9F, (char)0x98, (char)0x80,
+                              0x00};  // Grinning face emoji 😀
     len                    = utf8_char_length(four_byte);
     record_test("4-byte char length", len == 4, NULL);
 
     // Invalid byte
-    const char invalid[] = {0xFF, 0x00};  // Invalid UTF-8 lead byte
+    const char invalid[] = {(char)0xFF, 0x00};  // Invalid UTF-8 lead byte
     len                  = utf8_char_length(invalid);
     record_test("Invalid UTF-8 lead byte", len == 0, NULL);
 }
@@ -167,10 +168,11 @@ void test_validation() {
     record_test("Emoji string validity", is_valid_utf8("😀👍🌍"), NULL);
 
     // Invalid UTF-8 strings
-    const char invalid1[] = {0xC0, 0xAF, 0x00};              // Invalid 2-byte sequence
-    const char invalid2[] = {0xE0, 0x80, 0xAF, 0x00};        // Overlong encoding
-    const char invalid3[] = {0xED, 0xA0, 0x80, 0x00};        // UTF-16 surrogate
-    const char invalid4[] = {0xF4, 0x90, 0x80, 0x80, 0x00};  // Beyond Unicode range
+    const char invalid1[] = {(char)0xC0, (char)0xAF, 0x00};              // Invalid 2-byte sequence
+    const char invalid2[] = {(char)0xE0, (char)0x80, (char)0xAF, 0x00};  // Overlong encoding
+    const char invalid3[] = {(char)0xED, (char)0xA0, (char)0x80, 0x00};  // UTF-16 surrogate
+    const char invalid4[] = {(char)0xF4, (char)0x90, (char)0x80, (char)0x80,
+                             0x00};  // Beyond Unicode range
 
     record_test("Invalid 2-byte sequence", !is_valid_utf8(invalid1), NULL);
     record_test("Overlong encoding", !is_valid_utf8(invalid2), NULL);
@@ -213,12 +215,12 @@ void test_char_classification() {
     record_test("UTF-8 z is alpha", is_utf8_alpha("z"), NULL);
 
     // Test non-ASCII characters
-    const char euro[] = {0xE2, 0x82, 0xAC, 0x00};  // Euro symbol €
+    const char euro[] = {(char)0xE2, (char)0x82, (char)0xAC, 0x00};  // Euro symbol €
     record_test("Euro symbol is not digit", !is_utf8_digit(euro), NULL);
     record_test("Euro symbol is not alpha", !is_utf8_alpha(euro), NULL);
 
     // Test some international alphabetic characters
-    const char alpha_char[] = {0xC3, 0xA9, 0x00};  // é
+    const char alpha_char[] = {(char)0xC3, (char)0xA9, 0x00};  // é
     record_test("é is alpha", is_utf8_alpha(alpha_char), NULL);
 }
 
@@ -325,8 +327,8 @@ void test_trim_functions() {
 void test_split() {
     printf("Testing split function...\n");
 
-    utf8_string* s = utf8_new("apple,banana,cherry");
-    size_t num_parts;
+    utf8_string* s      = utf8_new("apple,banana,cherry");
+    size_t num_parts    = 0;
     utf8_string** parts = utf8_split(s, ",", &num_parts);
 
     record_test("Split count", num_parts == 3, NULL);

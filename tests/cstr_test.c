@@ -542,9 +542,9 @@ int main(void) {
         printf("\n**************Testing str_split***************\n");
 
         // Basic case
-        cstr* s = cstr_new("a,b,c");
-        size_t count;
-        cstr** arr = cstr_split(s, ",", &count);
+        cstr* s      = cstr_new("a,b,c");
+        size_t count = 0;
+        cstr** arr   = cstr_split(s, ",", &count);
         ASSERT(count == 3 && "str_split count incorrect");
         ASSERT_cstr_equals(arr[0], "a", "str_split first element");
         ASSERT_cstr_equals(arr[1], "b", "str_split second element");

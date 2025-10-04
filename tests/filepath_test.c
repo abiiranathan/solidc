@@ -33,7 +33,7 @@ int main(void) {
     ASSERT(cwd != NULL);
 
     // dir_list
-    size_t count;
+    size_t count = 0;
     char** files = dir_list(cwd, &count);
     ASSERT(files != NULL);
 

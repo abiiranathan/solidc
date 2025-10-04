@@ -19,7 +19,7 @@ extern "C" {
 
 STATIC_CHECK_POWER_OF_2(STR_MIN_CAPACITY);
 
-#define STR_NPOS -1
+enum { STR_NPOS = -1 };
 
 /**
  * @brief A dynamically resizable C-string with Small String Optimization (SSO).

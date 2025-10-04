@@ -102,7 +102,7 @@ void test_basic_allocations(void) {
 
 // Test multithreaded allocations
 void test_multithreaded_allocations(void) {
-    Arena* arena = arena_create(1024 * 1024);  // 1 MB arena
+    Arena* arena = arena_create(1024UL * 1024);  // 1 MB arena
     ASSERT(arena);
 
     Thread threads[NUM_THREADS] = {0};

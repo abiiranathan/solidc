@@ -21,8 +21,8 @@ int str_qsort_cmp(const void* a, const void* b) {
 }
 
 void test_init() {
-    intarray* arr;
-    arr = intarray_new();
+    intarray* arr = NULL;
+    arr           = intarray_new();
     ASSERT(arr != NULL);
     ASSERT(arr->items != NULL);
     ASSERT(arr->count == 0);
@@ -32,8 +32,8 @@ void test_init() {
 }
 
 void test_with_capacity() {
-    intarray* arr;
-    arr = intarray_with_capacity(100);
+    intarray* arr = NULL;
+    arr           = intarray_with_capacity(100);
     ASSERT(arr != NULL);
     ASSERT(arr->items != NULL);
     ASSERT(arr->count == 0);
@@ -43,8 +43,8 @@ void test_with_capacity() {
 }
 
 void test_append() {
-    intarray* arr;
-    arr = intarray_new();
+    intarray* arr = NULL;
+    arr           = intarray_new();
     for (int i = 0; i < 100; i++) {
         ASSERT(intarray_push(arr, i) == true);
     }
@@ -58,8 +58,8 @@ void test_append() {
 }
 
 void test_get() {
-    intarray* arr;
-    arr = intarray_new();
+    intarray* arr = NULL;
+    arr           = intarray_new();
     for (int i = 0; i < 10; i++) {
         intarray_push(arr, i * 10);
     }
@@ -85,8 +85,8 @@ void test_get() {
 }
 
 void test_set() {
-    intarray* arr;
-    arr = intarray_new();
+    intarray* arr = NULL;
+    arr           = intarray_new();
     for (int i = 0; i < 10; i++) {
         intarray_push(arr, i);
     }
@@ -101,8 +101,8 @@ void test_set() {
 }
 
 void test_insert() {
-    intarray* arr;
-    arr = intarray_new();
+    intarray* arr = NULL;
+    arr           = intarray_new();
     for (int i = 0; i < 5; i++) {
         intarray_push(arr, i);
     }
@@ -123,8 +123,8 @@ void test_insert() {
 }
 
 void test_remove() {
-    intarray* arr;
-    arr = intarray_new();
+    intarray* arr = NULL;
+    arr           = intarray_new();
     for (int i = 0; i < 5; i++) {
         intarray_push(arr, i);
     }
@@ -140,13 +140,13 @@ void test_remove() {
 }
 
 void test_pop() {
-    intarray* arr;
-    arr = intarray_new();
+    intarray* arr = NULL;
+    arr           = intarray_new();
     for (int i = 0; i < 5; i++) {
         intarray_push(arr, i);
     }
 
-    int value;
+    int value = 0;
     ASSERT(intarray_pop(arr, &value) == true);
     ASSERT(value == 4);
     ASSERT(arr->count == 4);
@@ -167,8 +167,8 @@ void test_pop() {
 }
 
 void test_clear() {
-    intarray* arr;
-    arr = intarray_new();
+    intarray* arr = NULL;
+    arr           = intarray_new();
     for (int i = 0; i < 5; i++) {
         intarray_push(arr, i);
     }
@@ -182,7 +182,7 @@ void test_clear() {
 }
 
 void test_copy() {
-    intarray *arr1, *arr2;
+    intarray *arr1 = NULL, *arr2 = NULL;
     arr1 = intarray_new();
     for (int i = 0; i < 5; i++) {
         intarray_push(arr1, i);
@@ -207,7 +207,7 @@ void test_copy() {
 }
 
 void test_swap() {
-    intarray *arr1, *arr2;
+    intarray *arr1 = NULL, *arr2 = NULL;
 
     arr1 = intarray_new();
     arr2 = intarray_new();
@@ -241,8 +241,8 @@ void test_swap() {
 }
 
 void test_reverse() {
-    intarray* arr;
-    arr = intarray_new();
+    intarray* arr = NULL;
+    arr           = intarray_new();
 
     // Test empty array
     intarray_reverse(arr);
@@ -267,8 +267,8 @@ void test_reverse() {
 }
 
 void test_sort() {
-    intarray* arr;
-    arr = intarray_new();
+    intarray* arr = NULL;
+    arr           = intarray_new();
 
     // Test empty array
     ASSERT(intarray_sort(arr, int_cmp) == true);
@@ -295,8 +295,8 @@ void test_sort() {
 }
 
 void test_resize() {
-    intarray* arr;
-    arr = intarray_new();
+    intarray* arr = NULL;
+    arr           = intarray_new();
 
     // Add some elements
     for (int i = 0; i < 10; i++) {
@@ -330,8 +330,8 @@ void test_resize() {
 }
 
 void test_reserve() {
-    intarray* arr;
-    arr = intarray_new();
+    intarray* arr = NULL;
+    arr           = intarray_new();
 
     // Reserve more capacity
     ASSERT(intarray_reserve(arr, 100) == true);
@@ -349,8 +349,8 @@ void test_reserve() {
 }
 
 void test_shrink_to_fit() {
-    intarray* arr;
-    arr = intarray_new();
+    intarray* arr = NULL;
+    arr           = intarray_new();
 
     // Add many elements
     for (int i = 0; i < 100; i++) {
@@ -382,8 +382,8 @@ void test_shrink_to_fit() {
 }
 
 void test_find() {
-    intarray* arr;
-    arr = intarray_new();
+    intarray* arr = NULL;
+    arr           = intarray_new();
 
     for (int i = 0; i < 10; i++) {
         intarray_push(arr, i * 2);  // Even numbers: 0, 2, 4, ..., 18
@@ -417,8 +417,8 @@ void test_find() {
 }
 
 void test_string_array() {
-    strarray* arr;
-    arr = strarray_new();
+    strarray* arr = NULL;
+    arr           = strarray_new();
 
     char* str1 = strdup("Hello");
     char* str2 = strdup("World");
@@ -453,8 +453,8 @@ void test_string_array() {
 }
 
 void test_utility_functions() {
-    intarray* arr;
-    arr = intarray_new();
+    intarray* arr = NULL;
+    arr           = intarray_new();
 
     ASSERT(intarray_empty(arr) == true);
     ASSERT(intarray_size(arr) == 0);

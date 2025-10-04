@@ -57,6 +57,7 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
     return STO_SUCCESS;
 }
 
+// NOLINTBEGIN(bugprone-macro-parentheses)
 /** Generic macro for signed integer conversion with range checking. */
 #define IMPLEMENT_SIGNED_CONVERSION(func_name, type_name, type_max, type_min)                      \
     StoError func_name(const char* str, type_name* result) {                                       \
@@ -141,6 +142,8 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
         return STO_SUCCESS;                                                                        \
     }
 
+// NOLINTEND(bugprone-macro-parentheses)
+
 // Generate all the integer conversion functions using macros
 IMPLEMENT_SIGNED_CONVERSION(str_to_i8, int8_t, INT8_MAX, INT8_MIN)
 IMPLEMENT_UNSIGNED_CONVERSION(str_to_u8, uint8_t, UINT8_MAX)
@@ -171,8 +174,8 @@ StoError str_to_uintptr(const char* str, uintptr_t* result) {
         return STO_INVALID;
     }
 
-    uintmax_t temp;
-    StoError err = validate_and_parse_unsigned(str, 10, &temp);
+    uintmax_t temp = 0;
+    StoError err   = validate_and_parse_unsigned(str, 10, &temp);
     if (err != STO_SUCCESS) {
         return err;
     }

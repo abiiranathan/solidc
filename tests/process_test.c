@@ -112,8 +112,9 @@ void test_process_pipe_integration() {
 
     // Assuming process creation and handling is done correctly, simulate using
     // the pipe
-    ProcessHandle* process;
-    ProcessResult result;
+    ProcessHandle* process = NULL;
+    ProcessResult result   = {};
+
     err = process_create(&process, cmd, argv, &options);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process creation failed");
 
@@ -138,9 +139,9 @@ void test_process_pipe_integration() {
 
 // Use standard file descriptors.
 void test_process_pipe_integration_std() {
-    ProcessHandle* process;
-    ProcessResult result;
-    ProcessError err;
+    ProcessHandle* process = NULL;
+    ProcessResult result   = {};
+    ProcessError err       = {};
 
     const char* cmd    = "ping";
     const char* argv[] = {cmd, "localhost", "-c", "5", NULL};
@@ -166,7 +167,7 @@ void test_process_run_and_capture_ouput(void) {
     const char* cmd    = "ls";
     const char* argv[] = {cmd, NULL};
 
-    PipeHandle* ph;
+    PipeHandle* ph   = NULL;
     ProcessError err = pipe_create(&ph);
     LOG_ASSERT(err == PROCESS_SUCCESS, "error creating pipe");
 
@@ -176,7 +177,8 @@ void test_process_run_and_capture_ouput(void) {
 
     // read output from the pipe.
     char buffer[512];
-    size_t read;
+    size_t read = 0;
+
     err = pipe_read(ph, buffer, sizeof(buffer), &read, 1000);
     LOG_ASSERT(err == PROCESS_SUCCESS && read > 0, "pipe read failed: read %zu: %s", read,
                process_error_string(err));
@@ -185,8 +187,8 @@ void test_process_run_and_capture_ouput(void) {
 #ifndef _WIN32
 void test_redirect_to_file() {
     // Simple redirection to a file
-    ProcessHandle* handle;
-    ProcessError err;
+    ProcessHandle* handle = NULL;
+    ProcessError err      = {};
 
     // Redirect stdout to output.log and stderr to error.log
     const char* cmd    = "/bin/ls";
@@ -214,7 +216,7 @@ void test_tee_to_multiple_destinations() {
 
     // Run the command with tee
     ProcessResult result;
-    ProcessError err;
+    ProcessError err   = {};
     const char* cmd    = "/bin/ls";
     const char* args[] = {"/bin/ls", "/usr", NULL};
 
@@ -224,8 +226,8 @@ void test_tee_to_multiple_destinations() {
 }
 
 void test_process_create_with_redirection() {
-    ProcessError err;
-    PipeHandle *stdin_pipe, *stdout_pipe;
+    ProcessError err       = {};
+    PipeHandle *stdin_pipe = NULL, *stdout_pipe = NULL;
 
     err = pipe_create(&stdin_pipe);
     LOG_ASSERT(err == PROCESS_SUCCESS, "pipe create failed");
@@ -233,8 +235,8 @@ void test_process_create_with_redirection() {
     err = pipe_create(&stdout_pipe);
     LOG_ASSERT(err == PROCESS_SUCCESS, "pipe create failed");
 
-    const char* cmd = "/bin/cat";
-    ProcessHandle* handle;
+    const char* cmd          = "/bin/cat";
+    ProcessHandle* handle    = NULL;
     const char* const argv[] = {cmd, NULL};
 
     const ExtProcessOptions options = {
@@ -253,7 +255,7 @@ void test_process_create_with_redirection() {
     err = process_create_with_redirection(&handle, cmd, argv, &options);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process create failed");
 
-    size_t written, read;
+    size_t written = 0, read = 0;
     char data[16];
     char msg[] = "Hello World";
 
