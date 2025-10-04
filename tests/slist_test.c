@@ -4,11 +4,11 @@
 #define NODES 100
 
 int main(void) {
-    slist_t* l = slist_new(sizeof(size_t*));
+    slist* l = slist_new(sizeof(size_t*));
     ASSERT(l);
 
     for (size_t i = 0; i < NODES; ++i) {
-        slist_push(l, &i);
+        slist_push_back(l, &i);
     }
 
     for (size_t i = 0; i < NODES; ++i) {
