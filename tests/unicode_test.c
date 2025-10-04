@@ -389,7 +389,9 @@ void test_file_operations() {
 
     // Test write to file
     utf8_string* s = utf8_new("Hello, 世界! This is a 😀 test.");
-    long bytes     = utf8_writeto(s, "test_utf8.txt");
+    utf8_print(s);
+
+    long bytes = utf8_writeto(s, "test_utf8.txt");
     record_test("Write to file", bytes > 0, NULL);
 
     // Test read from file
