@@ -18,6 +18,7 @@ set(TEST_MODULES
     array
     unicode
     slist
+    list
     vec
     matrix
 )
