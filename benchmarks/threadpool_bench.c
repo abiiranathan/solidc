@@ -9,7 +9,7 @@
 #include <time.h>
 #include "../include/threadpool.h"
 
-#define NUM_TASKS 10000000
+#define NUM_TASKS 100000
 #define NUM_RUNS  1
 
 /** CPU work simulation functions. */
@@ -52,7 +52,7 @@ benchmark_result run_benchmark(size_t num_threads) {
 
     // Submit tasks
     for (int i = 0; i < NUM_TASKS; i++) {
-        if (threadpool_submit(pool, dummy_task, NULL) != 0) {
+        if (!threadpool_submit(pool, dummy_task, NULL)) {
             fprintf(stderr, "Failed to add task after submitting: %d tasks\n", i);
             exit(1);
         }
@@ -89,19 +89,20 @@ void print_table_header() {
         "\n");
 }
 
-void print_table_row(int threads, benchmark_result* results, double baseline_throughput) {
+void print_table_row(size_t threads, benchmark_result* results, double baseline_throughput) {
     // Calculate averages across runs
     double avg_throughput = 0, avg_latency = 0, avg_elapsed = 0;
-    for (int i = 0; i < NUM_RUNS; i++) {
+    for (size_t i = 0; i < NUM_RUNS; i++) {
         avg_throughput += results[i].throughput;
         avg_latency += results[i].latency;
         avg_elapsed += results[i].elapsed_time;
     }
+
     avg_throughput /= NUM_RUNS;
     avg_latency /= NUM_RUNS;
     avg_elapsed /= NUM_RUNS;
 
-    double efficiency = (avg_throughput / baseline_throughput) / threads * 100.0;
+    double efficiency = (avg_throughput / baseline_throughput) / (int)threads * 100.0;
 
     printf("│     %2d      │  %15.2f     │     %10.4f    │     %10.4f    │     %10.2f    │\n",
            threads, avg_throughput, avg_latency, avg_elapsed, efficiency);
@@ -165,9 +166,9 @@ int main() {
     printf("Summary Results:\n");
     print_table_header();
 
-    for (int t = 0; t < num_thread_configs; t++) {
+    for (size_t t = 0; t < (size_t)num_thread_configs; t++) {
         print_table_row(thread_counts[t], all_results[t], baseline_throughput);
-        if (t < num_thread_configs - 1) {
+        if (t < (size_t)num_thread_configs - 1) {
             print_table_separator();
         }
     }
@@ -192,7 +193,7 @@ int main() {
         avg_throughput /= NUM_RUNS;
 
         double speedup    = avg_throughput / single_thread_throughput;
-        double efficiency = speedup / thread_counts[t] * 100.0;
+        double efficiency = speedup / (double)thread_counts[t] * 100.0;
 
         printf("%ld threads: %.2fx speedup (%.2f%% efficiency)\n", thread_counts[t], speedup,
                efficiency);

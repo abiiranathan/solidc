@@ -34,7 +34,7 @@ void* arena_allocator(ThreadData* data) {
         exit(1);
     }
 
-    ptr = arena_alloc_string(data->arena, "Hello World");
+    ptr = arena_strdup(data->arena, "Hello World");
 
     // Resets should be rare!
     arena_reset(data->arena);
@@ -104,7 +104,7 @@ double benchmark(ThreadData* thread_data, void* (*allocator_func)(ThreadData*),
 
     // Join threads
     for (int i = 0; i < NUM_THREADS; i++) {
-        void* result;
+        void* result = NULL;
         if (pthread_join(threads[i], &result) != 0) {
             perror("pthread_join failed");
             return -1.0;

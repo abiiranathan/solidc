@@ -101,7 +101,7 @@ void run_benchmark(size_t num_threads, size_t iterations, size_t workload) {
     printf("Threads: %ld, Iterations: %zu, Workload: %zu\n", num_threads, iterations, workload);
     printf("Wall Time: %.3f seconds\n", wall_time);
     printf("CPU Time: %.3f seconds\n", cpu_time);
-    printf("CPU Utilization: %.2f%%\n", (cpu_time / wall_time / num_threads) * 100);
+    printf("CPU Utilization: %.2f%%\n", (cpu_time / wall_time / (double)num_threads) * 100);
     printf("Throughput: %.2f tasks/second\n", tasks_per_second);
     printf("Average Latency: %.3f ms\n", wall_time * 1000 / (double)iterations);
     printf("\n");

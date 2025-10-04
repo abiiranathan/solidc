@@ -72,7 +72,7 @@ static void* thread_func(void* arg) {
 }
 
 // Test basic allocations
-void test_basic_allocations(void) {
+void test_basic_allocations() {
     Arena* arena = arena_create(0);  // use default
     ASSERT(arena);
 
@@ -101,7 +101,7 @@ void test_basic_allocations(void) {
 }
 
 // Test multithreaded allocations
-void test_multithreaded_allocations(void) {
+void test_multithreaded_allocations() {
     Arena* arena = arena_create(1024UL * 1024);  // 1 MB arena
     ASSERT(arena);
 
@@ -122,7 +122,7 @@ void test_multithreaded_allocations(void) {
 }
 
 // Stress test the arena allocator
-void stress_test_arena(void) {
+void stress_test_arena() {
     Arena* arena = arena_create(20 << 20);  // 20MB
     ASSERT(arena);
 
@@ -141,7 +141,7 @@ void stress_test_arena(void) {
     arena_destroy(arena);
 }
 
-void test_arena_allocbatch(void) {
+void test_arena_allocbatch() {
     Arena* arena = arena_create(1 << 20);
     ASSERT(arena);
 
@@ -160,7 +160,7 @@ void test_arena_allocbatch(void) {
     arena_destroy(arena);
 }
 
-void test_arena_alloc_array(void) {
+void test_arena_alloc_array() {
     Arena* arena = arena_create(sizeof(int) * 10);
     ASSERT(arena);
 
@@ -170,13 +170,24 @@ void test_arena_alloc_array(void) {
     arena_destroy(arena);
 }
 
-int main(void) {
+void test_arena_create_from_buffer() {
+    static unsigned char buffer[1024];
+    Arena* arena = arena_create_from_buffer(buffer, sizeof(buffer));
+    ASSERT(arena && "failed to create arena from buffer");
+
+    int* ptr = arena_alloc(arena, sizeof(int));
+    ASSERT(ptr);
+    print_test_result("Arena Create From Buffer", 1);
+}
+
+int main() {
     // Run all tests
     test_basic_allocations();
     test_arena_allocbatch();
     test_arena_alloc_array();
     test_multithreaded_allocations();
     stress_test_arena();
+    test_arena_create_from_buffer();
 
     // Test some macros
     TIME_BLOCK_MS("for loop duration", {
