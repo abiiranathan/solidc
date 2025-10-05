@@ -73,7 +73,7 @@ format:
 bench:
 ifeq ($(TARGET),native)
 	$(NATIVE_CC) -D_GNU_SOURCE benchmarks/bench_arena.c src/arena.c src/lock.c \
-		-lpthread -O3 -std=c23 -Wall -Wextra -Wpedantic -Wno-unused-function -march=native -flto
+		-lpthread -O3 -std=c23 -Wall -Wextra -Wpedantic -Wno-unused-function -march=native
 	./a.out 4096 1000000 8
 else
 	@echo "Benchmarking only supported for native target"
