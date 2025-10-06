@@ -12,6 +12,10 @@ static inline size_t arena_align_up(size_t n) {
     return (n + ALIGNMENT_MASK) & ~ALIGNMENT_MASK;
 }
 
+static inline size_t arena_align_up_custom(size_t n, size_t alignment) {
+    return (n + (alignment - 1)) & ~(alignment - 1);
+}
+
 typedef struct __attribute__((aligned(64))) Arena {
     char* base;        // Memory buffer
     size_t head;       // Current allocation offset (no longer atomic)
@@ -71,8 +75,6 @@ Arena* arena_create_from_buffer(void* buffer, size_t buffer_size) {
 }
 
 void arena_destroy(Arena* arena) {
-    if (!arena) return;
-
     if (arena->owns_memory) {
         ALIGNED_FREE(arena->base);
     }
@@ -80,30 +82,22 @@ void arena_destroy(Arena* arena) {
 }
 
 void arena_reset(Arena* arena) {
-    if (!arena) return;
     arena->head = 0;
 }
 
 size_t arena_get_offset(Arena* arena) {
-    if (!arena) return 0;
     return arena->head;
 }
 
 bool arena_restore(Arena* arena, size_t offset) {
-    if (!arena) return false;
-
     if (offset > arena->head) return false;
 
     arena->head = offset;
     return true;
 }
 
-// Ultra-fast allocation - simple pointer arithmetic, no atomic operations
-void* arena_alloc(Arena* arena, size_t size) {
-    if (!arena || !size) return NULL;
-
-    const size_t aligned_size = arena_align_up(size);
-    const size_t new_head     = arena->head + aligned_size;
+static inline void* alloc_aligned_helper(Arena* arena, size_t aligned_size) {
+    const size_t new_head = arena->head + aligned_size;
     if (new_head > arena->size) {
         return NULL;
     }
@@ -112,12 +106,18 @@ void* arena_alloc(Arena* arena, size_t size) {
     return ptr;
 }
 
-bool arena_alloc_batch(Arena* arena, const size_t sizes[], size_t count, void* out_ptrs[]) {
-    if (!arena || !sizes || !count || !out_ptrs) {
-        return false;
-    }
+// Ultra-fast allocation - simple pointer arithmetic, no atomic operations
+void* arena_alloc(Arena* arena, size_t size) {
+    const size_t aligned_size = arena_align_up(size);
+    return alloc_aligned_helper(arena, aligned_size);
+}
 
-    // Single-pass allocation with running bounds check
+void* arena_alloc_align(Arena* arena, size_t size, size_t alignment) {
+    const size_t aligned_size = arena_align_up_custom(size, alignment);
+    return alloc_aligned_helper(arena, aligned_size);
+}
+
+bool arena_alloc_batch(Arena* arena, const size_t sizes[], size_t count, void* out_ptrs[]) {
     size_t current_head = arena->head;
 
     for (size_t i = 0; i < count; i++) {
@@ -139,8 +139,6 @@ bool arena_alloc_batch(Arena* arena, const size_t sizes[], size_t count, void* o
 
 // Simplified string allocation without headers
 char* arena_strdup(Arena* arena, const char* str) {
-    if (!arena || !str) return NULL;
-
     const size_t len = strlen(str);
     char* s          = arena_alloc(arena, len + 1);
     if (s) {
@@ -150,8 +148,6 @@ char* arena_strdup(Arena* arena, const char* str) {
 }
 
 char* arena_strdupn(Arena* arena, const char* str, size_t length) {
-    if (!arena || !str) return NULL;
-
     char* s = arena_alloc(arena, length + 1);
     if (s) {
         memcpy(s, str, length);
@@ -162,8 +158,6 @@ char* arena_strdupn(Arena* arena, const char* str, size_t length) {
 
 // Simplified int allocation
 int* arena_alloc_int(Arena* arena, int n) {
-    if (!arena) return NULL;
-
     int* number = arena_alloc(arena, sizeof(int));
     if (number) {
         *number = n;
@@ -173,35 +167,27 @@ int* arena_alloc_int(Arena* arena, int n) {
 
 // Fast remaining space calculation
 size_t arena_remaining(Arena* arena) {
-    if (!arena) return 0;
-
     return arena->size - arena->head;
 }
 
 // Fast capacity check
 bool arena_can_fit(Arena* arena, size_t size) {
-    if (!arena || !size) return false;
-
     const size_t aligned_size = arena_align_up(size);
     return aligned_size <= (arena->size - arena->head);
 }
 
 size_t arena_size(const Arena* arena) {
-    return arena ? arena->size : 0;
+    return arena->size;
 }
 
 size_t arena_used(Arena* arena) {
-    if (!arena) return 0;
     return arena->head;
 }
 
 // Memory-efficient allocation for arrays
 void* arena_alloc_array(Arena* arena, size_t elem_size, size_t count) {
-    if (!arena || !elem_size || !count) return NULL;
-
     // Check for overflow
     if (count > SIZE_MAX / elem_size) return NULL;
-
     return arena_alloc(arena, elem_size * count);
 }
 
