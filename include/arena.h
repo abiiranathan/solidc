@@ -12,8 +12,7 @@ extern "C" {
 // CONSTANTS
 // =============================================================================
 
-/** Memory alignment for arena allocations (32 bytes) */
-#define ARENA_ALIGNMENT 32UL
+#define ARENA_ALIGNMENT 8UL
 
 /** Minimum arena size in bytes */
 #define ARENA_MIN_SIZE 1024UL
