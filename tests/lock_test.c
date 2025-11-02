@@ -17,7 +17,7 @@ static void* thread_func(void* arg) {
     lock_acquire(&lock);
     struct Summer* summer = (struct Summer*)arg;
     *summer->sum += summer->i;
-    printf("Thread %lu acquired the lock\n", thread_self());
+    printf("Thread %lu acquired the lock\n", (unsigned long)thread_self());
     lock_release(&lock);
     return NULL;
 }

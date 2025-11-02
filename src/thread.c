@@ -88,8 +88,7 @@ int thread_create(Thread* thread, ThreadStartRoutine start_routine, void* data) 
 #endif
 }
 
-int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine start_routine,
-                       void* data) {
+int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine start_routine, void* data) {
     if (thread == NULL || attr == NULL || start_routine == NULL) {
         return EINVAL;  // Invalid parameter
     }
@@ -275,7 +274,7 @@ unsigned long get_tid(void) {
 #ifdef _WIN32
     return (unsigned long)GetCurrentThreadId();
 #else  // POSIX
-    return pthread_self();
+    return (unsigned long)pthread_self();
 #endif
 }
 

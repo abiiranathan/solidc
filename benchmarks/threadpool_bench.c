@@ -65,8 +65,7 @@ benchmark_result run_benchmark(size_t num_threads) {
     clock_gettime(CLOCK_MONOTONIC, &end);
 
     // Calculate metrics
-    double elapsed =
-        (double)(end.tv_sec - start.tv_sec) + (double)(end.tv_nsec - start.tv_nsec) / 1e9;
+    double elapsed     = (double)(end.tv_sec - start.tv_sec) + (double)(end.tv_nsec - start.tv_nsec) / 1e9;
     double throughput  = NUM_TASKS / elapsed;
     double avg_latency = elapsed / NUM_TASKS * 1e6;
 
@@ -104,8 +103,8 @@ void print_table_row(size_t threads, benchmark_result* results, double baseline_
 
     double efficiency = (avg_throughput / baseline_throughput) / (int)threads * 100.0;
 
-    printf("│     %2d      │  %15.2f     │     %10.4f    │     %10.4f    │     %10.2f    │\n",
-           threads, avg_throughput, avg_latency, avg_elapsed, efficiency);
+    printf("│     %2zu      │  %15.2f     │     %10.4f    │     %10.4f    │     %10.2f    │\n", threads, avg_throughput,
+           avg_latency, avg_elapsed, efficiency);
 }
 
 void print_table_separator() {
@@ -121,8 +120,8 @@ void print_table_footer() {
 }
 
 void print_run_details(int run, benchmark_result result) {
-    printf("  Run %d: %.2f tasks/sec, %.4f µs/task, %.4f sec\n", run + 1, result.throughput,
-           result.latency, result.elapsed_time);
+    printf("  Run %d: %.2f tasks/sec, %.4f µs/task, %.4f sec\n", run + 1, result.throughput, result.latency,
+           result.elapsed_time);
 }
 
 int main() {
@@ -195,8 +194,7 @@ int main() {
         double speedup    = avg_throughput / single_thread_throughput;
         double efficiency = speedup / (double)thread_counts[t] * 100.0;
 
-        printf("%ld threads: %.2fx speedup (%.2f%% efficiency)\n", thread_counts[t], speedup,
-               efficiency);
+        printf("%ld threads: %.2fx speedup (%.2f%% efficiency)\n", thread_counts[t], speedup, efficiency);
     }
 
     return 0;

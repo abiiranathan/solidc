@@ -147,7 +147,7 @@ else()
     # Clang-specific settings
     if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
         target_compile_options(solidc PRIVATE -Wno-gnu-zero-variadic-macro-arguments -fblocks)
-        target_link_libraries(solidc PRIVATE BlocksRuntime)
+        # target_link_libraries(solidc PRIVATE BlocksRuntime)
     endif()
 endif()
 

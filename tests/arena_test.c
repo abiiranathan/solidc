@@ -53,14 +53,14 @@ static void* thread_func(void* arg) {
     const char s[] = "Thread initial allocation";
     char* str      = arena_strdup(arena, s);
     if (!str || !validate_writing(str, sizeof(s))) {
-        printf("Thread %zu: arena_alloc_string failed\n", thread_self());
+        printf("Thread %lu: arena_alloc_string failed\n", (unsigned long)thread_self());
         return NULL;
     }
 
     // Allocate another chunk
     int* numbers = arena_alloc(arena, sizeof(int) * 10);
     if (!numbers || !validate_writing(numbers, sizeof(int) * 10)) {
-        printf("Thread %zu: Array allocation failed\n", thread_self());
+        printf("Thread %lu: Array allocation failed\n", (unsigned long)thread_self());
         return NULL;
     }
 

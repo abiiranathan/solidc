@@ -1,103 +1,71 @@
-# === Configurable Variables ===
+# === Configurable Variables (override via environment or command line) ===
 
-# CROSS_COMPILER: Path to the cross-compiler for Windows builds
-CROSS_COMPILER ?= /usr/bin/x86_64-w64-mingw32-cc
+# CC: C compiler to use
+CC ?= gcc
 
-# SYSTEM_NAME: The name of the target operating system.
-# Allowed values: Linux, Windows, WebAssembly
-SYSTEM_NAME ?= Linux
+# INSTALL_PREFIX: Installation directory
+INSTALL_PREFIX ?= /usr/local
 
-# RELEASE: The build type.
-# Allowed values: Debug, Release
-RELEASE ?= Debug
+# BUILD_TYPE: Debug or Release
+BUILD_TYPE ?= Release
 
-# TARGET: Build target environment.
-# Allowed values:
-#   native     - Build for the host system
-#   cross      - Cross-compile for Windows using MinGW
-#   wasm       - Compile to WebAssembly (requires emcc)
-TARGET ?= native
+# BUILD_DIR: Where to place build artifacts
+BUILD_DIR ?= build
 
-# Toolchain paths
-NATIVE_CC = gcc
-WASM_CC = emcc
-BUILD_DIR = build/$(TARGET)
-CMAKE_C_FLAGS += -std=c23
+# Additional CMake flags (optional)
+CMAKE_EXTRA_FLAGS ?=
 
-# Phony targets
-.PHONY: all configure build test install clean format bench perf
+# === Internal Configuration ===
+
+CMAKE_ARGS = -GNinja
+CMAKE_ARGS += -DCMAKE_C_COMPILER=$(CC)
+CMAKE_ARGS += -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
+CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=$(INSTALL_PREFIX)
+CMAKE_ARGS += -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+CMAKE_ARGS += $(CMAKE_EXTRA_FLAGS)
+
+# === Phony Targets ===
+
+.PHONY: all configure build test install clean format bench
 
 all: build
 
-# Target-specific configurations
-ifeq ($(TARGET),cross)
-    CMAKE_ARGS += -DCMAKE_SYSTEM_NAME=$(SYSTEM_NAME)
-    CMAKE_ARGS += -DCMAKE_C_COMPILER=$(CROSS_COMPILER)
-else ifeq ($(TARGET),wasm)
-    CMAKE_ARGS += -DCMAKE_SYSTEM_NAME=WASI
-    CMAKE_ARGS += -DCMAKE_C_COMPILER=$(WASM_CC)
-else
-    CMAKE_ARGS += -DCMAKE_C_COMPILER=$(NATIVE_CC)
-endif
-
-CMAKE_ARGS += -DCMAKE_BUILD_TYPE=$(RELEASE)
-CMAKE_ARGS += -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-CMAKE_ARGS += -GNinja
-
-# Build rules
 configure:
-	@echo "Configuring for target: $(TARGET)"
+	@echo "Configuring with $(CC) for $(BUILD_TYPE) build"
+	@echo "Install prefix: $(INSTALL_PREFIX)"
 	rm -rf $(BUILD_DIR) .cache
 	mkdir -p $(BUILD_DIR)
-	cd $(BUILD_DIR) && cmake $(CMAKE_ARGS) ../..
+	cd $(BUILD_DIR) && cmake $(CMAKE_ARGS) ..
 
 build: configure
-	@echo "Building for target: $(TARGET)"
+	@echo "Building..."
 	cd $(BUILD_DIR) && ninja
 
 test: build
-	@echo "Running tests for target: $(TARGET)"
+	@echo "Running tests..."
 	cd $(BUILD_DIR) && ctest --output-on-failure
 
-install:
-	@echo "Installing for target: $(TARGET)"
+install: build
+	@echo "Installing to $(INSTALL_PREFIX)"
 	cd $(BUILD_DIR) && sudo ninja install
 
 clean:
-	rm -rf build .cache a.out
+	rm -rf $(BUILD_DIR) .cache a.out
 
 format:
 	find . -name '*.c' -o -name '*.h' | xargs clang-format -i
 
-# Benchmarking (native only)
 bench:
-ifeq ($(TARGET),native)
-	$(NATIVE_CC) -D_GNU_SOURCE benchmarks/bench_arena.c src/arena.c src/lock.c \
-		-lpthread -O3 -std=c23 -Wall -Wextra -Wpedantic -Wno-unused-function -march=native
-	./a.out 4096 1000000 8
-else
-	@echo "Benchmarking only supported for native target"
-endif
+	$(CC) -D_GNU_SOURCE benchmarks/bench_arena.c src/arena.c src/lock.c \
+		-lpthread -O3 -std=c23 -Wall -Wextra -Wpedantic \
+		-Wno-unused-function -march=native -o bench_arena
+	./bench_arena 4096 1000000 8
+	rm -f bench_arena
 
-perf:
-ifeq ($(TARGET),native)
-	perf record ./a.out 1024 100000 4 && perf report
-else
-	@echo "Performance profiling only supported for native target"
-endif
-
-# Convenience targets
-native:
-	$(MAKE) TARGET=native
-
-cross:
-	$(MAKE) TARGET=cross
-
-wasm:
-	$(MAKE) TARGET=wasm
+# === Convenience Targets ===
 
 debug:
-	$(MAKE) RELEASE=Debug
+	$(MAKE) BUILD_TYPE=Debug
 
 release:
-	$(MAKE) RELEASE=Release
+	$(MAKE) BUILD_TYPE=Release
