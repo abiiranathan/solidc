@@ -98,6 +98,7 @@ set(SOURCES
     src/thread.c
     src/threadpool.c
     src/unicode.c
+    src/cache.c
 )
 
 # Include math.h constants e.g M_PI in C23

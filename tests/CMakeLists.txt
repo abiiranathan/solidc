@@ -21,6 +21,7 @@ set(TEST_MODULES
     list
     vec
     matrix
+    cache
 )
 
 # Then modify your test loop:
