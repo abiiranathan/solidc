@@ -72,6 +72,8 @@ set(HEADERS
 
     include/vec.h
     include/matrix.h
+    include/rwlock.h
+    include/cache.h
    
     # Combined header
     include/solidc.h
