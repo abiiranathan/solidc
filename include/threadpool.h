@@ -53,17 +53,6 @@ int threadpool_submit_batch(Threadpool* pool, const Task* tasks, size_t count);
 // indefinitely.
 void threadpool_destroy(Threadpool* pool, int timeout_ms);
 
-/**
- * Get performance statistics from the thread pool.
- * @param pool Thread pool instance
- * @param tasks_completed Output for total completed tasks
- * @param steals_performed Output for total work steal operations
- */
-void threadpool_stats(Threadpool* pool, uint64_t* tasks_completed, uint64_t* steals_performed);
-
-// Get the number of active threads in the threadpool.
-int threadpool_num_threads_working(Threadpool* pool);
-
 #ifdef __cplusplus
 }
 #endif
