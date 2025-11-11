@@ -9,6 +9,7 @@
 #include "cstr.h"
 #include "csvparser.h"
 #include "defer.h"
+#include "dynarray.h"
 #include "file.h"
 #include "filepath.h"
 #include "flag.h"

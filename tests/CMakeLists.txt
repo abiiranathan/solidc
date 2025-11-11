@@ -22,6 +22,7 @@ set(TEST_MODULES
     vec
     matrix
     cache
+    dynarray
 )
 
 # Then modify your test loop:

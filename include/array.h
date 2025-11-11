@@ -1,5 +1,5 @@
-#ifndef DARRAY_H
-#define DARRAY_H
+#ifndef __ARRAY__H__
+#define __ARRAY__H__
 
 #include <stdbool.h>
 #include <stdckdint.h>
@@ -419,4 +419,4 @@ typedef enum {
 }
 #endif
 
-#endif /* DARRAY_H */
+#endif /* __ARRAY__H__ */
