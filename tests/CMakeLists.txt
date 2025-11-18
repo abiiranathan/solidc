@@ -23,6 +23,7 @@ set(TEST_MODULES
     matrix
     cache
     dynarray
+    dotenv
 )
 
 # Then modify your test loop:

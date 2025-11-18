@@ -75,6 +75,7 @@ set(HEADERS
     include/rwlock.h
     include/cache.h
     include/dynarray.h
+    include/dotenv.h
    
     # Combined header
     include/solidc.h
@@ -103,6 +104,7 @@ set(SOURCES
     src/unicode.c
     src/cache.c
     src/dynarray.c
+    src/dotenv.c
 )
 
 # Include math.h constants e.g M_PI in C23

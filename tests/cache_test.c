@@ -581,7 +581,7 @@ static benchmark_result_t benchmark_mixed_workload(cache_t* cache, size_t num_op
         char key[32];
         snprintf(key, sizeof(key), "key_%08zu", i % (cache->capacity * 2));
 
-        if ((float)rand() / RAND_MAX < write_ratio) {
+        if ((float)rand() / (float)RAND_MAX < write_ratio) {
             // Write operation
             unsigned char* value = malloc(value_size);
             if (value) {
