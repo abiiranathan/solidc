@@ -7,100 +7,59 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
-// Cross-platform Read-Write Lock.
 #include "rwlock.h"
 
-/** Maximum cache key length. */
-#define CACHE_KEY_MAX_LEN 256
+// --- Configuration ---
 
-/** Default cache capacity (number of entries). */
-#define CACHE_DEFAULT_CAPACITY 1000
+/** Number of locks/shards. Must be power of 2 for fast bitwise modulus. */
+#define CACHE_SHARD_COUNT 64
 
-/** Default TTL in seconds (5 minutes). */
-#define CACHE_DEFAULT_TTL 300
-
-/** Access count threshold before promoting entry in LRU (reduces lock contention). */
+/** Access count threshold before promoting entry in LRU. */
 #define CACHE_PROMOTION_THRESHOLD 3
 
-/** Represents a cached entry. */
+/** Default TTL in seconds. */
+#define CACHE_DEFAULT_TTL 300
+
+// --- Data Structures ---
+
 typedef struct cache_entry {
-    char key[CACHE_KEY_MAX_LEN];    // Cache key
-    unsigned char* value;           // Cached value in bytes
-    size_t value_len;               // Length of cached value
-    time_t expires_at;              // Expiration timestamp
-    uint32_t access_count;          // Access counter for lazy LRU updates
     struct cache_entry* prev;       // LRU list previous
     struct cache_entry* next;       // LRU list next
     struct cache_entry* hash_next;  // Hash collision chain
+
+    time_t expires_at;      // Expiration timestamp
+    uint32_t access_count;  // For lazy promotion
+    uint32_t hash;          // Saved hash (faster resize/checks)
+    size_t key_len;         // Length of key
+    size_t value_len;       // Length of value
+
+    // Flexible Array Member (C99)
+    // Memory layout: [ data... (key) ] [ \0 ] [ ... (value) ]
+    unsigned char data[];
 } cache_entry_t;
 
-/** Response cache with LRU eviction. Thread-safe. */
 typedef struct {
-    cache_entry_t** buckets;  // Hash table buckets
-    size_t bucket_count;      // Number of hash buckets
-    cache_entry_t* head;      // LRU list head (most recent)
-    cache_entry_t* tail;      // LRU list tail (least recent)
-    size_t capacity;          // Maximum number of entries
-    size_t size;              // Current number of entries
-    uint32_t default_ttl;     // Default TTL in seconds
-    rwlock_t lock;            // Read-write lock for thread safety
+    cache_entry_t** buckets;  // Hash table buckets for this shard
+    size_t bucket_count;      // Buckets per shard
+    cache_entry_t* head;      // LRU head
+    cache_entry_t* tail;      // LRU tail
+    size_t size;              // Current items in this shard
+    size_t capacity;          // Max items per shard
+    rwlock_t lock;            // Lock for this specific shard
+} cache_shard_t;
+
+typedef struct {
+    cache_shard_t shards[CACHE_SHARD_COUNT];  // Array of shards
+    uint32_t default_ttl;
 } cache_t;
 
-/**
- * Creates a new cache.
- * @param capacity Maximum number of cache entries (0 uses default).
- * @param default_ttl Default time-to-live in seconds (0 uses default).
- * @return Pointer to new cache on success, NULL on failure.
- * @note Caller must free with cache_destroy().
- */
-cache_t* cache_create(size_t capacity, uint32_t default_ttl);
+// --- API ---
 
-/**
- * Destroys a cache and frees all resources.
- * @param cache The cache to destroy. Safe to pass NULL.
- */
+cache_t* cache_create(size_t total_capacity, uint32_t default_ttl);
 void cache_destroy(cache_t* cache);
-
-/**
- * Retrieves a cached value.
- * @param cache The cache to query.
- * @param key The cache key.
- * @param out_value Pointer to store the cached value (caller must free). The data is not null
- * terminated.
- * @param out_len Pointer to store the value length.
- * @return true if found and not expired, false otherwise.
- * @note If true is returned, caller must free *out_value.
- * @note Thread-safe. Uses read lock for lookup with lazy LRU updates.
- */
 bool cache_get(cache_t* cache, const char* key, char** out_value, size_t* out_len);
-
-/**
- * Stores a value in the cache.
- * @param cache The cache to store in.
- * @param key The cache key.
- * @param value The value to cache (will be copied).
- * @param value_len Length of the value.
- * @param ttl_override Time-to-live override (0 uses default).
- * @return true on success, false on failure.
- * @note Thread-safe. Acquires write lock.
- */
-bool cache_set(cache_t* cache, const char* key, const unsigned char* value, size_t value_len,
-               uint32_t ttl_override);
-
-/**
- * Invalidates a cache entry.
- * @param cache The cache to modify.
- * @param key The cache key to invalidate.
- * @note Thread-safe. Acquires write lock.
- */
+bool cache_set(cache_t* cache, const char* key, const unsigned char* value, size_t value_len, uint32_t ttl_override);
 void cache_invalidate(cache_t* cache, const char* key);
-
-/**
- * Clears all entries from the cache.
- * @param cache The cache to clear.
- * @note Thread-safe. Acquires write lock.
- */
 void cache_clear(cache_t* cache);
 
-#endif  // __CACHE_H__
+#endif

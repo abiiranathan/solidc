@@ -1,380 +1,334 @@
 #include "cache.h"
 #include <stdio.h>
 
-/** Simple hash function (FNV-1a). */
-static inline uint32_t hash_key(const char* key) {
+// FNV-1a Hash Function
+static inline uint32_t hash_key(const char* key, size_t len) {
     uint32_t hash = 2166136261u;
-    for (const char* p = key; *p != '\0'; p++) {
-        hash ^= (uint32_t)(unsigned char)(*p);
+    for (size_t i = 0; i < len; i++) {
+        hash ^= (uint32_t)(unsigned char)key[i];
         hash *= 16777619u;
     }
     return hash;
 }
 
-/** Removes an entry from the LRU list. */
-static inline void lru_remove(cache_t* cache, cache_entry_t* entry) {
-    if (entry->prev) {
-        entry->prev->next = entry->next;
-    } else {
-        cache->head = entry->next;
-    }
+// Helper: Get pointer to key inside the entry
+static inline const char* entry_key(const cache_entry_t* entry) {
+    return (const char*)entry->data;
+}
 
-    if (entry->next) {
+// Helper: Get pointer to value inside the entry
+static inline const unsigned char* entry_value(const cache_entry_t* entry) {
+    return entry->data + entry->key_len + 1;  // +1 for null terminator
+}
+
+// --- LRU Logic (Shard Local) ---
+
+static inline void lru_remove(cache_shard_t* shard, cache_entry_t* entry) {
+    if (entry->prev)
+        entry->prev->next = entry->next;
+    else
+        shard->head = entry->next;
+
+    if (entry->next)
         entry->next->prev = entry->prev;
-    } else {
-        cache->tail = entry->prev;
-    }
+    else
+        shard->tail = entry->prev;
 
     entry->prev = NULL;
     entry->next = NULL;
 }
 
-/** Moves an entry to the front of the LRU list. */
-static inline void lru_move_to_front(cache_t* cache, cache_entry_t* entry) {
-    if (cache->head == entry) {
-        return;  // Already at front
-    }
-
-    lru_remove(cache, entry);
-
-    entry->next = cache->head;
+static inline void lru_add_to_front(cache_shard_t* shard, cache_entry_t* entry) {
+    entry->next = shard->head;
     entry->prev = NULL;
-
-    if (cache->head) {
-        cache->head->prev = entry;
-    }
-    cache->head = entry;
-
-    if (!cache->tail) {
-        cache->tail = entry;
-    }
+    if (shard->head) shard->head->prev = entry;
+    shard->head = entry;
+    if (!shard->tail) shard->tail = entry;
 }
 
-/** Adds an entry to the front of the LRU list. */
-static inline void lru_add_to_front(cache_t* cache, cache_entry_t* entry) {
-    entry->next = cache->head;
-    entry->prev = NULL;
+static void lru_evict(cache_shard_t* shard) {
+    if (!shard->tail) return;
 
-    if (cache->head) {
-        cache->head->prev = entry;
-    }
-    cache->head = entry;
+    cache_entry_t* victim = shard->tail;
 
-    if (!cache->tail) {
-        cache->tail = entry;
-    }
-}
+    // Remove from hash bucket
+    size_t bucket_idx    = victim->hash % shard->bucket_count;
+    cache_entry_t** slot = &shard->buckets[bucket_idx];
 
-/** Frees a cache entry and its resources. */
-static inline void cache_entry_free(cache_entry_t* entry) {
-    if (!entry) {
-        return;
-    }
-    free(entry->value);
-    free(entry);
-}
-
-/** Evicts the least recently used entry.
-Must be called with write lock held. */
-static void evict_lru(cache_t* cache) {
-    if (!cache->tail) {
-        return;
-    }
-
-    cache_entry_t* victim = cache->tail;
-
-    // Debug: print which key is being evicted
-    // printf("Evicting: %s (LRU)\n", victim->key);
-
-    // Remove from hash table
-    uint32_t hash_val = hash_key(victim->key);
-    size_t bucket_idx = hash_val % cache->bucket_count;
-
-    cache_entry_t** slot = &cache->buckets[bucket_idx];
     while (*slot && *slot != victim) {
         slot = &(*slot)->hash_next;
     }
-    if (*slot) {
-        *slot = victim->hash_next;
-    }
+    if (*slot) *slot = victim->hash_next;
 
-    // Remove from LRU list
-    lru_remove(cache, victim);
+    // Remove from list
+    lru_remove(shard, victim);
 
-    cache_entry_free(victim);
-    cache->size--;
+    free(victim);
+    shard->size--;
 }
 
-cache_t* cache_create(size_t capacity, uint32_t default_ttl) {
+// --- API Implementation ---
+
+cache_t* cache_create(size_t total_capacity, uint32_t default_ttl) {
     cache_t* cache = malloc(sizeof(*cache));
-    if (!cache) {
-        return NULL;
-    }
+    if (!cache) return NULL;
 
-    *cache = (cache_t){0};
+    if (total_capacity == 0) total_capacity = 10000;
+    size_t cap_per_shard = total_capacity / CACHE_SHARD_COUNT;
+    if (cap_per_shard < 10) cap_per_shard = 10;
 
-    cache->capacity    = capacity > 0 ? capacity : CACHE_DEFAULT_CAPACITY;
     cache->default_ttl = default_ttl > 0 ? default_ttl : CACHE_DEFAULT_TTL;
 
-    // Use a prime number of buckets for better distribution
-    cache->bucket_count = cache->capacity * 2 + 1;
-    cache->buckets      = calloc(cache->bucket_count, sizeof(cache_entry_t*));
-    if (!cache->buckets) {
-        free(cache);
-        return NULL;
-    }
+    for (int i = 0; i < CACHE_SHARD_COUNT; i++) {
+        cache_shard_t* shard = &cache->shards[i];
+        shard->capacity      = cap_per_shard;
+        shard->size          = 0;
+        shard->head          = NULL;
+        shard->tail          = NULL;
+
+        // Prime number buckets roughly 1.5x capacity to minimize collisions
+        shard->bucket_count = cap_per_shard + (cap_per_shard / 2) + 1;
+        shard->buckets      = calloc(shard->bucket_count, sizeof(cache_entry_t*));
+
+        if (!shard->buckets) {
+            // Cleanup previous shards if failure
+            for (int j = 0; j < i; j++) {
+                free(cache->shards[j].buckets);
+                rwlock_destroy(&cache->shards[j].lock);
+            }
+            free(cache);
+            return NULL;
+        }
 
 #ifdef _WIN32
-    rwlock_init(&cache->lock);
+        rwlock_init(&shard->lock);
 #else
-    if (rwlock_init(&cache->lock) != 0) {
-        free(cache->buckets);
-        free(cache);
-        return NULL;
-    }
+        if (rwlock_init(&shard->lock) != 0) {
+            // Handle error...
+            free(shard->buckets);
+            free(cache);
+            return NULL;
+        }
 #endif
+    }
 
     return cache;
 }
 
 void cache_destroy(cache_t* cache) {
-    if (!cache) {
-        return;
+    if (!cache) return;
+
+    for (int i = 0; i < CACHE_SHARD_COUNT; i++) {
+        cache_shard_t* shard = &cache->shards[i];
+        rwlock_wrlock(&shard->lock);
+
+        cache_entry_t* curr = shard->head;
+        while (curr) {
+            cache_entry_t* next = curr->next;
+            free(curr);
+            curr = next;
+        }
+        free(shard->buckets);
+        rwlock_unlock_wr(&shard->lock);
+        rwlock_destroy(&shard->lock);
     }
-
-    rwlock_wrlock(&cache->lock);
-
-    cache_entry_t* current = cache->head;
-    while (current) {
-        cache_entry_t* next = current->next;
-        cache_entry_free(current);
-        current = next;
-    }
-
-    free(cache->buckets);
-    rwlock_unlock_wr(&cache->lock);
-    rwlock_destroy(&cache->lock);
     free(cache);
 }
 
 bool cache_get(cache_t* cache, const char* key, char** out_value, size_t* out_len) {
-    if (!cache || !key || !out_value || !out_len) {
-        return false;
-    }
+    if (!cache || !key) return false;
 
-    // Fast path: Read lock for lookup
-    rwlock_rdlock(&cache->lock);
+    size_t key_len = strlen(key);
+    uint32_t hash  = hash_key(key, key_len);
+    // Determine which shard owns this key
+    uint32_t shard_idx   = hash % CACHE_SHARD_COUNT;
+    cache_shard_t* shard = &cache->shards[shard_idx];
 
-    uint32_t hash_val = hash_key(key);
-    size_t bucket_idx = hash_val % cache->bucket_count;
+    rwlock_rdlock(&shard->lock);
 
-    cache_entry_t* entry = cache->buckets[bucket_idx];
-    cache_entry_t* found = NULL;
+    // Look in specific shard's bucket
+    size_t bucket_idx    = hash % shard->bucket_count;
+    cache_entry_t* entry = shard->buckets[bucket_idx];
 
     while (entry) {
-        if (strcmp(entry->key, key) == 0) {
-            found = entry;
+        if (entry->hash == hash && entry->key_len == key_len && memcmp(entry_key(entry), key, key_len) == 0) {
             break;
         }
         entry = entry->hash_next;
     }
 
-    if (!found) {
-        rwlock_unlock_rd(&cache->lock);
+    if (!entry) {
+        rwlock_unlock_rd(&shard->lock);
         return false;
     }
 
-    // Check expiration (without holding write lock yet)
-    time_t now = time(NULL);
-    if (now >= found->expires_at) {
-        rwlock_unlock_rd(&cache->lock);
-        // Expired - remove it (requires write lock)
+    // Check expiry
+    if (time(NULL) >= entry->expires_at) {
+        rwlock_unlock_rd(&shard->lock);
+        // Note: We could upgrade lock to delete here, but for simplicity
+        // we let the next set() or background cleaner handle it,
+        // or call invalidate() explicitly.
         cache_invalidate(cache, key);
         return false;
     }
 
-    // Duplicate value for caller
-    *out_value = malloc(found->value_len);
-    if (!*out_value) {
-        rwlock_unlock_rd(&cache->lock);
-        return false;
+    // Copy value
+    *out_value = malloc(entry->value_len);
+    if (*out_value) {
+        memcpy(*out_value, entry_value(entry), entry->value_len);
+        *out_len = entry->value_len;
     }
-    memcpy(*out_value, found->value, found->value_len);
-    *out_len = found->value_len;
 
-    // Update access count and check if we should promote
-    uint32_t access_count = ++found->access_count;
+    // Lazy Promotion logic
+    uint32_t accesses = ++entry->access_count;
+    rwlock_unlock_rd(&shard->lock);
 
-    rwlock_unlock_rd(&cache->lock);
-
-    // Promote if accessed frequently (requires write lock)
-    if (access_count >= CACHE_PROMOTION_THRESHOLD) {
-        rwlock_wrlock(&cache->lock);
-
-        // Re-verify the entry still exists and hasn't changed
-        cache_entry_t* verify = cache->buckets[bucket_idx];
-        bool still_exists     = false;
+    // Only promote if threshold hit
+    if (accesses >= CACHE_PROMOTION_THRESHOLD) {
+        rwlock_wrlock(&shard->lock);
+        // Re-verify entry still valid
+        cache_entry_t* verify = shard->buckets[bucket_idx];
+        bool still_valid      = false;
         while (verify) {
-            if (verify == found && strcmp(verify->key, key) == 0) {
-                still_exists = true;
+            if (verify == entry) {
+                still_valid = true;
                 break;
             }
             verify = verify->hash_next;
         }
 
-        if (still_exists) {
-            found->access_count = 0;  // Reset counter
-            lru_move_to_front(cache, found);
+        if (still_valid) {
+            entry->access_count = 0;
+            lru_remove(shard, entry);
+            lru_add_to_front(shard, entry);
         }
-
-        rwlock_unlock_wr(&cache->lock);
+        rwlock_unlock_wr(&shard->lock);
     }
 
-    return true;
+    return *out_value != NULL;
 }
 
-bool cache_set(cache_t* cache, const char* key, const unsigned char* value, size_t value_len,
-               uint32_t ttl_override) {
-    if (!cache || !key || !value || key[0] == '\0') {
-        return false;
-    }
+bool cache_set(cache_t* cache, const char* key, const unsigned char* value, size_t value_len, uint32_t ttl_override) {
+    if (!cache || !key || !value) return false;
 
-    // Check key length
-    size_t key_len = strlen(key);
-    if (key_len >= CACHE_KEY_MAX_LEN) {
-        return false;
-    }
+    size_t key_len       = strlen(key);
+    uint32_t hash        = hash_key(key, key_len);
+    uint32_t shard_idx   = hash % CACHE_SHARD_COUNT;
+    cache_shard_t* shard = &cache->shards[shard_idx];
 
-    rwlock_wrlock(&cache->lock);
+    rwlock_wrlock(&shard->lock);
 
-    uint32_t hash_val = hash_key(key);
-    size_t bucket_idx = hash_val % cache->bucket_count;
+    // 1. Check if update existing
+    size_t bucket_idx       = hash % shard->bucket_count;
+    cache_entry_t* existing = shard->buckets[bucket_idx];
 
-    // Check if key already exists
-    cache_entry_t* existing = cache->buckets[bucket_idx];
     while (existing) {
-        if (strcmp(existing->key, key) == 0) {
-            // Update existing entry
-            unsigned char* new_value = malloc(value_len);
-            if (!new_value) {
-                rwlock_unlock_wr(&cache->lock);
-                return false;
-            }
-            memcpy(new_value, value, value_len);
+        if (existing->hash == hash && existing->key_len == key_len && memcmp(entry_key(existing), key, key_len) == 0) {
 
-            free(existing->value);
-            existing->value        = new_value;
-            existing->value_len    = value_len;
-            existing->access_count = 0;
-
-            uint32_t ttl         = ttl_override > 0 ? ttl_override : cache->default_ttl;
-            existing->expires_at = time(NULL) + ttl;
-
-            lru_move_to_front(cache, existing);
-
-            rwlock_unlock_wr(&cache->lock);
-            return true;
+            // If size fits, overwrite. If not, free and realloc.
+            // Simplified: We just remove old and add new to handle size changes easily.
+            // Remove logic:
+            cache_entry_t** slot = &shard->buckets[bucket_idx];
+            while (*slot != existing)
+                slot = &(*slot)->hash_next;
+            *slot = existing->hash_next;
+            lru_remove(shard, existing);
+            free(existing);
+            shard->size--;
+            break;
         }
         existing = existing->hash_next;
     }
 
-    // Evict if at capacity
-    if (cache->size >= cache->capacity) {
-        // Before evicting, reset all access counts to ensure pure LRU eviction
-        // This prevents the lazy promotion mechanism from interfering with eviction
-        cache_entry_t* entry = cache->head;
-        while (entry) {
-            entry->access_count = 0;
-            entry               = entry->next;
-        }
-        evict_lru(cache);
+    // 2. Evict if full
+    if (shard->size >= shard->capacity) {
+        lru_evict(shard);  // Evicts tail (O(1))
     }
 
-    // Create new entry
-    cache_entry_t* entry = malloc(sizeof(*entry));
+    // 3. Allocate Single Block
+    // Size = Struct + Key + Null + Value
+    size_t total_size    = sizeof(cache_entry_t) + key_len + 1 + value_len;
+    cache_entry_t* entry = malloc(total_size);
+
     if (!entry) {
-        rwlock_unlock_wr(&cache->lock);
+        rwlock_unlock_wr(&shard->lock);
         return false;
     }
 
-    *entry = (cache_entry_t){0};
-    strncpy(entry->key, key, CACHE_KEY_MAX_LEN - 1);
-    entry->key[CACHE_KEY_MAX_LEN - 1] = '\0';
-
-    entry->value = malloc(value_len);
-    if (!entry->value) {
-        free(entry);
-        rwlock_unlock_wr(&cache->lock);
-        return false;
-    }
-    memcpy(entry->value, value, value_len);
+    // Setup Entry
+    entry->hash         = hash;
+    entry->key_len      = key_len;
     entry->value_len    = value_len;
     entry->access_count = 0;
+    entry->expires_at   = time(NULL) + (ttl_override ? ttl_override : cache->default_ttl);
 
-    uint32_t ttl      = ttl_override > 0 ? ttl_override : cache->default_ttl;
-    entry->expires_at = time(NULL) + ttl;
+    // Copy Key
+    memcpy(entry->data, key, key_len);
+    entry->data[key_len] = '\0';
 
-    // Add to hash table
-    entry->hash_next           = cache->buckets[bucket_idx];
-    cache->buckets[bucket_idx] = entry;
+    // Copy Value
+    memcpy(entry->data + key_len + 1, value, value_len);
 
-    // Add to LRU list
-    lru_add_to_front(cache, entry);
+    // Link
+    lru_add_to_front(shard, entry);
 
-    cache->size++;
+    entry->hash_next           = shard->buckets[bucket_idx];
+    shard->buckets[bucket_idx] = entry;
+    shard->size++;
 
-    rwlock_unlock_wr(&cache->lock);
+    rwlock_unlock_wr(&shard->lock);
     return true;
 }
 
 void cache_invalidate(cache_t* cache, const char* key) {
-    if (!cache || !key) {
-        return;
-    }
+    if (!cache || !key) return;
 
-    rwlock_wrlock(&cache->lock);
+    size_t key_len       = strlen(key);
+    uint32_t hash        = hash_key(key, key_len);
+    uint32_t shard_idx   = hash % CACHE_SHARD_COUNT;
+    cache_shard_t* shard = &cache->shards[shard_idx];
 
-    uint32_t hash_val = hash_key(key);
-    size_t bucket_idx = hash_val % cache->bucket_count;
+    rwlock_wrlock(&shard->lock);
 
-    cache_entry_t** slot = &cache->buckets[bucket_idx];
+    size_t bucket_idx    = hash % shard->bucket_count;
+    cache_entry_t** slot = &shard->buckets[bucket_idx];
+
     while (*slot) {
-        if (strcmp((*slot)->key, key) == 0) {
-            cache_entry_t* victim = *slot;
-            *slot                 = victim->hash_next;
-            lru_remove(cache, victim);
-            cache_entry_free(victim);
-            cache->size--;
+        cache_entry_t* entry = *slot;
+        if (entry->hash == hash && entry->key_len == key_len && memcmp(entry_key(entry), key, key_len) == 0) {
+
+            *slot = entry->hash_next;
+            lru_remove(shard, entry);
+            free(entry);
+            shard->size--;
             break;
         }
-        slot = &(*slot)->hash_next;
+        slot = &entry->hash_next;
     }
 
-    rwlock_unlock_wr(&cache->lock);
+    rwlock_unlock_wr(&shard->lock);
 }
 
 void cache_clear(cache_t* cache) {
-    if (!cache) {
-        return;
+    if (!cache) return;
+
+    for (int i = 0; i < CACHE_SHARD_COUNT; i++) {
+        cache_shard_t* shard = &cache->shards[i];
+        rwlock_wrlock(&shard->lock);
+
+        cache_entry_t* curr = shard->head;
+        while (curr) {
+            cache_entry_t* next = curr->next;
+            free(curr);
+            curr = next;
+        }
+
+        // Reset buckets
+        memset(shard->buckets, 0, shard->bucket_count * sizeof(cache_entry_t*));
+        shard->head = NULL;
+        shard->tail = NULL;
+        shard->size = 0;
+
+        rwlock_unlock_wr(&shard->lock);
     }
-
-    rwlock_wrlock(&cache->lock);
-
-    cache_entry_t* current = cache->head;
-    while (current) {
-        cache_entry_t* next = current->next;
-        cache_entry_free(current);
-        current = next;
-    }
-
-    // Clear hash table buckets
-    for (size_t i = 0; i < cache->bucket_count; i++) {
-        cache->buckets[i] = NULL;
-    }
-
-    cache->head = NULL;
-    cache->tail = NULL;
-    cache->size = 0;
-
-    rwlock_unlock_wr(&cache->lock);
 }
