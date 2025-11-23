@@ -85,4 +85,29 @@ size_t get_total_cache_size(cache_t* cache);
  */
 size_t get_total_capacity(cache_t* cache);
 
+/**
+ * Serializes the current cache state to a binary file.
+ *
+ * The operation locks shards one by one, allowing concurrent reads/writes
+ * to other shards while saving. The snapshot is not atomic across shards.
+ *
+ * @param cache_ptr The cache to save.
+ * @param filename The output file path.
+ * @return true on success, false on I/O error.
+ */
+bool cache_save(cache_t* cache_ptr, const char* filename);
+
+/**
+ * Loads cache entries from a binary file.
+ *
+ * Entries that are already expired in the file are skipped.
+ * Entries loaded will be subject to the current cache's eviction policy
+ * (if the file contains more items than the cache capacity).
+ *
+ * @param cache_ptr The cache to load into.
+ * @param filename The input file path.
+ * @return true on success, false on I/O error or invalid format.
+ */
+bool cache_load(cache_t* cache_ptr, const char* filename);
+
 #endif  // __CACHE_H__

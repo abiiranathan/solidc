@@ -331,6 +331,77 @@ static void run_benchmarks(void) {
     cache_destroy(cache);
 }
 
+/** Test: Serialization (Save/Load). */
+static void test_serialization(void) {
+    printf("\n[TEST] Serialization (Save/Load)\n");
+    const char* filename = "test_cache_dump.bin";
+
+    // 1. Setup initial cache
+    cache_t* c1 = cache_create(100, 300);
+    if (!c1) return;
+
+    const char* key_str = "str_key";
+    const char* val_str = "persistent_string";
+
+    // Test Binary Data (Struct) to ensure we aren't just saving strings
+    typedef struct {
+        int id;
+        double x;
+        char flag;
+    } my_struct_t;
+
+    my_struct_t val_bin = {42, 3.14159, 'Z'};
+
+    cache_set(c1, key_str, val_str, strlen(val_str), 0);
+    cache_set(c1, "bin_key", &val_bin, sizeof(val_bin), 0);
+
+    // Test Expiration: Set a key with 1 second TTL
+    cache_set(c1, "expire_key", "temp", 4, 1);
+
+    // 2. Save to disk
+    bool saved = cache_save(c1, filename);
+    TEST_ASSERT(saved == true, "Cache saved to file successfully");
+
+    // 3. Destroy original cache (simulate restart)
+    cache_destroy(c1);
+
+    // 4. Wait 2 seconds to ensure 'expire_key' expires while on disk
+    sleep_ms(2000);
+
+    // 5. Load into new cache
+    cache_t* c2 = cache_create(100, 300);
+    bool loaded = cache_load(c2, filename);
+    TEST_ASSERT(loaded == true, "Cache loaded from file successfully");
+
+    // 6. Verify String Data
+    size_t len;
+    const void* ptr = cache_get(c2, key_str, &len);
+    TEST_ASSERT(ptr != NULL, "String key recovered");
+    if (ptr) {
+        TEST_ASSERT(len == strlen(val_str), "String length matches");
+        TEST_ASSERT(memcmp(ptr, val_str, len) == 0, "String content matches");
+        cache_release(ptr);
+    }
+
+    // 7. Verify Binary Data
+    ptr = cache_get(c2, "bin_key", &len);
+    TEST_ASSERT(ptr != NULL, "Binary key recovered");
+    if (ptr) {
+        TEST_ASSERT(len == sizeof(my_struct_t), "Binary structure length matches");
+        const my_struct_t* rec_struct = (const my_struct_t*)ptr;
+        TEST_ASSERT(rec_struct->id == 42 && rec_struct->flag == 'Z', "Binary content integrity check");
+        cache_release(ptr);
+    }
+
+    // 8. Verify Expiration
+    ptr = cache_get(c2, "expire_key", &len);
+    TEST_ASSERT(ptr == NULL, "Expired item was skipped during load");
+
+    // Cleanup
+    cache_destroy(c2);
+    remove(filename);  // Delete temp file
+}
+
 int main(void) {
     printf("=================================\n");
     printf("  Cache Implementation Tests (Phase 3)\n");
@@ -342,6 +413,7 @@ int main(void) {
     // test_expiration(); // Removed to save time, un-comment if needed
     test_lru_eviction();
     test_input_validation();
+    test_serialization();
     test_concurrent_access();
 
     printf("\n=================================\n");

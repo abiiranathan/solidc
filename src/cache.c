@@ -12,8 +12,10 @@
 #include <sys/mman.h>
 #include <time.h>
 
-#define CACHE_LINE_SIZE           64  // Size of CPU cache line for alignment
-#define INITIAL_BUCKET_MULTIPLIER 2   // Load factor: buckets = capacity * 2
+#define CACHE_LINE_SIZE           64          // Size of CPU cache line for alignment
+#define INITIAL_BUCKET_MULTIPLIER 2           // Load factor: buckets = capacity * 2
+#define CACHE_FILE_MAGIC          0x45484346  // ASCII "FCHE" (Fast Cache) in Little Endian
+#define CACHE_FILE_VERSION        1
 
 // --- Packed Metadata Constants ---
 // We use a 64-bit integer to store {Hash:32, KeyLen:32}
@@ -603,4 +605,189 @@ size_t get_total_capacity(cache_t* cache_ptr) {
         fast_rwlock_unlock_rd(&cache->shards[i].lock);
     }
     return total;
+}
+
+/**
+ * Helper to write safely to a file.
+ */
+static inline bool file_write_chk(const void* ptr, size_t size, size_t count, FILE* stream) {
+    return fwrite(ptr, size, count, stream) == count;
+}
+
+/**
+ * Helper to read safely from a file.
+ */
+static inline bool file_read_chk(void* ptr, size_t size, size_t count, FILE* stream) {
+    return fread(ptr, size, count, stream) == count;
+}
+
+bool cache_save(cache_t* cache_ptr, const char* filename) {
+    if (!cache_ptr || !filename) return false;
+    struct cache_s* cache = (struct cache_s*)cache_ptr;
+
+    FILE* f = fopen(filename, "wb");
+    if (!f) return false;
+
+    // 1. Write Header
+    uint32_t magic         = CACHE_FILE_MAGIC;
+    uint32_t version       = CACHE_FILE_VERSION;
+    uint64_t total_entries = 0;
+
+    if (!file_write_chk(&magic, sizeof(magic), 1, f) || !file_write_chk(&version, sizeof(version), 1, f) ||
+        !file_write_chk(&total_entries, sizeof(total_entries), 1, f)) {
+        fclose(f);
+        return false;
+    }
+
+    // 2. Iterate shards and write valid entries
+    // We lock one shard at a time to avoid freezing the whole system
+    uint64_t actual_count = 0;
+
+    for (int i = 0; i < CACHE_SHARD_COUNT; i++) {
+        aligned_cache_shard_t* shard = &cache->shards[i];
+
+        // Read lock is sufficient
+        fast_rwlock_rdlock(&shard->lock);
+
+        for (size_t j = 0; j < shard->bucket_count; j++) {
+            cache_slot_t* slot = &shard->slots[j];
+
+            // Skip empty or deleted slots
+            if (meta_hash(slot->metadata) < HASH_MIN_VAL) continue;
+
+            cache_entry_t* entry = slot->entry;
+
+            // Skip expired entries
+            if (entry->expires_at <= time(NULL)) continue;
+
+            // Prepare metadata for disk
+            uint32_t klen  = entry->key_len;
+            uint64_t vlen  = (uint64_t)entry->value_len;  // Use 64-bit for disk format stability
+            int64_t expiry = (int64_t)entry->expires_at;
+
+            // Get pointer to the value data
+            const void* val_ptr = value_ptr_from_entry(entry);
+
+            // Write: [KeyLen][ValLen][Expiry][KeyBytes][ValBytes]
+            if (!file_write_chk(&klen, sizeof(klen), 1, f) || !file_write_chk(&vlen, sizeof(vlen), 1, f) ||
+                !file_write_chk(&expiry, sizeof(expiry), 1, f) ||
+                !file_write_chk(entry->data, 1, klen, f) ||      // Key stored at entry->data
+                !file_write_chk(val_ptr, 1, (size_t)vlen, f)) {  // Value stored after backptr
+
+                fast_rwlock_unlock_rd(&shard->lock);
+                fclose(f);
+                return false;
+            }
+
+            actual_count++;
+        }
+
+        fast_rwlock_unlock_rd(&shard->lock);
+    }
+
+    // 3. Rewind and write actual count
+    fseek(f, sizeof(magic) + sizeof(version), SEEK_SET);
+    if (!file_write_chk(&actual_count, sizeof(actual_count), 1, f)) {
+        fclose(f);
+        return false;
+    }
+
+    fclose(f);
+    return true;
+}
+
+bool cache_load(cache_t* cache_ptr, const char* filename) {
+    if (!cache_ptr || !filename) return false;
+
+    FILE* f = fopen(filename, "rb");
+    if (!f) return false;
+
+    // 1. Check Header
+    uint32_t magic        = 0;
+    uint32_t version      = 0;
+    uint64_t stored_count = 0;
+
+    if (!file_read_chk(&magic, sizeof(magic), 1, f) || !file_read_chk(&version, sizeof(version), 1, f) ||
+        !file_read_chk(&stored_count, sizeof(stored_count), 1, f)) {
+        fclose(f);
+        return false;
+    }
+
+    if (magic != CACHE_FILE_MAGIC || version != CACHE_FILE_VERSION) {
+        // Invalid format or version mismatch
+        fclose(f);
+        return false;
+    }
+
+    // 2. Read Entries
+    // Use a small stack buffer for keys to avoid mallocs for short keys
+    char key_buf[512];
+    char* big_key_buf  = NULL;
+    void* val_buf      = NULL;
+    size_t val_buf_cap = 0;
+    time_t now         = time(NULL);
+
+    bool success = true;
+
+    for (uint64_t i = 0; i < stored_count; i++) {
+        uint32_t klen;
+        uint64_t vlen;
+        int64_t expiry;
+
+        if (!file_read_chk(&klen, sizeof(klen), 1, f) || !file_read_chk(&vlen, sizeof(vlen), 1, f) ||
+            !file_read_chk(&expiry, sizeof(expiry), 1, f)) {
+            success = false;
+            break;
+        }
+
+        // Handle Key Buffer
+        char* kptr = key_buf;
+        if (klen >= sizeof(key_buf)) {
+            // Key is larger than stack buffer, alloc on heap
+            big_key_buf = realloc(big_key_buf, klen + 1);
+            if (!big_key_buf) {
+                success = false;
+                break;
+            }
+            kptr = big_key_buf;
+        }
+
+        // Handle Value Buffer
+        if (vlen > val_buf_cap) {
+            void* tmp = realloc(val_buf, vlen);
+            if (!tmp) {
+                success = false;
+                break;
+            }
+            val_buf     = tmp;
+            val_buf_cap = vlen;
+        }
+
+        // Read Data
+        if (!file_read_chk(kptr, 1, klen, f) || !file_read_chk(val_buf, 1, (size_t)vlen, f)) {
+            success = false;
+            break;
+        }
+
+        // Null terminate key for cache_set API
+        kptr[klen] = '\0';
+
+        // Only insert if not expired
+        if ((time_t)expiry > now) {
+            // Calculate remaining TTL
+            uint32_t ttl = (uint32_t)((time_t)expiry - now);
+
+            // cache_set handles hashing, sharding, and eviction
+            if (!cache_set(cache_ptr, kptr, val_buf, (size_t)vlen, ttl)) {
+                // If set fails (e.g. malloc error), we stop
+                success = false;
+                break;
+            }
+        }
+    }
+
+    free(big_key_buf);
+    free(val_buf);
+    fclose(f);
+    return success;
 }
