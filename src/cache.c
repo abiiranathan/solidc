@@ -1,32 +1,21 @@
-/**
- * @file cache.c
- * @brief High-performance thread-safe LRU cache with CLOCK eviction and metadata packing.
- *
- * This cache implementation uses several advanced techniques:
- * - Sharding for reduced lock contention across multiple threads
- * - Metadata packing to fit hash+keylen in a single 64-bit compare
- * - CLOCK eviction algorithm (approximation of LRU with better cache locality)
- * - Reference counting for safe concurrent access to cached values
- * - Open addressing hash table with linear probing
- * - Cache-line aligned data structures to reduce false sharing
- */
-
-#define _POSIX_C_SOURCE 200809L
-
-#include "cache.h"
-#include "rwlock.h"
+#include "../include/cache.h"
+#include "../include/spinlock.h"
 
 #include <errno.h>
+#include <immintrin.h>
 #include <stdatomic.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <time.h>
 
 #define CACHE_LINE_SIZE           64  // Size of CPU cache line for alignment
 #define INITIAL_BUCKET_MULTIPLIER 2   // Load factor: buckets = capacity * 2
 
-// --- Optimization: Packed Metadata Constants ---
+// --- Packed Metadata Constants ---
 // We use a 64-bit integer to store {Hash:32, KeyLen:32}
 // We reserve Hash values 0 and 1 for control flags.
 #define HASH_EMPTY   0  // Slot never used
@@ -64,49 +53,41 @@ typedef struct cache_entry {
 } cache_entry_t;
 
 /**
- * @brief A cache-line aligned shard containing a portion of the cache.
- *
- * Sharding reduces lock contention by partitioning the cache into CACHE_SHARD_COUNT
- * independent hash tables, each with its own lock.
+ * @brief Co-located slot structure.
+ * Size: 16 bytes (on 64-bit systems).
+ * Layout: [Metadata (8B)] [Entry Pointer (8B)]
  */
-typedef struct ALIGNED_CACHE_LINE {
+typedef struct {
     /**
      * Packed metadata array for fast lookups without pointer chasing.
      * Each uint64_t stores: High 32 bits = Hash, Low 32 bits = Key Length
      * This allows single 64-bit comparison instead of loading pointer + comparing fields.
      * Fits 8 metadata slots per 64-byte cache line.
      */
-    uint64_t* metadata;
+    uint64_t metadata;
+    cache_entry_t* entry;  // Pointer to the entry
+} cache_slot_t;
 
-    /**
-     * Entry pointers array. Only accessed if metadata matches.
-     * Separated from metadata to improve cache utilization during probing.
-     */
-    cache_entry_t** entries;
-
+typedef struct ALIGNED_CACHE_LINE {
+    cache_slot_t* slots;  // Array of 16-byte slots
     size_t bucket_count;  // Hash table size (always power of 2 for fast modulo)
     size_t size;          // Current number of valid entries
     size_t capacity;      // Maximum entries before eviction triggers
     size_t clock_hand;    // CLOCK algorithm: position for next eviction scan
-    rwlock_t lock;        // Reader-writer lock for this shard
+    fast_rwlock_t lock;   // Reader-writer lock(spin lock) for this shard
 } aligned_cache_shard_t;
 
-/**
- * @brief The main cache structure containing all shards.
- */
 struct cache_s {
     aligned_cache_shard_t shards[CACHE_SHARD_COUNT];  // Fixed array of shards
     uint32_t default_ttl;                             // Default time-to-live in seconds
 };
-
-// --- Helpers ---
 
 /**
  * Rounds up to the next power of 2.
  * Required because hash table size must be power of 2 for fast modulo via bitwise AND.
  */
 static inline size_t next_power_of_2(size_t n) {
-    if (n && !(n & (n - 1))) return n;  // Already power of 2
+    if (n && !(n & (n - 1))) return n;
     n--;
     n |= n >> 1;
     n |= n >> 2;
@@ -148,22 +129,21 @@ static inline uint32_t meta_hash(uint64_t meta) {
 }
 
 /**
- * Recovers cache_entry_t pointer from a returned value pointer.
- * Uses the back-pointer stored between key and value in the entry's data array.
- */
-static inline cache_entry_t* entry_from_value(const void* value_ptr) {
-    if (unlikely(!value_ptr)) return NULL;
-    // Back up by sizeof(pointer) to find the stored back-pointer
-    cache_entry_t* const* back_ptr = (cache_entry_t* const*)((const char*)value_ptr - sizeof(cache_entry_t*));
-    return *back_ptr;
-}
-
-/**
  * Calculates the value pointer from a cache entry.
  * Value is stored after: [key]['\0'][back_pointer]
  */
 static inline const void* value_ptr_from_entry(const cache_entry_t* entry) {
     return (const void*)(entry->data + entry->key_len + 1 + sizeof(cache_entry_t*));
+}
+
+/**
+ * Recovers cache_entry_t pointer from a returned value pointer.
+ * Uses the back-pointer stored between key and value in the entry's data array.
+ */
+static inline cache_entry_t* entry_from_value(const void* value_ptr) {
+    if (unlikely(!value_ptr)) return NULL;
+    cache_entry_t* const* back_ptr = (cache_entry_t* const*)((const char*)value_ptr - sizeof(cache_entry_t*));
+    return *back_ptr;
 }
 
 /**
@@ -181,6 +161,26 @@ static inline void entry_ref_dec(cache_entry_t* entry) {
     if (!entry) return;
     int old_val = atomic_fetch_sub_explicit(&entry->ref_count, 1, memory_order_acq_rel);
     if (unlikely(old_val == 1)) free(entry);
+}
+
+// Helper to check a single slot
+// Returns: 0 = continue, 1 = found key, 2 = found empty (stop), 3 = found tombstone (record)
+static inline int check_slot(cache_slot_t* slot, uint64_t target_meta, const char* key, size_t klen, bool* found) {
+    uint64_t meta = slot->metadata;
+    uint32_t h    = meta_hash(meta);
+
+    if (h == HASH_EMPTY) return 2;
+    if (h == HASH_DELETED) return 3;
+
+    if (meta == target_meta) {
+        // Pointer is already in L1 due to struct co-location
+        cache_entry_t* entry = slot->entry;
+        if (likely(memcmp(entry->data, key, klen) == 0)) {
+            *found = true;
+            return 1;
+        }
+    }
+    return 0;
 }
 
 /**
@@ -202,42 +202,58 @@ static size_t find_slot(aligned_cache_shard_t* shard, uint32_t hash, const char*
     size_t probe_count     = 0;
     size_t first_tombstone = SIZE_MAX;  // Track first deleted slot for insertion
 
-    uint64_t* metadata = shard->metadata;
-
     // Pre-compute target metadata: only exact match (hash AND length) is a candidate
-    uint64_t target = pack_meta(hash, (uint32_t)klen);
+    uint64_t target     = pack_meta(hash, (uint32_t)klen);
+    cache_slot_t* slots = shard->slots;
 
     *found = false;
 
+    // Probing loop unrolled to process one full cache line (4 slots) per iteration
+    while (probe_count + 4 <= shard->bucket_count) {
+        size_t i0 = idx;
+        size_t i1 = (idx + 1) & mask;
+        size_t i2 = (idx + 2) & mask;
+        size_t i3 = (idx + 3) & mask;
+
+        // Slot 0 (Fetches the cache line from RAM)
+        int res = check_slot(&slots[i0], target, key, klen, found);
+        if (res == 1) return i0;
+        if (res == 2) return (first_tombstone != SIZE_MAX) ? first_tombstone : i0;
+        if (res == 3 && first_tombstone == SIZE_MAX) first_tombstone = i0;
+
+        // Slot 1 (L1 Hit)
+        res = check_slot(&slots[i1], target, key, klen, found);
+        if (res == 1) return i1;
+        if (res == 2) return (first_tombstone != SIZE_MAX) ? first_tombstone : i1;
+        if (res == 3 && first_tombstone == SIZE_MAX) first_tombstone = i1;
+
+        // Slot 2 (L1 Hit)
+        res = check_slot(&slots[i2], target, key, klen, found);
+        if (res == 1) return i2;
+        if (res == 2) return (first_tombstone != SIZE_MAX) ? first_tombstone : i2;
+        if (res == 3 && first_tombstone == SIZE_MAX) first_tombstone = i2;
+
+        // Slot 3 (L1 Hit)
+        res = check_slot(&slots[i3], target, key, klen, found);
+        if (res == 1) return i3;
+        if (res == 2) return (first_tombstone != SIZE_MAX) ? first_tombstone : i3;
+        if (res == 3 && first_tombstone == SIZE_MAX) first_tombstone = i3;
+
+        idx = (idx + 4) & mask;
+        probe_count += 4;
+    }
+
+    // Cleanup loop
     while (probe_count < shard->bucket_count) {
-        uint64_t meta = metadata[idx];
-        uint32_t h    = meta_hash(meta);
+        int res = check_slot(&slots[idx], target, key, klen, found);
+        if (res == 1) return idx;
+        if (res == 2) return (first_tombstone != SIZE_MAX) ? first_tombstone : idx;
+        if (res == 3 && first_tombstone == SIZE_MAX) first_tombstone = idx;
 
-        if (h == HASH_EMPTY) {
-            // Empty slot: key definitely not in table
-            return (first_tombstone != SIZE_MAX) ? first_tombstone : idx;
-        }
-
-        if (h == HASH_DELETED) {
-            // Tombstone: record for potential insertion, but keep probing
-            if (first_tombstone == SIZE_MAX) first_tombstone = idx;
-        } else if (meta == target) {
-            // Metadata match! Now pay the cost of pointer dereference + memcmp
-            cache_entry_t* entry = shard->entries[idx];
-
-            // Final verification: compare actual key bytes
-            if (likely(memcmp(entry->data, key, klen) == 0)) {
-                *found = true;
-                return idx;
-            }
-            // Hash collision: different key with same hash+length, continue probing
-        }
-
-        idx = (idx + 1) & mask;  // Linear probing
+        idx = (idx + 1) & mask;
         probe_count++;
     }
 
-    // Table full or wrapped around
     return (first_tombstone != SIZE_MAX) ? first_tombstone : idx;
 }
 
@@ -255,44 +271,49 @@ static size_t find_slot(aligned_cache_shard_t* shard, uint32_t hash, const char*
  * @return true if an entry was evicted, false otherwise
  */
 static bool clock_evict(aligned_cache_shard_t* shard) {
-    size_t scanned     = 0;
-    size_t mask        = shard->bucket_count - 1;
-    uint64_t* metadata = shard->metadata;
+    size_t scanned      = 0;
+    size_t mask         = shard->bucket_count - 1;
+    cache_slot_t* slots = shard->slots;
 
     // Scan up to 2 full cycles to find victim
     while (scanned < shard->bucket_count * 2) {
         size_t idx        = shard->clock_hand;
         shard->clock_hand = (shard->clock_hand + 1) & mask;  // Advance hand
 
-        uint64_t meta = metadata[idx];
+        uint64_t meta = slots[idx].metadata;
+
         // Skip empty or deleted slots
         if (meta_hash(meta) < HASH_MIN_VAL) {
             scanned++;
             continue;
         }
 
-        cache_entry_t* entry = shard->entries[idx];
+        cache_entry_t* entry = slots[idx].entry;
+
         // Atomically read and clear clock bit
-        uint8_t bit = atomic_exchange_explicit(&entry->clock_bit, 0, memory_order_relaxed);
+        uint8_t bit = atomic_load_explicit(&entry->clock_bit, memory_order_relaxed);
 
         if (bit == 0) {
             // Clock bit was already 0: evict this entry
-            shard->metadata[idx] = pack_meta(HASH_DELETED, 0);
-            shard->entries[idx]  = NULL;
+            slots[idx].metadata = pack_meta(HASH_DELETED, 0);
+            slots[idx].entry    = NULL;
             shard->size--;
             entry_ref_dec(entry);
             return true;
+        } else {
+            atomic_store_explicit(&entry->clock_bit, 0, memory_order_relaxed);
         }
+
         // Clock bit was 1: gave it a second chance, continue
         scanned++;
     }
 
     // Fallback: force evict at current clock hand position
     size_t idx = shard->clock_hand;
-    if (meta_hash(metadata[idx]) >= HASH_MIN_VAL) {
-        cache_entry_t* entry = shard->entries[idx];
-        shard->metadata[idx] = pack_meta(HASH_DELETED, 0);
-        shard->entries[idx]  = NULL;
+    if (meta_hash(slots[idx].metadata) >= HASH_MIN_VAL) {
+        cache_entry_t* entry = slots[idx].entry;
+        slots[idx].metadata  = pack_meta(HASH_DELETED, 0);
+        slots[idx].entry     = NULL;
         shard->size--;
         entry_ref_dec(entry);
         return true;
@@ -316,10 +337,6 @@ cache_t* cache_create(size_t capacity, uint32_t default_ttl) {
     if (shard_cap < 1) shard_cap = 1;
 
     c->default_ttl = default_ttl ? default_ttl : CACHE_DEFAULT_TTL;
-
-    // Track how many shards were fully initialized for proper cleanup on error
-    size_t initialized_shards = 0;
-
     for (size_t i = 0; i < CACHE_SHARD_COUNT; i++) {
         aligned_cache_shard_t* s = &c->shards[i];
         s->capacity              = shard_cap;
@@ -328,58 +345,28 @@ cache_t* cache_create(size_t capacity, uint32_t default_ttl) {
         size_t desired  = (size_t)(shard_cap * INITIAL_BUCKET_MULTIPLIER);
         s->bucket_count = next_power_of_2(desired);
 
-        // Explicitly NULL-initialize in case of allocation failure
-        s->metadata = NULL;
-        s->entries  = NULL;
-
-        // Allocate metadata array with cache-line alignment to reduce false sharing
-        if (posix_memalign((void**)&s->metadata, CACHE_LINE_SIZE, s->bucket_count * sizeof(uint64_t)) != 0) {
-            goto cleanup_error;
-        }
-        memset(s->metadata, 0, s->bucket_count * sizeof(uint64_t));
-
-        // Allocate entries array with cache-line alignment
-        if (posix_memalign((void**)&s->entries, CACHE_LINE_SIZE, s->bucket_count * sizeof(cache_entry_t*)) != 0) {
-            goto cleanup_error;
-        }
-        memset(s->entries, 0, s->bucket_count * sizeof(cache_entry_t*));
-
-        // Initialize the shard's read-write lock
-        if (!rwlock_init(&s->lock)) {
-            // Lock initialization failed; free this shard's allocations before cleanup
-            free(s->entries);
-            free(s->metadata);
-
-            s->entries  = NULL;
-            s->metadata = NULL;
+        // Allocate slots array aligned to cache line
+        // Each slot is 16 bytes, so 4 slots fit exactly in one 64-byte line
+        if (posix_memalign((void**)&s->slots, CACHE_LINE_SIZE, s->bucket_count * sizeof(cache_slot_t)) != 0) {
             goto cleanup_error;
         }
 
-        // This shard is now fully initialized
-        initialized_shards++;
+        // Hint for huge pages
+#ifdef MADV_HUGEPAGE
+        madvise(s->slots, s->bucket_count * sizeof(cache_slot_t), MADV_HUGEPAGE);
+#endif
+        memset(s->slots, 0, s->bucket_count * sizeof(cache_slot_t));
+
+        fast_rwlock_init(&s->lock);
     }
 
     return (cache_t*)c;
 
 cleanup_error:
-    // Clean up all shards: destroy locks for fully initialized ones, free all allocations
     for (size_t j = 0; j < CACHE_SHARD_COUNT; j++) {
         aligned_cache_shard_t* s = &c->shards[j];
-
-        // Only destroy lock if this shard was fully initialized
-        if (j < initialized_shards) {
-            rwlock_destroy(&s->lock);
-        }
-
-        // Free allocations if they exist (safe: all pointers are either valid or NULL)
-        if (s->metadata) {
-            free(s->metadata);
-        }
-        if (s->entries) {
-            free(s->entries);
-        }
+        free(s->slots);
     }
-
     free(c);
     return NULL;
 }
@@ -393,16 +380,16 @@ void cache_destroy(cache_t* cache_ptr) {
     struct cache_s* cache = (struct cache_s*)cache_ptr;
 
     for (int i = 0; i < CACHE_SHARD_COUNT; i++) {
-        rwlock_wrlock(&cache->shards[i].lock);
-        for (size_t j = 0; j < cache->shards[i].bucket_count; j++) {
-            if (meta_hash(cache->shards[i].metadata[j]) >= HASH_MIN_VAL) {
-                entry_ref_dec(cache->shards[i].entries[j]);
+        fast_rwlock_wrlock(&cache->shards[i].lock);
+        if (cache->shards[i].slots) {
+            for (size_t j = 0; j < cache->shards[i].bucket_count; j++) {
+                if (meta_hash(cache->shards[i].slots[j].metadata) >= HASH_MIN_VAL) {
+                    entry_ref_dec(cache->shards[i].slots[j].entry);
+                }
             }
+            free(cache->shards[i].slots);
         }
-        free(cache->shards[i].metadata);
-        free(cache->shards[i].entries);
-        rwlock_unlock_wr(&cache->shards[i].lock);
-        rwlock_destroy(&cache->shards[i].lock);
+        fast_rwlock_unlock_wr(&cache->shards[i].lock);
     }
     free(cache);
 }
@@ -424,36 +411,41 @@ const void* cache_get(cache_t* cache_ptr, const char* key, size_t* out_len) {
 
     size_t klen   = strlen(key);
     uint32_t hash = hash_key(key, klen);
+
     // Select shard using low bits of hash
     aligned_cache_shard_t* shard = &cache->shards[hash & (CACHE_SHARD_COUNT - 1)];
 
-    rwlock_rdlock(&shard->lock);
+    fast_rwlock_rdlock(&shard->lock);
 
     bool found;
     size_t idx = find_slot(shard, hash, key, klen, &found);
 
     if (!found) {
-        rwlock_unlock_rd(&shard->lock);
+        fast_rwlock_unlock_rd(&shard->lock);
         return NULL;
     }
 
-    cache_entry_t* entry = shard->entries[idx];
+    cache_slot_t* slot   = &shard->slots[idx];
+    cache_entry_t* entry = slot->entry;
 
     // Check expiration
     if (unlikely(time(NULL) >= entry->expires_at)) {
-        rwlock_unlock_rd(&shard->lock);
+        fast_rwlock_unlock_rd(&shard->lock);
         // Invalidate expired entry (requires write lock)
         cache_invalidate(cache_ptr, key);
         return NULL;
     }
 
-    // Mark as recently used for CLOCK algorithm
-    atomic_store_explicit(&entry->clock_bit, 1, memory_order_relaxed);
+    // Silent store optimization
+    if (atomic_load_explicit(&entry->clock_bit, memory_order_relaxed) == 0) {
+        // Mark as recently used for CLOCK algorithm
+        atomic_store_explicit(&entry->clock_bit, 1, memory_order_relaxed);
+    }
     entry_ref_inc(entry);  // Increment ref count before returning
 
     if (out_len) *out_len = entry->value_len;
 
-    rwlock_unlock_rd(&shard->lock);
+    fast_rwlock_unlock_rd(&shard->lock);
     return value_ptr_from_entry(entry);
 }
 
@@ -498,8 +490,7 @@ bool cache_set(cache_t* cache_ptr, const char* key, const void* value, size_t va
     memcpy(ptr + klen + 1 + sizeof(cache_entry_t*), value, value_len);
 
     aligned_cache_shard_t* shard = &cache->shards[hash & (CACHE_SHARD_COUNT - 1)];
-
-    rwlock_wrlock(&shard->lock);
+    fast_rwlock_wrlock(&shard->lock);
 
     // Evict if at capacity
     if (shard->size >= shard->capacity) {
@@ -511,18 +502,18 @@ bool cache_set(cache_t* cache_ptr, const char* key, const void* value, size_t va
 
     if (found) {
         // Update existing entry
-        cache_entry_t* old  = shard->entries[idx];
-        shard->entries[idx] = new_entry;
+        cache_entry_t* old      = shard->slots[idx].entry;
+        shard->slots[idx].entry = new_entry;
         // Metadata (hash+keylen) is identical, no update needed
         entry_ref_dec(old);  // Release old entry
     } else {
         // Insert new entry
-        shard->entries[idx]  = new_entry;
-        shard->metadata[idx] = pack_meta(hash, (uint32_t)klen);
+        shard->slots[idx].entry    = new_entry;
+        shard->slots[idx].metadata = pack_meta(hash, (uint32_t)klen);
         shard->size++;
     }
-    rwlock_unlock_wr(&shard->lock);
 
+    fast_rwlock_unlock_wr(&shard->lock);
     return true;
 }
 
@@ -537,18 +528,18 @@ void cache_invalidate(cache_t* cache_ptr, const char* key) {
     uint32_t hash                = hash_key(key, klen);
     aligned_cache_shard_t* shard = &cache->shards[hash & (CACHE_SHARD_COUNT - 1)];
 
-    rwlock_wrlock(&shard->lock);
+    fast_rwlock_wrlock(&shard->lock);
     bool found;
     size_t idx = find_slot(shard, hash, key, klen, &found);
 
     if (found) {
-        cache_entry_t* entry = shard->entries[idx];
-        shard->metadata[idx] = pack_meta(HASH_DELETED, 0);  // Mark as tombstone
-        shard->entries[idx]  = NULL;
+        cache_entry_t* entry       = shard->slots[idx].entry;
+        shard->slots[idx].metadata = pack_meta(HASH_DELETED, 0);  // Mark as tombstone
+        shard->slots[idx].entry    = NULL;
         shard->size--;
         entry_ref_dec(entry);
     }
-    rwlock_unlock_wr(&shard->lock);
+    fast_rwlock_unlock_wr(&shard->lock);
 }
 
 /**
@@ -569,20 +560,16 @@ void cache_clear(cache_t* cache_ptr) {
     struct cache_s* cache = (struct cache_s*)cache_ptr;
 
     for (int i = 0; i < CACHE_SHARD_COUNT; i++) {
-        rwlock_wrlock(&cache->shards[i].lock);
+        fast_rwlock_wrlock(&cache->shards[i].lock);
         for (size_t j = 0; j < cache->shards[i].bucket_count; j++) {
-            if (meta_hash(cache->shards[i].metadata[j]) >= HASH_MIN_VAL) {
-                entry_ref_dec(cache->shards[i].entries[j]);
+            if (meta_hash(cache->shards[i].slots[j].metadata) >= HASH_MIN_VAL) {
+                entry_ref_dec(cache->shards[i].slots[j].entry);
             }
         }
-
-        // Bulk wipe both arrays
-        memset(cache->shards[i].metadata, 0, cache->shards[i].bucket_count * sizeof(uint64_t));
-        memset(cache->shards[i].entries, 0, cache->shards[i].bucket_count * sizeof(cache_entry_t*));
-
+        memset(cache->shards[i].slots, 0, cache->shards[i].bucket_count * sizeof(cache_slot_t));
         cache->shards[i].size       = 0;
         cache->shards[i].clock_hand = 0;
-        rwlock_unlock_wr(&cache->shards[i].lock);
+        fast_rwlock_unlock_wr(&cache->shards[i].lock);
     }
 }
 
@@ -595,9 +582,9 @@ size_t get_total_cache_size(cache_t* cache_ptr) {
     struct cache_s* cache = (struct cache_s*)cache_ptr;
     size_t total          = 0;
     for (int i = 0; i < CACHE_SHARD_COUNT; i++) {
-        rwlock_rdlock(&cache->shards[i].lock);
+        fast_rwlock_rdlock(&cache->shards[i].lock);
         total += cache->shards[i].size;
-        rwlock_unlock_rd(&cache->shards[i].lock);
+        fast_rwlock_unlock_rd(&cache->shards[i].lock);
     }
     return total;
 }
@@ -611,9 +598,9 @@ size_t get_total_capacity(cache_t* cache_ptr) {
     struct cache_s* cache = (struct cache_s*)cache_ptr;
     size_t total          = 0;
     for (int i = 0; i < CACHE_SHARD_COUNT; i++) {
-        rwlock_rdlock(&cache->shards[i].lock);
+        fast_rwlock_rdlock(&cache->shards[i].lock);
         total += cache->shards[i].capacity;
-        rwlock_unlock_rd(&cache->shards[i].lock);
+        fast_rwlock_unlock_rd(&cache->shards[i].lock);
     }
     return total;
 }

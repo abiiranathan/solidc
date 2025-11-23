@@ -73,6 +73,7 @@ set(HEADERS
     include/vec.h
     include/matrix.h
     include/rwlock.h
+    include/spinlock.h
     include/cache.h
     include/dynarray.h
     include/dotenv.h
