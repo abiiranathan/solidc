@@ -1,15 +1,3 @@
-/**
- * @file cache.c
- * @brief High-performance thread-safe LRU cache with CLOCK eviction and metadata packing.
- *
- * This cache implementation uses several advanced techniques:
- * - Sharding for reduced lock contention across multiple threads
- * - Metadata packing to fit hash+keylen in a single 64-bit compare
- * - CLOCK eviction algorithm (approximation of LRU with better cache locality)
- * - Reference counting for safe concurrent access to cached values
- * - Open addressing hash table with linear probing
- * - Cache-line aligned data structures to reduce false sharing
- */
 #include "../include/arena.h"
 #include "../include/aligned_alloc.h"
 
