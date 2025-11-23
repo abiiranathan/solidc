@@ -56,13 +56,11 @@
 typedef struct cache_entry {
     atomic_int ref_count;       // Reference count for safe concurrent access
     _Atomic uint8_t clock_bit;  // CLOCK algorithm: 1 = recently used, 0 = candidate for eviction
-
-    time_t expires_at;  // Absolute expiration timestamp
-    uint32_t hash;      // Full 32-bit hash of the key
-    uint32_t key_len;   // Length of the key string (excluding null terminator)
-    size_t value_len;   // Length of the value data
-
-    unsigned char data[];  // Flexible array: [key]['\0'][back_ptr][value]
+    time_t expires_at;          // Absolute expiration timestamp
+    uint32_t hash;              // Full 32-bit hash of the key
+    uint32_t key_len;           // Length of the key string (excluding null terminator)
+    size_t value_len;           // Length of the value data
+    unsigned char data[];       // Flexible array: [key]['\0'][back_ptr][value]
 } cache_entry_t;
 
 /**
@@ -128,6 +126,7 @@ static inline uint32_t hash_key(const char* key, size_t len) {
         hash ^= (uint32_t)(unsigned char)key[i];
         hash *= 16777619u;  // FNV prime
     }
+
     // Ensure hash doesn't collide with HASH_EMPTY or HASH_DELETED
     if (unlikely(hash < HASH_MIN_VAL)) return hash + HASH_MIN_VAL;
     return hash;
@@ -318,29 +317,71 @@ cache_t* cache_create(size_t capacity, uint32_t default_ttl) {
 
     c->default_ttl = default_ttl ? default_ttl : CACHE_DEFAULT_TTL;
 
+    // Track how many shards were fully initialized for proper cleanup on error
+    size_t initialized_shards = 0;
+
     for (size_t i = 0; i < CACHE_SHARD_COUNT; i++) {
-        c->shards[i].capacity = shard_cap;
+        aligned_cache_shard_t* s = &c->shards[i];
+        s->capacity              = shard_cap;
+
         // Allocate 2x capacity to reduce collision rate
-        size_t desired            = (size_t)(shard_cap * INITIAL_BUCKET_MULTIPLIER);
-        c->shards[i].bucket_count = next_power_of_2(desired);
+        size_t desired  = (size_t)(shard_cap * INITIAL_BUCKET_MULTIPLIER);
+        s->bucket_count = next_power_of_2(desired);
+
+        // Explicitly NULL-initialize in case of allocation failure
+        s->metadata = NULL;
+        s->entries  = NULL;
 
         // Allocate metadata array with cache-line alignment to reduce false sharing
-        if (posix_memalign((void**)&c->shards[i].metadata, CACHE_LINE_SIZE,
-                           c->shards[i].bucket_count * sizeof(uint64_t)) != 0) {
-            return NULL;
+        if (posix_memalign((void**)&s->metadata, CACHE_LINE_SIZE, s->bucket_count * sizeof(uint64_t)) != 0) {
+            goto cleanup_error;
         }
-        memset(c->shards[i].metadata, 0, c->shards[i].bucket_count * sizeof(uint64_t));
+        memset(s->metadata, 0, s->bucket_count * sizeof(uint64_t));
 
         // Allocate entries array with cache-line alignment
-        if (posix_memalign((void**)&c->shards[i].entries, CACHE_LINE_SIZE,
-                           c->shards[i].bucket_count * sizeof(cache_entry_t*)) != 0) {
-            return NULL;
+        if (posix_memalign((void**)&s->entries, CACHE_LINE_SIZE, s->bucket_count * sizeof(cache_entry_t*)) != 0) {
+            goto cleanup_error;
         }
-        memset(c->shards[i].entries, 0, c->shards[i].bucket_count * sizeof(cache_entry_t*));
+        memset(s->entries, 0, s->bucket_count * sizeof(cache_entry_t*));
 
-        rwlock_init(&c->shards[i].lock);
+        // Initialize the shard's read-write lock
+        if (!rwlock_init(&s->lock)) {
+            // Lock initialization failed; free this shard's allocations before cleanup
+            free(s->entries);
+            free(s->metadata);
+
+            s->entries  = NULL;
+            s->metadata = NULL;
+            goto cleanup_error;
+        }
+
+        // This shard is now fully initialized
+        initialized_shards++;
     }
+
     return (cache_t*)c;
+
+cleanup_error:
+    // Clean up all shards: destroy locks for fully initialized ones, free all allocations
+    for (size_t j = 0; j < CACHE_SHARD_COUNT; j++) {
+        aligned_cache_shard_t* s = &c->shards[j];
+
+        // Only destroy lock if this shard was fully initialized
+        if (j < initialized_shards) {
+            rwlock_destroy(&s->lock);
+        }
+
+        // Free allocations if they exist (safe: all pointers are either valid or NULL)
+        if (s->metadata) {
+            free(s->metadata);
+        }
+        if (s->entries) {
+            free(s->entries);
+        }
+    }
+
+    free(c);
+    return NULL;
 }
 
 /**

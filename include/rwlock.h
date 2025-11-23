@@ -9,11 +9,9 @@ extern "C" {
 #ifdef _WIN32
 #include <windows.h>
 typedef SRWLOCK rwlock_t;
-#define RWLOCK_INIT SRWLOCK_INIT
 #else
 #include <pthread.h>
 typedef pthread_rwlock_t rwlock_t;
-#define RWLOCK_INIT PTHREAD_RWLOCK_INITIALIZER
 #endif
 
 // Cross-platform rwlock helpers
@@ -22,11 +20,12 @@ typedef pthread_rwlock_t rwlock_t;
 /**
  * Initializes a read-write lock.
  * @param lock Pointer to the lock to initialize.
- * @return 0 on success, non-zero error code on failure (POSIX only; Windows always succeeds).
+ * @return true on success, false on failure. On Windows, always returns true.
  * @note On Windows, this wraps InitializeSRWLock(). On POSIX, wraps pthread_rwlock_init().
  */
-static inline void rwlock_init(rwlock_t* lock) {
+static inline bool rwlock_init(rwlock_t* lock) {
     InitializeSRWLock(lock);
+    return true;  // Windows SRWLOCK initialization cannot fail
 }
 
 /**
@@ -81,11 +80,11 @@ static inline void rwlock_destroy(rwlock_t* lock) {
 /**
  * Initializes a read-write lock.
  * @param lock Pointer to the lock to initialize.
- * @return 0 on success, non-zero error code on failure (POSIX only; Windows always succeeds).
+ * @return true on success, false on failure. On Windows, always returns true.
  * @note On Windows, this wraps InitializeSRWLock(). On POSIX, wraps pthread_rwlock_init().
  */
-static inline int rwlock_init(rwlock_t* lock) {
-    return pthread_rwlock_init(lock, NULL);
+static inline bool rwlock_init(rwlock_t* lock) {
+    return pthread_rwlock_init(lock, NULL) == 0;
 }
 
 /**
