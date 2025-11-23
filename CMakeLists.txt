@@ -146,15 +146,15 @@ else()
     target_compile_options(solidc PUBLIC -Wall -Wextra -Werror -Wno-unused-function -std=c23 -mavx2 -msse4.2 -mtune=native -march=native)
     target_link_libraries(solidc PUBLIC m pthread)
     
-    # Security hardening in Release mode
-    if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        target_compile_options(solidc PRIVATE -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE -fPIC)
-    endif()
-    
     # Clang-specific settings
     if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
-        target_compile_options(solidc PRIVATE -Wno-gnu-zero-variadic-macro-arguments -fblocks)
-        # target_link_libraries(solidc PRIVATE BlocksRuntime)
+        target_compile_options(solidc PUBLIC -Wno-gnu-zero-variadic-macro-arguments -fblocks)
+        target_link_libraries(solidc PUBLIC BlocksRuntime)
+    endif()
+
+     # Security hardening in Release mode
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        target_compile_options(solidc PUBLIC -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE -fPIC)
     endif()
 endif()
 
