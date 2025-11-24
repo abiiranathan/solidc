@@ -301,6 +301,8 @@ static void run_benchmarks(void) {
     // 1. Sequential Write
     double start    = get_current_time();
     char* dummy_val = malloc(VAL_SIZE);
+    TEST_ASSERT(dummy_val != NULL, "value allocated successfully");
+
     memset(dummy_val, 'A', VAL_SIZE);
     dummy_val[VAL_SIZE - 1] = '\0';
 
@@ -413,11 +415,10 @@ int main(void) {
     test_create_destroy();
     test_set_get();
     test_update();
-    // test_expiration(); // Removed to save time, un-comment if needed
     test_lru_eviction();
     test_input_validation();
-    // test_serialization();
     test_concurrent_access();
+    test_serialization();
 
     printf("\n=================================\n");
     printf("  Passed: %d, Failed: %d\n", tests_passed, tests_failed);
