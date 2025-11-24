@@ -70,14 +70,19 @@ typedef struct {
     cache_entry_t* entry;  // Pointer to the entry
 } cache_slot_t;
 
-typedef struct ALIGNED_CACHE_LINE {
+typedef struct __attribute__((aligned(CACHE_LINE_SIZE))) {
     cache_slot_t* slots;  // Array of 16-byte slots
     size_t bucket_count;  // Hash table size (always power of 2 for fast modulo)
     size_t size;          // Current number of valid entries
     size_t capacity;      // Maximum entries before eviction triggers
     size_t clock_hand;    // CLOCK algorithm: position for next eviction scan
     fast_rwlock_t lock;   // Reader-writer lock(spin lock) for this shard
+    char _pad[CACHE_LINE_SIZE - (5 * sizeof(size_t) + sizeof(fast_rwlock_t))];
 } aligned_cache_shard_t;
+
+// / Verify at compile time that the struct is exactly one cache line
+// (Requires C11. If using older C, you can remove this check)
+_Static_assert(sizeof(aligned_cache_shard_t) == CACHE_LINE_SIZE, "Shard size mismatch: False sharing will occur");
 
 struct cache_s {
     aligned_cache_shard_t shards[CACHE_SHARD_COUNT];  // Fixed array of shards
@@ -407,11 +412,11 @@ void cache_destroy(cache_t* cache_ptr) {
  * @param out_len Output: length of the value (can be NULL)
  * @return Pointer to value on success, NULL if not found or expired
  */
-const void* cache_get(cache_t* cache_ptr, const char* key, size_t* out_len) {
-    if (unlikely(!cache_ptr || !key)) return NULL;
+const void* cache_get(cache_t* cache_ptr, const char* key, size_t klen, size_t* out_len) {
+    if (unlikely(!cache_ptr || !key || !klen)) return NULL;
+
     struct cache_s* cache = (struct cache_s*)cache_ptr;
 
-    size_t klen   = strlen(key);
     uint32_t hash = hash_key(key, klen);
 
     // Select shard using low bits of hash
@@ -459,17 +464,17 @@ const void* cache_get(cache_t* cache_ptr, const char* key, size_t* out_len) {
  *
  * @param cache_ptr The cache instance
  * @param key The key string (null-terminated)
+ * @param klen The length of the key.
  * @param value Pointer to value data
  * @param value_len Length of value data in bytes
  * @param ttl Time-to-live in seconds (0 = use default_ttl)
  * @return true on success, false on allocation failure
  */
-bool cache_set(cache_t* cache_ptr, const char* key, const void* value, size_t value_len, uint32_t ttl) {
-    if (unlikely(!cache_ptr || !key || !value)) return false;
-    struct cache_s* cache = (struct cache_s*)cache_ptr;
+bool cache_set(cache_t* cache_ptr, const char* key, size_t klen, const void* value, size_t value_len, uint32_t ttl) {
+    if (unlikely(!cache_ptr || !key | !klen || !value || !value_len)) return false;
 
-    size_t klen   = strlen(key);
-    uint32_t hash = hash_key(key, klen);
+    struct cache_s* cache = (struct cache_s*)cache_ptr;
+    uint32_t hash         = hash_key(key, klen);
 
     // Allocate single contiguous block: [entry][key]['\0'][back_ptr][value]
     size_t alloc_sz          = sizeof(cache_entry_t) + klen + 1 + sizeof(cache_entry_t*) + value_len;
@@ -778,7 +783,7 @@ bool cache_load(cache_t* cache_ptr, const char* filename) {
             uint32_t ttl = (uint32_t)((time_t)expiry - now);
 
             // cache_set handles hashing, sharding, and eviction
-            if (!cache_set(cache_ptr, kptr, val_buf, (size_t)vlen, ttl)) {
+            if (!cache_set(cache_ptr, kptr, klen, val_buf, (size_t)vlen, ttl)) {
                 // If set fails (e.g. malloc error), we stop
                 success = false;
                 break;

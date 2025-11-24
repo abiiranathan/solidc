@@ -59,16 +59,17 @@ static void test_set_get(void) {
 
     const char* key   = "test_key";
     const char* value = "test_value";
+    size_t keylen     = strlen(key);
     size_t value_len  = strlen(value);
 
     // Test set
-    bool result = cache_set(cache, key, value, value_len, 0);
+    bool result = cache_set(cache, key, keylen, value, value_len, 0);
     TEST_ASSERT(result == true, "Set operation succeeded");
     TEST_ASSERT(get_total_cache_size(cache) == 1, "Cache size incremented");
 
     // Test get
     size_t retrieved_len      = 0;
-    const void* retrieved_ptr = cache_get(cache, key, &retrieved_len);
+    const void* retrieved_ptr = cache_get(cache, key, keylen, &retrieved_len);
 
     TEST_ASSERT(retrieved_ptr != NULL, "Get operation returned valid pointer");
     TEST_ASSERT(retrieved_len == value_len, "Retrieved length matches");
@@ -80,7 +81,7 @@ static void test_set_get(void) {
     }
 
     // Test get non-existent key
-    retrieved_ptr = cache_get(cache, "nonexistent", &retrieved_len);
+    retrieved_ptr = cache_get(cache, "nonexistent", 11, &retrieved_len);
     TEST_ASSERT(retrieved_ptr == NULL, "Get non-existent key returns NULL");
 
     cache_destroy(cache);
@@ -94,20 +95,21 @@ static void test_update(void) {
     if (!cache) return;
 
     const char* key = "update_key";
+    size_t keylen   = strlen(key);
 
     // Initial set
     const char* value1 = "value1";
-    cache_set(cache, key, value1, strlen(value1), 0);
+    cache_set(cache, key, strlen(key), value1, strlen(value1), 0);
 
     // Update with new value
     const char* value2 = "value2_longer";
-    bool result        = cache_set(cache, key, value2, strlen(value2), 0);
+    bool result        = cache_set(cache, key, keylen, value2, strlen(value2), 0);
     TEST_ASSERT(result == true, "Update operation succeeded");
     TEST_ASSERT(get_total_cache_size(cache) == 1, "Cache size unchanged after update");
 
     // Verify updated value
     size_t len            = 0;
-    const void* retrieved = cache_get(cache, key, &len);
+    const void* retrieved = cache_get(cache, key, keylen, &len);
 
     TEST_ASSERT(retrieved != NULL, "Retrieved updated value");
     if (retrieved) {
@@ -132,8 +134,8 @@ static void test_lru_eviction(void) {
     int items_to_insert = 200;
     for (int i = 0; i < items_to_insert; i++) {
         char key[32];
-        snprintf(key, sizeof(key), "key%d", i);
-        cache_set(cache, key, "data", 4, 0);
+        int len = snprintf(key, sizeof(key), "key%d", i);
+        cache_set(cache, key, (size_t)len, "data", 4, 0);
     }
 
     size_t size = get_total_cache_size(cache);
@@ -145,7 +147,7 @@ static void test_lru_eviction(void) {
 
     // Verify 'key0' (oldest) is likely gone
     size_t len;
-    const void* ptr = cache_get(cache, "key0", &len);
+    const void* ptr = cache_get(cache, "key0", 4, &len);
     if (ptr) {
         printf("  Note: key0 happened to survive (statistical chance in sharding)\n");
         cache_release(ptr);
@@ -154,7 +156,7 @@ static void test_lru_eviction(void) {
     }
 
     // Verify 'key199' (newest) is likely present
-    ptr = cache_get(cache, "key199", &len);
+    ptr = cache_get(cache, "key199", 6, &len);
     TEST_ASSERT(ptr != NULL, "Newest key should be present");
     if (ptr) cache_release(ptr);
 
@@ -172,19 +174,19 @@ static void test_input_validation(void) {
     const void* ptr;
 
     // NULL cache
-    bool result = cache_set(NULL, "key", "val", 3, 0);
+    bool result = cache_set(NULL, "key", 3, "val", 3, 0);
     TEST_ASSERT(result == false, "NULL cache in set rejected");
 
     // NULL key
-    result = cache_set(cache, NULL, "val", 3, 0);
+    result = cache_set(cache, NULL, 0, "val", 3, 0);
     TEST_ASSERT(result == false, "NULL key in set rejected");
 
     // NULL value
-    result = cache_set(cache, "key", NULL, 3, 0);
+    result = cache_set(cache, "key", 3, NULL, 3, 0);
     TEST_ASSERT(result == false, "NULL value in set rejected");
 
     // Get with NULLs
-    ptr = cache_get(NULL, "key", &len);
+    ptr = cache_get(NULL, "key", 3, &len);
     TEST_ASSERT(ptr == NULL, "NULL cache in get rejected");
 
     cache_destroy(cache);
@@ -203,10 +205,10 @@ void* concurrent_reader(void* arg) {
 
     for (int i = 0; i < targ->iterations; i++) {
         char key[32];
-        snprintf(key, sizeof(key), "key%d", i % 50);
+        int keylen = snprintf(key, sizeof(key), "key%d", i % 50);
 
         size_t len;
-        const void* ptr = cache_get(targ->cache, key, &len);
+        const void* ptr = cache_get(targ->cache, key, (size_t)keylen, &len);
         if (ptr) {
             // Simulate work
             volatile char c = ((char*)ptr)[0];
@@ -223,10 +225,10 @@ static void* concurrent_writer(void* arg) {
     for (int i = 0; i < targ->iterations; i++) {
         char key[32];
         char value[64];
-        snprintf(key, sizeof(key), "key%d", i % 50);
-        snprintf(value, sizeof(value), "val_t%d_i%d", targ->thread_id, i);
+        int keylen    = snprintf(key, sizeof(key), "key%d", i % 50);
+        int value_len = snprintf(value, sizeof(value), "val_t%d_i%d", targ->thread_id, i);
 
-        cache_set(targ->cache, key, value, strlen(value), 0);
+        cache_set(targ->cache, key, (size_t)keylen, value, (size_t)value_len, 0);
     }
     return 0;
 }
@@ -304,8 +306,8 @@ static void run_benchmarks(void) {
 
     for (size_t i = 0; i < NUM_OPS; i++) {
         char key[32];
-        snprintf(key, sizeof(key), "key%zu", i % CACHE_SIZE);
-        cache_set(cache, key, dummy_val, VAL_SIZE, 0);
+        int key_len = snprintf(key, sizeof(key), "key%zu", i % CACHE_SIZE);
+        cache_set(cache, key, (size_t)key_len, dummy_val, VAL_SIZE, 0);
     }
     double end = get_current_time();
     printf("Writes: %.0f ops/sec\n", NUM_OPS / (end - start));
@@ -315,15 +317,16 @@ static void run_benchmarks(void) {
     size_t hit_count = 0;
     for (size_t i = 0; i < NUM_OPS; i++) {
         char key[32];
-        snprintf(key, sizeof(key), "key%zu", i % CACHE_SIZE);
+        int keylen = snprintf(key, sizeof(key), "key%zu", i % CACHE_SIZE);
 
         size_t len;
-        const void* ptr = cache_get(cache, key, &len);
+        const void* ptr = cache_get(cache, key, (size_t)keylen, &len);
         if (ptr) {
             hit_count++;
             cache_release(ptr);
         }
     }
+
     end = get_current_time();
     printf("Reads:  %.0f ops/sec (Hits: %zu)\n", NUM_OPS / (end - start), hit_count);
 
@@ -352,11 +355,11 @@ static void test_serialization(void) {
 
     my_struct_t val_bin = {42, 3.14159, 'Z'};
 
-    cache_set(c1, key_str, val_str, strlen(val_str), 0);
-    cache_set(c1, "bin_key", &val_bin, sizeof(val_bin), 0);
+    cache_set(c1, key_str, strlen(key_str), val_str, strlen(val_str), 0);
+    cache_set(c1, "bin_key", 7, &val_bin, sizeof(val_bin), 0);
 
     // Test Expiration: Set a key with 1 second TTL
-    cache_set(c1, "expire_key", "temp", 4, 1);
+    cache_set(c1, "expire_key", 10, "temp", 4, 1);
 
     // 2. Save to disk
     bool saved = cache_save(c1, filename);
@@ -375,7 +378,7 @@ static void test_serialization(void) {
 
     // 6. Verify String Data
     size_t len;
-    const void* ptr = cache_get(c2, key_str, &len);
+    const void* ptr = cache_get(c2, key_str, strlen(key_str), &len);
     TEST_ASSERT(ptr != NULL, "String key recovered");
     if (ptr) {
         TEST_ASSERT(len == strlen(val_str), "String length matches");
@@ -384,7 +387,7 @@ static void test_serialization(void) {
     }
 
     // 7. Verify Binary Data
-    ptr = cache_get(c2, "bin_key", &len);
+    ptr = cache_get(c2, "bin_key", 7, &len);
     TEST_ASSERT(ptr != NULL, "Binary key recovered");
     if (ptr) {
         TEST_ASSERT(len == sizeof(my_struct_t), "Binary structure length matches");
@@ -394,7 +397,7 @@ static void test_serialization(void) {
     }
 
     // 8. Verify Expiration
-    ptr = cache_get(c2, "expire_key", &len);
+    ptr = cache_get(c2, "expire_key", 10, &len);
     TEST_ASSERT(ptr == NULL, "Expired item was skipped during load");
 
     // Cleanup

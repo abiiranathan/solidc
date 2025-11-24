@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define CACHE_SHARD_COUNT         16
+#define CACHE_SHARD_COUNT         64
 #define CACHE_PROMOTION_THRESHOLD 3
 #define CACHE_DEFAULT_TTL         300
 
@@ -35,11 +35,12 @@ void cache_destroy(cache_t* cache);
  * Zero-Copy Retrieval.
  * @param cache The cache handle.
  * @param key The lookup key.
+ * @param key_len The length of the key.
  * @param out_len Pointer to store the size of the retrieved value.
  * @return Pointer to the value data, or NULL if not found.
  * @note YOU MUST CALL cache_release() on the returned pointer when done.
  */
-const void* cache_get(cache_t* cache, const char* key, size_t* out_len);
+const void* cache_get(cache_t* cache, const char* key, size_t key_len, size_t* out_len);
 
 /**
  * Releases a reference to a zero-copy value.
@@ -56,7 +57,8 @@ void cache_release(const void* ptr);
  * @param ttl_override Optional TTL in seconds (0 uses default).
  * @return true on success, false on failure.
  */
-bool cache_set(cache_t* cache, const char* key, const void* value, size_t value_len, uint32_t ttl_override);
+bool cache_set(cache_t* cache, const char* key, size_t key_len, const void* value, size_t value_len,
+               uint32_t ttl_override);
 
 /**
  * Invalidates (removes) an entry from the cache index.
