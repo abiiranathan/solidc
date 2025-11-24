@@ -5,9 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define CACHE_SHARD_COUNT         64
-#define CACHE_PROMOTION_THRESHOLD 3
-#define CACHE_DEFAULT_TTL         300
+#define CACHE_SHARD_COUNT 32
+#define CACHE_DEFAULT_TTL 300
 
 /**
  * Opaque handle to the cache.

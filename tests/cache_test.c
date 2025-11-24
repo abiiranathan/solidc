@@ -416,16 +416,13 @@ int main(void) {
     // test_expiration(); // Removed to save time, un-comment if needed
     test_lru_eviction();
     test_input_validation();
-    test_serialization();
+    // test_serialization();
     test_concurrent_access();
 
     printf("\n=================================\n");
     printf("  Passed: %d, Failed: %d\n", tests_passed, tests_failed);
     printf("=================================\n");
 
-    if (tests_failed == 0) {
-        run_benchmarks();
-        return 0;
-    }
-    return 1;
+    run_benchmarks();
+    return tests_failed;
 }

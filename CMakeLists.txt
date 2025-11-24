@@ -6,6 +6,8 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 set(CMAKE_BUILD_TYPE "Release")
 
+find_package(mimalloc 2.2 REQUIRED)
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows" OR WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
     set(IS_WINDOWS_TARGET TRUE)
     message(STATUS "Building for Windows target")
@@ -158,6 +160,10 @@ else()
         target_compile_options(solidc PUBLIC -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE -fPIC)
     endif()
 endif()
+
+# Link with mimalloc
+target_link_libraries(solidc PUBLIC mimalloc)
+
 
 # Installation: headers and library
 install(TARGETS solidc

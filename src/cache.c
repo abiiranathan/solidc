@@ -4,12 +4,8 @@
 #include <errno.h>
 #include <immintrin.h>
 #include <stdatomic.h>
-#include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <sys/mman.h>
 #include <time.h>
 
 #define CACHE_LINE_SIZE           64          // Size of CPU cache line for alignment
@@ -44,7 +40,7 @@
  * The back_pointer allows us to recover the cache_entry_t* from a returned value pointer.
  * This enables reference counting without requiring the caller to track entries.
  */
-typedef struct cache_entry {
+typedef struct __attribute__((aligned(CACHE_LINE_SIZE))) {
     atomic_int ref_count;       // Reference count for safe concurrent access
     _Atomic uint8_t clock_bit;  // CLOCK algorithm: 1 = recently used, 0 = candidate for eviction
     time_t expires_at;          // Absolute expiration timestamp
@@ -77,7 +73,6 @@ typedef struct __attribute__((aligned(CACHE_LINE_SIZE))) {
     size_t capacity;      // Maximum entries before eviction triggers
     size_t clock_hand;    // CLOCK algorithm: position for next eviction scan
     fast_rwlock_t lock;   // Reader-writer lock(spin lock) for this shard
-    char _pad[CACHE_LINE_SIZE - (5 * sizeof(size_t) + sizeof(fast_rwlock_t))];
 } aligned_cache_shard_t;
 
 // / Verify at compile time that the struct is exactly one cache line
@@ -182,7 +177,7 @@ static inline int check_slot(cache_slot_t* slot, uint64_t target_meta, const cha
     if (meta == target_meta) {
         // Pointer is already in L1 due to struct co-location
         cache_entry_t* entry = slot->entry;
-        if (likely(memcmp(entry->data, key, klen) == 0)) {
+        if (memcmp(entry->data, key, klen) == 0) {
             *found = true;
             return 1;
         }

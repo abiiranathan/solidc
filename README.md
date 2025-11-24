@@ -72,13 +72,22 @@ make TARGET=wasm SYSTEM_NAME=WebAssembly WASM_CC=emcc
 
 ## 🧱 Dependencies
 
-| Platform        | Command                                             |
-| --------------- | --------------------------------------------------- |
-| Arch Linux      | `sudo pacman -S xxhash`                             |
-| Manjaro/MingW   | `paru -S mingw-w64-xxhash`                          |
-| Debian/Ubuntu   | `sudo apt update && sudo apt install libxxhash-dev` |
-| Fedora          | `sudo dnf install xxhash-libs`                      |
-| Windows (vcpkg) | `vcpkg install xxhash`                              |
+| Platform                                     | Command                                                                              |
+| -------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **Arch Linux**                               | `sudo pacman -S xxhash mimalloc`                                                     |
+| **Manjaro / AUR**                            | `yay -S xxhash mimalloc` <br>or `paru -S xxhash mimalloc`                            |
+| **Manjaro / MingW**                          | `paru -S mingw-w64-mimalloc mingw-w64-xxhash`                                        |
+| **Debian / Ubuntu**                          | `sudo apt update && sudo apt install libxxhash-dev libmimalloc-dev`                  |
+| **Linux (via package manager, alternative)** | `sudo apt install mimalloc` (Ubuntu 24.04+, Debian 13+) <br>or build from source     |
+| **Fedora**                                   | `sudo dnf install xxhash-libs mimalloc mimalloc-devel`                               |
+| **openSUSE**                                 | `sudo zypper install libxxhash-devel mimalloc-devel`                                 |
+| **AlmaLinux / RHEL / Rocky**                 | `sudo dnf install epel-release && sudo dnf install xxhash mimalloc mimalloc-devel`   |
+| **macOS (Homebrew)**                         | `brew install xxhash mimalloc`                                                       |
+| **Windows (vcpkg)**                          | `vcpkg install xxhash mimalloc`                                                      |
+| **Windows (MSYS2)**                          | `pacman -S mingw-w64-x86_64-xxhash mingw-w64-x86_64-mimalloc`                        |
+| **Conan**                                    | `conan install xxhash/0.8.2@ conan install mimalloc/2.1.2@`                          |
+| **Build from source**                        | See [(https://github.com/microsoft/mimalloc)](https://github.com/microsoft/mimalloc) |
+
 
 ---
 

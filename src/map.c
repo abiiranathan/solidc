@@ -90,9 +90,8 @@ HashMap* map_create(const MapConfig* config) {
         return NULL;
     }
 
-    size_t capacity =
-        MAX(MIN_CAPACITY, config->initial_capacity > 0 ? next_power_of_two(config->initial_capacity)
-                                                       : INITIAL_MAP_SIZE);
+    size_t capacity = MAX(
+        MIN_CAPACITY, config->initial_capacity > 0 ? next_power_of_two(config->initial_capacity) : INITIAL_MAP_SIZE);
 
     if (capacity > SIZE_MAX / 2) {
         return NULL;
@@ -233,8 +232,7 @@ bool map_set(HashMap* m, void* key, size_t key_len, void* value) {
         }
 
         // Check for tombstone cleanup
-    } else if (m->tombstone_count > 0 &&
-               (double)m->tombstone_count / (double)m->size > TOMBSTONE_RATIO_THRESHOLD) {
+    } else if (m->tombstone_count > 0 && (double)m->tombstone_count / (double)m->size > TOMBSTONE_RATIO_THRESHOLD) {
         if (!map_resize(m, m->capacity, key_len)) {
             return false;
         }
