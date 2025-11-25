@@ -1,6 +1,10 @@
 #ifndef DYNARRAY_H
 #define DYNARRAY_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>  // for bool
 #include <stddef.h>   // for size_t
 #include <stdint.h>   // for SIZE_MAX
@@ -134,5 +138,9 @@ static inline size_t dynarray_capacity(const dynarray_t* arr) {
 static inline bool dynarray_is_empty(const dynarray_t* arr) {
     return arr == nullptr || arr->size == 0;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // DYNARRAY_H

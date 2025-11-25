@@ -1,6 +1,10 @@
 #ifndef DOTENV_H
 #define DOTENV_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -26,5 +30,9 @@
  * @return bool Returns true on success, false otherwise.
  */
 bool load_dotenv(const char* path);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // DOTENV_H

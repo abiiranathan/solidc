@@ -1,6 +1,10 @@
 #ifndef LINEAR_ALG_H
 #define LINEAR_ALG_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "matrix.h"
 #include "vec.h"
 
@@ -625,4 +629,8 @@ static inline Vec4 mat4_solve(Mat4 A, Vec4 b) {
     return x;
 }
 
-#endif /* LINEAR_ALG_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // LINEAR_ALG_H

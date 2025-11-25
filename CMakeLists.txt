@@ -71,7 +71,7 @@ set(HEADERS
     include/threadpool.h
     include/unicode.h
     include/wintypes.h
-
+    include/linear_alg.h
     include/vec.h
     include/matrix.h
     include/rwlock.h
@@ -79,8 +79,6 @@ set(HEADERS
     include/cache.h
     include/dynarray.h
     include/dotenv.h
-   
-    # Combined header
     include/solidc.h
 )
 

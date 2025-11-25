@@ -1,5 +1,9 @@
-#ifndef MATRIX_SIMD_H
-#define MATRIX_SIMD_H
+#ifndef MATRIX_H
+#define MATRIX_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <float.h>
 #include <immintrin.h>
@@ -1009,4 +1013,8 @@ static inline Mat4 mat4_look_at(Vec3 eye, Vec3 target, Vec3 up) {
     return view;
 }
 
-#endif /* MATRIX_SIMD_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // MATRIX_H

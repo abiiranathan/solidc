@@ -1,5 +1,9 @@
-#ifndef __CACHE_H__
-#define __CACHE_H__
+#ifndef CACHE_H
+#define CACHE_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -111,4 +115,8 @@ bool cache_save(cache_t* cache_ptr, const char* filename);
  */
 bool cache_load(cache_t* cache_ptr, const char* filename);
 
-#endif  // __CACHE_H__
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // CACHE_H
