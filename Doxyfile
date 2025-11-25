@@ -4,19 +4,18 @@ PROJECT_BRIEF          = "Robust collection of general-purpose cross-platform C 
 PROJECT_VERSION        = "1.0.0"
 
 # Input/Output
-INPUT                  = ./include ./src
-FILE_PATTERNS          = *.h *.c *.hpp *.cpp
+INPUT                  = ./include
+FILE_PATTERNS          = *.h
 RECURSIVE              = YES
 OUTPUT_DIRECTORY       = ./docs
 
-# Extract everything
-EXTRACT_ALL            = YES
-EXTRACT_PRIVATE        = YES
-EXTRACT_STATIC         = YES
-
-# Generate documentation for undocumented members
-HIDE_UNDOC_MEMBERS     = NO
-HIDE_UNDOC_CLASSES     = NO
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = NO
+EXTRACT_LOCAL_CLASSES  = NO
+HIDE_UNDOC_MEMBERS     = YES
+HIDE_UNDOC_CLASSES     = YES
+HIDE_IN_BODY_DOCS      = YES
 
 # Output formats
 GENERATE_HTML          = YES
