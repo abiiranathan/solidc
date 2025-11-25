@@ -4,11 +4,26 @@
 #include "matrix.h"
 #include "vec.h"
 
+/**
+ * Orthonormal basis consisting of three mutually perpendicular unit vectors.
+ * Forms a right-handed coordinate system.
+ */
 typedef struct {
-    Vec3 v0, v1, v2;
+    Vec3 v0; /**< First basis vector (normalized). */
+    Vec3 v1; /**< Second basis vector (normalized, orthogonal to v0). */
+    Vec3 v2; /**< Third basis vector (cross product of v0 and v1). */
 } OrthonormalBasis;
 
-// Gram-Schmidt orthogonalization
+/**
+ * Constructs an orthonormal basis from two input vectors using Gram-Schmidt orthogonalization.
+ * The first vector v0 is normalized. The second vector v1 is made orthogonal to v0 and normalized.
+ * The third vector v2 is computed as the cross product of v0 and v1.
+ *
+ * @param v0 First input vector. Should not be zero.
+ * @param v1 Second input vector. Should not be collinear with v0.
+ * @return OrthonormalBasis containing three orthonormal vectors forming a right-handed basis.
+ * @note If input vectors are nearly collinear, numerical stability may be poor.
+ */
 static inline OrthonormalBasis orthonormalize(Vec3 v0, Vec3 v1) {
     v0 = vec3_normalize(v0);
 
@@ -21,15 +36,24 @@ static inline OrthonormalBasis orthonormalize(Vec3 v0, Vec3 v1) {
     return (OrthonormalBasis){v0, v1, v2};
 }
 
+/**
+ * Result of eigenvalue decomposition for a 3x3 matrix.
+ * Contains eigenvalues and corresponding eigenvectors.
+ */
 typedef struct {
-    Vec3 eigenvalues;
-    Mat3 eigenvectors;  // columns are eigenvectors
+    Vec3 eigenvalues;  /**< Eigenvalues (one per component). */
+    Mat3 eigenvectors; /**< Eigenvectors stored as columns (column-major). */
 } EigenDecomposition;
 
 /**
- * Computes eigenvalues/vectors of symmetric 3x3 matrix
- * @param A Input symmetric Mat3
- * @return  EigenDecomposition struct with eigen vectors and values.
+ * Computes eigenvalues and eigenvectors of a symmetric 3x3 matrix using Jacobi iteration.
+ * The algorithm iteratively applies Jacobi rotations to diagonalize the matrix.
+ * Converges for symmetric matrices.
+ *
+ * @param A Input symmetric 3x3 matrix (column-major). Must be symmetric for correct results.
+ * @return EigenDecomposition containing eigenvalues and eigenvectors (as columns).
+ * @note Maximum 32 iterations. Convergence tolerance is 1e-10 for off-diagonal elements.
+ * @note Eigenvectors are stored as columns in the eigenvectors matrix.
  */
 static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
     EigenDecomposition result;
@@ -97,6 +121,19 @@ static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
     return result;
 }
 
+/**
+ * Computes Singular Value Decomposition (SVD) of a 3x3 matrix.
+ * Decomposes A into A = U * S * V^T, where U and V are orthogonal matrices
+ * and S is a diagonal matrix of singular values.
+ *
+ * @param A Input 3x3 matrix (column-major).
+ * @param U Output left singular vectors as columns (column-major). Must not be nullptr.
+ * @param S Output singular values in descending order. Must not be nullptr.
+ * @param V Output right singular vectors as columns (column-major). Must not be nullptr.
+ * @note Singular values are sorted in descending order.
+ * @note For rank-deficient matrices, orthonormalizes U to ensure valid orthogonal matrix.
+ * @note Ensures det(U) = +1 by flipping last column if necessary.
+ */
 static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
     // Step 1: Compute ATA = A^T * A (column-major aware)
     Mat3 ATA = {};
@@ -147,9 +184,7 @@ static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
         float sigma = ((float*)S)[i];
         if (sigma > 1e-6f) {
             for (int j = 0; j < 3; ++j) {  // row
-                U->m[i][j] =
-                    (A.m[0][j] * V->m[i][0] + A.m[1][j] * V->m[i][1] + A.m[2][j] * V->m[i][2]) /
-                    sigma;
+                U->m[i][j] = (A.m[0][j] * V->m[i][0] + A.m[1][j] * V->m[i][1] + A.m[2][j] * V->m[i][2]) / sigma;
             }
         } else {
             U->m[i][0] = U->m[i][1] = U->m[i][2] = 0.0f;
@@ -164,6 +199,7 @@ static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
         Vec3 u0 = {U->m[0][0], U->m[0][1], U->m[0][2]};
         Vec3 u1 = {U->m[1][0], U->m[1][1], U->m[1][2]};
         Vec3 u2 = {u0.y * u1.z - u0.z * u1.y, u0.z * u1.x - u0.x * u1.z, u0.x * u1.y - u0.y * u1.x};
+
         U->m[2][0] = u2.x;
         U->m[2][1] = u2.y;
         U->m[2][2] = u2.z;
@@ -177,11 +213,14 @@ static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
 }
 
 /**
- * QR Decomposition for 4x4 matrix
- * A = Q * R
- * @param A Input Mat4
- * @param Q Output orthogonal Mat4
- * @param R Output upper triangular Mat4
+ * Computes QR decomposition of a 4x4 matrix using Gram-Schmidt orthogonalization.
+ * Decomposes A into A = Q * R, where Q is orthogonal and R is upper triangular.
+ *
+ * @param A Input 4x4 matrix (column-major).
+ * @param Q Output orthogonal 4x4 matrix (column-major). Must not be nullptr.
+ * @param R Output upper triangular 4x4 matrix (column-major). Must not be nullptr.
+ * @note Uses modified Gram-Schmidt for better numerical stability.
+ * @note Lower triangle of R is explicitly zeroed.
  */
 static inline void mat4_qr(Mat4 A, Mat4* Q, Mat4* R) {
     Vec4 v[4], q[4];
@@ -222,15 +261,19 @@ static inline void mat4_qr(Mat4 A, Mat4* Q, Mat4* R) {
 }
 
 /**
- * Power iteration for dominant eigenpair of 4x4 matrix
- * @param A Input Mat4
- * @param eigenvector Output Vec4
- * @param eigenvalue Output float
- * @param max_iter Maximum iterations
- * @param tol Tolerance
+ * Computes the dominant eigenpair of a 4x4 matrix using power iteration.
+ * Iteratively multiplies a vector by the matrix to find the eigenvector
+ * corresponding to the largest eigenvalue (in magnitude).
+ *
+ * @param A Input 4x4 matrix (column-major).
+ * @param eigenvector Output dominant eigenvector (normalized). Must not be nullptr.
+ * @param eigenvalue Output dominant eigenvalue. Must not be nullptr.
+ * @param max_iter Maximum number of iterations.
+ * @param tol Convergence tolerance for eigenvalue change.
+ * @note Converges to the eigenvector with largest absolute eigenvalue.
+ * @note May not converge if multiple eigenvalues have equal magnitude.
  */
-static inline void mat4_power_iteration(Mat4 A, Vec4* eigenvector, float* eigenvalue, int max_iter,
-                                        float tol) {
+static inline void mat4_power_iteration(Mat4 A, Vec4* eigenvector, float* eigenvalue, int max_iter, float tol) {
     Vec4 v = {1.0f, 0.0f, 0.0f, 0.0f};  // Start with an arbitrary vector
     Vec4 Av;
     float lambda_old = 0.0f;
@@ -240,10 +283,10 @@ static inline void mat4_power_iteration(Mat4 A, Vec4* eigenvector, float* eigenv
         Av = mat4_mul_vec4(A, v);
 
         // Compute the Rayleigh quotient (approximation of eigenvalue)
-        *eigenvalue = vec4_dot(Av, v);  // Eigenvalue is the dot product of Av and v
+        *eigenvalue = vec4_dot(Av, v);
 
-        // Normalize the resulting vector
-        vec4_normalize(Av);
+        // Normalize the resulting vector (FIXED: was missing assignment)
+        Av = vec4_normalize(Av);
 
         // Check for convergence
         if (fabsf(*eigenvalue - lambda_old) < tol) {
@@ -261,7 +304,12 @@ static inline void mat4_power_iteration(Mat4 A, Vec4* eigenvector, float* eigenv
 }
 
 /**
- * Computes Frobenius norm of 4x4 matrix
+ * Computes the Frobenius norm of a 4x4 matrix.
+ * The Frobenius norm is the square root of the sum of squared elements.
+ *
+ * @param A Input 4x4 matrix (column-major).
+ * @return Frobenius norm as a non-negative float.
+ * @note Equivalent to treating the matrix as a 16-element vector and computing its L2 norm.
  */
 static inline float mat4_norm_frobenius(Mat4 A) {
     float norm = 0.0f;
@@ -274,23 +322,38 @@ static inline float mat4_norm_frobenius(Mat4 A) {
 }
 
 /**
- * Checks if 3x3 matrix is positive definite
+ * Checks if a 3x3 matrix is positive definite using Sylvester's criterion.
+ * A symmetric matrix is positive definite if all leading principal minors are positive.
+ *
+ * @param A Input 3x3 matrix (column-major). Should be symmetric for meaningful results.
+ * @return true if all leading principal minors are positive, false otherwise.
+ * @note For non-symmetric matrices, this test may not be meaningful.
+ * @note FIXED: Now correctly checks all three leading principal minors.
  */
 static inline bool mat3_is_positive_definite(Mat3 A) {
-    float det1 = mat3_determinant(A);
-    if (det1 <= 0.0f) return false;
+    // First leading principal minor: A[0][0]
+    if (A.m[0][0] <= 0.0f) return false;
 
-    Mat3 A1    = A;
-    A1.m[2][0] = A1.m[2][1] = A1.m[2][2] = 0.0f;
-
-    float det2 = mat3_determinant(A1);
+    // Second leading principal minor: det([[A[0][0], A[1][0]], [A[0][1], A[1][1]]])
+    float det2 = A.m[0][0] * A.m[1][1] - A.m[1][0] * A.m[0][1];
     if (det2 <= 0.0f) return false;
+
+    // Third leading principal minor: det(A)
+    float det3 = mat3_determinant(A);
+    if (det3 <= 0.0f) return false;
 
     return true;
 }
 
 /**
- * Computes condition number of 4x4 matrix
+ * Computes the condition number of a 4x4 matrix.
+ * The condition number is ||A|| * ||A^-1|| where ||.|| is the Frobenius norm.
+ * Measures how sensitive the solution of Ax=b is to perturbations in A or b.
+ *
+ * @param A Input 4x4 matrix (column-major).
+ * @return Condition number. Returns FLT_MAX if matrix is singular (non-invertible).
+ * @note Large condition numbers indicate ill-conditioned matrices.
+ * @note A condition number near 1 indicates a well-conditioned matrix.
  */
 static inline float mat4_condition_number(Mat4 A) {
     Mat4 A_inv;
@@ -373,8 +436,7 @@ static inline Vec4 forward_substitution_mat4(Mat4 L, Vec4 b) {
     x_arr[2] = (b.z - (L.m[0][2] * x_arr[0] + L.m[1][2] * x_arr[1])) / L.m[2][2];
 
     // i = 3
-    x_arr[3] =
-        (b.w - (L.m[0][3] * x_arr[0] + L.m[1][3] * x_arr[1] + L.m[2][3] * x_arr[2])) / L.m[3][3];
+    x_arr[3] = (b.w - (L.m[0][3] * x_arr[0] + L.m[1][3] * x_arr[1] + L.m[2][3] * x_arr[2])) / L.m[3][3];
 
     return x;
 }

@@ -44,3 +44,5 @@ example.c
 perf.data*
 *_new.c
 cmake-build-debug
+
+docs/

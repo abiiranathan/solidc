@@ -1,0 +1,41 @@
+# Project information
+PROJECT_NAME           = "solidc"
+PROJECT_BRIEF          = "Robust collection of general-purpose cross-platform C libraries and data structures designed for rapid and safe development in C"
+PROJECT_VERSION        = "1.0.0"
+
+# Input/Output
+INPUT                  = ./include ./src
+FILE_PATTERNS          = *.h *.c *.hpp *.cpp
+RECURSIVE              = YES
+OUTPUT_DIRECTORY       = ./docs
+
+# Extract everything
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+
+# Generate documentation for undocumented members
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+
+# Output formats
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+HTML_OUTPUT            = html
+
+# Source browsing
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+
+# Graphs (requires graphviz)
+HAVE_DOT               = YES
+CALL_GRAPH             = YES
+CALLER_GRAPH           = YES
+DOT_IMAGE_FORMAT       = svg
+INTERACTIVE_SVG        = YES
+
+# Warnings
+WARN_IF_UNDOCUMENTED   = YES
+WARN_NO_PARAMDOC       = YES

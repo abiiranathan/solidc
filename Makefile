@@ -69,3 +69,6 @@ debug:
 
 release:
 	$(MAKE) BUILD_TYPE=Release
+
+docs:
+	doxygen Doxyfile
