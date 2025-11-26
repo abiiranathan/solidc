@@ -45,7 +45,7 @@ test: build
 	@echo "Running tests..."
 	cd $(BUILD_DIR) && ctest --output-on-failure
 
-install: build
+install:
 	@echo "Installing to $(INSTALL_PREFIX)"
 	cd $(BUILD_DIR) && sudo ninja install
 

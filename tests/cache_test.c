@@ -379,7 +379,7 @@ static void test_serialization(void) {
     TEST_ASSERT(loaded == true, "Cache loaded from file successfully");
 
     // 6. Verify String Data
-    size_t len;
+    size_t len      = 0;
     const void* ptr = cache_get(c2, key_str, strlen(key_str), &len);
     TEST_ASSERT(ptr != NULL, "String key recovered");
     if (ptr) {

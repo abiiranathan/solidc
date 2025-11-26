@@ -656,6 +656,9 @@ bool cache_save(cache_t* cache_ptr, const char* filename) {
             if (meta_hash(slot->metadata) < HASH_MIN_VAL) continue;
 
             cache_entry_t* entry = slot->entry;
+            if (!entry) {
+                continue;
+            }
 
             // Skip expired entries
             if (entry->expires_at <= time(NULL)) continue;
@@ -667,6 +670,9 @@ bool cache_save(cache_t* cache_ptr, const char* filename) {
 
             // Get pointer to the value data
             const void* val_ptr = value_ptr_from_entry(entry);
+            if (!val_ptr) {
+                continue;
+            }
 
             // Write: [KeyLen][ValLen][Expiry][KeyBytes][ValBytes]
             if (!file_write_chk(&klen, sizeof(klen), 1, f) || !file_write_chk(&vlen, sizeof(vlen), 1, f) ||

@@ -4,7 +4,6 @@ project(solidc VERSION 0.2.5 LANGUAGES C)
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
-set(CMAKE_BUILD_TYPE "Release")
 
 find_package(mimalloc 2.2 REQUIRED)
 

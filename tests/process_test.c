@@ -6,14 +6,14 @@
 #include <string.h>
 #include <unistd.h>
 
-#define LOG_ERROR(fmt, ...)                                                                        \
+#define LOG_ERROR(fmt, ...)                                                                                            \
     fprintf(stderr, "[ERROR]: %s:%d:%s(): " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
-#define LOG_ASSERT(condition, fmt, ...)                                                            \
-    do {                                                                                           \
-        if (!(condition)) {                                                                        \
-            LOG_ERROR("Assertion failed: " #condition " " fmt, ##__VA_ARGS__);                     \
-        }                                                                                          \
+#define LOG_ASSERT(condition, fmt, ...)                                                                                \
+    do {                                                                                                               \
+        if (!(condition)) {                                                                                            \
+            LOG_ERROR("Assertion failed: " #condition " " fmt, ##__VA_ARGS__);                                         \
+        }                                                                                                              \
     } while (0)
 
 void test_pipe_create() {
@@ -36,8 +36,7 @@ void test_pipe_read_write() {
     size_t bytes_written = 0;
     err                  = pipe_write(pipe_handle, msg, strlen(msg), &bytes_written, 1000);
     LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_write failed: %s", process_error_string(err));
-    LOG_ASSERT(bytes_written == strlen(msg), "Incorrect number of bytes written: %zu",
-               bytes_written);
+    LOG_ASSERT(bytes_written == strlen(msg), "Incorrect number of bytes written: %zu", bytes_written);
 
     char buffer[128]  = {0};
     size_t bytes_read = 0;
@@ -56,12 +55,10 @@ void test_pipe_timeout() {
     char buffer[128]  = {0};
     size_t bytes_read = 0;
     err               = pipe_read(pipe_handle, buffer, sizeof(buffer), &bytes_read, 0);
-    LOG_ASSERT(err == PROCESS_ERROR_IO, "pipe_read did not time out as expected: %s",
-               process_error_string(err));
+    LOG_ASSERT(err == PROCESS_ERROR_IO, "pipe_read did not time out as expected: %s", process_error_string(err));
 
     err = pipe_write(pipe_handle, "Test", 4, &bytes_read, 0);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_write did not time out as expected: %s",
-               process_error_string(err));
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_write did not time out as expected: %s", process_error_string(err));
 
     pipe_close(pipe_handle);
 }
@@ -69,22 +66,18 @@ void test_pipe_timeout() {
 void test_process_error_handling() {
     // Test a scenario where process creation would fail
     ProcessError err = PROCESS_ERROR_UNKNOWN;
-    LOG_ASSERT(strcmp(process_error_string(err), "Unknown error") == 0,
-               "process_system_error failed");
+    LOG_ASSERT(strcmp(process_error_string(err), "Unknown error") == 0, "process_system_error failed");
 }
 
 void test_process_error_string() {
     const char* error_str = process_error_string(PROCESS_ERROR_INVALID_ARGUMENT);
-    LOG_ASSERT(strcmp(error_str, "Invalid argument") == 0,
-               "Error string mismatch for PROCESS_ERROR_INVALID_ARGUMENT");
+    LOG_ASSERT(strcmp(error_str, "Invalid argument") == 0, "Error string mismatch for PROCESS_ERROR_INVALID_ARGUMENT");
 
     error_str = process_error_string(PROCESS_ERROR_MEMORY);
-    LOG_ASSERT(strcmp(error_str, "Memory allocation failed") == 0,
-               "Error string mismatch for PROCESS_ERROR_MEMORY");
+    LOG_ASSERT(strcmp(error_str, "Memory allocation failed") == 0, "Error string mismatch for PROCESS_ERROR_MEMORY");
 
     error_str = process_error_string(PROCESS_ERROR_UNKNOWN);
-    LOG_ASSERT(strcmp(error_str, "Unknown error") == 0,
-               "Error string mismatch for PROCESS_ERROR_UNKNOWN");
+    LOG_ASSERT(strcmp(error_str, "Unknown error") == 0, "Error string mismatch for PROCESS_ERROR_UNKNOWN");
 }
 
 void test_pipe_close() {
@@ -119,6 +112,8 @@ void test_process_pipe_integration() {
     LOG_ASSERT(err == PROCESS_SUCCESS, "process creation failed");
 
     err = process_wait(process, &result, -1);
+    process_free(process);
+
     puts(process_error_string(err));
     LOG_ASSERT(err == PROCESS_SUCCESS, "process wait failed");
     LOG_ASSERT(result.exited_normally, "Process exited normally");
@@ -149,6 +144,7 @@ void test_process_pipe_integration_std() {
     err = process_create(&process, cmd, argv, NULL);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process creation failed");
     err = process_wait(process, &result, -1);
+    process_free(process);
 
     LOG_ASSERT(err == PROCESS_SUCCESS, "process wait failed");
     LOG_ASSERT(result.exited_normally, "Process exited normally");
@@ -180,8 +176,8 @@ void test_process_run_and_capture_ouput(void) {
     size_t read = 0;
 
     err = pipe_read(ph, buffer, sizeof(buffer), &read, 1000);
-    LOG_ASSERT(err == PROCESS_SUCCESS && read > 0, "pipe read failed: read %zu: %s", read,
-               process_error_string(err));
+    LOG_ASSERT(err == PROCESS_SUCCESS && read > 0, "pipe read failed: read %zu: %s", read, process_error_string(err));
+    pipe_close(ph);
 }
 
 #ifndef _WIN32
@@ -202,6 +198,7 @@ void test_redirect_to_file() {
     err = process_wait(handle, &result, -1);
     LOG_ASSERT(err == PROCESS_SUCCESS && result.exit_code == 0, "process_wait failed: %s[%d]",
                process_error_string(err), result.exit_code);
+    process_free(handle);
 }
 
 void test_tee_to_multiple_destinations() {
@@ -269,8 +266,12 @@ void test_process_create_with_redirection() {
 
     ProcessResult res;
     err = process_wait(handle, &res, -1);
-    LOG_ASSERT(err == PROCESS_SUCCESS && res.exited_normally, "pipe_wait failed with code: %d: %s",
-               res.exit_code, process_error_string(err));
+    process_free(handle);
+    LOG_ASSERT(err == PROCESS_SUCCESS && res.exited_normally, "pipe_wait failed with code: %d: %s", res.exit_code,
+               process_error_string(err));
+
+    pipe_close(stdin_pipe);
+    pipe_close(stdout_pipe);
 }
 #endif
 
