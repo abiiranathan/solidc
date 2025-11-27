@@ -503,6 +503,73 @@ void test_capture_large_output(void) {
     pipe_close(stdout_pipe);
 }
 
+/**
+ * @brief Test bidirectional communication: Write to stdin -> Read from stdout
+ * Uses 'cat' to echo data back.
+ */
+void test_stdin_stdout_echo(void) {
+    ProcessHandle* process = NULL;
+    PipeHandle *stdin_pipe = NULL, *stdout_pipe = NULL;
+
+    ProcessError err = pipe_create(&stdin_pipe);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "stdin pipe_create failed: %s", process_error_string(err));
+
+    err = pipe_create(&stdout_pipe);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "stdout pipe_create failed: %s", process_error_string(err));
+
+    // Configure process options to use our pipes
+    ProcessOptions options = {
+        .inherit_environment = true,
+        .io.stdin_pipe       = stdin_pipe,   // Child reads from this
+        .io.stdout_pipe      = stdout_pipe,  // Child writes to this
+    };
+
+    // 3. Spawn 'cat'
+    // 'cat' reads from stdin and prints to stdout
+    const char* cmd    = "cat";
+    const char* argv[] = {cmd, NULL};
+
+    err = process_create(&process, cmd, argv, &options);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
+
+    // 4. Write data to the process's stdin
+    const char* input_data = "Echo this data back to me!";
+    size_t bytes_written   = 0;
+
+    // We write to the pipe. The child ('cat') reads this.
+    err = pipe_write(stdin_pipe, input_data, strlen(input_data), &bytes_written, 1000);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_write failed: %s", process_error_string(err));
+    LOG_ASSERT(bytes_written == strlen(input_data), "Partial write");
+
+    // CRITICAL: Close the stdin pipe
+    // This sends EOF to 'cat'. Without this, 'cat' will wait forever for more input,
+    // potentially causing the subsequent read or wait to hang (deadlock).
+    pipe_close(stdin_pipe);
+
+    // Read the echoed data from the process's stdout
+    char buffer[128]  = {0};
+    size_t bytes_read = 0;
+
+    err = pipe_read(stdout_pipe, buffer, sizeof(buffer) - 1, &bytes_read, 1000);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_read failed: %s", process_error_string(err));
+
+    // Verify Data
+    buffer[bytes_read] = '\0';
+    LOG_ASSERT(strcmp(buffer, input_data) == 0, "Data mismatch.\nSent: '%s'\nGot:  '%s'", input_data, buffer);
+
+    // Wait for process to exit
+    // Since we sent EOF (step 5), cat should exit gracefully now.
+    ProcessResult result = {};
+    err                  = process_wait(process, &result, 1000);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
+    LOG_ASSERT(result.exit_code == 0, "Expected exit code 0");
+    printf("stdout pipe got: %s\n", buffer);
+
+    // 9. Cleanup
+    process_free(process);
+    pipe_close(stdout_pipe);
+}
+
 // ============================================================================
 // MAIN TEST RUNNER
 // ============================================================================
@@ -529,6 +596,7 @@ int main(void) {
     test_capture_stdout_and_stderr_separate();
     test_capture_merged_stderr_to_stdout();
     test_capture_large_output();
+    test_stdin_stdout_echo();
 
     printf("\n=== All Extended Tests Passed! ===\n");
     return 0;
