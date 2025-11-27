@@ -47,7 +47,8 @@ test: build
 
 install:
 	@echo "Installing to $(INSTALL_PREFIX)"
-	cd $(BUILD_DIR) && sudo ninja install
+	# This installs the artifacts without triggering a build check
+	sudo cmake --install $(BUILD_DIR) --prefix $(INSTALL_PREFIX)
 
 clean:
 	rm -rf $(BUILD_DIR) .cache a.out
