@@ -1,25 +1,50 @@
 /**
- * @file test_process_extended.c
+ * @file test_process.c
  * @brief Extended test suite for process management API with focus on timeouts,
  *        environment variables, and pipe capture
  */
 
 #include "../include/process.h"
+#include "../include/thread.h"
 
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+// ============================================================================
+// LOGGING UTILITIES
+// ============================================================================
+
+// ANSI Color codes
+#define COLOR_RED    "\033[0;31m"
+#define COLOR_GREEN  "\033[0;32m"
+#define COLOR_YELLOW "\033[0;33m"
+#define COLOR_CYAN   "\033[0;36m"
+#define COLOR_RESET  "\033[0m"
+
 #define LOG_ERROR(fmt, ...)                                                                                            \
-    fprintf(stderr, "[ERROR]: %s:%d:%s(): " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+    fprintf(stderr, COLOR_RED "[ERROR]: %s:%d:%s(): " fmt COLOR_RESET "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
 #define LOG_ASSERT(condition, fmt, ...)                                                                                \
     do {                                                                                                               \
         if (!(condition)) {                                                                                            \
             LOG_ERROR("Assertion failed: " #condition " " fmt, ##__VA_ARGS__);                                         \
+            exit(EXIT_FAILURE);                                                                                        \
         }                                                                                                              \
+    } while (0)
+
+#define LOG_SECTION(name) printf("\n" COLOR_CYAN "=== %s ===" COLOR_RESET "\n", name)
+
+/**
+ * @brief Macro to run a test function with automatic logging
+ */
+#define RUN_TEST(test_func)                                                                                            \
+    do {                                                                                                               \
+        printf("  Running %-45s ... ", #test_func);                                                                    \
+        fflush(stdout);                                                                                                \
+        test_func();                                                                                                   \
+        printf(COLOR_GREEN "PASSED" COLOR_RESET "\n");                                                                 \
     } while (0)
 
 // ============================================================================
@@ -37,7 +62,7 @@ void test_pipe_read_immediate_timeout(void) {
     char buffer[128]  = {0};
     size_t bytes_read = 0;
 
-    // Read with 0ms timeout should return immediately (non-blocking)
+    // Read with 0ms timeout should return immediately.
     err = pipe_read(pipe, buffer, sizeof(buffer), &bytes_read, 0);
     LOG_ASSERT(err == PROCESS_ERROR_WOULD_BLOCK, "Expected would block error, got: %s", process_error_string(err));
     LOG_ASSERT(bytes_read == 0, "Expected no bytes read, got: %zu", bytes_read);
@@ -83,7 +108,7 @@ void test_pipe_read_short_timeout(void) {
 }
 
 void* writer_fn(void* arg) {
-    usleep(200000);  // Sleep 200ms
+    sleep_ms(200);
     const char* msg = "Delayed message";
     size_t written  = 0;
     pipe_write((PipeHandle*)arg, msg, strlen(msg), &written, -1);
@@ -99,8 +124,8 @@ void test_pipe_read_infinite_timeout(void) {
     LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_create failed: %s", process_error_string(err));
 
     // Write data in a separate thread after a delay
-    pthread_t writer_thread;
-    pthread_create(&writer_thread, NULL, writer_fn, pipe);
+    Thread writer_thread;
+    thread_create(&writer_thread, writer_fn, pipe);
 
     char buffer[128]  = {0};
     size_t bytes_read = 0;
@@ -111,7 +136,7 @@ void test_pipe_read_infinite_timeout(void) {
     LOG_ASSERT(bytes_read > 0, "Expected data, got %zu bytes", bytes_read);
     LOG_ASSERT(strcmp(buffer, "Delayed message") == 0, "Read data mismatch: %s", buffer);
 
-    pthread_join(writer_thread, NULL);
+    thread_join(writer_thread, NULL);
     pipe_close(pipe);
 }
 
@@ -505,7 +530,6 @@ void test_capture_large_output(void) {
 
 /**
  * @brief Test bidirectional communication: Write to stdin -> Read from stdout
- * Uses 'cat' to echo data back.
  */
 void test_stdin_stdout_echo(void) {
     ProcessHandle* process = NULL;
@@ -517,55 +541,41 @@ void test_stdin_stdout_echo(void) {
     err = pipe_create(&stdout_pipe);
     LOG_ASSERT(err == PROCESS_SUCCESS, "stdout pipe_create failed: %s", process_error_string(err));
 
-    // Configure process options to use our pipes
     ProcessOptions options = {
         .inherit_environment = true,
-        .io.stdin_pipe       = stdin_pipe,   // Child reads from this
-        .io.stdout_pipe      = stdout_pipe,  // Child writes to this
+        .io.stdin_pipe       = stdin_pipe,
+        .io.stdout_pipe      = stdout_pipe,
     };
 
-    // 3. Spawn 'cat'
-    // 'cat' reads from stdin and prints to stdout
     const char* cmd    = "cat";
     const char* argv[] = {cmd, NULL};
 
     err = process_create(&process, cmd, argv, &options);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
 
-    // 4. Write data to the process's stdin
     const char* input_data = "Echo this data back to me!";
     size_t bytes_written   = 0;
 
-    // We write to the pipe. The child ('cat') reads this.
     err = pipe_write(stdin_pipe, input_data, strlen(input_data), &bytes_written, 1000);
     LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_write failed: %s", process_error_string(err));
     LOG_ASSERT(bytes_written == strlen(input_data), "Partial write");
 
-    // CRITICAL: Close the stdin pipe
-    // This sends EOF to 'cat'. Without this, 'cat' will wait forever for more input,
-    // potentially causing the subsequent read or wait to hang (deadlock).
     pipe_close(stdin_pipe);
 
-    // Read the echoed data from the process's stdout
     char buffer[128]  = {0};
     size_t bytes_read = 0;
 
     err = pipe_read(stdout_pipe, buffer, sizeof(buffer) - 1, &bytes_read, 1000);
     LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_read failed: %s", process_error_string(err));
 
-    // Verify Data
     buffer[bytes_read] = '\0';
     LOG_ASSERT(strcmp(buffer, input_data) == 0, "Data mismatch.\nSent: '%s'\nGot:  '%s'", input_data, buffer);
 
-    // Wait for process to exit
-    // Since we sent EOF (step 5), cat should exit gracefully now.
     ProcessResult result = {};
     err                  = process_wait(process, &result, 1000);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
     LOG_ASSERT(result.exit_code == 0, "Expected exit code 0");
-    printf("stdout pipe got: %s\n", buffer);
 
-    // 9. Cleanup
     process_free(process);
     pipe_close(stdout_pipe);
 }
@@ -575,29 +585,31 @@ void test_stdin_stdout_echo(void) {
 // ============================================================================
 
 int main(void) {
-    printf("=== Running Extended Process Tests ===\n\n");
+    printf(COLOR_CYAN "=== Running Extended Process Tests ===\n" COLOR_RESET);
 
-    printf("--- Timeout Tests ---\n");
-    test_pipe_read_immediate_timeout();
-    test_pipe_write_immediate_timeout();
-    test_pipe_read_short_timeout();
-    test_pipe_read_infinite_timeout();
-    test_process_wait_with_timeout();
-    test_process_wait_no_timeout();
+    LOG_SECTION("Timeout Tests");
+    RUN_TEST(test_pipe_read_immediate_timeout);
+    RUN_TEST(test_pipe_write_immediate_timeout);
+    RUN_TEST(test_pipe_read_short_timeout);
+    RUN_TEST(test_pipe_read_infinite_timeout);
+    RUN_TEST(test_process_wait_with_timeout);
+    RUN_TEST(test_process_wait_no_timeout);
 
-    printf("--- Environment Variable Tests ---\n");
-    test_process_inherit_environment();
-    test_process_custom_environment();
-    test_process_empty_environment();
+    LOG_SECTION("Environment Variable Tests");
+    RUN_TEST(test_process_inherit_environment);
+    RUN_TEST(test_process_custom_environment);
+    RUN_TEST(test_process_empty_environment);
 
-    printf("--- Pipe Output Capture Tests ---\n");
-    test_capture_stdout_through_pipe();
-    test_capture_stderr_through_pipe();
-    test_capture_stdout_and_stderr_separate();
-    test_capture_merged_stderr_to_stdout();
-    test_capture_large_output();
-    test_stdin_stdout_echo();
+    LOG_SECTION("Pipe Output Capture Tests");
+    RUN_TEST(test_capture_stdout_through_pipe);
+    RUN_TEST(test_capture_stderr_through_pipe);
+    RUN_TEST(test_capture_stdout_and_stderr_separate);
+    RUN_TEST(test_capture_merged_stderr_to_stdout);
+    RUN_TEST(test_capture_large_output);
 
-    printf("\n=== All Extended Tests Passed! ===\n");
+    LOG_SECTION("Bidirectional IO Tests");
+    RUN_TEST(test_stdin_stdout_echo);
+
+    printf("\n" COLOR_GREEN "=== All Extended Tests Passed! ===" COLOR_RESET "\n");
     return 0;
 }

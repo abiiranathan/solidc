@@ -227,8 +227,6 @@ ProcessError pipe_create(PipeHandle** pipeHandle) {
     (*pipeHandle)->write_fd = fds[1];
 #endif
 
-    pipe_set_nonblocking(*pipeHandle, true);
-
     return PROCESS_SUCCESS;
 }
 
@@ -339,7 +337,8 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
     } else if (wait_result == WAIT_TIMEOUT) {
         CancelIo(pipe->read_fd);
         CloseHandle(overlapped.hEvent);
-        return PROCESS_ERROR_TIMEOUT;
+        // Map 0ms timeout to WOULDBLOCK for consistency with non-blocking reads
+        return (timeout_ms == 0) ? PROCESS_ERROR_WOULD_BLOCK : PROCESS_ERROR_TIMEOUT;
     } else {
         CloseHandle(overlapped.hEvent);
         return process_system_error();
@@ -347,32 +346,32 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
 
     CloseHandle(overlapped.hEvent);
 #else
-    // POSIX implementation with better error granularity
-    if (timeout_ms != 0) {
-        // Use select for timeout
+    // posix implementation
+    if (timeout_ms >= 0) {
         fd_set read_fds;
         FD_ZERO(&read_fds);
         FD_SET(pipe->read_fd, &read_fds);
 
         struct timeval timeout;
-        struct timeval* timeout_ptr = NULL;
+        timeout.tv_sec  = timeout_ms / 1000;
+        timeout.tv_usec = (long)((timeout_ms % 1000) * 1000);
 
-        if (timeout_ms > 0) {
-            timeout.tv_sec  = timeout_ms / 1000;
-            timeout.tv_usec = (long)((timeout_ms % 1000) * 1000);
-            timeout_ptr     = &timeout;
-        }
+        // select returns: -1 (error), 0 (timeout), >0 (ready)
+        int select_result = select(pipe->read_fd + 1, &read_fds, NULL, NULL, &timeout);
 
-        int select_result = select(pipe->read_fd + 1, &read_fds, NULL, NULL, timeout_ptr);
         if (select_result == -1) {
+            if (errno == EINTR)
+                return PROCESS_ERROR_WOULD_BLOCK;  // Retry logic usually handles this, but here we return
             return process_system_error();
         } else if (select_result == 0) {
-            return PROCESS_ERROR_TIMEOUT;
+            // If timeout was 0, this means "Would Block".
+            // If timeout was > 0, this means "Timed Out".
+            return (timeout_ms == 0) ? PROCESS_ERROR_WOULD_BLOCK : PROCESS_ERROR_TIMEOUT;
         }
+        // If select_result > 0, data is ready, proceed to read()
     }
 
     ssize_t result = read(pipe->read_fd, buffer, size);
-
     if (result < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             // Non-blocking read with no data available
@@ -455,7 +454,7 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
 
     CloseHandle(overlapped.hEvent);
 #else
-    if (timeout_ms != 0) {
+    if (timeout_ms >= 0) {
         // For non-zero timeout, we need to use select
         fd_set write_fds;
         FD_ZERO(&write_fds);
@@ -463,24 +462,23 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
 
         struct timeval timeout;
         struct timeval* timeout_ptr = NULL;
-
-        if (timeout_ms > 0) {
-            timeout.tv_sec  = timeout_ms / 1000;
-            timeout.tv_usec = ((long)timeout_ms % 1000) * 1000;
-            timeout_ptr     = &timeout;
-        }
-
-        int select_result = select(pipe->write_fd + 1, NULL, &write_fds, NULL, timeout_ptr);
-
+        timeout.tv_sec              = timeout_ms / 1000;
+        timeout.tv_usec             = ((long)timeout_ms % 1000) * 1000;
+        timeout_ptr                 = &timeout;
+        int select_result           = select(pipe->write_fd + 1, NULL, &write_fds, NULL, timeout_ptr);
         if (select_result == -1) {
+            if (errno == EINTR)
+                return PROCESS_ERROR_WOULD_BLOCK;  // Retry logic usually handles this, but here we return
             return process_system_error();
         } else if (select_result == 0) {
-            return PROCESS_ERROR_TIMEOUT;
+            // If timeout was 0, this means "Would Block".
+            // If timeout was > 0, this means "Timed Out".
+            return (timeout_ms == 0) ? PROCESS_ERROR_WOULD_BLOCK : PROCESS_ERROR_TIMEOUT;
         }
+        // If select_result > 0, data is ready, proceed to read()
     }
 
     ssize_t result = write(pipe->write_fd, buffer, size);
-
     if (result < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             // Non-blocking write - buffer full, no space available
