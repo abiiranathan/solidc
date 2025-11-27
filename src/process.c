@@ -174,10 +174,18 @@ const char* process_error_string(ProcessError error) {
             return "Wait for process failed";
         case PROCESS_ERROR_KILL_FAILED:
             return "Failed to terminate process";
+        case PROCESS_ERROR_TERMINATE_FAILED:
+            return "Failed to terminate process";
         case PROCESS_ERROR_PERMISSION_DENIED:
             return "Permission denied";
         case PROCESS_ERROR_IO:
             return "I/O error";
+        case PROCESS_ERROR_TIMEOUT:
+            return "Operation timed out";
+        case PROCESS_ERROR_WOULD_BLOCK:
+            return "Operation would block (no data available)";
+        case PROCESS_ERROR_PIPE_CLOSED:
+            return "Pipe was closed";
         case PROCESS_ERROR_UNKNOWN:
             return "Unknown error";
         default:
@@ -217,13 +225,67 @@ ProcessError pipe_create(PipeHandle** pipeHandle) {
 
     (*pipeHandle)->read_fd  = fds[0];
     (*pipeHandle)->write_fd = fds[1];
+#endif
 
-    // Set both ends to non-blocking mode
-    int flags = 0;
-    flags     = fcntl((*pipeHandle)->read_fd, F_GETFL);
-    fcntl((*pipeHandle)->read_fd, F_SETFL, flags | O_NONBLOCK);
-    flags = fcntl((*pipeHandle)->write_fd, F_GETFL);
-    fcntl((*pipeHandle)->write_fd, F_SETFL, flags | O_NONBLOCK);
+    pipe_set_nonblocking(*pipeHandle, true);
+
+    return PROCESS_SUCCESS;
+}
+
+/**
+ * @brief Set non-blocking mode on a pipe
+ *
+ * @param pipe Pipe handle
+ * @param nonblocking true to enable non-blocking mode, false for blocking
+ * @return ProcessError
+ */
+ProcessError pipe_set_nonblocking(PipeHandle* pipe, bool nonblocking) {
+    if (!pipe) {
+        return PROCESS_ERROR_INVALID_ARGUMENT;
+    }
+
+#ifdef _WIN32
+    DWORD mode = nonblocking ? PIPE_NOWAIT : PIPE_WAIT;
+    if (!SetNamedPipeHandleState(pipe->read_fd, &mode, NULL, NULL)) {
+        return process_system_error();
+    }
+    if (!SetNamedPipeHandleState(pipe->write_fd, &mode, NULL, NULL)) {
+        return process_system_error();
+    }
+#else
+    int flags;
+
+    // Set read end
+    flags = fcntl(pipe->read_fd, F_GETFL);
+    if (flags == -1) {
+        return process_system_error();
+    }
+
+    if (nonblocking) {
+        flags |= O_NONBLOCK;
+    } else {
+        flags &= ~O_NONBLOCK;
+    }
+
+    if (fcntl(pipe->read_fd, F_SETFL, flags) == -1) {
+        return process_system_error();
+    }
+
+    // Set write end
+    flags = fcntl(pipe->write_fd, F_GETFL);
+    if (flags == -1) {
+        return process_system_error();
+    }
+
+    if (nonblocking) {
+        flags |= O_NONBLOCK;
+    } else {
+        flags &= ~O_NONBLOCK;
+    }
+
+    if (fcntl(pipe->write_fd, F_SETFL, flags) == -1) {
+        return process_system_error();
+    }
 #endif
 
     return PROCESS_SUCCESS;
@@ -239,6 +301,7 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
     }
 
 #ifdef _WIN32
+    // Windows implementation remains similar but with better error codes
     DWORD bytes_read_win = 0;
     OVERLAPPED overlapped;
     memset(&overlapped, 0, sizeof(overlapped));
@@ -252,6 +315,9 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
         DWORD error = GetLastError();
         if (error != ERROR_IO_PENDING) {
             CloseHandle(overlapped.hEvent);
+            if (error == ERROR_BROKEN_PIPE) {
+                return PROCESS_ERROR_PIPE_CLOSED;
+            }
             return process_system_error();
         }
     }
@@ -261,6 +327,10 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
     if (wait_result == WAIT_OBJECT_0) {
         if (!GetOverlappedResult(pipe->read_fd, &overlapped, &bytes_read_win, FALSE)) {
             CloseHandle(overlapped.hEvent);
+            DWORD error = GetLastError();
+            if (error == ERROR_BROKEN_PIPE) {
+                return PROCESS_ERROR_PIPE_CLOSED;
+            }
             return process_system_error();
         }
         if (bytes_read) {
@@ -269,7 +339,7 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
     } else if (wait_result == WAIT_TIMEOUT) {
         CancelIo(pipe->read_fd);
         CloseHandle(overlapped.hEvent);
-        return PROCESS_ERROR_IO;  // Timeout
+        return PROCESS_ERROR_TIMEOUT;
     } else {
         CloseHandle(overlapped.hEvent);
         return process_system_error();
@@ -277,8 +347,9 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
 
     CloseHandle(overlapped.hEvent);
 #else
+    // POSIX implementation with better error granularity
     if (timeout_ms != 0) {
-        // For non-zero timeout, we need to use select
+        // Use select for timeout
         fd_set read_fds;
         FD_ZERO(&read_fds);
         FD_SET(pipe->read_fd, &read_fds);
@@ -296,7 +367,7 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
         if (select_result == -1) {
             return process_system_error();
         } else if (select_result == 0) {
-            return PROCESS_ERROR_IO;  // Timeout
+            return PROCESS_ERROR_TIMEOUT;
         }
     }
 
@@ -304,9 +375,21 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
 
     if (result < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            return PROCESS_ERROR_IO;  // Would block
+            // Non-blocking read with no data available
+            return PROCESS_ERROR_WOULD_BLOCK;
+        } else if (errno == EPIPE) {
+            // Pipe was closed/broken
+            return PROCESS_ERROR_PIPE_CLOSED;
+        } else if (errno == EBADF) {
+            // Invalid file descriptor
+            return PROCESS_ERROR_PIPE_CLOSED;
         }
         return process_system_error();
+    }
+
+    if (result == 0) {
+        // EOF - pipe was closed on the write end
+        return PROCESS_ERROR_PIPE_CLOSED;
     }
 
     if (bytes_read) {
@@ -340,6 +423,9 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
         DWORD error = GetLastError();
         if (error != ERROR_IO_PENDING) {
             CloseHandle(overlapped.hEvent);
+            if (error == ERROR_BROKEN_PIPE || error == ERROR_NO_DATA) {
+                return PROCESS_ERROR_PIPE_CLOSED;
+            }
             return process_system_error();
         }
     }
@@ -349,6 +435,10 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
     if (wait_result == WAIT_OBJECT_0) {
         if (!GetOverlappedResult(pipe->write_fd, &overlapped, &bytes_written_win, FALSE)) {
             CloseHandle(overlapped.hEvent);
+            DWORD error = GetLastError();
+            if (error == ERROR_BROKEN_PIPE || error == ERROR_NO_DATA) {
+                return PROCESS_ERROR_PIPE_CLOSED;
+            }
             return process_system_error();
         }
         if (bytes_written) {
@@ -357,7 +447,7 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
     } else if (wait_result == WAIT_TIMEOUT) {
         CancelIo(pipe->write_fd);
         CloseHandle(overlapped.hEvent);
-        return PROCESS_ERROR_IO;  // Timeout
+        return PROCESS_ERROR_TIMEOUT;
     } else {
         CloseHandle(overlapped.hEvent);
         return process_system_error();
@@ -385,7 +475,7 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
         if (select_result == -1) {
             return process_system_error();
         } else if (select_result == 0) {
-            return PROCESS_ERROR_IO;  // Timeout
+            return PROCESS_ERROR_TIMEOUT;
         }
     }
 
@@ -393,7 +483,14 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
 
     if (result < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            return PROCESS_ERROR_IO;  // Would block
+            // Non-blocking write - buffer full, no space available
+            return PROCESS_ERROR_WOULD_BLOCK;
+        } else if (errno == EPIPE) {
+            // Broken pipe - read end was closed
+            return PROCESS_ERROR_PIPE_CLOSED;
+        } else if (errno == EBADF) {
+            // Invalid file descriptor
+            return PROCESS_ERROR_PIPE_CLOSED;
         }
         return process_system_error();
     }

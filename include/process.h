@@ -48,8 +48,11 @@ typedef enum {
     PROCESS_ERROR_KILL_FAILED       = -7,
     PROCESS_ERROR_PERMISSION_DENIED = -8,
     PROCESS_ERROR_IO                = -9,
-    PROCESS_ERROR_TERMINATE_FAILED  = -10,
-    PROCESS_ERROR_UNKNOWN           = -11
+    PROCESS_ERROR_TIMEOUT           = -10,  // Operation timed out
+    PROCESS_ERROR_WOULD_BLOCK       = -11,  // Non-blocking operation would block
+    PROCESS_ERROR_PIPE_CLOSED       = -12,  // Pipe end was closed
+    PROCESS_ERROR_TERMINATE_FAILED  = -13,
+    PROCESS_ERROR_UNKNOWN           = -14
 } ProcessError;
 
 #ifdef _WIN32
@@ -198,6 +201,15 @@ PipeFd pipe_write_fd(PipeHandle* handle);
  * @return PROCESS_SUCCESS on success, error code otherwise
  */
 ProcessError pipe_create(PipeHandle** pipe);
+
+/**
+ * @brief Set non-blocking mode on a pipe
+ *
+ * @param pipe Pipe handle
+ * @param nonblocking true to enable non-blocking mode, false for blocking
+ * @return ProcessError
+ */
+ProcessError pipe_set_nonblocking(PipeHandle* pipe, bool nonblocking);
 
 /**
  * @brief Read data from a pipe

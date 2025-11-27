@@ -39,7 +39,7 @@ void test_pipe_read_immediate_timeout(void) {
 
     // Read with 0ms timeout should return immediately (non-blocking)
     err = pipe_read(pipe, buffer, sizeof(buffer), &bytes_read, 0);
-    LOG_ASSERT(err == PROCESS_ERROR_IO, "Expected timeout error, got: %s", process_error_string(err));
+    LOG_ASSERT(err == PROCESS_ERROR_WOULD_BLOCK, "Expected would block error, got: %s", process_error_string(err));
     LOG_ASSERT(bytes_read == 0, "Expected no bytes read, got: %zu", bytes_read);
 
     pipe_close(pipe);
@@ -77,7 +77,7 @@ void test_pipe_read_short_timeout(void) {
 
     // Read with 100ms timeout should timeout (no data available)
     err = pipe_read(pipe, buffer, sizeof(buffer), &bytes_read, 100);
-    LOG_ASSERT(err == PROCESS_ERROR_IO, "Expected timeout error, got: %s", process_error_string(err));
+    LOG_ASSERT(err == PROCESS_ERROR_TIMEOUT, "Expected timeout error, got: %s", process_error_string(err));
 
     pipe_close(pipe);
 }
