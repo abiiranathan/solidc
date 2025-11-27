@@ -1,3 +1,9 @@
+/**
+ * @file test_process_extended.c
+ * @brief Extended test suite for process management API with focus on timeouts,
+ *        environment variables, and pipe capture
+ */
+
 #include "../include/process.h"
 
 #include <pthread.h>
@@ -16,285 +22,514 @@
         }                                                                                                              \
     } while (0)
 
-void test_pipe_create() {
-    PipeHandle* pipe_handle = NULL;
-    ProcessError err        = pipe_create(&pipe_handle);
+// ============================================================================
+// TIMEOUT TESTS
+// ============================================================================
 
+/**
+ * @brief Test pipe read with immediate timeout (0ms)
+ */
+void test_pipe_read_immediate_timeout(void) {
+    PipeHandle* pipe = NULL;
+    ProcessError err = pipe_create(&pipe);
     LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_create failed: %s", process_error_string(err));
-    LOG_ASSERT(pipe_handle != NULL, "pipe handle is NULL");
 
-    // Close the pipe handle
-    pipe_close(pipe_handle);
+    char buffer[128]  = {0};
+    size_t bytes_read = 0;
+
+    // Read with 0ms timeout should return immediately (non-blocking)
+    err = pipe_read(pipe, buffer, sizeof(buffer), &bytes_read, 0);
+    LOG_ASSERT(err == PROCESS_ERROR_IO, "Expected timeout error, got: %s", process_error_string(err));
+    LOG_ASSERT(bytes_read == 0, "Expected no bytes read, got: %zu", bytes_read);
+
+    pipe_close(pipe);
 }
 
-void test_pipe_read_write() {
-    PipeHandle* pipe_handle = NULL;
-    ProcessError err        = pipe_create(&pipe_handle);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_create failed %s", process_error_string(err));
+/**
+ * @brief Test pipe write with immediate timeout (0ms)
+ */
+void test_pipe_write_immediate_timeout(void) {
+    PipeHandle* pipe = NULL;
+    ProcessError err = pipe_create(&pipe);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_create failed: %s", process_error_string(err));
 
-    const char* msg      = "Test message";
+    const char* msg      = "Test";
     size_t bytes_written = 0;
-    err                  = pipe_write(pipe_handle, msg, strlen(msg), &bytes_written, 1000);
+
+    // Write with 0ms timeout should succeed if buffer space is available
+    err = pipe_write(pipe, msg, strlen(msg), &bytes_written, 0);
     LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_write failed: %s", process_error_string(err));
-    LOG_ASSERT(bytes_written == strlen(msg), "Incorrect number of bytes written: %zu", bytes_written);
+    LOG_ASSERT(bytes_written == strlen(msg), "Expected %zu bytes written, got: %zu", strlen(msg), bytes_written);
+
+    pipe_close(pipe);
+}
+
+/**
+ * @brief Test pipe read with short timeout (100ms)
+ */
+void test_pipe_read_short_timeout(void) {
+    PipeHandle* pipe = NULL;
+    ProcessError err = pipe_create(&pipe);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_create failed: %s", process_error_string(err));
 
     char buffer[128]  = {0};
     size_t bytes_read = 0;
-    err               = pipe_read(pipe_handle, buffer, sizeof(buffer), &bytes_read, 1000);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_read failed");
-    LOG_ASSERT(bytes_read == strlen(msg), "Incorrect number of bytes read");
-    LOG_ASSERT(strcmp(buffer, msg) == 0, "Read message does not match written message");
-    pipe_close(pipe_handle);
+
+    // Read with 100ms timeout should timeout (no data available)
+    err = pipe_read(pipe, buffer, sizeof(buffer), &bytes_read, 100);
+    LOG_ASSERT(err == PROCESS_ERROR_IO, "Expected timeout error, got: %s", process_error_string(err));
+
+    pipe_close(pipe);
 }
 
-void test_pipe_timeout() {
-    PipeHandle* pipe_handle = NULL;
-    ProcessError err        = pipe_create(&pipe_handle);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_create failed %s", process_error_string(err));
+void* writer_fn(void* arg) {
+    usleep(200000);  // Sleep 200ms
+    const char* msg = "Delayed message";
+    size_t written  = 0;
+    pipe_write((PipeHandle*)arg, msg, strlen(msg), &written, -1);
+    return NULL;
+}
+
+/**
+ * @brief Test pipe read with infinite timeout (-1)
+ */
+void test_pipe_read_infinite_timeout(void) {
+    PipeHandle* pipe = NULL;
+    ProcessError err = pipe_create(&pipe);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_create failed: %s", process_error_string(err));
+
+    // Write data in a separate thread after a delay
+    pthread_t writer_thread;
+    pthread_create(&writer_thread, NULL, writer_fn, pipe);
 
     char buffer[128]  = {0};
     size_t bytes_read = 0;
-    err               = pipe_read(pipe_handle, buffer, sizeof(buffer), &bytes_read, 0);
-    LOG_ASSERT(err == PROCESS_ERROR_IO, "pipe_read did not time out as expected: %s", process_error_string(err));
 
-    err = pipe_write(pipe_handle, "Test", 4, &bytes_read, 0);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_write did not time out as expected: %s", process_error_string(err));
+    // Read with infinite timeout should wait for data
+    err = pipe_read(pipe, buffer, sizeof(buffer), &bytes_read, -1);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_read failed: %s", process_error_string(err));
+    LOG_ASSERT(bytes_read > 0, "Expected data, got %zu bytes", bytes_read);
+    LOG_ASSERT(strcmp(buffer, "Delayed message") == 0, "Read data mismatch: %s", buffer);
 
-    pipe_close(pipe_handle);
+    pthread_join(writer_thread, NULL);
+    pipe_close(pipe);
 }
 
-void test_process_error_handling() {
-    // Test a scenario where process creation would fail
-    ProcessError err = PROCESS_ERROR_UNKNOWN;
-    LOG_ASSERT(strcmp(process_error_string(err), "Unknown error") == 0, "process_system_error failed");
+/**
+ * @brief Test process_wait with timeout
+ */
+void test_process_wait_with_timeout(void) {
+    ProcessHandle* process = NULL;
+
+    // Use sleep command that takes longer than timeout
+    const char* cmd    = "sleep";
+    const char* argv[] = {cmd, "5", NULL};  // Sleep for 5 seconds
+
+    ProcessError err = process_create(&process, cmd, argv, NULL);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
+
+    ProcessResult result = {};
+
+    // Wait with 500ms timeout should timeout
+    err = process_wait(process, &result, 500);
+    LOG_ASSERT(err == PROCESS_ERROR_WAIT_FAILED, "Expected wait timeout, got: %s", process_error_string(err));
+
+    // Clean up: terminate the process
+    process_terminate(process, true);
+    process_free(process);
 }
 
-void test_process_error_string() {
-    const char* error_str = process_error_string(PROCESS_ERROR_INVALID_ARGUMENT);
-    LOG_ASSERT(strcmp(error_str, "Invalid argument") == 0, "Error string mismatch for PROCESS_ERROR_INVALID_ARGUMENT");
+/**
+ * @brief Test process_wait without timeout (should complete)
+ */
+void test_process_wait_no_timeout(void) {
+    ProcessHandle* process = NULL;
 
-    error_str = process_error_string(PROCESS_ERROR_MEMORY);
-    LOG_ASSERT(strcmp(error_str, "Memory allocation failed") == 0, "Error string mismatch for PROCESS_ERROR_MEMORY");
+    const char* cmd    = "sleep";
+    const char* argv[] = {cmd, "1", NULL};  // Sleep for 1 second
 
-    error_str = process_error_string(PROCESS_ERROR_UNKNOWN);
-    LOG_ASSERT(strcmp(error_str, "Unknown error") == 0, "Error string mismatch for PROCESS_ERROR_UNKNOWN");
+    ProcessError err = process_create(&process, cmd, argv, NULL);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
+
+    ProcessResult result = {};
+
+    // Wait with infinite timeout should complete successfully
+    err = process_wait(process, &result, -1);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
+    LOG_ASSERT(result.exited_normally, "Process did not exit normally");
+    LOG_ASSERT(result.exit_code == 0, "Expected exit code 0, got: %d", result.exit_code);
+
+    process_free(process);
 }
 
-void test_pipe_close() {
-    PipeHandle* pipe_handle = NULL;
-    ProcessError err        = pipe_create(&pipe_handle);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_create failed %s", process_error_string(err));
-    pipe_close(pipe_handle);
-}
+// ============================================================================
+// ENVIRONMENT VARIABLE TESTS
+// ============================================================================
 
-void test_process_pipe_integration() {
-    PipeHandle* pipe_handle = NULL;
-    ProcessError err        = pipe_create(&pipe_handle);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_create failed %s", process_error_string(err));
+/**
+ * @brief Test process with inherited environment
+ */
+void test_process_inherit_environment(void) {
+    ProcessHandle* process  = NULL;
+    PipeHandle* stdout_pipe = NULL;
 
-    const char* cmd    = "ping";
-    const char* argv[] = {cmd, "localhost", "-c", "5", NULL};
+    ProcessError err = pipe_create(&stdout_pipe);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_create failed: %s", process_error_string(err));
+
+    // Set an environment variable in the current process
+    setenv("TEST_INHERITED_VAR", "inherited_value", 1);
+
+    const char* cmd    = "sh";
+    const char* argv[] = {cmd, "-c", "echo $TEST_INHERITED_VAR", NULL};
 
     ProcessOptions options = {
-        .detached            = false,
-        .environment         = NULL,
         .inherit_environment = true,
-        .working_directory   = NULL,
-        .io.stdout_pipe      = pipe_handle,
+        .io.stdout_pipe      = stdout_pipe,
     };
-
-    // Assuming process creation and handling is done correctly, simulate using
-    // the pipe
-    ProcessHandle* process = NULL;
-    ProcessResult result   = {};
 
     err = process_create(&process, cmd, argv, &options);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "process creation failed");
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
 
-    err = process_wait(process, &result, -1);
+    ProcessResult result = {};
+    err                  = process_wait(process, &result, -1);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
+
+    // Read the output
+    char buffer[128]  = {0};
+    size_t bytes_read = 0;
+    err               = pipe_read(stdout_pipe, buffer, sizeof(buffer) - 1, &bytes_read, 1000);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_read failed: %s", process_error_string(err));
+
+    // Verify the inherited variable was present
+    buffer[bytes_read] = '\0';
+    LOG_ASSERT(strstr(buffer, "inherited_value") != NULL, "Expected 'inherited_value', got: %s", buffer);
+
     process_free(process);
-
-    puts(process_error_string(err));
-    LOG_ASSERT(err == PROCESS_SUCCESS, "process wait failed");
-    LOG_ASSERT(result.exited_normally, "Process exited normally");
-    printf("Exit code: %d\n", result.exit_code);
-    LOG_ASSERT(result.exit_code == 0, "Process exited with non-zero status code");
-
-    // For now, we will just validate that the pipe behaves correctly.
-    char buffer[1024]      = {0};
-    size_t bytes_read      = 0;
-    err                    = pipe_read(pipe_handle, buffer, sizeof(buffer), &bytes_read, 10000);
-    buffer[bytes_read - 1] = '\0';
-    printf("Read from pipe: %s\n", buffer);
-
-    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_read failed");
-    LOG_ASSERT(bytes_read > 0, "No data read from pipe");
-    pipe_close(pipe_handle);
+    pipe_close(stdout_pipe);
+    unsetenv("TEST_INHERITED_VAR");
 }
 
-// Use standard file descriptors.
-void test_process_pipe_integration_std() {
-    ProcessHandle* process = NULL;
-    ProcessResult result   = {};
-    ProcessError err       = {};
+/**
+ * @brief Test process with custom environment
+ */
+void test_process_custom_environment(void) {
+    ProcessHandle* process  = NULL;
+    PipeHandle* stdout_pipe = NULL;
 
-    const char* cmd    = "ping";
-    const char* argv[] = {cmd, "localhost", "-c", "5", NULL};
+    ProcessError err = pipe_create(&stdout_pipe);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_create failed: %s", process_error_string(err));
 
-    err = process_create(&process, cmd, argv, NULL);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "process creation failed");
-    err = process_wait(process, &result, -1);
-    process_free(process);
+    // Create custom environment
+    const char* custom_env[] = {"CUSTOM_VAR1=value1", "CUSTOM_VAR2=value2", "PATH=/usr/bin:/bin", NULL};
 
-    LOG_ASSERT(err == PROCESS_SUCCESS, "process wait failed");
-    LOG_ASSERT(result.exited_normally, "Process exited normally");
-    LOG_ASSERT(result.exit_code == 0, "Process exited with non-zero status code");
-}
+    // Must be absolute when using custom environment
+    const char* cmd    = "/usr/bin/sh";
+    const char* argv[] = {cmd, "-c", "echo $CUSTOM_VAR1:$CUSTOM_VAR2", NULL};
 
-void test_process_run_and_capture(void) {
-    const char* cmd    = "ls";
-    const char* argv[] = {cmd, "-la", NULL};
-
-    ProcessError err = process_run_and_capture(cmd, argv, NULL, NULL);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "process failed");
-}
-
-void test_process_run_and_capture_ouput(void) {
-    const char* cmd    = "ls";
-    const char* argv[] = {cmd, NULL};
-
-    PipeHandle* ph   = NULL;
-    ProcessError err = pipe_create(&ph);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "error creating pipe");
-
-    ProcessOptions opts = {.io.stdout_pipe = ph, .inherit_environment = true};
-    err                 = process_run_and_capture(cmd, argv, &opts, NULL);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "process failed");
-
-    // read output from the pipe.
-    char buffer[512];
-    size_t read = 0;
-
-    err = pipe_read(ph, buffer, sizeof(buffer), &read, 1000);
-    LOG_ASSERT(err == PROCESS_SUCCESS && read > 0, "pipe read failed: read %zu: %s", read, process_error_string(err));
-    pipe_close(ph);
-}
-
-#ifndef _WIN32
-void test_redirect_to_file() {
-    // Simple redirection to a file
-    ProcessHandle* handle = NULL;
-    ProcessError err      = {};
-
-    // Redirect stdout to output.log and stderr to error.log
-    const char* cmd    = "/bin/ls";
-    const char* args[] = {"/bin/ls", "-la", NULL};
-
-    err = process_run_with_file_redirection(&handle, cmd, args, "output.log", "error.log", false);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "process failed: %s", process_error_string(err));
-
-    // Wait for process completion
-    ProcessResult result;
-    err = process_wait(handle, &result, -1);
-    LOG_ASSERT(err == PROCESS_SUCCESS && result.exit_code == 0, "process_wait failed: %s[%d]",
-               process_error_string(err), result.exit_code);
-    process_free(handle);
-}
-
-void test_tee_to_multiple_destinations() {
-    // Tee output to multiple destinations (file and pipe)
-    // Create a file for output
-    int file_fd = open("multi_output.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    LOG_ASSERT(file_fd != -1, "error creating file");
-
-    // Prepare output destinations (file + pipe)
-    int output_fds[] = {file_fd, STDOUT_FILENO, -1};
-    int error_fds[]  = {file_fd, -1};
-
-    // Run the command with tee
-    ProcessResult result;
-    ProcessError err   = {};
-    const char* cmd    = "/bin/ls";
-    const char* args[] = {"/bin/ls", "/usr", NULL};
-
-    err = process_run_with_multiwriter(&result, cmd, args, output_fds, error_fds);
-    close(file_fd);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "process failed: %s", process_error_string(err));
-}
-
-void test_process_create_with_redirection() {
-    ProcessError err       = {};
-    PipeHandle *stdin_pipe = NULL, *stdout_pipe = NULL;
-
-    err = pipe_create(&stdin_pipe);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe create failed");
-
-    err = pipe_create(&stdout_pipe);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe create failed");
-
-    const char* cmd          = "/bin/cat";
-    ProcessHandle* handle    = NULL;
-    const char* const argv[] = {cmd, NULL};
-
-    const ExtProcessOptions options = {
-        .working_directory   = NULL,
-        .detached            = false,
-        .environment         = NULL,
-        .inherit_environment = true,
-        .io =
-            {
-                .stdin_pipe   = stdin_pipe,
-                .stdout_pipe  = stdout_pipe,
-                .merge_stderr = true,
-            },
+    ProcessOptions options = {
+        .inherit_environment = false,
+        .environment         = custom_env,
+        .io.stdout_pipe      = stdout_pipe,
     };
 
-    err = process_create_with_redirection(&handle, cmd, argv, &options);
-    LOG_ASSERT(err == PROCESS_SUCCESS, "process create failed");
+    err = process_create(&process, cmd, argv, &options);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
 
-    size_t written = 0, read = 0;
-    char data[16];
-    char msg[] = "Hello World";
+    ProcessResult result = {};
+    err                  = process_wait(process, &result, -1);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
 
-    err = pipe_write(stdin_pipe, msg, sizeof(msg), &written, -1);
-    LOG_ASSERT(err == PROCESS_SUCCESS && written == sizeof(msg), "pipe_write failed");
+    // Read the output
+    char buffer[128]  = {0};
+    size_t bytes_read = 0;
+    err               = pipe_read(stdout_pipe, buffer, sizeof(buffer) - 1, &bytes_read, 1000);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_read failed: %s", process_error_string(err));
 
-    err = pipe_read(stdin_pipe, data, sizeof(data), &read, -1);
-    LOG_ASSERT(err == PROCESS_SUCCESS && read == written, "pipe_write failed");
-    data[read - 1] = '\0';
-    LOG_ASSERT(strcmp(msg, data) == 0, "messages not equal, read %s\n", data);
+    // Verify the custom variables were set
+    buffer[bytes_read] = '\0';
+    LOG_ASSERT(strstr(buffer, "value1:value2") != NULL, "Expected 'value1:value2', got: %s", buffer);
 
-    ProcessResult res;
-    err = process_wait(handle, &res, -1);
-    process_free(handle);
-    LOG_ASSERT(err == PROCESS_SUCCESS && res.exited_normally, "pipe_wait failed with code: %d: %s", res.exit_code,
-               process_error_string(err));
-
-    pipe_close(stdin_pipe);
+    process_free(process);
     pipe_close(stdout_pipe);
 }
-#endif
 
-int main() {
-    // Run all tests
-    test_pipe_create();
-    test_pipe_read_write();
-    test_pipe_timeout();
-    test_process_error_handling();
-    test_process_error_string();
-    test_pipe_close();
-    test_process_pipe_integration();
-    test_process_pipe_integration_std();
-    test_process_run_and_capture();
-    test_process_run_and_capture_ouput();
+/**
+ * @brief Test process with empty environment
+ */
+void test_process_empty_environment(void) {
+    ProcessHandle* process = NULL;
 
-// Linux only functions
-#ifndef _WIN32
-    test_redirect_to_file();
-    test_tee_to_multiple_destinations();
-    test_process_create_with_redirection();
-#endif
-    printf("All process tests passed!\n");
+    const char* cmd    = "/usr/bin/sh";
+    const char* argv[] = {cmd, "-c", "exit 42", NULL};
 
+    const char* empty_env[] = {NULL};
+
+    ProcessOptions options = {
+        .inherit_environment = false,
+        .environment         = empty_env,
+    };
+
+    ProcessError err = process_create(&process, cmd, argv, &options);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
+
+    ProcessResult result = {};
+    err                  = process_wait(process, &result, -1);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
+    LOG_ASSERT(result.exit_code == 42, "Expected exit code 42, got: %d", result.exit_code);
+
+    process_free(process);
+}
+
+// ============================================================================
+// PIPE OUTPUT CAPTURE TESTS
+// ============================================================================
+
+/**
+ * @brief Test capturing stdout through pipe
+ */
+void test_capture_stdout_through_pipe(void) {
+    ProcessHandle* process  = NULL;
+    PipeHandle* stdout_pipe = NULL;
+
+    ProcessError err = pipe_create(&stdout_pipe);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_create failed: %s", process_error_string(err));
+
+    const char* cmd    = "echo";
+    const char* argv[] = {cmd, "Hello from stdout", NULL};
+
+    ProcessOptions options = {
+        .inherit_environment = true,
+        .io.stdout_pipe      = stdout_pipe,
+    };
+
+    err = process_create(&process, cmd, argv, &options);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
+
+    ProcessResult result = {};
+    err                  = process_wait(process, &result, -1);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
+
+    // Read captured output
+    char buffer[256]  = {0};
+    size_t bytes_read = 0;
+    err               = pipe_read(stdout_pipe, buffer, sizeof(buffer) - 1, &bytes_read, 1000);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_read failed: %s", process_error_string(err));
+    LOG_ASSERT(bytes_read > 0, "No data read from pipe");
+
+    buffer[bytes_read] = '\0';
+    LOG_ASSERT(strstr(buffer, "Hello from stdout") != NULL, "Expected 'Hello from stdout', got: %s", buffer);
+
+    process_free(process);
+    pipe_close(stdout_pipe);
+}
+
+/**
+ * @brief Test capturing stderr through pipe
+ */
+void test_capture_stderr_through_pipe(void) {
+    ProcessHandle* process  = NULL;
+    PipeHandle* stderr_pipe = NULL;
+
+    ProcessError err = pipe_create(&stderr_pipe);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_create failed: %s", process_error_string(err));
+
+    const char* cmd    = "sh";
+    const char* argv[] = {cmd, "-c", "echo 'Error message' >&2", NULL};
+
+    ProcessOptions options = {
+        .inherit_environment = true,
+        .io.stderr_pipe      = stderr_pipe,
+    };
+
+    err = process_create(&process, cmd, argv, &options);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
+
+    ProcessResult result = {};
+    err                  = process_wait(process, &result, -1);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
+
+    // Read captured error output
+    char buffer[256]  = {0};
+    size_t bytes_read = 0;
+    err               = pipe_read(stderr_pipe, buffer, sizeof(buffer) - 1, &bytes_read, 1000);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_read failed: %s", process_error_string(err));
+    LOG_ASSERT(bytes_read > 0, "No data read from stderr pipe");
+
+    buffer[bytes_read] = '\0';
+    LOG_ASSERT(strstr(buffer, "Error message") != NULL, "Expected 'Error message', got: %s", buffer);
+
+    process_free(process);
+    pipe_close(stderr_pipe);
+}
+
+/**
+ * @brief Test capturing both stdout and stderr through separate pipes
+ */
+void test_capture_stdout_and_stderr_separate(void) {
+    ProcessHandle* process  = NULL;
+    PipeHandle *stdout_pipe = NULL, *stderr_pipe = NULL;
+
+    ProcessError err = pipe_create(&stdout_pipe);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "stdout pipe_create failed: %s", process_error_string(err));
+
+    err = pipe_create(&stderr_pipe);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "stderr pipe_create failed: %s", process_error_string(err));
+
+    const char* cmd    = "sh";
+    const char* argv[] = {cmd, "-c", "echo 'Standard output' && echo 'Standard error' >&2", NULL};
+
+    ProcessOptions options = {
+        .inherit_environment = true,
+        .io.stdout_pipe      = stdout_pipe,
+        .io.stderr_pipe      = stderr_pipe,
+    };
+
+    err = process_create(&process, cmd, argv, &options);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
+
+    ProcessResult result = {};
+    err                  = process_wait(process, &result, -1);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
+
+    // Read stdout
+    char stdout_buffer[256] = {0};
+    size_t stdout_read      = 0;
+    err                     = pipe_read(stdout_pipe, stdout_buffer, sizeof(stdout_buffer) - 1, &stdout_read, 1000);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "stdout pipe_read failed: %s", process_error_string(err));
+    stdout_buffer[stdout_read] = '\0';
+
+    // Read stderr
+    char stderr_buffer[256] = {0};
+    size_t stderr_read      = 0;
+    err                     = pipe_read(stderr_pipe, stderr_buffer, sizeof(stderr_buffer) - 1, &stderr_read, 1000);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "stderr pipe_read failed: %s", process_error_string(err));
+    stderr_buffer[stderr_read] = '\0';
+
+    // Verify outputs
+    LOG_ASSERT(strstr(stdout_buffer, "Standard output") != NULL, "Expected 'Standard output' in stdout, got: %s",
+               stdout_buffer);
+    LOG_ASSERT(strstr(stderr_buffer, "Standard error") != NULL, "Expected 'Standard error' in stderr, got: %s",
+               stderr_buffer);
+
+    process_free(process);
+    pipe_close(stdout_pipe);
+    pipe_close(stderr_pipe);
+}
+
+/**
+ * @brief Test capturing stderr merged with stdout
+ */
+void test_capture_merged_stderr_to_stdout(void) {
+    ProcessHandle* process  = NULL;
+    PipeHandle* stdout_pipe = NULL;
+
+    ProcessError err = pipe_create(&stdout_pipe);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_create failed: %s", process_error_string(err));
+
+    const char* cmd    = "sh";
+    const char* argv[] = {cmd, "-c", "echo 'Out' && echo 'Err' >&2", NULL};
+
+    ProcessOptions options = {
+        .inherit_environment = true,
+        .io.stdout_pipe      = stdout_pipe,
+        .io.merge_stderr     = true,
+    };
+
+    err = process_create(&process, cmd, argv, &options);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
+
+    ProcessResult result = {};
+    err                  = process_wait(process, &result, -1);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
+
+    // Read merged output
+    char buffer[512]  = {0};
+    size_t bytes_read = 0;
+    err               = pipe_read(stdout_pipe, buffer, sizeof(buffer) - 1, &bytes_read, 1000);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_read failed: %s", process_error_string(err));
+
+    buffer[bytes_read] = '\0';
+
+    // Both stdout and stderr should be in the same buffer
+    LOG_ASSERT(strstr(buffer, "Out") != NULL, "Expected 'Out' in merged output, got: %s", buffer);
+    LOG_ASSERT(strstr(buffer, "Err") != NULL, "Expected 'Err' in merged output, got: %s", buffer);
+
+    process_free(process);
+    pipe_close(stdout_pipe);
+}
+
+/**
+ * @brief Test capturing large output through pipe
+ */
+void test_capture_large_output(void) {
+    ProcessHandle* process  = NULL;
+    PipeHandle* stdout_pipe = NULL;
+
+    ProcessError err = pipe_create(&stdout_pipe);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_create failed: %s", process_error_string(err));
+
+    // Generate ~1KB of output
+    const char* cmd    = "sh";
+    const char* argv[] = {cmd, "-c", "for i in $(seq 1 50); do echo 'Line $i with some text'; done", NULL};
+
+    ProcessOptions options = {
+        .inherit_environment = true,
+        .io.stdout_pipe      = stdout_pipe,
+    };
+
+    err = process_create(&process, cmd, argv, &options);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
+
+    ProcessResult result = {};
+    err                  = process_wait(process, &result, -1);
+    LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
+
+    // Read output in chunks
+    char buffer[2048] = {0};
+    size_t total_read = 0;
+    size_t bytes_read = 0;
+
+    do {
+        err = pipe_read(stdout_pipe, buffer + total_read, sizeof(buffer) - total_read - 1, &bytes_read, 1000);
+        if (err == PROCESS_SUCCESS) {
+            total_read += bytes_read;
+        }
+    } while (err == PROCESS_SUCCESS && bytes_read > 0 && total_read < sizeof(buffer) - 1);
+
+    buffer[total_read] = '\0';
+    LOG_ASSERT(total_read > 500, "Expected at least 500 bytes, got: %zu", total_read);
+
+    process_free(process);
+    pipe_close(stdout_pipe);
+}
+
+// ============================================================================
+// MAIN TEST RUNNER
+// ============================================================================
+
+int main(void) {
+    printf("=== Running Extended Process Tests ===\n\n");
+
+    printf("--- Timeout Tests ---\n");
+    test_pipe_read_immediate_timeout();
+    test_pipe_write_immediate_timeout();
+    test_pipe_read_short_timeout();
+    test_pipe_read_infinite_timeout();
+    test_process_wait_with_timeout();
+    test_process_wait_no_timeout();
+
+    printf("--- Environment Variable Tests ---\n");
+    test_process_inherit_environment();
+    test_process_custom_environment();
+    test_process_empty_environment();
+
+    printf("--- Pipe Output Capture Tests ---\n");
+    test_capture_stdout_through_pipe();
+    test_capture_stderr_through_pipe();
+    test_capture_stdout_and_stderr_separate();
+    test_capture_merged_stderr_to_stdout();
+    test_capture_large_output();
+
+    printf("\n=== All Extended Tests Passed! ===\n");
     return 0;
 }

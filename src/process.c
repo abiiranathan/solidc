@@ -7,6 +7,46 @@
 #include <errno.h>
 #include <stddef.h>
 
+// Helper function to search for command in PATH
+static char* find_in_path(const char* command, const char* const* environment) {
+    if (!command) return NULL;
+
+    if (command[0] == '/' || command[0] == '.') {
+        // Absolute or relative path - use as-is
+        return strdup(command);
+    }
+
+    // Find PATH in environment
+    const char* path_env = NULL;
+    for (int i = 0; environment && environment[i]; i++) {
+        if (strncmp(environment[i], "PATH=", 5) == 0) {
+            path_env = environment[i] + 5;
+            break;
+        }
+    }
+
+    if (!path_env) {
+        return NULL;  // No PATH in environment
+    }
+
+    // Search each PATH component
+    char* path_copy = strdup(path_env);
+    char* dir       = strtok(path_copy, ":");
+    char full_path[4096];
+
+    while (dir) {
+        snprintf(full_path, sizeof(full_path), "%s/%s", dir, command);
+        if (access(full_path, X_OK) == 0) {
+            free(path_copy);
+            return strdup(full_path);
+        }
+        dir = strtok(NULL, ":");
+    }
+
+    free(path_copy);
+    return NULL;
+}
+
 /* Platform-specific implementations of process and pipe handles */
 #ifdef _WIN32
 struct ProcessHandle {
@@ -568,13 +608,19 @@ static ProcessError unix_create_process(ProcessHandle** handle, const char* comm
         }
 
         // Execute the command
-        if (options->environment) {
-            execve(command, (char* const*)argv, (char* const*)options->environment);
-        } else if (options->inherit_environment) {
+        if (options->inherit_environment) {
             execvp(command, (char* const*)argv);
         } else {
-            char* empty_env[] = {NULL};
-            execve(command, (char* const*)argv, empty_env);
+            // Custom or empty environment - need to search PATH manually
+            const char* const* env = options->environment ? options->environment : (const char* const[]){NULL};
+            char* cmd_path         = find_in_path(command, env);
+            if (cmd_path) {
+                execve(cmd_path, (char* const*)argv, (char* const*)env);
+                free(cmd_path);
+            } else {
+                // Try command as-is (might be absolute path)
+                execve(command, (char* const*)argv, (char* const*)env);
+            }
         }
 
         // If we get here, exec failed

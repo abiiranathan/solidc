@@ -132,7 +132,8 @@ typedef struct {
 
 /**
  * @brief Create a new process
- *
+ * When custom environment is provided, command must be an absolute path
+ * or relative path (containing '/'), as execve() does not search PATH
  * @param[out] handle Pointer to receive the process handle
  * @param[in] command Path to executable
  * @param[in] argv NULL-terminated array of arguments (argv[0] should be command
