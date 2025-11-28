@@ -79,6 +79,7 @@ set(HEADERS
     include/dynarray.h
     include/dotenv.h
     include/solidc.h
+    include/xtime.h
 )
 
 # Source files
@@ -105,6 +106,7 @@ set(SOURCES
     src/cache.c
     src/dynarray.c
     src/dotenv.c
+    src/xtime.c
 )
 
 # Include math.h constants e.g M_PI in C23

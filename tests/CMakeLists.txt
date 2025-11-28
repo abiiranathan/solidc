@@ -24,6 +24,7 @@ set(TEST_MODULES
     cache
     dynarray
     dotenv
+    xtime
 )
 
 # Then modify your test loop:
