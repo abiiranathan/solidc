@@ -479,12 +479,6 @@ FlagStatus flag_parse_and_invoke(FlagParser* fp, int argc, char** argv, void* us
     // Run the handler for the target command
     if (target->handler) {
         target->handler(user_data);
-    } else {
-        // If the target has subcommands but no handler, show help
-        if (target->cmd_count > 0) {
-            flag_print_usage(target);
-            return FLAG_ERROR_UNKNOWN_SUBCOMMAND;
-        }
     }
 
     return FLAG_OK;
@@ -620,6 +614,7 @@ bool flag_is_present(FlagParser* fp, const char* name) {
 }
 
 const char* flag_status_str(FlagStatus s) {
+
     switch (s) {
         case FLAG_OK:
             return "OK";
@@ -633,6 +628,10 @@ const char* flag_status_str(FlagStatus s) {
             return "Validation Failed";
         case FLAG_ERROR_REQUIRED_MISSING:
             return "Required Flag Missing";
+        case FLAG_ERROR_UNKNOWN_SUBCOMMAND:
+            return "Unknown subcommand";
+        case FLAG_ERROR_INVALID_ARGUMENT:
+            return "Invalid Argument";
         default:
             return "Error";
     }
