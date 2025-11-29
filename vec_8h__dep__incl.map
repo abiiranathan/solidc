@@ -1,0 +1,12 @@
+<map id="include/vec.h" name="include/vec.h">
+<area shape="rect" id="Node000001" title="High&#45;performance vector mathematics library with scalar and SIMD operations." alt="" coords="15,5,123,31"/>
+<area shape="rect" id="Node000002" href="$linear__alg_8h_source.html" title=" " alt="" coords="25,152,175,177"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="77,44,100,151,95,152,72,45"/>
+<area shape="rect" id="Node000003" href="$solidc_8h_source.html" title=" " alt="" coords="39,225,161,251"/>
+<area shape="poly" id="edge6_Node000001_Node000003" title=" " alt="" coords="53,43,33,71,16,105,8,141,10,159,16,176,27,191,41,204,72,223,69,228,37,208,23,195,11,179,4,160,3,141,11,103,29,68,48,40"/>
+<area shape="rect" id="Node000004" href="$matrix_8h_source.html" title=" " alt="" coords="107,79,235,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="98,36,156,76,153,81,95,41"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="103,191,103,225,97,225,97,191"/>
+<area shape="poly" id="edge4_Node000004_Node000002" title=" " alt="" coords="151,116,113,154,110,150,148,112"/>
+<area shape="poly" id="edge5_Node000004_Node000003" title=" " alt="" coords="186,116,194,146,194,163,189,179,178,195,163,208,131,228,128,223,160,204,174,191,184,176,189,162,189,147,181,118"/>
+</map>
