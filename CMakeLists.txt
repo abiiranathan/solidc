@@ -61,7 +61,6 @@ set(HEADERS
     include/map.h
     include/pipeline.h
     include/process.h
-    include/set.h
     include/slist.h
     include/socket.h
     include/stdstreams.h

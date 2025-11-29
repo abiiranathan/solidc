@@ -103,7 +103,7 @@ make TARGET=wasm SYSTEM_NAME=WebAssembly WASM_CC=emcc
 | `lock.h`       | Mutex abstraction                             |
 | `map.h`        | Generic hash map                              |
 | `safe_map.h`   | Type-safe, thread-safe hash map using macros  |
-| `set.h`        | Generic set                                   |
+| `hashset.h`    | Generic set                                   |
 | `slist.h`      | Singly linked list                            |
 | `thread.h`     | Thread creation & management                  |
 | `threadpool.h` | Simple thread pool implementation             |
@@ -120,6 +120,7 @@ make TARGET=wasm SYSTEM_NAME=WebAssembly WASM_CC=emcc
 | `vec.h`        | Fast Vec2 and Vec3 vector ops with SIMD       |
 | `matrix.h`     | Fast Mat3 and Mat4 matrix ops with SIMD       |
 
+This is not an exhaustive list. See [Includes](./include) for a full list.
 ---
 
 ## 🧪 Example: Directory Walk
