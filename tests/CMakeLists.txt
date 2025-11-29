@@ -2,7 +2,6 @@
 set(TEST_MODULES
     arena
     cstr
-    flag
     file
     filepath
     lock
@@ -27,6 +26,7 @@ set(TEST_MODULES
     xtime
     hashset
     trie
+    flags
 )
 
 # Then modify your test loop:

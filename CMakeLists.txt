@@ -52,7 +52,6 @@ set(HEADERS
     include/defer.h
     include/file.h
     include/filepath.h
-    include/flag.h
     include/global.h
     include/hash.h
     include/list.h
@@ -81,6 +80,7 @@ set(HEADERS
     include/xtime.h
     include/hashset.h
     include/trie.h
+    include/flags.h
 )
 
 # Source files
@@ -90,7 +90,6 @@ set(SOURCES
     src/csvparser.c
     src/file.c
     src/filepath.c
-    src/flag.c
     src/hash.c
     src/list.c
     src/lock.c
@@ -109,6 +108,7 @@ set(SOURCES
     src/dotenv.c
     src/xtime.c
     src/trie.c
+    src/flags.c
 )
 
 # Include math.h constants e.g M_PI in C23

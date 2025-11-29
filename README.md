@@ -119,6 +119,7 @@ make TARGET=wasm SYSTEM_NAME=WebAssembly WASM_CC=emcc
 | `solidc.h`     | Master header that includes all above modules |
 | `vec.h`        | Fast Vec2 and Vec3 vector ops with SIMD       |
 | `matrix.h`     | Fast Mat3 and Mat4 matrix ops with SIMD       |
+| `flags.h`      | Robust Command-Line parsing library           |
 
 This is not an exhaustive list. See [Includes](./include) for a full list.
 ---
