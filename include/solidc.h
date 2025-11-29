@@ -13,7 +13,7 @@
 #include "dynarray.h"
 #include "file.h"
 #include "filepath.h"
-#include "flag.h"
+#include "flags.h"
 #include "global.h"
 #include "hash.h"
 #include "hashset.h"
