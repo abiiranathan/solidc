@@ -32,7 +32,6 @@ static inline size_t calculate_growth(size_t current, size_t element_size) {
 
 bool dynarray_init(dynarray_t* arr, size_t element_size, size_t initial_capacity) {
     if (arr == NULL || element_size == 0) {
-        fprintf(stderr, "Error: Invalid parameters to dynarray_init\n");
         return false;
     }
 
@@ -42,13 +41,11 @@ bool dynarray_init(dynarray_t* arr, size_t element_size, size_t initial_capacity
 
     // Check for potential overflow
     if (initial_capacity > SIZE_MAX / element_size) {
-        fprintf(stderr, "Error: Initial capacity would cause overflow\n");
         return false;
     }
 
     void* data = malloc(element_size * initial_capacity);
     if (data == NULL) {
-        fprintf(stderr, "Error: Failed to allocate memory for dynamic array\n");
         return false;
     }
 
@@ -73,7 +70,6 @@ void dynarray_free(dynarray_t* arr) {
 
 bool dynarray_push(dynarray_t* arr, const void* element) {
     if (arr == NULL || element == NULL) {
-        fprintf(stderr, "Error: Invalid parameters to dynarray_push\n");
         return false;
     }
 
@@ -81,7 +77,6 @@ bool dynarray_push(dynarray_t* arr, const void* element) {
     if (arr->size >= arr->capacity) {
         size_t new_capacity = calculate_growth(arr->capacity, arr->element_size);
         if (new_capacity == 0) {
-            fprintf(stderr, "Error: Array growth would overflow\n");
             return false;
         }
 
@@ -107,14 +102,12 @@ bool dynarray_pop(dynarray_t* arr, void* out_element) {
 
     // Copy element if requested
     if (out_element != NULL) {
-        const unsigned char* src =
-            (const unsigned char*)arr->data + (arr->size * arr->element_size);
+        const unsigned char* src = (const unsigned char*)arr->data + (arr->size * arr->element_size);
         memcpy(out_element, src, arr->element_size);
     }
 
     // Shrink if usage drops below threshold and we have significant unused capacity
-    if (arr->capacity > DYNARRAY_INITIAL_CAPACITY &&
-        arr->size < arr->capacity / DYNARRAY_SHRINK_THRESHOLD) {
+    if (arr->capacity > DYNARRAY_INITIAL_CAPACITY && arr->size < arr->capacity / DYNARRAY_SHRINK_THRESHOLD) {
         size_t new_capacity = arr->capacity / DYNARRAY_GROWTH_DENOMINATOR;
         if (new_capacity < DYNARRAY_INITIAL_CAPACITY) {
             new_capacity = DYNARRAY_INITIAL_CAPACITY;
@@ -136,7 +129,6 @@ void* dynarray_get(const dynarray_t* arr, size_t index) {
 
 bool dynarray_set(dynarray_t* arr, size_t index, const void* element) {
     if (arr == NULL || element == NULL || index >= arr->size) {
-        fprintf(stderr, "Error: Invalid parameters to dynarray_set\n");
         return false;
     }
 
@@ -148,7 +140,6 @@ bool dynarray_set(dynarray_t* arr, size_t index, const void* element) {
 
 bool dynarray_reserve(dynarray_t* arr, size_t new_capacity) {
     if (arr == NULL) {
-        fprintf(stderr, "Error: NULL array in dynarray_reserve\n");
         return false;
     }
 
@@ -164,13 +155,11 @@ bool dynarray_reserve(dynarray_t* arr, size_t new_capacity) {
 
     // Check for overflow
     if (new_capacity > SIZE_MAX / arr->element_size) {
-        fprintf(stderr, "Error: Requested capacity would overflow\n");
         return false;
     }
 
     void* new_data = realloc(arr->data, new_capacity * arr->element_size);
     if (new_data == NULL && new_capacity > 0) {
-        fprintf(stderr, "Error: Failed to reallocate array memory\n");
         return false;
     }
 
@@ -186,8 +175,7 @@ bool dynarray_shrink_to_fit(dynarray_t* arr) {
     }
 
     // Ensure we keep at least the initial capacity to avoid degenerate behavior
-    size_t target_capacity =
-        arr->size > DYNARRAY_INITIAL_CAPACITY ? arr->size : DYNARRAY_INITIAL_CAPACITY;
+    size_t target_capacity = arr->size > DYNARRAY_INITIAL_CAPACITY ? arr->size : DYNARRAY_INITIAL_CAPACITY;
 
     return dynarray_reserve(arr, target_capacity);
 }

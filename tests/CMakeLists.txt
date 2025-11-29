@@ -25,6 +25,8 @@ set(TEST_MODULES
     dynarray
     dotenv
     xtime
+    hashset
+    trie
 )
 
 # Then modify your test loop:

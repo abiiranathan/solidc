@@ -148,7 +148,7 @@ void test_process_wait_with_timeout(void) {
 
     // Use sleep command that takes longer than timeout
     const char* cmd    = "sleep";
-    const char* argv[] = {cmd, "5", NULL};  // Sleep for 5 seconds
+    const char* argv[] = {cmd, "1", NULL};  // Sleep for 1 seconds
 
     ProcessError err = process_create(&process, cmd, argv, NULL);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));

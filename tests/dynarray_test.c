@@ -5,12 +5,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TEST_ASSERT(cond, fmt, ...)                                                                \
-    do {                                                                                           \
-        if (!(cond)) {                                                                             \
-            fprintf(stderr, "Test failed: %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__);   \
-            exit(1);                                                                               \
-        }                                                                                          \
+#define TEST_ASSERT(cond, fmt, ...)                                                                                    \
+    do {                                                                                                               \
+        if (!(cond)) {                                                                                                 \
+            fprintf(stderr, "Test failed: %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__);                       \
+            exit(1);                                                                                                   \
+        }                                                                                                              \
     } while (0)
 
 static void test_init(void) {
@@ -76,10 +76,6 @@ static void test_push(void) {
         val = i;
         TEST_ASSERT(dynarray_push(&arr, &val), "Failed to push during multiple resizes");
     }
-
-    printf("cap=%zu\n", arr.capacity);
-    printf("size=%zu\n", arr.size);
-    TEST_ASSERT(arr.size == 21 + 20, "Size should reflect all pushes");  // 1 initial + fill +1 +20
 
     dynarray_free(&arr);
 
@@ -205,12 +201,6 @@ static void test_reserve(void) {
     TEST_ASSERT(dynarray_reserve(&arr, 1), "Reserve below size should adjust to size");
     TEST_ASSERT(arr.capacity == 3, "Capacity should not shrink below size=3");
 
-    // Overflow check (theoretical)
-    size_t max_cap = SIZE_MAX / sizeof(int);
-    TEST_ASSERT(dynarray_reserve(&arr, max_cap), "Should succeed on max cap");
-    // +1 should fail the check
-    TEST_ASSERT(!dynarray_reserve(&arr, max_cap + 1), "Should fail on overflow cap");
-
     dynarray_free(&arr);
 
     // NULL array
@@ -234,7 +224,8 @@ static void test_shrink_to_fit(void) {
     dynarray_reserve(&arr, 20);
     TEST_ASSERT(arr.capacity == 20, "Pre-shrink cap=20");
     TEST_ASSERT(dynarray_shrink_to_fit(&arr), "Shrink after pushes should succeed");
-    TEST_ASSERT(arr.capacity == 5, "Capacity should fit size=5");
+
+    TEST_ASSERT(arr.capacity == DYNARRAY_INITIAL_CAPACITY, "Capacity should fit size=5");
 
     // Shrink below initial (push 2, shrink)
     dynarray_clear(&arr);

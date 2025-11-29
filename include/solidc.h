@@ -16,6 +16,7 @@
 #include "flag.h"
 #include "global.h"
 #include "hash.h"
+#include "hashset.h"
 #include "linear_alg.h"
 #include "list.h"
 #include "lock.h"
@@ -25,7 +26,6 @@
 #include "pipeline.h"
 #include "process.h"
 #include "rwlock.h"
-#include "set.h"
 #include "slist.h"
 #include "socket.h"
 #include "spinlock.h"
@@ -33,8 +33,10 @@
 #include "str_to_num.h"
 #include "thread.h"
 #include "threadpool.h"
+#include "trie.h"
 #include "unicode.h"
 #include "vec.h"
 #include "wintypes.h"
+#include "xtime.h"
 
 #endif  // SOLIDC_H
