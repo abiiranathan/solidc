@@ -35,7 +35,7 @@ static size_t line_count(CsvReader* reader);
 static size_t get_num_fields(const char* line, char delim, char quote);
 static bool parse_csv_line(csv_line_params* args);
 
-CsvReader* csv_reader_new(const char* filename) {
+CsvReader* csv_reader_new(const char* filename, size_t arena_memory) {
     CsvReader* reader = malloc(sizeof(CsvReader));
     if (!reader) {
         fprintf(stderr, "error allocating memory for CsvReader\n");
@@ -49,7 +49,8 @@ CsvReader* csv_reader_new(const char* filename) {
         return NULL;
     }
 
-    Arena* arena = arena_create(CSV_ARENA_BLOCK_SIZE);
+    // Use passed in argument if provided or use default value.
+    Arena* arena = arena_create((arena_memory ? arena_memory : CSV_ARENA_BLOCK_SIZE));
     if (!arena) {
         fprintf(stderr, "error creating memory arena\n");
         fclose(stream);
@@ -76,8 +77,7 @@ static Row** csv_allocate_rows(Arena* arena, size_t num_rows) {
 
     Row** rows = arena_alloc_array(arena, sizeof(Row*), num_rows);
     if (!rows) {
-        fprintf(stderr, "csv_allocate_rows(): error allocating memory for %lu rows in arena\n",
-                num_rows);
+        fprintf(stderr, "csv_allocate_rows(): error allocating memory for %lu rows in arena\n", num_rows);
         return NULL;
     }
 
@@ -123,6 +123,7 @@ Row** csv_reader_parse(CsvReader* reader) {
         return NULL;
     }
 
+    bool parser_failed = false;
     while (fgets(line, MAX_FIELD_SIZE, reader->stream) && rowIndex < reader->num_rows) {
         // trim white space from end of line and skip empty lines
         char* end = line + strlen(line) - 1;
@@ -158,14 +159,20 @@ Row** csv_reader_parse(CsvReader* reader) {
             .num_fields = num_fields,
         };
 
-        if (!parse_csv_line(&args)) {
+        parser_failed = parse_csv_line(&args);
+        if (parser_failed) {
             break;
         }
-
         rowIndex++;
     }
 
     fclose(reader->stream);
+
+    if (parser_failed) {
+        fprintf(stderr, "Parser failed with an error. No rows will be processed\n");
+        return NULL;
+    }
+
     return reader->rows;
 }
 
@@ -236,6 +243,7 @@ void csv_reader_parse_async(CsvReader* reader, CsvRowCallback callback, size_t m
         };
 
         if (!parse_csv_line(&args)) {
+            fprintf(stderr, "Parser failed with an error. No more rows will be processed\n");
             break;
         }
 
@@ -333,8 +341,7 @@ static bool parse_csv_line(csv_line_params* args) {
 
     // If inside quotes at the end of the line, the line is not terminated
     if (insideQuotes) {
-        fprintf(stderr, "ERROR: unterminated quoted field:%s in line %zu\n", args->line,
-                args->rowIndex);
+        fprintf(stderr, "ERROR: unterminated quoted field:%s in line %zu\n", args->line, args->rowIndex);
         return false;
     }
 
@@ -455,8 +462,7 @@ CsvWriter* csvwriter_new(const char* filename) {
  */
 static inline bool field_needs_quoting(const char* field, char delim, char quote, char newline) {
     // Check for delimiter, quote character, or newline in the field
-    return (strchr(field, delim) != nullptr || strchr(field, quote) != nullptr ||
-            strchr(field, newline) != nullptr);
+    return (strchr(field, delim) != nullptr || strchr(field, quote) != nullptr || strchr(field, newline) != nullptr);
 }
 
 /**
@@ -504,8 +510,7 @@ static bool write_quoted_field(FILE* fp, const char* field, char quote) {
  * @param newline The newline character.
  * @return true on success, false on I/O error.
  */
-static bool write_single_field(FILE* fp, const char* field, bool quote_all, char delim, char quote,
-                               char newline) {
+static bool write_single_field(FILE* fp, const char* field, bool quote_all, char delim, char quote, char newline) {
     if (field == nullptr) {
         // Handle null field as empty string
         field = "";
@@ -565,8 +570,7 @@ bool csvwriter_write_row(CsvWriter* writer, const char** fields, size_t numfield
         }
 
         // Write the field content
-        if (!write_single_field(fp, fields[i], writer->quote_all, writer->delim, writer->quote,
-                                writer->newline)) {
+        if (!write_single_field(fp, fields[i], writer->quote_all, writer->delim, writer->quote, writer->newline)) {
             return false;
         }
     }

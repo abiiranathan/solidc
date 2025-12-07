@@ -71,9 +71,11 @@ typedef void (*CsvRowCallback)(size_t row_index, Row* row);
  * given filename.
  *
  * @param filename The filename of the CSV file to parse.
+ * @param arena_memory The maximum size of the memory for the parser arena. Pass 0 to use the default
+ * or override with -DCSV_ARENA_BLOCK_SIZE.
  * @return A pointer to the created CsvReader, or NULL on failure.
  */
-CsvReader* csv_reader_new(const char* filename);
+CsvReader* csv_reader_new(const char* filename, size_t arena_memory);
 
 /**
  * @brief Parse the CSV data and retrieve all the rows at once.
@@ -150,13 +152,10 @@ typedef struct CsvWriterConfig CsvWriterConfig;
 
 void csv_reader_setconfig(CsvReader* reader, CsvReaderConfig config);
 
-#define CsvReaderConfigure(reader, ...)                                                            \
-    csv_reader_setconfig(reader, (CsvReaderConfig){.delim       = ',',                             \
-                                                   .quote       = '"',                             \
-                                                   .comment     = '#',                             \
-                                                   .has_header  = true,                            \
-                                                   .skip_header = true,                            \
-                                                   __VA_ARGS__})
+#define CsvReaderConfigure(reader, ...)                                                                                \
+    csv_reader_setconfig(                                                                                              \
+        reader, (CsvReaderConfig){                                                                                     \
+                    .delim = ',', .quote = '"', .comment = '#', .has_header = true, .skip_header = true, __VA_ARGS__})
 
 /**
 CsvWriter* writer = csvwriter_new("test.csv");
@@ -174,13 +173,13 @@ csvwriter_free(writer);
 */
 typedef struct CsvWriter CsvWriter;
 
-#define CsvWriterConfigure(writer, ...)                                                            \
-    csvwriter_setconfig(writer, (CsvWriterConfig){.delim     = ',',                                \
-                                                  .quote     = '"',                                \
-                                                  .newline   = '\n',                               \
-                                                  .quote_all = false,                              \
-                                                  .flush     = false,                              \
-                                                  .first_row = false,                              \
+#define CsvWriterConfigure(writer, ...)                                                                                \
+    csvwriter_setconfig(writer, (CsvWriterConfig){.delim     = ',',                                                    \
+                                                  .quote     = '"',                                                    \
+                                                  .newline   = '\n',                                                   \
+                                                  .quote_all = false,                                                  \
+                                                  .flush     = false,                                                  \
+                                                  .first_row = false,                                                  \
                                                   __VA_ARGS__})
 
 // Create a new CSV writer associated with a filename.
