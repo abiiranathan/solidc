@@ -123,7 +123,7 @@ Row** csv_reader_parse(CsvReader* reader) {
         return NULL;
     }
 
-    bool parser_failed = false;
+    bool parse_success = true;
     while (fgets(line, MAX_FIELD_SIZE, reader->stream) && rowIndex < reader->num_rows) {
         // trim white space from end of line and skip empty lines
         char* end = line + strlen(line) - 1;
@@ -159,8 +159,8 @@ Row** csv_reader_parse(CsvReader* reader) {
             .num_fields = num_fields,
         };
 
-        parser_failed = parse_csv_line(&args);
-        if (parser_failed) {
+        parse_success = parse_csv_line(&args);
+        if (!parse_success) {
             break;
         }
         rowIndex++;
@@ -168,8 +168,9 @@ Row** csv_reader_parse(CsvReader* reader) {
 
     fclose(reader->stream);
 
-    if (parser_failed) {
-        fprintf(stderr, "Parser failed with an error. No rows will be processed\n");
+    if (!parse_success) {
+        fprintf(stderr, "csv_reader_parse() failed\n");
+        fprintf(stderr, "Line: %s\n", line);
         return NULL;
     }
 
@@ -243,7 +244,7 @@ void csv_reader_parse_async(CsvReader* reader, CsvRowCallback callback, size_t m
         };
 
         if (!parse_csv_line(&args)) {
-            fprintf(stderr, "Parser failed with an error. No more rows will be processed\n");
+            fprintf(stderr, "csv_reader_parse_async() failed\n");
             break;
         }
 
