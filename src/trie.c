@@ -28,13 +28,13 @@ typedef struct _trie {
 
 /**
  * Creates a new Trie node with all fields initialized to zero.
- * @return Pointer to new node on success, nullptr on allocation failure.
+ * @return Pointer to new node on success, NULL on allocation failure.
  */
 static trie_node_t* trie_node_create(void) {
     trie_node_t* node = calloc(1, sizeof(*node));
-    if (node == nullptr) {
+    if (node == NULL) {
         fprintf(stderr, "Error: Failed to allocate Trie node\n");
-        return nullptr;
+        return NULL;
     }
     node->is_end_of_word = false;
     node->frequency      = 0;
@@ -43,19 +43,19 @@ static trie_node_t* trie_node_create(void) {
 
 /**
  * Creates a new Trie data structure.
- * @return Pointer to new Trie on success, nullptr on allocation failure.
+ * @return Pointer to new Trie on success, NULL on allocation failure.
  */
 trie_t* trie_create(void) {
     trie_t* trie = malloc(sizeof(*trie));
-    if (trie == nullptr) {
+    if (trie == NULL) {
         fprintf(stderr, "Error: Failed to allocate Trie structure\n");
-        return nullptr;
+        return NULL;
     }
 
     trie->root = trie_node_create();
-    if (trie->root == nullptr) {
+    if (trie->root == NULL) {
         free(trie);
-        return nullptr;
+        return NULL;
     }
 
     trie->word_count = 0;
@@ -64,16 +64,16 @@ trie_t* trie_create(void) {
 
 /**
  * Recursively destroys a Trie node and all its children.
- * @param node Node to destroy (can be nullptr).
+ * @param node Node to destroy (can be NULL).
  */
 static void trie_node_destroy(trie_node_t* node) {
-    if (node == nullptr) {
+    if (node == NULL) {
         return;
     }
 
     // Recursively free all children
     for (size_t i = 0; i < TRIE_CHARSET_SIZE; i++) {
-        if (node->children[i] != nullptr) {
+        if (node->children[i] != NULL) {
             trie_node_destroy(node->children[i]);
         }
     }
@@ -83,10 +83,10 @@ static void trie_node_destroy(trie_node_t* node) {
 
 /**
  * Destroys a Trie and frees all associated memory.
- * @param trie Trie to destroy (can be nullptr).
+ * @param trie Trie to destroy (can be NULL).
  */
 void trie_destroy(trie_t* trie) {
-    if (trie == nullptr) {
+    if (trie == NULL) {
         return;
     }
 
@@ -101,7 +101,7 @@ void trie_destroy(trie_t* trie) {
  * @return true on success, false on failure (invalid input or allocation error).
  */
 bool trie_insert(trie_t* trie, const char* word) {
-    if (trie == nullptr || word == nullptr || *word == '\0') {
+    if (trie == NULL || word == NULL || *word == '\0') {
         return false;
     }
 
@@ -112,9 +112,9 @@ bool trie_insert(trie_t* trie, const char* word) {
     while (*uword != '\0') {
         unsigned char index = *uword;
 
-        if (current->children[index] == nullptr) {
+        if (current->children[index] == NULL) {
             current->children[index] = trie_node_create();
-            if (current->children[index] == nullptr) {
+            if (current->children[index] == NULL) {
                 return false;  // Allocation failure
             }
         }
@@ -140,7 +140,7 @@ bool trie_insert(trie_t* trie, const char* word) {
  * @return true if word exists in Trie, false otherwise.
  */
 bool trie_search(const trie_t* trie, const char* word) {
-    if (trie == nullptr || word == nullptr || *word == '\0') {
+    if (trie == NULL || word == NULL || *word == '\0') {
         return false;
     }
 
@@ -150,7 +150,7 @@ bool trie_search(const trie_t* trie, const char* word) {
     while (*uword != '\0') {
         unsigned char index = *uword;
 
-        if (current->children[index] == nullptr) {
+        if (current->children[index] == NULL) {
             return false;  // Path doesn't exist
         }
 
@@ -168,7 +168,7 @@ bool trie_search(const trie_t* trie, const char* word) {
  * @return true if prefix exists, false otherwise.
  */
 bool trie_starts_with(const trie_t* trie, const char* prefix) {
-    if (trie == nullptr || prefix == nullptr || *prefix == '\0') {
+    if (trie == NULL || prefix == NULL || *prefix == '\0') {
         return false;
     }
 
@@ -178,7 +178,7 @@ bool trie_starts_with(const trie_t* trie, const char* prefix) {
     while (*uprefix != '\0') {
         unsigned char index = *uprefix;
 
-        if (current->children[index] == nullptr) {
+        if (current->children[index] == NULL) {
             return false;
         }
 
@@ -196,7 +196,7 @@ bool trie_starts_with(const trie_t* trie, const char* prefix) {
  * @return true if word was deleted, false if word doesn't exist.
  */
 bool trie_delete(trie_t* trie, const char* word) {
-    if (trie == nullptr || word == nullptr || *word == '\0') {
+    if (trie == NULL || word == NULL || *word == '\0') {
         return false;
     }
 
@@ -205,7 +205,7 @@ bool trie_delete(trie_t* trie, const char* word) {
 
     while (*uword != '\0') {
         unsigned char index = *uword;
-        if (current->children[index] == nullptr) {
+        if (current->children[index] == NULL) {
             return false;
         }
         current = current->children[index];
@@ -230,7 +230,7 @@ bool trie_delete(trie_t* trie, const char* word) {
  * @return Frequency count, or 0 if word doesn't exist.
  */
 uint32_t trie_get_frequency(const trie_t* trie, const char* word) {
-    if (trie == nullptr || word == nullptr || *word == '\0') {
+    if (trie == NULL || word == NULL || *word == '\0') {
         return 0;
     }
 
@@ -239,7 +239,7 @@ uint32_t trie_get_frequency(const trie_t* trie, const char* word) {
 
     while (*uword != '\0') {
         unsigned char index = *uword;
-        if (current->children[index] == nullptr) {
+        if (current->children[index] == NULL) {
             return 0;
         }
         current = current->children[index];
@@ -252,19 +252,19 @@ uint32_t trie_get_frequency(const trie_t* trie, const char* word) {
 /**
  * Gets the total number of unique words in the Trie.
  * @param trie The Trie structure.
- * @return Number of unique words, or 0 if trie is nullptr.
+ * @return Number of unique words, or 0 if trie is NULL.
  */
 size_t trie_get_word_count(const trie_t* trie) {
-    return trie != nullptr ? trie->word_count : 0;
+    return trie != NULL ? trie->word_count : 0;
 }
 
 /**
  * Checks if the Trie is empty.
  * @param trie The Trie structure.
- * @return true if empty or nullptr, false otherwise.
+ * @return true if empty or NULL, false otherwise.
  */
 bool trie_is_empty(const trie_t* trie) {
-    return trie == nullptr || trie->word_count == 0;
+    return trie == NULL || trie->word_count == 0;
 }
 
 /**
@@ -278,7 +278,7 @@ bool trie_is_empty(const trie_t* trie) {
  */
 static void collect_words_recursive(const trie_node_t* node, char* prefix, size_t max_len, size_t depth,
                                     suggestions_collector_t* collector, Arena* arena) {
-    if (node == nullptr || collector->count >= collector->limit) {
+    if (node == NULL || collector->count >= collector->limit) {
         return;
     }
 
@@ -288,14 +288,14 @@ static void collect_words_recursive(const trie_node_t* node, char* prefix, size_
 
         // Duplicate string into the Arena
         char* dup = arena_strdup(arena, prefix);
-        if (dup != nullptr) {
+        if (dup != NULL) {
             collector->suggestions[collector->count++] = dup;
         }
     }
 
     // Recursively traverse all children
     for (size_t i = 0; i < TRIE_CHARSET_SIZE; i++) {
-        if (node->children[i] != nullptr) {
+        if (node->children[i] != NULL) {
             // Check buffer bounds
             if (depth + 1 >= max_len) {
                 return;  // Prevent buffer overflow
@@ -320,17 +320,17 @@ static void collect_words_recursive(const trie_node_t* node, char* prefix, size_
  * @param max_suggestions Maximum number of suggestions to return.
  * @param out_count Output parameter for number of suggestions found.
  * @param arena The Arena allocator to use for the results.
- * @return Array of suggestion strings (allocated in arena), or nullptr on error/not found.
+ * @return Array of suggestion strings (allocated in arena), or NULL on error/not found.
  * @note The returned array and strings are owned by the Arena and freed when arena_destroy is called.
  */
 const char** trie_autocomplete(const trie_t* trie, const char* prefix, size_t max_suggestions, size_t* out_count,
                                Arena* arena) {
-    if (out_count != nullptr) {
+    if (out_count != NULL) {
         *out_count = 0;
     }
 
-    if (trie == nullptr || prefix == nullptr || out_count == nullptr || max_suggestions == 0 || arena == nullptr) {
-        return nullptr;
+    if (trie == NULL || prefix == NULL || out_count == NULL || max_suggestions == 0 || arena == NULL) {
+        return NULL;
     }
 
     // Navigate to the prefix node
@@ -340,8 +340,8 @@ const char** trie_autocomplete(const trie_t* trie, const char* prefix, size_t ma
 
     while (*uprefix != '\0') {
         unsigned char index = *uprefix;
-        if (current->children[index] == nullptr) {
-            return nullptr;  // Prefix doesn't exist
+        if (current->children[index] == NULL) {
+            return NULL;  // Prefix doesn't exist
         }
         current = current->children[index];
         uprefix++;
@@ -354,21 +354,21 @@ const char** trie_autocomplete(const trie_t* trie, const char* prefix, size_t ma
     collector.count       = 0;
     collector.suggestions = (char**)arena_alloc_array(arena, sizeof(char*), max_suggestions);
 
-    if (collector.suggestions == nullptr) {
-        return nullptr;
+    if (collector.suggestions == NULL) {
+        return NULL;
     }
 
     // Allocate buffer for building words in the Arena
     const size_t max_word_len = 1024;
     char* word_buffer         = (char*)arena_alloc(arena, max_word_len);
 
-    if (word_buffer == nullptr) {
-        return nullptr;
+    if (word_buffer == NULL) {
+        return NULL;
     }
 
     // Copy prefix into buffer
     if (prefix_len >= max_word_len) {
-        return nullptr;
+        return NULL;
     }
     strncpy(word_buffer, prefix,
             prefix_len + 1);  // +1 to copy null terminator if space allows, mostly to silence warnings
@@ -378,7 +378,7 @@ const char** trie_autocomplete(const trie_t* trie, const char* prefix, size_t ma
 
     // Return results
     if (collector.count == 0) {
-        return nullptr;
+        return NULL;
     }
 
     *out_count = collector.count;

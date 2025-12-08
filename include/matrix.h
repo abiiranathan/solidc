@@ -347,9 +347,9 @@ static inline bool mat3_inverse(Mat3 m, Mat3* inv) {
  * Assumes column-major matrices.
  *
  * @param A Input 3x3 matrix (column-major).
- * @param L Output lower triangular matrix (column-major). Must not be nullptr.
- * @param U Output upper triangular matrix (column-major). Must not be nullptr.
- * @param P Output permutation matrix (column-major). Must not be nullptr.
+ * @param L Output lower triangular matrix (column-major). Must not be NULL.
+ * @param U Output upper triangular matrix (column-major). Must not be NULL.
+ * @param P Output permutation matrix (column-major). Must not be NULL.
  * @return true if decomposition successful, false if matrix is singular.
  * @note Uses partial pivoting for numerical stability.
  * @note Tolerance for singularity is 1e-6.

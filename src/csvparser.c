@@ -487,7 +487,7 @@ CsvWriter* csvwriter_new(const char* filename) {
  */
 static inline bool field_needs_quoting(const char* field, char delim, char quote, char newline) {
     // Check for delimiter, quote character, or newline in the field
-    return (strchr(field, delim) != nullptr || strchr(field, quote) != nullptr || strchr(field, newline) != nullptr);
+    return (strchr(field, delim) != NULL || strchr(field, quote) != NULL || strchr(field, newline) != NULL);
 }
 
 /**
@@ -536,7 +536,7 @@ static bool write_quoted_field(FILE* fp, const char* field, char quote) {
  * @return true on success, false on I/O error.
  */
 static bool write_single_field(FILE* fp, const char* field, bool quote_all, char delim, char quote, char newline) {
-    if (field == nullptr) {
+    if (field == NULL) {
         // Handle null field as empty string
         field = "";
     }
@@ -558,12 +558,12 @@ static bool write_single_field(FILE* fp, const char* field, bool quote_all, char
  */
 bool csvwriter_write_row(CsvWriter* writer, const char** fields, size_t numfields) {
     // Input validation
-    if (writer == nullptr) {
+    if (writer == NULL) {
         errno = EINVAL;
         return false;
     }
 
-    if (fields == nullptr && numfields > 0) {
+    if (fields == NULL && numfields > 0) {
         errno = EINVAL;
         return false;
     }

@@ -131,9 +131,9 @@ static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
  * and S is a diagonal matrix of singular values.
  *
  * @param A Input 3x3 matrix (column-major).
- * @param U Output left singular vectors as columns (column-major). Must not be nullptr.
- * @param S Output singular values in descending order. Must not be nullptr.
- * @param V Output right singular vectors as columns (column-major). Must not be nullptr.
+ * @param U Output left singular vectors as columns (column-major). Must not be NULL.
+ * @param S Output singular values in descending order. Must not be NULL.
+ * @param V Output right singular vectors as columns (column-major). Must not be NULL.
  * @note Singular values are sorted in descending order.
  * @note For rank-deficient matrices, orthonormalizes U to ensure valid orthogonal matrix.
  * @note Ensures det(U) = +1 by flipping last column if necessary.
@@ -221,8 +221,8 @@ static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
  * Decomposes A into A = Q * R, where Q is orthogonal and R is upper triangular.
  *
  * @param A Input 4x4 matrix (column-major).
- * @param Q Output orthogonal 4x4 matrix (column-major). Must not be nullptr.
- * @param R Output upper triangular 4x4 matrix (column-major). Must not be nullptr.
+ * @param Q Output orthogonal 4x4 matrix (column-major). Must not be NULL.
+ * @param R Output upper triangular 4x4 matrix (column-major). Must not be NULL.
  * @note Uses modified Gram-Schmidt for better numerical stability.
  * @note Lower triangle of R is explicitly zeroed.
  */
@@ -270,8 +270,8 @@ static inline void mat4_qr(Mat4 A, Mat4* Q, Mat4* R) {
  * corresponding to the largest eigenvalue (in magnitude).
  *
  * @param A Input 4x4 matrix (column-major).
- * @param eigenvector Output dominant eigenvector (normalized). Must not be nullptr.
- * @param eigenvalue Output dominant eigenvalue. Must not be nullptr.
+ * @param eigenvector Output dominant eigenvector (normalized). Must not be NULL.
+ * @param eigenvalue Output dominant eigenvalue. Must not be NULL.
  * @param max_iter Maximum number of iterations.
  * @param tol Convergence tolerance for eigenvalue change.
  * @note Converges to the eigenvector with largest absolute eigenvalue.

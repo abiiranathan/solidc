@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.30.0)
 project(solidc VERSION 0.2.5 LANGUAGES C)
 
-set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
@@ -58,6 +58,7 @@ set(HEADERS
     include/lock.h
     include/macros.h
     include/map.h
+    include/rapidhash.h
     include/pipeline.h
     include/process.h
     include/slist.h

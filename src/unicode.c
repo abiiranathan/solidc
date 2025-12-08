@@ -427,7 +427,7 @@ bool is_utf8_punct(const char* utf8) {
  */
 char* utf8_copy(const char* data) {
     if (!data) {
-        return nullptr;
+        return NULL;
     }
 
     size_t length = utf8_valid_byte_count(data);
@@ -448,7 +448,7 @@ char* utf8_copy(const char* data) {
  */
 const char* utf8_data(const utf8_string* s) {
     if (!s) {
-        return nullptr;
+        return NULL;
     }
     return s->data;
 }
@@ -464,18 +464,18 @@ const char* utf8_data(const utf8_string* s) {
  */
 utf8_string* utf8_new(const char* data) {
     if (!data) {
-        return nullptr;
+        return NULL;
     }
 
     utf8_string* s = (utf8_string*)malloc(sizeof(utf8_string));
     if (!s) {
-        return nullptr;
+        return NULL;
     }
 
     s->data = utf8_copy(data);
     if (!s->data) {
         free(s);
-        return nullptr;
+        return NULL;
     }
 
     s->length = utf8_valid_byte_count(data);
@@ -493,13 +493,13 @@ utf8_string* utf8_new(const char* data) {
 utf8_string* utf8_new_with_capacity(size_t capacity) {
     utf8_string* s = (utf8_string*)malloc(sizeof(utf8_string));
     if (!s) {
-        return nullptr;
+        return NULL;
     }
 
     s->data = (char*)malloc(capacity + 1);
     if (!s->data) {
         free(s);
-        return nullptr;
+        return NULL;
     }
 
     s->data[0] = '\0';
@@ -659,7 +659,7 @@ bool utf8_append(utf8_string* s, const char* data) {
  */
 char* utf8_substr(const utf8_string* s, size_t index, size_t utf8_byte_len) {
     if (!s || !s->data || index >= s->length || utf8_byte_len == 0) {
-        return nullptr;
+        return NULL;
     }
 
     if (index + utf8_byte_len > s->length) {
@@ -754,7 +754,7 @@ bool utf8_replace(utf8_string* s, const char* old_str, const char* new_str) {
     size_t new_count    = utf8_count_codepoints(new_str);
 
     char* index = strstr(s->data, old_str);
-    if (index == nullptr) {
+    if (index == NULL) {
         return false;
     }
 
@@ -798,7 +798,7 @@ size_t utf8_replace_all(utf8_string* s, const char* old_str, const char* new_str
     size_t replacements = 0;
 
     char* index = s->data;
-    while ((index = strstr(index, old_str)) != nullptr) {
+    while ((index = strstr(index, old_str)) != NULL) {
         size_t offset = (size_t)(index - s->data);
 
         if (old_byte_len != new_byte_len) {
@@ -893,34 +893,34 @@ long utf8_writeto(const utf8_string* s, const char* filename) {
  */
 utf8_string* utf8_readfrom(const char* filename) {
     if (!filename) {
-        return nullptr;
+        return NULL;
     }
 
     FILE* file = fopen(filename, "r");
     if (!file) {
-        return nullptr;
+        return NULL;
     }
 
     if (fseek(file, 0, SEEK_END) != 0) {
         fclose(file);
-        return nullptr;
+        return NULL;
     }
 
     long length = ftell(file);
     if (length < 0) {
         fclose(file);
-        return nullptr;
+        return NULL;
     }
 
     if (fseek(file, 0, SEEK_SET) != 0) {
         fclose(file);
-        return nullptr;
+        return NULL;
     }
 
     char* data = (char*)malloc((size_t)length + 1);
     if (!data) {
         fclose(file);
-        return nullptr;
+        return NULL;
     }
 
     size_t bytes = fread(data, 1, (size_t)length, file);
@@ -1238,13 +1238,13 @@ utf8_string** utf8_split(const utf8_string* str, const char* delim, size_t* num_
         if (num_parts) {
             *num_parts = 0;
         }
-        return nullptr;
+        return NULL;
     }
 
     size_t delim_len = utf8_valid_byte_count(delim);
     if (delim_len == 0) {
         *num_parts = 0;
-        return nullptr;
+        return NULL;
     }
 
     size_t count = 1;
@@ -1265,7 +1265,7 @@ utf8_string** utf8_split(const utf8_string* str, const char* delim, size_t* num_
     utf8_string** parts = (utf8_string**)malloc(count * sizeof(utf8_string*));
     if (!parts) {
         *num_parts = 0;
-        return nullptr;
+        return NULL;
     }
 
     size_t index = 0;
@@ -1319,7 +1319,7 @@ void utf8_array_remove(utf8_string** array, size_t size, size_t index) {
     for (size_t i = index; i < size - 1; i++) {
         array[i] = array[i + 1];
     }
-    array[size - 1] = nullptr;
+    array[size - 1] = NULL;
 }
 
 /**
@@ -1396,7 +1396,7 @@ bool utf8_contains(const char* str, const char* substr) {
     if (!str || !substr) {
         return false;
     }
-    return strstr(str, substr) != nullptr;
+    return strstr(str, substr) != NULL;
 }
 
 /**
@@ -1442,7 +1442,7 @@ bool utf8_equals(const char* s1, const char* s2) {
  */
 utf8_string* utf8_clone(const utf8_string* s) {
     if (!s || !s->data) {
-        return nullptr;
+        return NULL;
     }
     return utf8_new(s->data);
 }
@@ -1457,12 +1457,12 @@ utf8_string* utf8_clone(const utf8_string* s) {
  */
 utf8_string* utf8_concat(const utf8_string* s1, const utf8_string* s2) {
     if (!s1 || !s1->data || !s2 || !s2->data) {
-        return nullptr;
+        return NULL;
     }
 
     utf8_string* result = utf8_new_with_capacity(s1->length + s2->length);
     if (!result) {
-        return nullptr;
+        return NULL;
     }
 
     memcpy(result->data, s1->data, s1->length);

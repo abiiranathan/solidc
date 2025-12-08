@@ -47,7 +47,7 @@ bool dynarray_init(dynarray_t* arr, size_t element_size, size_t initial_capacity
 
 /**
  * Frees all resources associated with the dynamic array.
- * @param arr Pointer to the array to free. Safe to pass nullptr.
+ * @param arr Pointer to the array to free. Safe to pass NULL.
  * @note Array is left in an invalid state after this call.
  */
 void dynarray_free(dynarray_t* arr);
@@ -64,7 +64,7 @@ bool dynarray_push(dynarray_t* arr, const void* element);
 /**
  * Removes and returns the last element from the array.
  * @param arr Pointer to the array.
- * @param out_element Pointer to store the popped element (can be nullptr if value not needed).
+ * @param out_element Pointer to store the popped element (can be NULL if value not needed).
  * @return true on success, false if array is empty.
  * @note May shrink the array if usage drops below threshold.
  */
@@ -74,7 +74,7 @@ bool dynarray_pop(dynarray_t* arr, void* out_element);
  * Gets a pointer to the element at the specified index.
  * @param arr Pointer to the array.
  * @param index Index of the element.
- * @return Pointer to the element, or nullptr if index is out of bounds.
+ * @return Pointer to the element, or NULL if index is out of bounds.
  * @note Returned pointer may be invalidated by operations that modify the array.
  */
 void* dynarray_get(const dynarray_t* arr, size_t index);
@@ -133,10 +133,10 @@ static inline size_t dynarray_capacity(const dynarray_t* arr) {
 /**
  * Checks if the array is empty.
  * @param arr Pointer to the array.
- * @return true if empty or nullptr, false otherwise.
+ * @return true if empty or NULL, false otherwise.
  */
 static inline bool dynarray_is_empty(const dynarray_t* arr) {
-    return arr == nullptr || arr->size == 0;
+    return arr == NULL || arr->size == 0;
 }
 
 #ifdef __cplusplus

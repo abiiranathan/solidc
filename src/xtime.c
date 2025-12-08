@@ -871,7 +871,7 @@ const char* xtime_strerror(xtime_error_t err) {
 // =============== Helpers ===========================
 
 xtime_error_t xtime_add_nanoseconds(xtime_t* t, int64_t nanos) {
-    if (t == nullptr) {
+    if (t == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -894,7 +894,7 @@ xtime_error_t xtime_add_nanoseconds(xtime_t* t, int64_t nanos) {
 }
 
 xtime_error_t xtime_add_microseconds(xtime_t* t, int64_t micros) {
-    if (t == nullptr) {
+    if (t == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -902,7 +902,7 @@ xtime_error_t xtime_add_microseconds(xtime_t* t, int64_t micros) {
 }
 
 xtime_error_t xtime_add_milliseconds(xtime_t* t, int64_t millis) {
-    if (t == nullptr) {
+    if (t == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -910,7 +910,7 @@ xtime_error_t xtime_add_milliseconds(xtime_t* t, int64_t millis) {
 }
 
 xtime_error_t xtime_add_minutes(xtime_t* t, int64_t minutes) {
-    if (t == nullptr) {
+    if (t == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -918,7 +918,7 @@ xtime_error_t xtime_add_minutes(xtime_t* t, int64_t minutes) {
 }
 
 xtime_error_t xtime_add_hours(xtime_t* t, int64_t hours) {
-    if (t == nullptr) {
+    if (t == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -926,7 +926,7 @@ xtime_error_t xtime_add_hours(xtime_t* t, int64_t hours) {
 }
 
 xtime_error_t xtime_add_days(xtime_t* t, int64_t days) {
-    if (t == nullptr) {
+    if (t == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -934,7 +934,7 @@ xtime_error_t xtime_add_days(xtime_t* t, int64_t days) {
 }
 
 xtime_error_t xtime_add_months(xtime_t* t, int months) {
-    if (t == nullptr) {
+    if (t == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -948,7 +948,7 @@ xtime_error_t xtime_add_months(xtime_t* t, int months) {
     time_t timestamp = (time_t)t->seconds;
     struct tm tm_val;
 
-    if (gmtime_r(&timestamp, &tm_val) == nullptr) {
+    if (gmtime_r(&timestamp, &tm_val) == NULL) {
         return XTIME_ERR_INVALID_TIME;
     }
 
@@ -993,7 +993,7 @@ xtime_error_t xtime_add_months(xtime_t* t, int months) {
 }
 
 xtime_error_t xtime_add_years(xtime_t* t, int years) {
-    if (t == nullptr) {
+    if (t == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1007,7 +1007,7 @@ xtime_error_t xtime_add_years(xtime_t* t, int years) {
     time_t timestamp = (time_t)t->seconds;
     struct tm tm_val;
 
-    if (gmtime_r(&timestamp, &tm_val) == nullptr) {
+    if (gmtime_r(&timestamp, &tm_val) == NULL) {
         return XTIME_ERR_INVALID_TIME;
     }
 
@@ -1045,7 +1045,7 @@ xtime_error_t xtime_add_years(xtime_t* t, int years) {
 }
 
 xtime_error_t xtime_diff_nanos(const xtime_t* t1, const xtime_t* t2, int64_t* nanos) {
-    if (t1 == nullptr || t2 == nullptr || nanos == nullptr) {
+    if (t1 == NULL || t2 == NULL || nanos == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1058,7 +1058,7 @@ xtime_error_t xtime_diff_nanos(const xtime_t* t1, const xtime_t* t2, int64_t* na
 }
 
 xtime_error_t xtime_diff_micros(const xtime_t* t1, const xtime_t* t2, int64_t* micros) {
-    if (t1 == nullptr || t2 == nullptr || micros == nullptr) {
+    if (t1 == NULL || t2 == NULL || micros == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1074,7 +1074,7 @@ xtime_error_t xtime_diff_micros(const xtime_t* t1, const xtime_t* t2, int64_t* m
 }
 
 xtime_error_t xtime_diff_millis(const xtime_t* t1, const xtime_t* t2, int64_t* millis) {
-    if (t1 == nullptr || t2 == nullptr || millis == nullptr) {
+    if (t1 == NULL || t2 == NULL || millis == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1090,7 +1090,7 @@ xtime_error_t xtime_diff_millis(const xtime_t* t1, const xtime_t* t2, int64_t* m
 }
 
 xtime_error_t xtime_diff_seconds(const xtime_t* t1, const xtime_t* t2, int64_t* seconds) {
-    if (t1 == nullptr || t2 == nullptr || seconds == nullptr) {
+    if (t1 == NULL || t2 == NULL || seconds == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1100,7 +1100,7 @@ xtime_error_t xtime_diff_seconds(const xtime_t* t1, const xtime_t* t2, int64_t* 
 }
 
 xtime_error_t xtime_diff_minutes(const xtime_t* t1, const xtime_t* t2, int64_t* minutes) {
-    if (t1 == nullptr || t2 == nullptr || minutes == nullptr) {
+    if (t1 == NULL || t2 == NULL || minutes == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1110,7 +1110,7 @@ xtime_error_t xtime_diff_minutes(const xtime_t* t1, const xtime_t* t2, int64_t* 
 }
 
 xtime_error_t xtime_diff_hours(const xtime_t* t1, const xtime_t* t2, int64_t* hours) {
-    if (t1 == nullptr || t2 == nullptr || hours == nullptr) {
+    if (t1 == NULL || t2 == NULL || hours == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1120,7 +1120,7 @@ xtime_error_t xtime_diff_hours(const xtime_t* t1, const xtime_t* t2, int64_t* ho
 }
 
 xtime_error_t xtime_diff_days(const xtime_t* t1, const xtime_t* t2, int64_t* days) {
-    if (t1 == nullptr || t2 == nullptr || days == nullptr) {
+    if (t1 == NULL || t2 == NULL || days == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1130,14 +1130,14 @@ xtime_error_t xtime_diff_days(const xtime_t* t1, const xtime_t* t2, int64_t* day
 }
 
 bool xtime_is_leap_year(const xtime_t* t) {
-    if (t == nullptr) {
+    if (t == NULL) {
         return false;
     }
 
     time_t timestamp = (time_t)t->seconds;
     struct tm tm_val;
 
-    if (gmtime_r(&timestamp, &tm_val) == nullptr) {
+    if (gmtime_r(&timestamp, &tm_val) == NULL) {
         return false;
     }
 
@@ -1145,7 +1145,7 @@ bool xtime_is_leap_year(const xtime_t* t) {
 }
 
 xtime_error_t xtime_truncate_to_second(xtime_t* t) {
-    if (t == nullptr) {
+    if (t == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1155,7 +1155,7 @@ xtime_error_t xtime_truncate_to_second(xtime_t* t) {
 }
 
 xtime_error_t xtime_truncate_to_minute(xtime_t* t) {
-    if (t == nullptr) {
+    if (t == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1168,7 +1168,7 @@ xtime_error_t xtime_truncate_to_minute(xtime_t* t) {
 }
 
 xtime_error_t xtime_truncate_to_hour(xtime_t* t) {
-    if (t == nullptr) {
+    if (t == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1181,7 +1181,7 @@ xtime_error_t xtime_truncate_to_hour(xtime_t* t) {
 }
 
 xtime_error_t xtime_truncate_to_day(xtime_t* t) {
-    if (t == nullptr) {
+    if (t == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1194,7 +1194,7 @@ xtime_error_t xtime_truncate_to_day(xtime_t* t) {
 }
 
 xtime_error_t xtime_start_of_week(const xtime_t* t, xtime_t* result) {
-    if (t == nullptr || result == nullptr) {
+    if (t == NULL || result == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1210,7 +1210,7 @@ xtime_error_t xtime_start_of_week(const xtime_t* t, xtime_t* result) {
     time_t timestamp = (time_t)result->seconds;
     struct tm tm_val;
 
-    if (gmtime_r(&timestamp, &tm_val) == nullptr) {
+    if (gmtime_r(&timestamp, &tm_val) == NULL) {
         return XTIME_ERR_INVALID_TIME;
     }
 
@@ -1222,7 +1222,7 @@ xtime_error_t xtime_start_of_week(const xtime_t* t, xtime_t* result) {
 }
 
 xtime_error_t xtime_start_of_month(const xtime_t* t, xtime_t* result) {
-    if (t == nullptr || result == nullptr) {
+    if (t == NULL || result == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1231,7 +1231,7 @@ xtime_error_t xtime_start_of_month(const xtime_t* t, xtime_t* result) {
     time_t timestamp = (time_t)result->seconds;
     struct tm tm_val;
 
-    if (gmtime_r(&timestamp, &tm_val) == nullptr) {
+    if (gmtime_r(&timestamp, &tm_val) == NULL) {
         return XTIME_ERR_INVALID_TIME;
     }
 
@@ -1249,7 +1249,7 @@ xtime_error_t xtime_start_of_month(const xtime_t* t, xtime_t* result) {
 }
 
 xtime_error_t xtime_start_of_year(const xtime_t* t, xtime_t* result) {
-    if (t == nullptr || result == nullptr) {
+    if (t == NULL || result == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1258,7 +1258,7 @@ xtime_error_t xtime_start_of_year(const xtime_t* t, xtime_t* result) {
     time_t timestamp = (time_t)result->seconds;
     struct tm tm_val;
 
-    if (gmtime_r(&timestamp, &tm_val) == nullptr) {
+    if (gmtime_r(&timestamp, &tm_val) == NULL) {
         return XTIME_ERR_INVALID_TIME;
     }
 
@@ -1276,7 +1276,7 @@ xtime_error_t xtime_start_of_year(const xtime_t* t, xtime_t* result) {
 }
 
 xtime_error_t xtime_end_of_day(const xtime_t* t, xtime_t* result) {
-    if (t == nullptr || result == nullptr) {
+    if (t == NULL || result == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1296,7 +1296,7 @@ xtime_error_t xtime_end_of_day(const xtime_t* t, xtime_t* result) {
 }
 
 xtime_error_t xtime_end_of_month(const xtime_t* t, xtime_t* result) {
-    if (t == nullptr || result == nullptr) {
+    if (t == NULL || result == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1305,7 +1305,7 @@ xtime_error_t xtime_end_of_month(const xtime_t* t, xtime_t* result) {
     time_t timestamp = (time_t)result->seconds;
     struct tm tm_val;
 
-    if (gmtime_r(&timestamp, &tm_val) == nullptr) {
+    if (gmtime_r(&timestamp, &tm_val) == NULL) {
         return XTIME_ERR_INVALID_TIME;
     }
 
@@ -1335,7 +1335,7 @@ xtime_error_t xtime_end_of_month(const xtime_t* t, xtime_t* result) {
 }
 
 xtime_error_t xtime_end_of_year(const xtime_t* t, xtime_t* result) {
-    if (t == nullptr || result == nullptr) {
+    if (t == NULL || result == NULL) {
         return XTIME_ERR_INVALID_ARG;
     }
 
@@ -1344,7 +1344,7 @@ xtime_error_t xtime_end_of_year(const xtime_t* t, xtime_t* result) {
     time_t timestamp = (time_t)result->seconds;
     struct tm tm_val;
 
-    if (gmtime_r(&timestamp, &tm_val) == nullptr) {
+    if (gmtime_r(&timestamp, &tm_val) == NULL) {
         return XTIME_ERR_INVALID_TIME;
     }
 

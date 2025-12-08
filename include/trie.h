@@ -22,14 +22,14 @@ typedef struct {
 
 /**
  * Creates a new Trie data structure.
- * @return Pointer to new Trie on success, nullptr on allocation failure.
+ * @return Pointer to new Trie on success, NULL on allocation failure.
  * @note Caller must free using trie_destroy().
  */
 trie_t* trie_create(void);
 
 /**
  * Destroys a Trie and frees all associated memory.
- * @param trie Trie to destroy (can be nullptr).
+ * @param trie Trie to destroy (can be NULL).
  */
 void trie_destroy(trie_t* trie);
 
@@ -75,13 +75,13 @@ uint32_t trie_get_frequency(const trie_t* trie, const char* word);
 /**
  * Gets the total number of unique words in the Trie.
  * @param trie The Trie structure.
- * @return Number of unique words, or 0 if trie is nullptr.
+ * @return Number of unique words, or 0 if trie is NULL.
  */
 size_t trie_get_word_count(const trie_t* trie);
 /**
  * Checks if the Trie is empty.
  * @param trie The Trie structure.
- * @return true if empty or nullptr, false otherwise.
+ * @return true if empty or NULL, false otherwise.
  */
 bool trie_is_empty(const trie_t* trie);
 
@@ -94,7 +94,7 @@ bool trie_is_empty(const trie_t* trie);
  * @param max_suggestions Maximum number of suggestions to return.
  * @param out_count Output parameter for number of suggestions found.
  * @param arena The Arena allocator to use for the results.
- * @return Array of suggestion strings (allocated in arena), or nullptr on error/not found.
+ * @return Array of suggestion strings (allocated in arena), or NULL on error/not found.
  * @note The returned array and strings are owned by the Arena and freed when arena_destroy is called.
  */
 const char** trie_autocomplete(const trie_t* trie, const char* prefix, size_t max_suggestions, size_t* out_count,

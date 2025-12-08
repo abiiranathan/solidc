@@ -13,11 +13,11 @@
 
 /** Internal helper for validating string input and performing base conversion. */
 static inline StoError validate_and_parse_signed(const char* str, int base, intmax_t* result) {
-    if (str == nullptr || result == nullptr) {
+    if (str == NULL || result == NULL) {
         return STO_INVALID;
     }
 
-    char* endptr = nullptr;
+    char* endptr = NULL;
     errno        = 0;
     *result      = strtoimax(str, &endptr, base);
 
@@ -36,11 +36,11 @@ static inline StoError validate_and_parse_signed(const char* str, int base, intm
 
 /** Internal helper for validating string input and performing base conversion (unsigned). */
 static inline StoError validate_and_parse_unsigned(const char* str, int base, uintmax_t* result) {
-    if (str == nullptr || result == nullptr) {
+    if (str == NULL || result == NULL) {
         return STO_INVALID;
     }
 
-    char* endptr = nullptr;
+    char* endptr = NULL;
     errno        = 0;
     *result      = strtoumax(str, &endptr, base);
 
@@ -61,7 +61,7 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
 /** Generic macro for signed integer conversion with range checking. */
 #define IMPLEMENT_SIGNED_CONVERSION(func_name, type_name, type_max, type_min)                                          \
     StoError func_name(const char* str, type_name* result) {                                                           \
-        if (result == nullptr) {                                                                                       \
+        if (result == NULL) {                                                                                          \
             return STO_INVALID;                                                                                        \
         }                                                                                                              \
                                                                                                                        \
@@ -82,7 +82,7 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
 /** Generic macro for unsigned integer conversion with range checking. */
 #define IMPLEMENT_UNSIGNED_CONVERSION(func_name, type_name, type_max)                                                  \
     StoError func_name(const char* str, type_name* result) {                                                           \
-        if (result == nullptr) {                                                                                       \
+        if (result == NULL) {                                                                                          \
             return STO_INVALID;                                                                                        \
         }                                                                                                              \
                                                                                                                        \
@@ -103,7 +103,7 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
 /** Generic macro for signed integer conversion with custom base. */
 #define IMPLEMENT_SIGNED_BASE_CONVERSION(func_name, type_name, type_max, type_min)                                     \
     StoError func_name(const char* str, int base, type_name* result) {                                                 \
-        if (result == nullptr) {                                                                                       \
+        if (result == NULL) {                                                                                          \
             return STO_INVALID;                                                                                        \
         }                                                                                                              \
                                                                                                                        \
@@ -124,7 +124,7 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
 /** Generic macro for unsigned integer conversion with custom base. */
 #define IMPLEMENT_UNSIGNED_BASE_CONVERSION(func_name, type_name, type_max)                                             \
     StoError func_name(const char* str, int base, type_name* result) {                                                 \
-        if (result == nullptr) {                                                                                       \
+        if (result == NULL) {                                                                                          \
             return STO_INVALID;                                                                                        \
         }                                                                                                              \
                                                                                                                        \
@@ -170,7 +170,7 @@ IMPLEMENT_UNSIGNED_BASE_CONVERSION(str_to_ulong_base, unsigned long, ULONG_MAX)
 
 // Special case for uintptr_t (no upper bound check needed as it can hold any uintmax_t value)
 StoError str_to_uintptr(const char* str, uintptr_t* result) {
-    if (result == nullptr) {
+    if (result == NULL) {
         return STO_INVALID;
     }
 
@@ -187,11 +187,11 @@ StoError str_to_uintptr(const char* str, uintptr_t* result) {
 }
 
 StoError str_to_float(const char* str, float* result) {
-    if (str == nullptr || result == nullptr) {
+    if (str == NULL || result == NULL) {
         return STO_INVALID;
     }
 
-    char* endptr = nullptr;
+    char* endptr = NULL;
     errno        = 0;
     *result      = strtof(str, &endptr);
 
@@ -213,11 +213,11 @@ StoError str_to_float(const char* str, float* result) {
 }
 
 StoError str_to_double(const char* str, double* result) {
-    if (str == nullptr || result == nullptr) {
+    if (str == NULL || result == NULL) {
         return STO_INVALID;
     }
 
-    char* endptr = nullptr;
+    char* endptr = NULL;
     errno        = 0;
     *result      = strtod(str, &endptr);
 
@@ -252,7 +252,7 @@ static const bool_mapping_t BOOL_MAPPINGS[] = {
 static const size_t BOOL_MAPPINGS_COUNT = sizeof(BOOL_MAPPINGS) / sizeof(BOOL_MAPPINGS[0]);
 
 StoError str_to_bool(const char* str, bool* result) {
-    if (str == nullptr || result == nullptr) {
+    if (str == NULL || result == NULL) {
         return STO_INVALID;
     }
 

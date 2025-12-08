@@ -1,5 +1,4 @@
 #include "../include/dotenv.h"
-#include "../include/defer.h"
 #include "../include/file.h"
 #include "../include/filepath.h"
 #include "../include/macros.h"
@@ -7,11 +6,6 @@
 int main() {
     char* env = make_tempfile();
     ASSERT(env);
-
-    defer({
-        remove(env);
-        free(env);
-    });
 
     file_t fp;
     file_result_t res;
@@ -36,4 +30,7 @@ int main() {
     ASSERT_STR_EQ(name, "SOLID C");
     ASSERT_STR_EQ(author, "Dr. Abiira");
     ASSERT_STR_EQ(name_author, "SOLID C Dr. Abiira");
+
+    remove(env);
+    free(env);
 }

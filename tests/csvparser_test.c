@@ -33,9 +33,9 @@
         }                                                                                                              \
     } while (0)
 
-#define ASSERT_NOT_NULL(ptr, message, ...) ASSERT((ptr) != nullptr, message, ##__VA_ARGS__)
+#define ASSERT_NOT_NULL(ptr, message, ...) ASSERT((ptr) != NULL, message, ##__VA_ARGS__)
 
-#define ASSERT_NULL(ptr, message, ...) ASSERT((ptr) == nullptr, message, ##__VA_ARGS__)
+#define ASSERT_NULL(ptr, message, ...) ASSERT((ptr) == NULL, message, ##__VA_ARGS__)
 
 /** Test case counter for progress reporting. */
 static size_t test_count  = 0;
@@ -225,7 +225,7 @@ static void test_csv_writer(void) {
 static void test_csv_edge_cases(void) {
     // Test empty CSV
     const char* empty_csv = "";
-    Row* no_rows          = nullptr;
+    Row* no_rows          = NULL;
 
     run_csv_reader_test("Empty CSV", empty_csv, no_rows, 0, false, false);
 

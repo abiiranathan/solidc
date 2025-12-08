@@ -72,35 +72,35 @@ static inline bool hashset_default_equals(const void* a, const void* b, size_t k
  * Creates a new hash set.
  * @param key_size Size of each key in bytes.
  * @param initial_capacity Initial number of buckets (0 uses default).
- * @param hash_fn Custom hash function (nullptr uses default FNV-1a).
- * @param equals_fn Custom equality function (nullptr uses memcmp).
- * @return Pointer to new hash set on success, nullptr on allocation failure.
+ * @param hash_fn Custom hash function (NULL uses default FNV-1a).
+ * @param equals_fn Custom equality function (NULL uses memcmp).
+ * @return Pointer to new hash set on success, NULL on allocation failure.
  * @note Caller must free using hashset_destroy().
  */
 static inline hashset_t* hashset_create(size_t key_size, size_t initial_capacity,
                                         uint64_t (*hash_fn)(const void*, size_t),
                                         bool (*equals_fn)(const void*, const void*, size_t)) {
     if (key_size == 0) {
-        return nullptr;
+        return NULL;
     }
 
     hashset_t* set = (hashset_t*)malloc(sizeof(hashset_t));
-    if (set == nullptr) {
-        return nullptr;
+    if (set == NULL) {
+        return NULL;
     }
 
     size_t capacity = initial_capacity > 0 ? initial_capacity : HASHSET_DEFAULT_CAPACITY;
     set->buckets    = (hashset_node_t**)calloc(capacity, sizeof(hashset_node_t*));
-    if (set->buckets == nullptr) {
+    if (set->buckets == NULL) {
         free(set);
-        return nullptr;
+        return NULL;
     }
 
     set->capacity  = capacity;
     set->size      = 0;
     set->key_size  = key_size;
-    set->hash_fn   = hash_fn != nullptr ? hash_fn : hashset_default_hash;
-    set->equals_fn = equals_fn != nullptr ? equals_fn : hashset_default_equals;
+    set->hash_fn   = hash_fn != NULL ? hash_fn : hashset_default_hash;
+    set->equals_fn = equals_fn != NULL ? equals_fn : hashset_default_equals;
 
     return set;
 }
@@ -110,14 +110,14 @@ static inline hashset_t* hashset_create(size_t key_size, size_t initial_capacity
  * @param set The hash set to destroy.
  */
 static inline void hashset_destroy(hashset_t* set) {
-    if (set == nullptr) {
+    if (set == NULL) {
         return;
     }
 
     // Free all nodes in all buckets
     for (size_t i = 0; i < set->capacity; i++) {
         hashset_node_t* node = set->buckets[i];
-        while (node != nullptr) {
+        while (node != NULL) {
             hashset_node_t* next = node->next;
             free(node->key);
             free(node);
@@ -137,7 +137,7 @@ static inline void hashset_destroy(hashset_t* set) {
  * @note Time complexity: O(1) average, O(n) worst case.
  */
 static inline bool hashset_contains(const hashset_t* set, const void* key) {
-    if (set == nullptr || key == nullptr) {
+    if (set == NULL || key == NULL) {
         return false;
     }
 
@@ -145,7 +145,7 @@ static inline bool hashset_contains(const hashset_t* set, const void* key) {
     size_t index  = hash % set->capacity;
 
     hashset_node_t* node = set->buckets[index];
-    while (node != nullptr) {
+    while (node != NULL) {
         if (set->equals_fn(node->key, key, set->key_size)) {
             return true;
         }
@@ -163,14 +163,14 @@ static inline bool hashset_contains(const hashset_t* set, const void* key) {
  */
 static inline bool hashset_rehash(hashset_t* set, size_t new_capacity) {
     hashset_node_t** new_buckets = (hashset_node_t**)calloc(new_capacity, sizeof(hashset_node_t*));
-    if (new_buckets == nullptr) {
+    if (new_buckets == NULL) {
         return false;
     }
 
     // Rehash all existing nodes
     for (size_t i = 0; i < set->capacity; i++) {
         hashset_node_t* node = set->buckets[i];
-        while (node != nullptr) {
+        while (node != NULL) {
             hashset_node_t* next = node->next;
 
             // Compute new bucket index
@@ -200,7 +200,7 @@ static inline bool hashset_rehash(hashset_t* set, size_t new_capacity) {
  * @note Time complexity: O(1) average, O(n) worst case.
  */
 static inline bool hashset_add(hashset_t* set, const void* key) {
-    if (set == nullptr || key == nullptr) {
+    if (set == NULL || key == NULL) {
         return false;
     }
 
@@ -218,12 +218,12 @@ static inline bool hashset_add(hashset_t* set, const void* key) {
 
     // Create new node
     hashset_node_t* node = (hashset_node_t*)malloc(sizeof(hashset_node_t));
-    if (node == nullptr) {
+    if (node == NULL) {
         return false;
     }
 
     node->key = malloc(set->key_size);
-    if (node->key == nullptr) {
+    if (node->key == NULL) {
         free(node);
         return false;
     }
@@ -249,7 +249,7 @@ static inline bool hashset_add(hashset_t* set, const void* key) {
  * @note Time complexity: O(1) average, O(n) worst case.
  */
 static inline bool hashset_remove(hashset_t* set, const void* key) {
-    if (set == nullptr || key == nullptr) {
+    if (set == NULL || key == NULL) {
         return false;
     }
 
@@ -257,12 +257,12 @@ static inline bool hashset_remove(hashset_t* set, const void* key) {
     size_t index  = hash % set->capacity;
 
     hashset_node_t* node = set->buckets[index];
-    hashset_node_t* prev = nullptr;
+    hashset_node_t* prev = NULL;
 
-    while (node != nullptr) {
+    while (node != NULL) {
         if (set->equals_fn(node->key, key, set->key_size)) {
             // Remove node from chain
-            if (prev == nullptr) {
+            if (prev == NULL) {
                 set->buckets[index] = node->next;
             } else {
                 prev->next = node->next;
@@ -287,7 +287,7 @@ static inline bool hashset_remove(hashset_t* set, const void* key) {
  * @return Number of elements.
  */
 static inline size_t hashset_size(const hashset_t* set) {
-    return set != nullptr ? set->size : 0;
+    return set != NULL ? set->size : 0;
 }
 
 /**
@@ -296,7 +296,7 @@ static inline size_t hashset_size(const hashset_t* set) {
  * @return Number of buckets.
  */
 static inline size_t hashset_capacity(const hashset_t* set) {
-    return set != nullptr ? set->capacity : 0;
+    return set != NULL ? set->capacity : 0;
 }
 
 /**
@@ -305,7 +305,7 @@ static inline size_t hashset_capacity(const hashset_t* set) {
  * @return True if set has no elements.
  */
 static inline bool hashset_isempty(const hashset_t* set) {
-    return set == nullptr || set->size == 0;
+    return set == NULL || set->size == 0;
 }
 
 /**
@@ -313,19 +313,19 @@ static inline bool hashset_isempty(const hashset_t* set) {
  * @param set The hash set.
  */
 static inline void hashset_clear(hashset_t* set) {
-    if (set == nullptr) {
+    if (set == NULL) {
         return;
     }
 
     for (size_t i = 0; i < set->capacity; i++) {
         hashset_node_t* node = set->buckets[i];
-        while (node != nullptr) {
+        while (node != NULL) {
             hashset_node_t* next = node->next;
             free(node->key);
             free(node);
             node = next;
         }
-        set->buckets[i] = nullptr;
+        set->buckets[i] = NULL;
     }
 
     set->size = 0;
@@ -335,26 +335,26 @@ static inline void hashset_clear(hashset_t* set) {
  * Computes the union of two sets A and B.
  * @param setA First set.
  * @param setB Second set.
- * @return New set containing all elements in A or B, nullptr on failure.
+ * @return New set containing all elements in A or B, NULL on failure.
  * @note Caller must free using hashset_destroy().
  */
 static inline hashset_t* hashset_union(const hashset_t* setA, const hashset_t* setB) {
-    if (setA == nullptr || setB == nullptr || setA->key_size != setB->key_size) {
-        return nullptr;
+    if (setA == NULL || setB == NULL || setA->key_size != setB->key_size) {
+        return NULL;
     }
 
     hashset_t* result = hashset_create(setA->key_size, setA->size + setB->size, setA->hash_fn, setA->equals_fn);
-    if (result == nullptr) {
-        return nullptr;
+    if (result == NULL) {
+        return NULL;
     }
 
     // Add all elements from setA
     for (size_t i = 0; i < setA->capacity; i++) {
         hashset_node_t* node = setA->buckets[i];
-        while (node != nullptr) {
+        while (node != NULL) {
             if (!hashset_add(result, node->key)) {
                 hashset_destroy(result);
-                return nullptr;
+                return NULL;
             }
             node = node->next;
         }
@@ -363,10 +363,10 @@ static inline hashset_t* hashset_union(const hashset_t* setA, const hashset_t* s
     // Add all elements from setB
     for (size_t i = 0; i < setB->capacity; i++) {
         hashset_node_t* node = setB->buckets[i];
-        while (node != nullptr) {
+        while (node != NULL) {
             if (!hashset_add(result, node->key)) {
                 hashset_destroy(result);
-                return nullptr;
+                return NULL;
             }
             node = node->next;
         }
@@ -379,18 +379,18 @@ static inline hashset_t* hashset_union(const hashset_t* setA, const hashset_t* s
  * Computes the intersection of two sets A and B.
  * @param setA First set.
  * @param setB Second set.
- * @return New set containing elements in both A and B, nullptr on failure.
+ * @return New set containing elements in both A and B, NULL on failure.
  * @note Caller must free using hashset_destroy().
  */
 static inline hashset_t* hashset_intersection(const hashset_t* setA, const hashset_t* setB) {
-    if (setA == nullptr || setB == nullptr || setA->key_size != setB->key_size) {
-        return nullptr;
+    if (setA == NULL || setB == NULL || setA->key_size != setB->key_size) {
+        return NULL;
     }
 
     size_t min_size   = setA->size < setB->size ? setA->size : setB->size;
     hashset_t* result = hashset_create(setA->key_size, min_size, setA->hash_fn, setA->equals_fn);
-    if (result == nullptr) {
-        return nullptr;
+    if (result == NULL) {
+        return NULL;
     }
 
     // Iterate through smaller set for efficiency
@@ -399,11 +399,11 @@ static inline hashset_t* hashset_intersection(const hashset_t* setA, const hashs
 
     for (size_t i = 0; i < smaller->capacity; i++) {
         hashset_node_t* node = smaller->buckets[i];
-        while (node != nullptr) {
+        while (node != NULL) {
             if (hashset_contains(larger, node->key)) {
                 if (!hashset_add(result, node->key)) {
                     hashset_destroy(result);
-                    return nullptr;
+                    return NULL;
                 }
             }
             node = node->next;
@@ -417,26 +417,26 @@ static inline hashset_t* hashset_intersection(const hashset_t* setA, const hashs
  * Computes the difference of two sets A and B (A - B).
  * @param setA First set.
  * @param setB Second set.
- * @return New set containing elements in A but not in B, nullptr on failure.
+ * @return New set containing elements in A but not in B, NULL on failure.
  * @note Caller must free using hashset_destroy().
  */
 static inline hashset_t* hashset_difference(const hashset_t* setA, const hashset_t* setB) {
-    if (setA == nullptr || setB == nullptr || setA->key_size != setB->key_size) {
-        return nullptr;
+    if (setA == NULL || setB == NULL || setA->key_size != setB->key_size) {
+        return NULL;
     }
 
     hashset_t* result = hashset_create(setA->key_size, setA->size, setA->hash_fn, setA->equals_fn);
-    if (result == nullptr) {
-        return nullptr;
+    if (result == NULL) {
+        return NULL;
     }
 
     for (size_t i = 0; i < setA->capacity; i++) {
         hashset_node_t* node = setA->buckets[i];
-        while (node != nullptr) {
+        while (node != NULL) {
             if (!hashset_contains(setB, node->key)) {
                 if (!hashset_add(result, node->key)) {
                     hashset_destroy(result);
-                    return nullptr;
+                    return NULL;
                 }
             }
             node = node->next;
@@ -450,27 +450,27 @@ static inline hashset_t* hashset_difference(const hashset_t* setA, const hashset
  * Computes the symmetric difference of two sets A and B.
  * @param setA First set.
  * @param setB Second set.
- * @return New set containing elements in A or B but not both, nullptr on failure.
+ * @return New set containing elements in A or B but not both, NULL on failure.
  * @note Caller must free using hashset_destroy().
  */
 static inline hashset_t* hashset_symmetric_difference(const hashset_t* setA, const hashset_t* setB) {
-    if (setA == nullptr || setB == nullptr || setA->key_size != setB->key_size) {
-        return nullptr;
+    if (setA == NULL || setB == NULL || setA->key_size != setB->key_size) {
+        return NULL;
     }
 
     hashset_t* result = hashset_create(setA->key_size, setA->size + setB->size, setA->hash_fn, setA->equals_fn);
-    if (result == nullptr) {
-        return nullptr;
+    if (result == NULL) {
+        return NULL;
     }
 
     // Add elements from A not in B
     for (size_t i = 0; i < setA->capacity; i++) {
         hashset_node_t* node = setA->buckets[i];
-        while (node != nullptr) {
+        while (node != NULL) {
             if (!hashset_contains(setB, node->key)) {
                 if (!hashset_add(result, node->key)) {
                     hashset_destroy(result);
-                    return nullptr;
+                    return NULL;
                 }
             }
             node = node->next;
@@ -480,11 +480,11 @@ static inline hashset_t* hashset_symmetric_difference(const hashset_t* setA, con
     // Add elements from B not in A
     for (size_t i = 0; i < setB->capacity; i++) {
         hashset_node_t* node = setB->buckets[i];
-        while (node != nullptr) {
+        while (node != NULL) {
             if (!hashset_contains(setA, node->key)) {
                 if (!hashset_add(result, node->key)) {
                     hashset_destroy(result);
-                    return nullptr;
+                    return NULL;
                 }
             }
             node = node->next;
@@ -501,7 +501,7 @@ static inline hashset_t* hashset_symmetric_difference(const hashset_t* setA, con
  * @return True if all elements in setA are in setB.
  */
 static inline bool hashset_is_subset(const hashset_t* setA, const hashset_t* setB) {
-    if (setA == nullptr || setB == nullptr || setA->key_size != setB->key_size) {
+    if (setA == NULL || setB == NULL || setA->key_size != setB->key_size) {
         return false;
     }
 
@@ -511,7 +511,7 @@ static inline bool hashset_is_subset(const hashset_t* setA, const hashset_t* set
 
     for (size_t i = 0; i < setA->capacity; i++) {
         hashset_node_t* node = setA->buckets[i];
-        while (node != nullptr) {
+        while (node != NULL) {
             if (!hashset_contains(setB, node->key)) {
                 return false;
             }
@@ -529,7 +529,7 @@ static inline bool hashset_is_subset(const hashset_t* setA, const hashset_t* set
  * @return True if setA is a subset of setB and setA != setB.
  */
 static inline bool hashset_is_proper_subset(const hashset_t* setA, const hashset_t* setB) {
-    if (setA == nullptr || setB == nullptr) {
+    if (setA == NULL || setB == NULL) {
         return false;
     }
 

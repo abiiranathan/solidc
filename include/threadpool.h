@@ -1,6 +1,7 @@
 #ifndef __THREADPOOL_H__
 #define __THREADPOOL_H__
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include "macros.h"

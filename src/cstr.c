@@ -1,18 +1,24 @@
 #include "../include/cstr.h"
+#include "../include/aligned_alloc.h"
+#include "../include/ckdint.h"
+
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <stdckdint.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../include/aligned_alloc.h"
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+#ifdef _WIN32
+#define ckd_add(r, a, b) ckd_add_ull((unsigned long long*)(r), (unsigned long long)(a), (unsigned long long)(b))
+#define ckd_mul(r, a, b) ckd_mul_ull((unsigned long long*)(r), (unsigned long long)(a), (unsigned long long)(b))
+#endif
 
 // Small String Optimization (SSO) constants
 #define SSO_MAX_SIZE    (sizeof(size_t) + sizeof(size_t) + sizeof(char*) - 1)

@@ -32,7 +32,7 @@ static void print_test_result(const char* test_name, bool passed, const char* me
     } else {
         tests_failed++;
         printf("%s[FAIL]%s %s", COLOR_RED, COLOR_RESET, test_name);
-        if (message != nullptr) {
+        if (message != NULL) {
             printf(": %s", message);
         }
         printf("\n");
@@ -45,9 +45,9 @@ static void print_test_result(const char* test_name, bool passed, const char* me
 /** Test: Create and destroy empty Trie. */
 static void test_create_destroy(void) {
     trie_t* trie = trie_create();
-    TEST_ASSERT(trie != nullptr, "test_create_destroy", "Failed to create Trie");
+    TEST_ASSERT(trie != NULL, "test_create_destroy", "Failed to create Trie");
 
-    if (trie != nullptr) {
+    if (trie != NULL) {
         TEST_ASSERT(trie_is_empty(trie), "test_create_destroy_empty", "New Trie should be empty");
         TEST_ASSERT(trie_get_word_count(trie) == 0, "test_create_destroy_count", "Word count should be 0");
         trie_destroy(trie);
@@ -57,7 +57,7 @@ static void test_create_destroy(void) {
 /** Test: Insert single word. */
 static void test_insert_single(void) {
     trie_t* trie = trie_create();
-    if (trie == nullptr) {
+    if (trie == NULL) {
         TEST_ASSERT(false, "test_insert_single", "Failed to create Trie");
         return;
     }
@@ -74,7 +74,7 @@ static void test_insert_single(void) {
 /** Test: Insert multiple words. */
 static void test_insert_multiple(void) {
     trie_t* trie = trie_create();
-    if (trie == nullptr) {
+    if (trie == NULL) {
         TEST_ASSERT(false, "test_insert_multiple", "Failed to create Trie");
         return;
     }
@@ -99,7 +99,7 @@ static void test_insert_multiple(void) {
 /** Test: Search for non-existent words. */
 static void test_search_nonexistent(void) {
     trie_t* trie = trie_create();
-    if (trie == nullptr) {
+    if (trie == NULL) {
         TEST_ASSERT(false, "test_search_nonexistent", "Failed to create Trie");
         return;
     }
@@ -116,7 +116,7 @@ static void test_search_nonexistent(void) {
 /** Test: Prefix matching. */
 static void test_starts_with(void) {
     trie_t* trie = trie_create();
-    if (trie == nullptr) {
+    if (trie == NULL) {
         TEST_ASSERT(false, "test_starts_with", "Failed to create Trie");
         return;
     }
@@ -135,7 +135,7 @@ static void test_starts_with(void) {
 /** Test: Delete operations. */
 static void test_delete(void) {
     trie_t* trie = trie_create();
-    if (trie == nullptr) {
+    if (trie == NULL) {
         TEST_ASSERT(false, "test_delete", "Failed to create Trie");
         return;
     }
@@ -160,7 +160,7 @@ static void test_delete(void) {
 /** Test: Frequency tracking. */
 static void test_frequency(void) {
     trie_t* trie = trie_create();
-    if (trie == nullptr) {
+    if (trie == NULL) {
         TEST_ASSERT(false, "test_frequency", "Failed to create Trie");
         return;
     }
@@ -181,36 +181,36 @@ static void test_frequency(void) {
     trie_destroy(trie);
 }
 
-/** Test: Edge cases with empty strings and nullptr. */
+/** Test: Edge cases with empty strings and NULL. */
 static void test_edge_cases(void) {
     trie_t* trie = trie_create();
-    if (trie == nullptr) {
+    if (trie == NULL) {
         TEST_ASSERT(false, "test_edge_cases", "Failed to create Trie");
         return;
     }
 
-    // Test nullptr inputs
-    TEST_ASSERT(!trie_insert(trie, nullptr), "test_edge_nullptr_insert", "Insert nullptr should fail");
-    TEST_ASSERT(!trie_search(trie, nullptr), "test_edge_nullptr_search", "Search nullptr should fail");
-    TEST_ASSERT(!trie_starts_with(trie, nullptr), "test_edge_nullptr_prefix", "Prefix nullptr should fail");
+    // Test NULL inputs
+    TEST_ASSERT(!trie_insert(trie, NULL), "test_edge_NULL_insert", "Insert NULL should fail");
+    TEST_ASSERT(!trie_search(trie, NULL), "test_edge_NULL_search", "Search NULL should fail");
+    TEST_ASSERT(!trie_starts_with(trie, NULL), "test_edge_NULL_prefix", "Prefix NULL should fail");
 
     // Test empty string
     TEST_ASSERT(!trie_insert(trie, ""), "test_edge_empty_insert", "Insert empty string should fail");
     TEST_ASSERT(!trie_search(trie, ""), "test_edge_empty_search", "Search empty string should fail");
 
-    // Test nullptr trie
-    TEST_ASSERT(!trie_insert(nullptr, "test"), "test_edge_nullptr_trie_insert", "Insert to nullptr trie should fail");
-    TEST_ASSERT(!trie_search(nullptr, "test"), "test_edge_nullptr_trie_search", "Search in nullptr trie should fail");
-    TEST_ASSERT(trie_is_empty(nullptr), "test_edge_nullptr_trie_empty", "nullptr trie should be considered empty");
+    // Test NULL trie
+    TEST_ASSERT(!trie_insert(NULL, "test"), "test_edge_NULL_trie_insert", "Insert to NULL trie should fail");
+    TEST_ASSERT(!trie_search(NULL, "test"), "test_edge_NULL_trie_search", "Search in NULL trie should fail");
+    TEST_ASSERT(trie_is_empty(NULL), "test_edge_NULL_trie_empty", "NULL trie should be considered empty");
 
     trie_destroy(trie);
-    trie_destroy(nullptr);  // Should handle nullptr gracefully
+    trie_destroy(NULL);  // Should handle NULL gracefully
 }
 
 /** Test: Special characters and extended ASCII. */
 static void test_special_characters(void) {
     trie_t* trie = trie_create();
-    if (trie == nullptr) {
+    if (trie == NULL) {
         TEST_ASSERT(false, "test_special_characters", "Failed to create Trie");
         return;
     }
@@ -235,7 +235,7 @@ static void test_special_characters(void) {
 /** Test: Case sensitivity. */
 static void test_case_sensitivity(void) {
     trie_t* trie = trie_create();
-    if (trie == nullptr) {
+    if (trie == NULL) {
         TEST_ASSERT(false, "test_case_sensitivity", "Failed to create Trie");
         return;
     }
@@ -252,7 +252,7 @@ static void test_case_sensitivity(void) {
 /** Test: Long words. */
 static void test_long_words(void) {
     trie_t* trie = trie_create();
-    if (trie == nullptr) {
+    if (trie == NULL) {
         TEST_ASSERT(false, "test_long_words", "Failed to create Trie");
         return;
     }
@@ -274,14 +274,14 @@ static void test_long_words(void) {
 /** Test: Autocomplete basic functionality. */
 static void test_autocomplete_basic(void) {
     trie_t* trie = trie_create();
-    if (trie == nullptr) {
+    if (trie == NULL) {
         TEST_ASSERT(false, "test_autocomplete_basic", "Failed to create Trie");
         return;
     }
 
     // Create an arena for suggestions
     Arena* arena = arena_create(4096);
-    if (arena == nullptr) {
+    if (arena == NULL) {
         TEST_ASSERT(false, "test_autocomplete_basic", "Failed to create Arena");
         trie_destroy(trie);
         return;
@@ -299,10 +299,10 @@ static void test_autocomplete_basic(void) {
     size_t count             = 0;
     const char** suggestions = trie_autocomplete(trie, "app", 10, &count, arena);
 
-    TEST_ASSERT(suggestions != nullptr, "test_autocomplete_basic_not_null", "Should return suggestions");
+    TEST_ASSERT(suggestions != NULL, "test_autocomplete_basic_not_null", "Should return suggestions");
     TEST_ASSERT(count == 4, "test_autocomplete_basic_count", "Should return 4 suggestions");
 
-    if (suggestions != nullptr && count == 4) {
+    if (suggestions != NULL && count == 4) {
         // Verify all suggestions start with "app"
         bool all_valid = true;
         for (size_t i = 0; i < count; i++) {
@@ -322,13 +322,13 @@ static void test_autocomplete_basic(void) {
 /** Test: Autocomplete with limit. */
 static void test_autocomplete_limit(void) {
     trie_t* trie = trie_create();
-    if (trie == nullptr) {
+    if (trie == NULL) {
         TEST_ASSERT(false, "test_autocomplete_limit", "Failed to create Trie");
         return;
     }
 
     Arena* arena = arena_create(4096);
-    if (arena == nullptr) {
+    if (arena == NULL) {
         trie_destroy(trie);
         return;
     }
@@ -345,7 +345,7 @@ static void test_autocomplete_limit(void) {
     size_t count             = 0;
     const char** suggestions = trie_autocomplete(trie, "test", 3, &count, arena);
 
-    TEST_ASSERT(suggestions != nullptr, "test_autocomplete_limit_not_null", "Should return suggestions");
+    TEST_ASSERT(suggestions != NULL, "test_autocomplete_limit_not_null", "Should return suggestions");
     TEST_ASSERT(count == 3, "test_autocomplete_limit_count", "Should return exactly 3");
 
     arena_destroy(arena);
@@ -355,13 +355,13 @@ static void test_autocomplete_limit(void) {
 /** Test: Autocomplete with non-existent prefix. */
 static void test_autocomplete_nonexistent(void) {
     trie_t* trie = trie_create();
-    if (trie == nullptr) {
+    if (trie == NULL) {
         TEST_ASSERT(false, "test_autocomplete_nonexistent", "Failed to create Trie");
         return;
     }
 
     Arena* arena = arena_create(4096);
-    if (arena == nullptr) {
+    if (arena == NULL) {
         trie_destroy(trie);
         return;
     }
@@ -372,8 +372,8 @@ static void test_autocomplete_nonexistent(void) {
     size_t count             = 0;
     const char** suggestions = trie_autocomplete(trie, "xyz", 10, &count, arena);
 
-    TEST_ASSERT(suggestions == nullptr, "test_autocomplete_nonexistent_null",
-                "Should return nullptr for non-existent prefix");
+    TEST_ASSERT(suggestions == NULL, "test_autocomplete_nonexistent_null",
+                "Should return NULL for non-existent prefix");
     TEST_ASSERT(count == 0, "test_autocomplete_nonexistent_count", "Count should be 0");
 
     arena_destroy(arena);
@@ -383,13 +383,13 @@ static void test_autocomplete_nonexistent(void) {
 /** Test: Autocomplete with exact word as prefix. */
 static void test_autocomplete_exact_prefix(void) {
     trie_t* trie = trie_create();
-    if (trie == nullptr) {
+    if (trie == NULL) {
         TEST_ASSERT(false, "test_autocomplete_exact_prefix", "Failed to create Trie");
         return;
     }
 
     Arena* arena = arena_create(4096);
-    if (arena == nullptr) {
+    if (arena == NULL) {
         trie_destroy(trie);
         return;
     }
@@ -402,10 +402,10 @@ static void test_autocomplete_exact_prefix(void) {
     size_t count             = 0;
     const char** suggestions = trie_autocomplete(trie, "test", 10, &count, arena);
 
-    TEST_ASSERT(suggestions != nullptr, "test_autocomplete_exact_not_null", "Should return suggestions");
+    TEST_ASSERT(suggestions != NULL, "test_autocomplete_exact_not_null", "Should return suggestions");
     TEST_ASSERT(count == 3, "test_autocomplete_exact_count", "Should return 3 suggestions");
 
-    if (suggestions != nullptr) {
+    if (suggestions != NULL) {
         // Verify "test" itself is included
         bool found_exact = false;
         for (size_t i = 0; i < count; i++) {
@@ -424,13 +424,13 @@ static void test_autocomplete_exact_prefix(void) {
 /** Test: Autocomplete with empty trie. */
 static void test_autocomplete_empty(void) {
     trie_t* trie = trie_create();
-    if (trie == nullptr) {
+    if (trie == NULL) {
         TEST_ASSERT(false, "test_autocomplete_empty", "Failed to create Trie");
         return;
     }
 
     Arena* arena = arena_create(4096);
-    if (arena == nullptr) {
+    if (arena == NULL) {
         trie_destroy(trie);
         return;
     }
@@ -438,7 +438,7 @@ static void test_autocomplete_empty(void) {
     size_t count             = 0;
     const char** suggestions = trie_autocomplete(trie, "test", 10, &count, arena);
 
-    TEST_ASSERT(suggestions == nullptr, "test_autocomplete_empty_null", "Should return nullptr for empty trie");
+    TEST_ASSERT(suggestions == NULL, "test_autocomplete_empty_null", "Should return NULL for empty trie");
     TEST_ASSERT(count == 0, "test_autocomplete_empty_count", "Count should be 0");
 
     arena_destroy(arena);
@@ -448,13 +448,13 @@ static void test_autocomplete_empty(void) {
 /** Test: Autocomplete edge cases. */
 static void test_autocomplete_edge_cases(void) {
     trie_t* trie = trie_create();
-    if (trie == nullptr) {
+    if (trie == NULL) {
         TEST_ASSERT(false, "test_autocomplete_edge_cases", "Failed to create Trie");
         return;
     }
 
     Arena* arena = arena_create(4096);
-    if (arena == nullptr) {
+    if (arena == NULL) {
         trie_destroy(trie);
         return;
     }
@@ -463,26 +463,25 @@ static void test_autocomplete_edge_cases(void) {
 
     size_t count = 0;
 
-    // Test nullptr trie
-    const char** suggestions = trie_autocomplete(nullptr, "test", 10, &count, arena);
-    TEST_ASSERT(suggestions == nullptr, "test_autocomplete_edge_null_trie", "nullptr trie should return nullptr");
+    // Test NULL trie
+    const char** suggestions = trie_autocomplete(NULL, "test", 10, &count, arena);
+    TEST_ASSERT(suggestions == NULL, "test_autocomplete_edge_null_trie", "NULL trie should return NULL");
 
-    // Test nullptr prefix
-    suggestions = trie_autocomplete(trie, nullptr, 10, &count, arena);
-    TEST_ASSERT(suggestions == nullptr, "test_autocomplete_edge_null_prefix", "nullptr prefix should return nullptr");
+    // Test NULL prefix
+    suggestions = trie_autocomplete(trie, NULL, 10, &count, arena);
+    TEST_ASSERT(suggestions == NULL, "test_autocomplete_edge_null_prefix", "NULL prefix should return NULL");
 
-    // Test nullptr out_count
-    suggestions = trie_autocomplete(trie, "test", 10, nullptr, arena);
-    TEST_ASSERT(suggestions == nullptr, "test_autocomplete_edge_null_count", "nullptr out_count should return nullptr");
+    // Test NULL out_count
+    suggestions = trie_autocomplete(trie, "test", 10, NULL, arena);
+    TEST_ASSERT(suggestions == NULL, "test_autocomplete_edge_null_count", "NULL out_count should return NULL");
 
     // Test zero max_suggestions
     suggestions = trie_autocomplete(trie, "test", 0, &count, arena);
-    TEST_ASSERT(suggestions == nullptr, "test_autocomplete_edge_zero_max",
-                "Zero max_suggestions should return nullptr");
+    TEST_ASSERT(suggestions == NULL, "test_autocomplete_edge_zero_max", "Zero max_suggestions should return NULL");
 
-    // Test nullptr arena
-    suggestions = trie_autocomplete(trie, "test", 10, &count, nullptr);
-    TEST_ASSERT(suggestions == nullptr, "test_autocomplete_edge_null_arena", "nullptr arena should return nullptr");
+    // Test NULL arena
+    suggestions = trie_autocomplete(trie, "test", 10, &count, NULL);
+    TEST_ASSERT(suggestions == NULL, "test_autocomplete_edge_null_arena", "NULL arena should return NULL");
 
     arena_destroy(arena);
     trie_destroy(trie);
