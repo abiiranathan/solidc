@@ -99,8 +99,7 @@ uint32_t utf8_to_codepoint(const char* utf8) {
         }
     } else if ((u[0] & 0xF8) == 0xF0) {
         if ((u[1] & 0xC0) == 0x80 && (u[2] & 0xC0) == 0x80 && (u[3] & 0xC0) == 0x80) {
-            codepoint = ((u[0] & 0x07U) << 18) | ((u[1] & 0x3FU) << 12) | ((u[2] & 0x3FU) << 6) |
-                        (u[3] & 0x3F);
+            codepoint = ((u[0] & 0x07U) << 18) | ((u[1] & 0x3FU) << 12) | ((u[2] & 0x3FU) << 6) | (u[3] & 0x3F);
             if (codepoint < 0x10000) {
                 return 0xFFFD;
             }
@@ -185,10 +184,8 @@ size_t utf8_valid_byte_count(const char* s) {
             } else {
                 i++;
             }
-        } else if ((byte & 0xF8) == 0xF0 && s[i + 1] != '\0' && s[i + 2] != '\0' &&
-                   s[i + 3] != '\0') {
-            if ((s[i + 1] & 0xC0) == 0x80 && (s[i + 2] & 0xC0) == 0x80 &&
-                (s[i + 3] & 0xC0) == 0x80) {
+        } else if ((byte & 0xF8) == 0xF0 && s[i + 1] != '\0' && s[i + 2] != '\0' && s[i + 3] != '\0') {
+            if ((s[i + 1] & 0xC0) == 0x80 && (s[i + 2] & 0xC0) == 0x80 && (s[i + 3] & 0xC0) == 0x80) {
                 count += 4;
                 i += 4;
             } else {
@@ -281,20 +278,18 @@ bool is_valid_utf8(const char* utf8) {
                 (utf8[i + 2] & 0xC0) != 0x80) {
                 return false;
             }
-            uint32_t codepoint = (uint32_t)((byte & 0x0F) << 12) |
-                                 (uint32_t)((utf8[i + 1] & 0x3F) << 6) | (utf8[i + 2] & 0x3F);
+            uint32_t codepoint =
+                (uint32_t)((byte & 0x0F) << 12) | (uint32_t)((utf8[i + 1] & 0x3F) << 6) | (utf8[i + 2] & 0x3F);
             if (codepoint < 0x800 || (codepoint >= 0xD800 && codepoint <= 0xDFFF)) {
                 return false;
             }
             i += 3;
         } else if ((byte & 0xF8) == 0xF0) {
-            if (utf8[i + 1] == '\0' || utf8[i + 2] == '\0' || utf8[i + 3] == '\0' ||
-                (utf8[i + 1] & 0xC0) != 0x80 || (utf8[i + 2] & 0xC0) != 0x80 ||
-                (utf8[i + 3] & 0xC0) != 0x80) {
+            if (utf8[i + 1] == '\0' || utf8[i + 2] == '\0' || utf8[i + 3] == '\0' || (utf8[i + 1] & 0xC0) != 0x80 ||
+                (utf8[i + 2] & 0xC0) != 0x80 || (utf8[i + 3] & 0xC0) != 0x80) {
                 return false;
             }
-            uint32_t codepoint = (uint32_t)((byte & 0x07) << 18) |
-                                 ((uint32_t)(utf8[i + 1] & 0x3F) << 12) |
+            uint32_t codepoint = (uint32_t)((byte & 0x07) << 18) | ((uint32_t)(utf8[i + 1] & 0x3F) << 12) |
                                  ((uint32_t)(utf8[i + 2] & 0x3F) << 6) | (utf8[i + 3] & 0x3F);
             if (codepoint < 0x10000 || codepoint > 0x10FFFF) {
                 return false;
@@ -772,8 +767,7 @@ bool utf8_replace(utf8_string* s, const char* old_str, const char* new_str) {
         s->data = new_data;
     }
 
-    memmove(&s->data[offset + new_byte_len], &s->data[offset + old_byte_len],
-            s->length - offset - old_byte_len + 1);
+    memmove(&s->data[offset + new_byte_len], &s->data[offset + old_byte_len], s->length - offset - old_byte_len + 1);
     memcpy(&s->data[offset], new_str, new_byte_len);
     s->length = s->length - old_byte_len + new_byte_len;
     s->count  = s->count - old_count + new_count;

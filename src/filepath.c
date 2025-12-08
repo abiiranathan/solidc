@@ -46,7 +46,7 @@ static void random_string(char* str, size_t len) {
 
     const char charset[]      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     const size_t charset_size = sizeof(charset) - 1;  // Exclude null terminator
-    unsigned char buffer[64];  // Buffer for random bytes (sufficient for typical len)
+    unsigned char buffer[64];                         // Buffer for random bytes (sufficient for typical len)
 
     lock_acquire(&rand_lock);
 
@@ -103,8 +103,7 @@ Directory* dir_open(const char* path) {
         return NULL;
     }
 
-    Directory* dir =
-        (Directory*)calloc(1, sizeof(Directory));  // Use calloc for zero-initialization
+    Directory* dir = (Directory*)calloc(1, sizeof(Directory));  // Use calloc for zero-initialization
     if (!dir) {
         errno = ENOMEM;
         return NULL;
@@ -185,8 +184,7 @@ char* dir_next(Directory* dir) {
     if (FindNextFileW(dir->handle, &dir->find_data)) {
         // Convert wide-char filename to UTF-8
         char filename[MAX_PATH];
-        WideCharToMultiByte(CP_UTF8, 0, dir->find_data.cFileName, -1, filename, MAX_PATH, NULL,
-                            NULL);
+        WideCharToMultiByte(CP_UTF8, 0, dir->find_data.cFileName, -1, filename, MAX_PATH, NULL, NULL);
         return dir->path;  // Note: This is a bug in the original code; should return filename
     }
 #else
@@ -263,7 +261,7 @@ static WalkDirOption dir_remove_callback(const char* fullpath, const char* name,
     } else {
         if (!DeleteFileA(fullpath)) {
             DWORD err = GetLastError();
-            errno = (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT : EACCES;
+            errno     = (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT : EACCES;
             return DirError;
         }
     }
@@ -280,14 +278,14 @@ static WalkDirOption dir_remove_callback(const char* fullpath, const char* name,
     return DirContinue;
 }
 
-#define SET_DIR_STATUS(ret)                                                                        \
-    if ((ret) == DirError) {                                                                       \
-        status = -1;                                                                               \
-        break;                                                                                     \
-    }                                                                                              \
-    if ((ret) == DirStop) {                                                                        \
-        status = 0;                                                                                \
-        break;                                                                                     \
+#define SET_DIR_STATUS(ret)                                                                                            \
+    if ((ret) == DirError) {                                                                                           \
+        status = -1;                                                                                                   \
+        break;                                                                                                         \
+    }                                                                                                                  \
+    if ((ret) == DirStop) {                                                                                            \
+        status = 0;                                                                                                    \
+        break;                                                                                                         \
     }
 
 /*

@@ -127,8 +127,8 @@ int64_t get_file_size(const char* filename) {
     }
 
 #ifdef _WIN32
-    HANDLE handle = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
-                                OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE handle = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
+                                FILE_ATTRIBUTE_NORMAL, NULL);
     if (handle == INVALID_HANDLE_VALUE) {
         errno = ENOENT;  // Simplified error mapping
         return -1;
@@ -159,8 +159,7 @@ file_result_t file_truncate(file_t* file, int64_t length) {
 
 #ifdef _WIN32
     LARGE_INTEGER li = {.QuadPart = length};
-    if (!SetFilePointerEx(file->native_handle, li, NULL, FILE_BEGIN) ||
-        !SetEndOfFile(file->native_handle)) {
+    if (!SetFilePointerEx(file->native_handle, li, NULL, FILE_BEGIN) || !SetEndOfFile(file->native_handle)) {
         errno = EIO;
         return FILE_ERROR_IO_FAILED;
     }
@@ -235,9 +234,7 @@ ssize_t file_pread(const file_t* file, void* buffer, size_t size, int64_t offset
     }
 
 #ifdef _WIN32
-    OVERLAPPED ov = {.Offset     = (DWORD)(offset & 0xFFFFFFFF),
-                     .OffsetHigh = (DWORD)(offset >> 32),
-                     .hEvent     = NULL};
+    OVERLAPPED ov = {.Offset = (DWORD)(offset & 0xFFFFFFFF), .OffsetHigh = (DWORD)(offset >> 32), .hEvent = NULL};
 
     DWORD bytes_read;
     if (!ReadFile(file->native_handle, buffer, (DWORD)size, &bytes_read, &ov)) {
@@ -261,9 +258,7 @@ ssize_t file_pwrite(file_t* file, const void* buffer, size_t size, int64_t offse
     }
 
 #ifdef _WIN32
-    OVERLAPPED ov = {.Offset     = (DWORD)(offset & 0xFFFFFFFF),
-                     .OffsetHigh = (DWORD)(offset >> 32),
-                     .hEvent     = NULL};
+    OVERLAPPED ov = {.Offset = (DWORD)(offset & 0xFFFFFFFF), .OffsetHigh = (DWORD)(offset >> 32), .hEvent = NULL};
 
     DWORD bytes_written;
     if (!WriteFile(file->native_handle, buffer, (DWORD)size, &bytes_written, &ov)) {
@@ -325,8 +320,8 @@ void* file_readall(const file_t* file, size_t* size_out) {
 file_result_t file_lock(const file_t* file) {
 #ifdef _WIN32
     OVERLAPPED overlapped = {0};
-    if (LockFileEx(file->native_handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0,
-                   MAXDWORD, MAXDWORD, &overlapped)) {
+    if (LockFileEx(file->native_handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, MAXDWORD, MAXDWORD,
+                   &overlapped)) {
         return FILE_SUCCESS;
     }
 
@@ -406,8 +401,7 @@ void* file_mmap(const file_t* file, size_t length, bool read_access, bool write_
     DWORD protect = write_access ? PAGE_READWRITE : PAGE_READONLY;
     DWORD access  = write_access ? FILE_MAP_WRITE : FILE_MAP_READ;
 
-    HANDLE mapping = CreateFileMapping(file->native_handle, NULL, protect, (DWORD)(length >> 32),
-                                       (DWORD)length, NULL);
+    HANDLE mapping = CreateFileMapping(file->native_handle, NULL, protect, (DWORD)(length >> 32), (DWORD)length, NULL);
     if (!mapping) {
         errno = EIO;
         return NULL;

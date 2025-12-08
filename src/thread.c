@@ -138,8 +138,7 @@ int thread_create(Thread* thread, ThreadStartRoutine start_routine, void* data) 
 #endif
 }
 
-int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine start_routine,
-                       void* data) {
+int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine start_routine, void* data) {
     if (thread == NULL || attr == NULL || start_routine == NULL) {
         return EINVAL;
     }
@@ -494,8 +493,7 @@ unsigned int get_gid() {
     }
 
     // Get primary group SID
-    if (!GetTokenInformation(token, TokenPrimaryGroup, primary_group, token_info_length,
-                             &token_info_length)) {
+    if (!GetTokenInformation(token, TokenPrimaryGroup, primary_group, token_info_length, &token_info_length)) {
         free(primary_group);
         CloseHandle(token);
         return (unsigned int)-1;
@@ -572,8 +570,7 @@ char* get_groupname() {
     }
 
     // Get primary group SID
-    if (!GetTokenInformation(token, TokenPrimaryGroup, primary_group, token_info_length,
-                             &token_info_length)) {
+    if (!GetTokenInformation(token, TokenPrimaryGroup, primary_group, token_info_length, &token_info_length)) {
         free(primary_group);
         CloseHandle(token);
         return NULL;
@@ -585,15 +582,14 @@ char* get_groupname() {
     SID_NAME_USE sid_type;
 
     // First call to get domain length
-    LookupAccountSidA(NULL, primary_group->PrimaryGroup, win_groupname_buffer, &name_len, NULL,
-                      &domain_len, &sid_type);
+    LookupAccountSidA(NULL, primary_group->PrimaryGroup, win_groupname_buffer, &name_len, NULL, &domain_len, &sid_type);
 
     if (domain_len > 0) {
         char* domain_buffer = (char*)malloc(domain_len);
         if (domain_buffer != NULL) {
             name_len = sizeof(win_groupname_buffer);
-            if (LookupAccountSidA(NULL, primary_group->PrimaryGroup, win_groupname_buffer,
-                                  &name_len, domain_buffer, &domain_len, &sid_type)) {
+            if (LookupAccountSidA(NULL, primary_group->PrimaryGroup, win_groupname_buffer, &name_len, domain_buffer,
+                                  &domain_len, &sid_type)) {
                 result = win_groupname_buffer;
             }
             free(domain_buffer);

@@ -127,13 +127,11 @@ static inline bool key_compare_char_ptr(const void* a, const void* b) {
 }
 
 static inline bool key_compare_float(const void* a, const void* b) {
-    return a && b &&
-           cmp_float(*(const float*)a, *(const float*)b, (cmp_config_t){.epsilon = FLT_EPSILON});
+    return a && b && cmp_float(*(const float*)a, *(const float*)b, (cmp_config_t){.epsilon = FLT_EPSILON});
 }
 
 static inline bool key_compare_double(const void* a, const void* b) {
-    return a && b &&
-           cmp_double(*(const double*)a, *(const double*)b, (cmp_config_t){.epsilon = DBL_EPSILON});
+    return a && b && cmp_double(*(const double*)a, *(const double*)b, (cmp_config_t){.epsilon = DBL_EPSILON});
 }
 
 #if defined(__cplusplus)

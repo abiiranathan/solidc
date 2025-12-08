@@ -115,8 +115,7 @@ int thread_create(Thread* thread, ThreadStartRoutine start_routine, void* data);
  * @note Thread-safe: Yes.
  * @note The attr object can be destroyed immediately after this call returns.
  */
-int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine start_routine,
-                       void* data);
+int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine start_routine, void* data);
 
 /**
  * Waits for a thread to terminate and retrieves its exit value.

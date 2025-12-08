@@ -59,87 +59,87 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
 
 // NOLINTBEGIN(bugprone-macro-parentheses)
 /** Generic macro for signed integer conversion with range checking. */
-#define IMPLEMENT_SIGNED_CONVERSION(func_name, type_name, type_max, type_min)                      \
-    StoError func_name(const char* str, type_name* result) {                                       \
-        if (result == nullptr) {                                                                   \
-            return STO_INVALID;                                                                    \
-        }                                                                                          \
-                                                                                                   \
-        intmax_t temp;                                                                             \
-        StoError err = validate_and_parse_signed(str, 10, &temp);                                  \
-        if (err != STO_SUCCESS) {                                                                  \
-            return err;                                                                            \
-        }                                                                                          \
-                                                                                                   \
-        if (temp > (type_max) || temp < (type_min)) {                                              \
-            return STO_OVERFLOW;                                                                   \
-        }                                                                                          \
-                                                                                                   \
-        *result = (type_name)temp;                                                                 \
-        return STO_SUCCESS;                                                                        \
+#define IMPLEMENT_SIGNED_CONVERSION(func_name, type_name, type_max, type_min)                                          \
+    StoError func_name(const char* str, type_name* result) {                                                           \
+        if (result == nullptr) {                                                                                       \
+            return STO_INVALID;                                                                                        \
+        }                                                                                                              \
+                                                                                                                       \
+        intmax_t temp;                                                                                                 \
+        StoError err = validate_and_parse_signed(str, 10, &temp);                                                      \
+        if (err != STO_SUCCESS) {                                                                                      \
+            return err;                                                                                                \
+        }                                                                                                              \
+                                                                                                                       \
+        if (temp > (type_max) || temp < (type_min)) {                                                                  \
+            return STO_OVERFLOW;                                                                                       \
+        }                                                                                                              \
+                                                                                                                       \
+        *result = (type_name)temp;                                                                                     \
+        return STO_SUCCESS;                                                                                            \
     }
 
 /** Generic macro for unsigned integer conversion with range checking. */
-#define IMPLEMENT_UNSIGNED_CONVERSION(func_name, type_name, type_max)                              \
-    StoError func_name(const char* str, type_name* result) {                                       \
-        if (result == nullptr) {                                                                   \
-            return STO_INVALID;                                                                    \
-        }                                                                                          \
-                                                                                                   \
-        uintmax_t temp;                                                                            \
-        StoError err = validate_and_parse_unsigned(str, 10, &temp);                                \
-        if (err != STO_SUCCESS) {                                                                  \
-            return err;                                                                            \
-        }                                                                                          \
-                                                                                                   \
-        if (temp > (type_max)) {                                                                   \
-            return STO_OVERFLOW;                                                                   \
-        }                                                                                          \
-                                                                                                   \
-        *result = (type_name)temp;                                                                 \
-        return STO_SUCCESS;                                                                        \
+#define IMPLEMENT_UNSIGNED_CONVERSION(func_name, type_name, type_max)                                                  \
+    StoError func_name(const char* str, type_name* result) {                                                           \
+        if (result == nullptr) {                                                                                       \
+            return STO_INVALID;                                                                                        \
+        }                                                                                                              \
+                                                                                                                       \
+        uintmax_t temp;                                                                                                \
+        StoError err = validate_and_parse_unsigned(str, 10, &temp);                                                    \
+        if (err != STO_SUCCESS) {                                                                                      \
+            return err;                                                                                                \
+        }                                                                                                              \
+                                                                                                                       \
+        if (temp > (type_max)) {                                                                                       \
+            return STO_OVERFLOW;                                                                                       \
+        }                                                                                                              \
+                                                                                                                       \
+        *result = (type_name)temp;                                                                                     \
+        return STO_SUCCESS;                                                                                            \
     }
 
 /** Generic macro for signed integer conversion with custom base. */
-#define IMPLEMENT_SIGNED_BASE_CONVERSION(func_name, type_name, type_max, type_min)                 \
-    StoError func_name(const char* str, int base, type_name* result) {                             \
-        if (result == nullptr) {                                                                   \
-            return STO_INVALID;                                                                    \
-        }                                                                                          \
-                                                                                                   \
-        intmax_t temp;                                                                             \
-        StoError err = validate_and_parse_signed(str, base, &temp);                                \
-        if (err != STO_SUCCESS) {                                                                  \
-            return err;                                                                            \
-        }                                                                                          \
-                                                                                                   \
-        if (temp > (type_max) || temp < (type_min)) {                                              \
-            return STO_OVERFLOW;                                                                   \
-        }                                                                                          \
-                                                                                                   \
-        *result = (type_name)temp;                                                                 \
-        return STO_SUCCESS;                                                                        \
+#define IMPLEMENT_SIGNED_BASE_CONVERSION(func_name, type_name, type_max, type_min)                                     \
+    StoError func_name(const char* str, int base, type_name* result) {                                                 \
+        if (result == nullptr) {                                                                                       \
+            return STO_INVALID;                                                                                        \
+        }                                                                                                              \
+                                                                                                                       \
+        intmax_t temp;                                                                                                 \
+        StoError err = validate_and_parse_signed(str, base, &temp);                                                    \
+        if (err != STO_SUCCESS) {                                                                                      \
+            return err;                                                                                                \
+        }                                                                                                              \
+                                                                                                                       \
+        if (temp > (type_max) || temp < (type_min)) {                                                                  \
+            return STO_OVERFLOW;                                                                                       \
+        }                                                                                                              \
+                                                                                                                       \
+        *result = (type_name)temp;                                                                                     \
+        return STO_SUCCESS;                                                                                            \
     }
 
 /** Generic macro for unsigned integer conversion with custom base. */
-#define IMPLEMENT_UNSIGNED_BASE_CONVERSION(func_name, type_name, type_max)                         \
-    StoError func_name(const char* str, int base, type_name* result) {                             \
-        if (result == nullptr) {                                                                   \
-            return STO_INVALID;                                                                    \
-        }                                                                                          \
-                                                                                                   \
-        uintmax_t temp;                                                                            \
-        StoError err = validate_and_parse_unsigned(str, base, &temp);                              \
-        if (err != STO_SUCCESS) {                                                                  \
-            return err;                                                                            \
-        }                                                                                          \
-                                                                                                   \
-        if (temp > (type_max)) {                                                                   \
-            return STO_OVERFLOW;                                                                   \
-        }                                                                                          \
-                                                                                                   \
-        *result = (type_name)temp;                                                                 \
-        return STO_SUCCESS;                                                                        \
+#define IMPLEMENT_UNSIGNED_BASE_CONVERSION(func_name, type_name, type_max)                                             \
+    StoError func_name(const char* str, int base, type_name* result) {                                                 \
+        if (result == nullptr) {                                                                                       \
+            return STO_INVALID;                                                                                        \
+        }                                                                                                              \
+                                                                                                                       \
+        uintmax_t temp;                                                                                                \
+        StoError err = validate_and_parse_unsigned(str, base, &temp);                                                  \
+        if (err != STO_SUCCESS) {                                                                                      \
+            return err;                                                                                                \
+        }                                                                                                              \
+                                                                                                                       \
+        if (temp > (type_max)) {                                                                                       \
+            return STO_OVERFLOW;                                                                                       \
+        }                                                                                                              \
+                                                                                                                       \
+        *result = (type_name)temp;                                                                                     \
+        return STO_SUCCESS;                                                                                            \
     }
 
 // NOLINTEND(bugprone-macro-parentheses)
