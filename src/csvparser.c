@@ -71,54 +71,83 @@ CsvReader* csv_reader_new(const char* filename, size_t arena_memory) {
 // Allocate memory for rows and set num_rows.
 static Row** csv_allocate_rows(Arena* arena, size_t num_rows) {
     if (num_rows == 0) {
-        fprintf(stderr, "No rows to allocate. Perhaps the CSV file is empty\n");
         return NULL;
     }
 
     Row** rows = arena_alloc_array(arena, sizeof(Row*), num_rows);
     if (!rows) {
-        fprintf(stderr, "csv_allocate_rows(): error allocating memory for %lu rows in arena\n", num_rows);
+        fprintf(stderr, "csv_allocate_rows(): arena out of memory\n");
         return NULL;
     }
 
     for (size_t i = 0; i < num_rows; i++) {
         rows[i] = arena_alloc(arena, sizeof(Row));
         if (!rows[i]) {
-            fprintf(stderr,
-                    "csv_allocate_rows(): error allocating memory for CsvRow: "
-                    "%zu\n",
-                    i);
+            fprintf(stderr, "csv_allocate_rows(): arena_alloc failed on row %zu\n", i);
             return NULL;
         }
     }
     return rows;
 }
 
-Row** csv_reader_parse(CsvReader* reader) {
-    // read num_rows and allocate them on heap.
-    reader->num_rows = line_count(reader);
-    reader->rows     = csv_allocate_rows(reader->arena, reader->num_rows);
-    if (!reader->rows) {
-        return NULL;
+static inline bool read_first_valid_line(CsvReader* reader, char* line, size_t line_size) {
+    bool found_valid_line = false;
+
+    while (fgets(line, line_size, reader->stream)) {
+        // Trim whitespace from end
+        char* end = line + strlen(line) - 1;
+        while (end > line && isspace(*end)) {
+            end--;
+        }
+
+        // Skip empty lines
+        if (end == line) {
+            continue;
+        }
+
+        end[1] = '\0';
+
+        // Skip comment lines
+        if (line[0] == reader->comment) {
+            continue;
+        }
+
+        // This is a valid data/header line
+        found_valid_line = true;
+        break;
     }
 
-    char line[MAX_FIELD_SIZE] = {0};
-    size_t rowIndex           = 0;
-    bool headerSkipped        = false;
-
-    // Read one line to determine the number of fields in the CSV file
-    if (!fgets(line, MAX_FIELD_SIZE, reader->stream)) {
-        fclose(reader->stream);
-        return NULL;
+    if (!found_valid_line) {
+        return false;
     }
 
     // Reset the file pointer to the beginning of the file
     fseek(reader->stream, 0, SEEK_SET);
+    return true;
+}
+
+Row** csv_reader_parse(CsvReader* reader) {
+    char line[MAX_FIELD_SIZE] = {0};
+    size_t rowIndex           = 0;
+    bool headerSkipped        = false;
+
+    // read num_rows and allocate them on heap.
+    reader->num_rows = line_count(reader);
+    reader->rows     = csv_allocate_rows(reader->arena, reader->num_rows);
+    if (!reader->rows) {
+        fclose(reader->stream);
+        return NULL;
+    }
+
+    // Read lines until we find a non-comment, non-empty line to determine field count
+    if (!read_first_valid_line(reader, line, sizeof(line))) {
+        fclose(reader->stream);
+        return NULL;
+    }
 
     // Get the number of fields in the CSV file
     size_t num_fields = get_num_fields(line, reader->delim, reader->quote);
     if (num_fields == 0) {
-        fprintf(stderr, "Error: no fields found in CSV file\n");
         fclose(reader->stream);
         return NULL;
     }
@@ -178,27 +207,24 @@ Row** csv_reader_parse(CsvReader* reader) {
 }
 
 void csv_reader_parse_async(CsvReader* reader, CsvRowCallback callback, size_t maxrows) {
-    reader->num_rows = line_count(reader);
-
     size_t rowIndex           = 0;
     bool headerSkipped        = false;
     char line[MAX_FIELD_SIZE] = {0};
+
+    reader->num_rows = line_count(reader);
 
     // Limit the number of rows to parse if maxrows is set
     reader->num_rows = (maxrows > 0 && maxrows < reader->num_rows) ? maxrows : reader->num_rows;
     reader->rows     = csv_allocate_rows(reader->arena, reader->num_rows);
     if (!reader->rows) {
-        return;
-    }
-
-    // Read one line to determine the number of fields in the CSV file
-    if (!fgets(line, MAX_FIELD_SIZE, reader->stream)) {
         fclose(reader->stream);
         return;
     }
 
-    // Reset the file pointer to the beginning of the file
-    fseek(reader->stream, 0, SEEK_SET);
+    if (!read_first_valid_line(reader, line, sizeof(line))) {
+        fclose(reader->stream);
+        return;
+    }
 
     // Get the number of fields in the CSV file
     size_t num_fields = get_num_fields(line, reader->delim, reader->quote);
@@ -381,9 +407,7 @@ static size_t line_count(CsvReader* reader) {
         if (c == reader->comment) {
             while ((c = (char)fgetc(reader->stream)) != EOF && c != '\n')
                 ;
-
-            // read the new line character at end of comment line
-            c = (char)fgetc(reader->stream);
+            // c is now either EOF or '\n', no need to read again
             continue;
         }
 

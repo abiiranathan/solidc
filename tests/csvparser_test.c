@@ -283,6 +283,8 @@ int main(void) {
 
     // Basic CSV parsing tests
     const char* basic_csv =
+        "# comment\n"
+        "# Another comment\n"
         "name,age\n"
         "Alice,25\n"
         "Bob,30\n"
