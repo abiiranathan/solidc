@@ -5,7 +5,7 @@ set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
-find_package(mimalloc 2.2 REQUIRED)
+find_package(mimalloc 2.2)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows" OR WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
     set(IS_WINDOWS_TARGET TRUE)
@@ -162,9 +162,12 @@ else()
     endif()
 endif()
 
-# Link with mimalloc
-target_link_libraries(solidc PUBLIC mimalloc)
-
+if(mimalloc_FOUND)
+    target_link_libraries(solidc PUBLIC mimalloc)
+    message(STATUS "mimalloc found and will be linked")
+else()
+    message(STATUS "mimalloc not found, using system allocator")
+endif()
 
 # Installation: headers and library
 install(TARGETS solidc

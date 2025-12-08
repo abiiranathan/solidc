@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "../include/aligned_alloc.h"
 #include "../include/lock.h"
 #include "../include/thread.h"
 #include "../include/threadpool.h"
@@ -30,11 +31,7 @@
 #define YIELD_THRESHOLD 4
 
 /** Align to cache line to prevent false sharing. */
-#ifdef _WIN32
-#define CACHE_ALIGNED __declspec(align(CACHE_LINE_SIZE))
-#else
 #define CACHE_ALIGNED __attribute__((aligned(CACHE_LINE_SIZE)))
-#endif
 
 typedef struct TaskRingBuffer {
     CACHE_ALIGNED atomic_uint head;
@@ -132,8 +129,7 @@ static int ringbuffer_pull_batch_optimized(TaskRingBuffer* rb, Task* tasks, size
     while (1) {
         // Single memory barrier for both loads
         uint32_t tail = atomic_load_explicit(&rb->tail, memory_order_acquire);
-        uint32_t head = atomic_load_explicit(
-            &rb->head, memory_order_relaxed);  // relaxed since tail has acquire
+        uint32_t head = atomic_load_explicit(&rb->head, memory_order_relaxed);  // relaxed since tail has acquire
 
         if (head != tail) {
             // Calculate available tasks
@@ -142,8 +138,8 @@ static int ringbuffer_pull_batch_optimized(TaskRingBuffer* rb, Task* tasks, size
 
             // Atomic reservation with single CAS
             uint32_t new_tail = (tail + to_take) & RING_BUFFER_MASK;
-            if (atomic_compare_exchange_weak_explicit(&rb->tail, &tail, new_tail,
-                                                      memory_order_release, memory_order_relaxed)) {
+            if (atomic_compare_exchange_weak_explicit(&rb->tail, &tail, new_tail, memory_order_release,
+                                                      memory_order_relaxed)) {
 
                 // Bulk copy tasks (optimized for cache)
                 for (size_t i = 0; i < to_take; i++) {
@@ -272,7 +268,7 @@ static void* thread_worker(void* arg) {
 
 /** Initialize a worker thread. */
 static int thread_init(Threadpool* pool, thread** t) {
-    *t = (thread*)aligned_alloc(CACHE_LINE_SIZE, sizeof(thread));
+    *t = (thread*)ALIGNED_ALLOC(CACHE_LINE_SIZE, sizeof(thread));
     if (*t == NULL) return -1;
 
     (*t)->pool = pool;
@@ -287,7 +283,7 @@ static int thread_init(Threadpool* pool, thread** t) {
 Threadpool* threadpool_create(size_t num_threads) {
     if (num_threads == 0) num_threads = 1;
 
-    Threadpool* pool = (Threadpool*)aligned_alloc(CACHE_LINE_SIZE, sizeof(Threadpool));
+    Threadpool* pool = (Threadpool*)ALIGNED_ALLOC(CACHE_LINE_SIZE, sizeof(Threadpool));
     if (pool == NULL) return NULL;
 
     // Initialize minimal atomics

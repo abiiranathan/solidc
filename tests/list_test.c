@@ -28,6 +28,7 @@ int main(void) {
     for (int i = 1; i <= 5; i++) {
         list_push_back(list, &i);
     }
+
     printf("After push_back 1..5: ");
     print_list(list);
     assert(list_size(list) == 5);
