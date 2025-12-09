@@ -30,8 +30,8 @@ bool readline(const char* prompt, char* buffer, size_t buffer_len) {
     buffer[strcspn(buffer, "\n")] = '\0';  // Remove trailing newline
 
     if (strlen(buffer) >= buffer_len - 1) {
-        char c = EOF;
-        while ((c = (char)getchar()) != EOF) {
+        int c = EOF;
+        while ((c = getchar()) != EOF) {
             if (c == '\n') break;
         }
     }
