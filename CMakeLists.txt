@@ -1,23 +1,15 @@
 cmake_minimum_required(VERSION 3.30.0)
 project(solidc VERSION 0.2.5 LANGUAGES C)
 
+# ==============================================================================
+# Global Settings
+# ==============================================================================
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
-find_package(mimalloc 2.2)
-
-if(CMAKE_SYSTEM_NAME STREQUAL "Windows" OR WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
-    set(IS_WINDOWS_TARGET TRUE)
-    message(STATUS "Building for Windows target")
-else()
-    set(IS_WINDOWS_TARGET FALSE)
-    message(STATUS "Building for non-Windows target")
-endif()
-
 # Fix RPATH issue with Ninja + Windows
 if(UNIX AND NOT APPLE)
-    # Set RPATH on Linux
     set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 endif()
 
@@ -26,8 +18,75 @@ if(BUILD_SHARED_LIBS AND (WIN32 OR MINGW))
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 option(BUILD_TESTS "Build the tests" ON)
-option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+option(BUILD_BENCHMARKS "Build the benchmarks" OFF)
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF) # Default to Static for easier dependency embedding
+
+# ==============================================================================
+# Dependencies (FetchContent)
+# ==============================================================================
+include(FetchContent)
+message(STATUS "Fetching dependencies...")
+
+# --- xxHash ---
+# Fetch the repo and build as OBJECT library to embed directly into solidc
+FetchContent_Declare(
+    xxHash
+    GIT_REPOSITORY https://github.com/Cyan4973/xxHash.git
+    GIT_TAG        v0.8.2
+)
+FetchContent_MakeAvailable(xxHash)
+
+# Create xxHash as an OBJECT library (compiled but not linked as separate lib)
+# This embeds the object files directly into solidc without creating a separate library
+add_library(xxHash_obj OBJECT 
+    ${xxhash_SOURCE_DIR}/xxhash.c
+)
+target_include_directories(xxHash_obj PUBLIC 
+    ${xxhash_SOURCE_DIR}
+)
+# Suppress warnings from xxHash
+target_compile_options(xxHash_obj PRIVATE -w)
+set_target_properties(xxHash_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# --- mimalloc ---
+set(MI_BUILD_SHARED OFF CACHE BOOL "Build mimalloc shared lib" FORCE)
+set(MI_BUILD_STATIC ON CACHE BOOL "Build mimalloc static lib" FORCE)
+set(MI_BUILD_TESTS OFF CACHE BOOL "Build mimalloc tests" FORCE)
+set(MI_OVERRIDE OFF CACHE BOOL "Override standard malloc" FORCE)
+set(MI_INSTALL_TOPLEVEL OFF CACHE BOOL "Install mimalloc to top level" FORCE)
+
+FetchContent_Declare(
+    mimalloc
+    GIT_REPOSITORY https://github.com/microsoft/mimalloc.git
+    GIT_TAG        v2.1.7
+)
+FetchContent_MakeAvailable(mimalloc)
+
+# Ensure mimalloc targets exist as aliases if needed
+if(NOT TARGET mimalloc-static AND TARGET mimalloc)
+    add_library(mimalloc-static ALIAS mimalloc)
+endif()
+
+if(TARGET mimalloc-obj)
+    target_compile_options(mimalloc-obj PRIVATE -w)
+endif()
+if(TARGET mimalloc-static)
+    target_compile_options(mimalloc-static PRIVATE -w)
+endif()
+
+# ==============================================================================
+# Project Configuration
+# ==============================================================================
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows" OR WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
+    set(IS_WINDOWS_TARGET TRUE)
+    message(STATUS "Building for Windows target")
+else()
+    set(IS_WINDOWS_TARGET FALSE)
+    message(STATUS "Building for non-Windows target")
+endif()
 
 # Workaround for GNUInstallDirs warning during cross-compilation
 if(CMAKE_CROSSCOMPILING)
@@ -58,7 +117,6 @@ set(HEADERS
     include/lock.h
     include/macros.h
     include/map.h
-    include/rapidhash.h
     include/pipeline.h
     include/process.h
     include/slist.h
@@ -115,14 +173,22 @@ set(SOURCES
 # Include math.h constants e.g M_PI in C23
 add_compile_definitions(_USE_MATH_DEFINES _GNU_SOURCE)
 
-# Create the library
-add_library(solidc STATIC ${SOURCES})
+# Create the library - add xxHash object files directly
+add_library(solidc STATIC ${SOURCES} $<TARGET_OBJECTS:xxHash_obj>)
 add_library(solidc::solidc ALIAS solidc)
 
-# Headers
+# Headers (include xxHash headers for internal use)
 target_include_directories(solidc PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include/>
+)
+target_include_directories(solidc PRIVATE
+    ${xxhash_SOURCE_DIR}
+)
+
+# Link Dependencies - only mimalloc now, xxHash is embedded via object files
+target_link_libraries(solidc PRIVATE 
+    mimalloc-static
 )
 
 # Platform-specific settings
@@ -144,11 +210,13 @@ if(WIN32 OR MINGW)
             /W4
             /wd4201  # nameless struct/union
             /wd4996  # POSIX name deprecated
+            /wd5105  # macro expansion warning in windows headers
         )
     endif()
 else()
-    
-    target_compile_options(solidc PUBLIC -Wall -Wextra -Werror -Wno-unused-function -std=c23 -mavx2 -msse4.2 -mtune=native -march=native)
+    # Note: Removed -std=c23 here because it conflicts with global CMAKE_C_STANDARD=11
+    # If you need C23 specific features, change the global setting to 23.
+    target_compile_options(solidc PUBLIC -Wall -Wextra -Werror -Wno-unused-function -mavx2 -msse4.2 -mtune=native -march=native)
     target_link_libraries(solidc PUBLIC m pthread)
     
     # Clang-specific settings
@@ -161,13 +229,6 @@ else()
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
         target_compile_options(solidc PUBLIC -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE -fPIC)
     endif()
-endif()
-
-if(mimalloc_FOUND)
-    target_link_libraries(solidc PUBLIC mimalloc)
-    message(STATUS "mimalloc found and will be linked")
-else()
-    message(STATUS "mimalloc not found, using system allocator")
 endif()
 
 # Installation: headers and library
@@ -222,6 +283,6 @@ if(BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
-if(NOT WIN32)
+if(BUILD_BENCHMARKS AND NOT WIN32)
     add_subdirectory(benchmarks)
 endif()

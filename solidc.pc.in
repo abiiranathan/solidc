@@ -6,5 +6,5 @@ includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
 Name: solidc
 Description: SolidC library is a collection of cross-platform C functions and data structures that are useful for systems programming.
 Version: @PROJECT_VERSION@
-Libs: -L${libdir} -lsolidc -lm -pthread -lmimalloc
+Libs: -L${libdir} -lsolidc -lm -pthread
 Cflags: -I${includedir}
