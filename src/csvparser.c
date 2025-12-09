@@ -394,18 +394,18 @@ static bool parse_csv_line(csv_line_params* args) {
 // ignore comments. Optionally skip header.
 static size_t line_count(CsvReader* reader) {
     size_t lines       = 0;
-    char prevChar      = '\n';
+    int prevChar       = '\n';
     bool headerSkipped = false;
 
     while (!feof(reader->stream)) {
-        char c = (char)fgetc(reader->stream);
+        int c = fgetc(reader->stream);
         if (c == EOF) {
             break;
         }
 
         // Ignore comment lines
         if (c == reader->comment) {
-            while ((c = (char)fgetc(reader->stream)) != EOF && c != '\n')
+            while ((c = fgetc(reader->stream)) != EOF && c != '\n')
                 ;
             // c is now either EOF or '\n', no need to read again
             continue;
@@ -413,14 +413,14 @@ static size_t line_count(CsvReader* reader) {
 
         // Skip the header line if it exists and hasn't been skipped yet
         if (reader->has_header && reader->skip_header && !headerSkipped && lines == 0) {
-            while ((c = (char)fgetc(reader->stream)) != EOF && c != '\n')
+            while ((c = fgetc(reader->stream)) != EOF && c != '\n')
                 ;
             headerSkipped = true;
             continue;
         }
 
         if (c == '\n' && !isspace(prevChar)) {
-            char nextChar = (char)fgetc(reader->stream);
+            int nextChar = fgetc(reader->stream);
             if (nextChar == EOF) {
                 break;
             }
