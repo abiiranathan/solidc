@@ -217,7 +217,7 @@ static inline int has_work(Threadpool* pool) {
 static void* thread_worker(void* arg) {
     thread* thp            = (thread*)arg;
     Threadpool* pool       = thp->pool;
-    Task batch[BATCH_SIZE] = {};
+    Task batch[BATCH_SIZE] = {0};
     int batch_count        = 0;
 
     atomic_fetch_add_explicit(&pool->num_threads_alive, 1, memory_order_relaxed);

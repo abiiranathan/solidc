@@ -43,8 +43,8 @@ void test_iocopy(void) {
 void test_readuntil(void) {
     char buf[256];
 
-    stream_t stream  = {};
-    stream_t fstream = {};
+    stream_t stream  = {0};
+    stream_t fstream = {0};
     ssize_t n        = 0;
 
     stream = create_string_stream(128);

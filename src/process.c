@@ -921,7 +921,7 @@ ProcessError process_terminate(ProcessHandle* handle, bool force) {
 ProcessError process_run_and_capture(const char* command, const char* const argv[], ProcessOptions* options,
                                      int* exit_code) {
     ProcessHandle* proc = NULL;
-    ProcessError err    = {};
+    ProcessError err    = {0};
     err                 = process_create(&proc, command, argv, options);
     if (err != PROCESS_SUCCESS) {
         return err;

@@ -365,7 +365,7 @@ file_result_t file_unlock(const file_t* file) {
 }
 
 file_result_t file_copy(const file_t* src, file_t* dst) {
-    char buffer[COPY_BUFSIZE] = {};
+    char buffer[COPY_BUFSIZE] = {0};
     size_t bytes_read         = 0;
 
     // Clear any previous errors

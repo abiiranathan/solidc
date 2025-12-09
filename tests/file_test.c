@@ -7,7 +7,7 @@ void test_file_open_read_write() {
     char* tmpfile = make_tempfile();
     ASSERT(tmpfile != NULL);
     file_t file;
-    file_result_t res = {};
+    file_result_t res = {0};
 
     res = file_open(&file, tmpfile, "w");
     ASSERT(res == FILE_SUCCESS);
@@ -56,7 +56,7 @@ void test_fileseek() {
     ASSERT(tmpfile != NULL);
 
     file_t file;
-    file_result_t res = {};
+    file_result_t res = {0};
 
     res = file_open(&file, tmpfile, "w+");
     ASSERT(res == FILE_SUCCESS);

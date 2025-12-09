@@ -153,7 +153,7 @@ void test_process_wait_with_timeout(void) {
     ProcessError err = process_create(&process, cmd, argv, NULL);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
 
-    ProcessResult result = {};
+    ProcessResult result = {0};
 
     // Wait with 500ms timeout should timeout
     err = process_wait(process, &result, 500);
@@ -176,7 +176,7 @@ void test_process_wait_no_timeout(void) {
     ProcessError err = process_create(&process, cmd, argv, NULL);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
 
-    ProcessResult result = {};
+    ProcessResult result = {0};
 
     // Wait with infinite timeout should complete successfully
     err = process_wait(process, &result, -1);
@@ -215,7 +215,7 @@ void test_process_inherit_environment(void) {
     err = process_create(&process, cmd, argv, &options);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
 
-    ProcessResult result = {};
+    ProcessResult result = {0};
     err                  = process_wait(process, &result, -1);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
 
@@ -260,7 +260,7 @@ void test_process_custom_environment(void) {
     err = process_create(&process, cmd, argv, &options);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
 
-    ProcessResult result = {};
+    ProcessResult result = {0};
     err                  = process_wait(process, &result, -1);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
 
@@ -297,7 +297,7 @@ void test_process_empty_environment(void) {
     ProcessError err = process_create(&process, cmd, argv, &options);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
 
-    ProcessResult result = {};
+    ProcessResult result = {0};
     err                  = process_wait(process, &result, -1);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
     LOG_ASSERT(result.exit_code == 42, "Expected exit code 42, got: %d", result.exit_code);
@@ -330,7 +330,7 @@ void test_capture_stdout_through_pipe(void) {
     err = process_create(&process, cmd, argv, &options);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
 
-    ProcessResult result = {};
+    ProcessResult result = {0};
     err                  = process_wait(process, &result, -1);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
 
@@ -369,7 +369,7 @@ void test_capture_stderr_through_pipe(void) {
     err = process_create(&process, cmd, argv, &options);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
 
-    ProcessResult result = {};
+    ProcessResult result = {0};
     err                  = process_wait(process, &result, -1);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
 
@@ -412,7 +412,7 @@ void test_capture_stdout_and_stderr_separate(void) {
     err = process_create(&process, cmd, argv, &options);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
 
-    ProcessResult result = {};
+    ProcessResult result = {0};
     err                  = process_wait(process, &result, -1);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
 
@@ -463,7 +463,7 @@ void test_capture_merged_stderr_to_stdout(void) {
     err = process_create(&process, cmd, argv, &options);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
 
-    ProcessResult result = {};
+    ProcessResult result = {0};
     err                  = process_wait(process, &result, -1);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
 
@@ -505,7 +505,7 @@ void test_capture_large_output(void) {
     err = process_create(&process, cmd, argv, &options);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_create failed: %s", process_error_string(err));
 
-    ProcessResult result = {};
+    ProcessResult result = {0};
     err                  = process_wait(process, &result, -1);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
 
@@ -571,7 +571,7 @@ void test_stdin_stdout_echo(void) {
     buffer[bytes_read] = '\0';
     LOG_ASSERT(strcmp(buffer, input_data) == 0, "Data mismatch.\nSent: '%s'\nGot:  '%s'", input_data, buffer);
 
-    ProcessResult result = {};
+    ProcessResult result = {0};
     err                  = process_wait(process, &result, 1000);
     LOG_ASSERT(err == PROCESS_SUCCESS, "process_wait failed: %s", process_error_string(err));
     LOG_ASSERT(result.exit_code == 0, "Expected exit code 0");

@@ -140,7 +140,7 @@ static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
  */
 static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
     // Step 1: Compute ATA = A^T * A (column-major aware)
-    Mat3 ATA = {};
+    Mat3 ATA = {0};
     for (int i = 0; i < 3; ++i) {      // column of A^T (row of A)
         for (int j = 0; j < 3; ++j) {  // row of A^T (column of A)
             ATA.m[i][j] = 0.0f;
@@ -170,7 +170,7 @@ static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
 
     Vec3 sorted_eigen = {vals[order[0]], vals[order[1]], vals[order[2]]};
 
-    Mat3 V_sorted = {};
+    Mat3 V_sorted = {0};
     for (int i = 0; i < 3; ++i) {                  // output column
         for (int j = 0; j < 3; ++j) {              // row
             V_sorted.m[i][j] = V->m[order[i]][j];  // column-major: V[col][row]

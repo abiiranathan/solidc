@@ -307,7 +307,7 @@ int dir_walk_depth_first(const char* path, WalkDirCallback callback, void* data)
     }
 
     char* name                  = NULL;
-    char fullpath[FILENAME_MAX] = {};
+    char fullpath[FILENAME_MAX] = {0};
     int status                  = 0;
 
     while ((name = dir_next(dir)) != NULL) {
