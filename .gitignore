@@ -33,6 +33,7 @@
 
 aut
 build
+build-*/
 dist
 *.egg-info
 *.egg
