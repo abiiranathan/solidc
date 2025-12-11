@@ -62,7 +62,7 @@
  * @note All strings are null-terminated regardless of storage mode.
  * @note The structure size is optimized to fit common cache line sizes.
  */
-typedef struct cstr {
+struct cstr {
     union {
         struct {
             /// @brief Length of the string (excluding null terminator)
@@ -84,7 +84,7 @@ typedef struct cstr {
             unsigned char len;
         } stack;  // stack data. Do not use directly!!
     };
-} cstr;
+};
 
 // --- Internal Helper Functions ---
 

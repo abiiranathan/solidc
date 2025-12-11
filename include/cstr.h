@@ -57,7 +57,7 @@ typedef struct {
  * @note Caller must call str_free() to release memory
  * @note Actual capacity may be larger than requested for optimization
  */
-[[nodiscard]] cstr* cstr_init(size_t initial_capacity);
+cstr* cstr_init(size_t initial_capacity);
 
 /**
  * @brief Creates a new cstr from a C string.
@@ -71,7 +71,7 @@ typedef struct {
  * input is NULL
  * @note Caller must call str_free() to release memory
  */
-[[nodiscard]] cstr* cstr_new(const char* input);
+cstr* cstr_new(const char* input);
 
 // Debug function to print all string details
 void cstr_debug(const cstr* s);
@@ -291,7 +291,7 @@ char cstr_at(const cstr* s, size_t index);
  * @param s Pointer to the cstr (can be NULL).
  * @return Pointer to the null-terminated string, or NULL if s is NULL.
  */
-[[nodiscard]] char* cstr_data(cstr* s);
+char* cstr_data(cstr* s);
 
 /**
  * @brief Returns a const pointer to the cstr's data.
@@ -301,7 +301,7 @@ char cstr_at(const cstr* s, size_t index);
  * @param s Pointer to the cstr (can be NULL).
  * @return Const pointer to the null-terminated string, or NULL if s is NULL.
  */
-[[nodiscard]] const char* cstr_data_const(const cstr* s);
+const char* cstr_data_const(const cstr* s);
 
 /**
  * @brief Converts the cstr to a string view.
@@ -535,7 +535,7 @@ void cstr_remove_char(cstr* s, char c);
  * @return Pointer to the new cstr containing the substring, or NULL on invalid
  * input or allocation failure.
  */
-[[nodiscard]] cstr* cstr_substr(const cstr* s, size_t start, size_t length);
+cstr* cstr_substr(const cstr* s, size_t start, size_t length);
 
 /**
  * @brief Replaces the first occurrence of a substring with another in the cstr.
@@ -549,7 +549,7 @@ void cstr_remove_char(cstr* s, char c);
  * @return Pointer to the new cstr with the first occurrence replaced, or NULL
  * on invalid input or allocation failure.
  */
-[[nodiscard]] cstr* cstr_replace(const cstr* s, const char* old, const char* new_str);
+cstr* cstr_replace(const cstr* s, const char* old, const char* new_str);
 
 /**
  * @brief Replaces all occurrences of a substring with another.
@@ -563,7 +563,7 @@ void cstr_remove_char(cstr* s, char c);
  * @return Pointer to the new cstr with replacements, or NULL on invalid input
  * or allocation failure.
  */
-[[nodiscard]] cstr* cstr_replace_all(const cstr* s, const char* old, const char* new_str);
+cstr* cstr_replace_all(const cstr* s, const char* old, const char* new_str);
 
 // ========== Splitting and joining ===========
 
@@ -583,7 +583,7 @@ void cstr_remove_char(cstr* s, char c);
  * failure. The caller is responsible for freeing the array and each cstr within
  * it.
  */
-[[nodiscard]] cstr** cstr_split(const cstr* s, const char* delim, size_t* count);
+cstr** cstr_split(const cstr* s, const char* delim, size_t* count);
 
 /**
  * @brief Joins multiple cstrs with a delimiter.
@@ -598,7 +598,7 @@ void cstr_remove_char(cstr* s, char c);
  * @return Pointer to the new cstr with joined strings, or NULL on invalid input
  * or allocation failure. Returns a new empty cstr if the input array is empty.
  */
-[[nodiscard]] cstr* cstr_join(const cstr** strings, size_t count, const char* delim);
+cstr* cstr_join(const cstr** strings, size_t count, const char* delim);
 
 /**
  * @brief Creates a new cstr with the contents of the input cstr reversed.
@@ -607,7 +607,7 @@ void cstr_remove_char(cstr* s, char c);
  * @return Pointer to the new reversed cstr, or NULL on invalid input or
  * allocation failure.
  */
-[[nodiscard]] cstr* cstr_reverse(const cstr* s);
+cstr* cstr_reverse(const cstr* s);
 
 /**
  * @brief Removes leading and trailing characters from the cstr in place based
