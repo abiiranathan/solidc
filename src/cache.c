@@ -1,10 +1,10 @@
 #include "../include/cache.h"
+#include "../include/align.h"
 #include "../include/spinlock.h"
 
 #include <errno.h>
-#include <immintrin.h>
-#include <stdatomic.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -40,7 +40,7 @@
  * The back_pointer allows us to recover the cache_entry_t* from a returned value pointer.
  * This enables reference counting without requiring the caller to track entries.
  */
-typedef struct __attribute__((aligned(CACHE_LINE_SIZE))) {
+typedef struct ALIGN(CACHE_LINE_SIZE) {
     atomic_int ref_count;       // Reference count for safe concurrent access
     _Atomic uint8_t clock_bit;  // CLOCK algorithm: 1 = recently used, 0 = candidate for eviction
     time_t expires_at;          // Absolute expiration timestamp
@@ -66,7 +66,7 @@ typedef struct {
     cache_entry_t* entry;  // Pointer to the entry
 } cache_slot_t;
 
-typedef struct __attribute__((aligned(CACHE_LINE_SIZE))) {
+typedef struct ALIGN(CACHE_LINE_SIZE) {
     cache_slot_t* slots;  // Array of 16-byte slots
     size_t bucket_count;  // Hash table size (always power of 2 for fast modulo)
     size_t size;          // Current number of valid entries

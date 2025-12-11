@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "../include/align.h"
 #include "../include/aligned_alloc.h"
 #include "../include/lock.h"
 #include "../include/thread.h"
@@ -31,7 +32,7 @@
 #define YIELD_THRESHOLD 4
 
 /** Align to cache line to prevent false sharing. */
-#define CACHE_ALIGNED __attribute__((aligned(CACHE_LINE_SIZE)))
+#define CACHE_ALIGNED ALIGN(CACHE_LINE_SIZE)
 
 typedef struct TaskRingBuffer {
     CACHE_ALIGNED atomic_uint head;
@@ -39,10 +40,9 @@ typedef struct TaskRingBuffer {
     CACHE_ALIGNED Task tasks[RING_BUFFER_SIZE];
     CACHE_ALIGNED Lock mutex;
     CACHE_ALIGNED atomic_int waiting_consumers;
-
+    CACHE_ALIGNED struct Threadpool* pool;
     Condition not_empty;
     Condition not_full;
-    struct Threadpool* pool;
 } TaskRingBuffer;
 
 typedef struct thread {

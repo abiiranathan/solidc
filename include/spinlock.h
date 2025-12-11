@@ -33,7 +33,9 @@ extern "C" {
 #include <stdatomic.h>
 #endif
 
+#if defined(__x86_64__) || defined(__i386__)
 #include <emmintrin.h>  // For _mm_pause on x86
+#endif
 
 /**
  * @brief Reader-writer spinlock structure.
@@ -65,8 +67,10 @@ typedef struct {
 static inline void cpu_relax(void) {
 #if defined(__x86_64__) || defined(__i386__)
     _mm_pause();
-#elif defined(__aarch64__)
+#elif defined(__aarch64__) || defined(__arm__)
     __asm__ volatile("yield");
+#else
+    /* No-op on other platforms */
 #endif
 }
 
@@ -104,7 +108,7 @@ static inline void fast_rwlock_init(fast_rwlock_t* l) {
  * @warning This function spins (busy-waits) if the lock is write-locked.
  *          Ensure critical sections are brief to avoid wasting CPU cycles.
  *
- * @note Safe for concurrent use by multiple goroutines.
+ * @note Safe for concurrent use by multiple threads.
  * @note Must be paired with fast_rwlock_unlock_rd().
  * @note Not reentrant - a thread cannot recursively acquire the same lock.
  *
@@ -141,7 +145,7 @@ static inline void fast_rwlock_rdlock(fast_rwlock_t* l) {
  * @warning Behavior is undefined if called without a matching fast_rwlock_rdlock().
  * @warning Behavior is undefined if called by a thread that doesn't hold the read lock.
  *
- * @note Safe for concurrent use by multiple goroutines.
+ * @note Safe for concurrent use by multiple threads.
  *
  * Example:
  * @code
@@ -169,7 +173,7 @@ static inline void fast_rwlock_unlock_rd(fast_rwlock_t* l) {
  *          Can spin for extended periods under high read contention.
  * @warning Writer starvation is possible if readers continuously hold the lock.
  *
- * @note Safe for concurrent use by multiple goroutines.
+ * @note Safe for concurrent use by multiple threads.
  * @note Must be paired with fast_rwlock_unlock_wr().
  * @note Not reentrant - a thread cannot recursively acquire the same lock.
  *
@@ -201,7 +205,7 @@ static inline void fast_rwlock_wrlock(fast_rwlock_t* l) {
  * @warning Behavior is undefined if called without a matching fast_rwlock_wrlock().
  * @warning Behavior is undefined if called by a thread that doesn't hold the write lock.
  *
- * @note Safe for concurrent use by multiple goroutines.
+ * @note Safe for concurrent use by multiple threads.
  *
  * Example:
  * @code

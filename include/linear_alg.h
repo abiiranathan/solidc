@@ -13,51 +13,52 @@ extern "C" {
  * Forms a right-handed coordinate system.
  */
 typedef struct {
-    Vec3 v0; /**< First basis vector (normalized). */
-    Vec3 v1; /**< Second basis vector (normalized, orthogonal to v0). */
-    Vec3 v2; /**< Third basis vector (cross product of v0 and v1). */
+    Vec3 v0; /**< Right vector. */
+    Vec3 v1; /**< Up vector. */
+    Vec3 v2; /**< Forward vector. */
 } OrthonormalBasis;
 
 /**
  * Constructs an orthonormal basis from two input vectors using Gram-Schmidt orthogonalization.
- * The first vector v0 is normalized. The second vector v1 is made orthogonal to v0 and normalized.
- * The third vector v2 is computed as the cross product of v0 and v1.
  *
- * @param v0 First input vector. Should not be zero.
- * @param v1 Second input vector. Should not be collinear with v0.
- * @return OrthonormalBasis containing three orthonormal vectors forming a right-handed basis.
- * @note If input vectors are nearly collinear, numerical stability may be poor.
+ * @param v0 First input vector (will be primary axis).
+ * @param v1 Second input vector (will be projected to be orthogonal).
+ * @return OrthonormalBasis (Right-handed).
  */
 static inline OrthonormalBasis orthonormalize(Vec3 v0, Vec3 v1) {
-    v0 = vec3_normalize(v0);
+    // Load into SIMD registers
+    SimdVec3 sv0 = vec3_load(v0);
+    SimdVec3 sv1 = vec3_load(v1);
 
-    float dot = vec3_dot(v0, v1);
-    v1        = (Vec3){v1.x - dot * v0.x, v1.y - dot * v0.y, v1.z - dot * v0.z};
-    v1        = vec3_normalize(v1);
+    // Normalize v0
+    sv0 = vec3_normalize(sv0);
 
-    Vec3 v2 = vec3_cross(v0, v1);
+    // Project v1 onto v0 and subtract to make orthogonal: v1 = v1 - dot(v1, v0) * v0
+    float dot = vec3_dot(sv0, sv1);
+    sv1       = vec3_sub(sv1, vec3_mul(sv0, dot));
+    sv1       = vec3_normalize(sv1);
 
-    return (OrthonormalBasis){v0, v1, v2};
+    // Cross product for v2
+    SimdVec3 sv2 = vec3_cross(sv0, sv1);
+
+    // Store results
+    return (OrthonormalBasis){vec3_store(sv0), vec3_store(sv1), vec3_store(sv2)};
 }
 
 /**
  * Result of eigenvalue decomposition for a 3x3 matrix.
- * Contains eigenvalues and corresponding eigenvectors.
  */
 typedef struct {
-    Vec3 eigenvalues;  /**< Eigenvalues (one per component). */
-    Mat3 eigenvectors; /**< Eigenvectors stored as columns (column-major). */
+    Vec3 eigenvalues;  /**< Eigenvalues (x, y, z). */
+    Mat3 eigenvectors; /**< Eigenvectors stored as columns. */
 } EigenDecomposition;
 
 /**
- * Computes eigenvalues and eigenvectors of a symmetric 3x3 matrix using Jacobi iteration.
- * The algorithm iteratively applies Jacobi rotations to diagonalize the matrix.
- * Converges for symmetric matrices.
+ * Computes eigenvalues/vectors of a symmetric 3x3 matrix using Jacobi iteration.
  *
- * @param A Input symmetric 3x3 matrix (column-major). Must be symmetric for correct results.
- * @return EigenDecomposition containing eigenvalues and eigenvectors (as columns).
- * @note Maximum 32 iterations. Convergence tolerance is 1e-10 for off-diagonal elements.
- * @note Eigenvectors are stored as columns in the eigenvectors matrix.
+ * @note Jacobi iteration is inherently scalar due to the need to access
+ * pivoting elements at random indices (p, q). Vectorization overhead
+ * usually exceeds benefits for 3x3.
  */
 static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
     EigenDecomposition result;
@@ -92,7 +93,7 @@ static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
         float c   = cosf(phi);
         float s   = sinf(phi);
 
-        // Perform Jacobi rotation
+        // Perform Jacobi rotation (Scalar)
         for (int r = 0; r < 3; ++r) {
             float arp = A.m[r][p];
             float arq = A.m[r][q];
@@ -127,25 +128,17 @@ static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
 
 /**
  * Computes Singular Value Decomposition (SVD) of a 3x3 matrix.
- * Decomposes A into A = U * S * V^T, where U and V are orthogonal matrices
- * and S is a diagonal matrix of singular values.
- *
- * @param A Input 3x3 matrix (column-major).
- * @param U Output left singular vectors as columns (column-major). Must not be NULL.
- * @param S Output singular values in descending order. Must not be NULL.
- * @param V Output right singular vectors as columns (column-major). Must not be NULL.
- * @note Singular values are sorted in descending order.
- * @note For rank-deficient matrices, orthonormalizes U to ensure valid orthogonal matrix.
- * @note Ensures det(U) = +1 by flipping last column if necessary.
+ * A = U * S * V^T
  */
 static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
-    // Step 1: Compute ATA = A^T * A (column-major aware)
+    // Step 1: Compute ATA = A^T * A
+    // Manual multiplication is fastest for 3x3 here
     Mat3 ATA = {0};
-    for (int i = 0; i < 3; ++i) {      // column of A^T (row of A)
-        for (int j = 0; j < 3; ++j) {  // row of A^T (column of A)
+    for (int i = 0; i < 3; ++i) {      // col of A^T (row of A)
+        for (int j = 0; j < 3; ++j) {  // row of A^T (col of A)
             ATA.m[i][j] = 0.0f;
             for (int k = 0; k < 3; ++k) {
-                ATA.m[i][j] += A.m[i][k] * A.m[j][k];  // A^T[i][k] * A[j][k]
+                ATA.m[i][j] += A.m[i][k] * A.m[j][k];
             }
         }
     }
@@ -154,7 +147,7 @@ static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
     EigenDecomposition ed = mat3_eigen_symmetric(ATA);
     *V                    = ed.eigenvectors;
 
-    // Step 3: Sort eigenvalues and corresponding V columns (descending)
+    // Step 3: Sort eigenvalues/vectors (descending)
     int order[3]  = {0, 1, 2};
     float vals[3] = {ed.eigenvalues.x, ed.eigenvalues.y, ed.eigenvalues.z};
 
@@ -171,70 +164,73 @@ static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
     Vec3 sorted_eigen = {vals[order[0]], vals[order[1]], vals[order[2]]};
 
     Mat3 V_sorted = {0};
-    for (int i = 0; i < 3; ++i) {                  // output column
-        for (int j = 0; j < 3; ++j) {              // row
-            V_sorted.m[i][j] = V->m[order[i]][j];  // column-major: V[col][row]
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            V_sorted.m[i][j] = V->m[order[i]][j];
         }
     }
     *V = V_sorted;
 
-    // Step 4: Compute singular values
+    // Step 4: Compute Singular Values
     S->x = sqrtf(fmaxf(0.0f, sorted_eigen.x));
     S->y = sqrtf(fmaxf(0.0f, sorted_eigen.y));
     S->z = sqrtf(fmaxf(0.0f, sorted_eigen.z));
 
     // Step 5: Compute U = A * V * S^-1
-    for (int i = 0; i < 3; ++i) {  // For each singular value/vector
-        float sigma = ((float*)S)[i];
+    // We treat U columns as SimdVec3 for calculation
+    SimdVec3 colA[3] = {vec3_load((Vec3){A.m[0][0], A.m[0][1], A.m[0][2]}),
+                        vec3_load((Vec3){A.m[1][0], A.m[1][1], A.m[1][2]}),
+                        vec3_load((Vec3){A.m[2][0], A.m[2][1], A.m[2][2]})};
+
+    float* s_arr = (float*)S;
+    for (int i = 0; i < 3; ++i) {  // For each column of U
+        float sigma = s_arr[i];
         if (sigma > 1e-6f) {
-            for (int j = 0; j < 3; ++j) {  // row
-                U->m[i][j] = (A.m[0][j] * V->m[i][0] + A.m[1][j] * V->m[i][1] + A.m[2][j] * V->m[i][2]) / sigma;
-            }
+            // U_col_i = (A * V_col_i) / sigma
+            Vec3 v_col = {V->m[i][0], V->m[i][1], V->m[i][2]};
+            SimdVec3 Av =
+                vec3_add(vec3_add(vec3_mul(colA[0], v_col.x), vec3_mul(colA[1], v_col.y)), vec3_mul(colA[2], v_col.z));
+            SimdVec3 u_col = vec3_mul(Av, 1.0f / sigma);
+
+            // Store back to matrix
+            Vec3 res   = vec3_store(u_col);
+            U->m[i][0] = res.x;
+            U->m[i][1] = res.y;
+            U->m[i][2] = res.z;
         } else {
             U->m[i][0] = U->m[i][1] = U->m[i][2] = 0.0f;
         }
     }
 
-    // Step 6: Orthonormalize U if rank-deficient
-    float sigma2 = S->y;
-    float sigma3 = S->z;
-    if (sigma2 > 1e-6f && sigma3 < 1e-6f) {
-        // Compute U3 = U1 × U2
-        Vec3 u0 = {U->m[0][0], U->m[0][1], U->m[0][2]};
-        Vec3 u1 = {U->m[1][0], U->m[1][1], U->m[1][2]};
-        Vec3 u2 = {u0.y * u1.z - u0.z * u1.y, u0.z * u1.x - u0.x * u1.z, u0.x * u1.y - u0.y * u1.x};
+    // Step 6: Orthonormalize U if rank-deficient (using Cross Product)
+    if (S->y > 1e-6f && S->z < 1e-6f) {
+        SimdVec3 u0 = vec3_load((Vec3){U->m[0][0], U->m[0][1], U->m[0][2]});
+        SimdVec3 u1 = vec3_load((Vec3){U->m[1][0], U->m[1][1], U->m[1][2]});
+        SimdVec3 u2 = vec3_cross(u0, u1);  // U2 = U0 x U1
 
-        U->m[2][0] = u2.x;
-        U->m[2][1] = u2.y;
-        U->m[2][2] = u2.z;
+        Vec3 res   = vec3_store(u2);
+        U->m[2][0] = res.x;
+        U->m[2][1] = res.y;
+        U->m[2][2] = res.z;
     }
 
     // Step 7: Fix det(U) = +1
     if (mat3_determinant(*U) < 0.0f) {
-        for (int j = 0; j < 3; ++j)
-            U->m[2][j] = -U->m[2][j];
+        U->m[2][0] = -U->m[2][0];
+        U->m[2][1] = -U->m[2][1];
+        U->m[2][2] = -U->m[2][2];
     }
 }
 
 /**
- * Computes QR decomposition of a 4x4 matrix using Gram-Schmidt orthogonalization.
- * Decomposes A into A = Q * R, where Q is orthogonal and R is upper triangular.
- *
- * @param A Input 4x4 matrix (column-major).
- * @param Q Output orthogonal 4x4 matrix (column-major). Must not be NULL.
- * @param R Output upper triangular 4x4 matrix (column-major). Must not be NULL.
- * @note Uses modified Gram-Schmidt for better numerical stability.
- * @note Lower triangle of R is explicitly zeroed.
+ * Computes QR decomposition of a 4x4 matrix using SIMD Gram-Schmidt.
+ * A = Q * R
  */
 static inline void mat4_qr(Mat4 A, Mat4* Q, Mat4* R) {
-    Vec4 v[4], q[4];
-
-    // Extract column vectors from A
+    // Load columns into SIMD registers
+    SimdVec4 v[4], q[4];
     for (int i = 0; i < 4; ++i) {
-        v[i].x = A.m[0][i];
-        v[i].y = A.m[1][i];
-        v[i].z = A.m[2][i];
-        v[i].w = A.m[3][i];
+        v[i].v = A.cols[i];  // Direct access to underlying SIMD type
     }
 
     for (int i = 0; i < 4; ++i) {
@@ -242,391 +238,207 @@ static inline void mat4_qr(Mat4 A, Mat4* Q, Mat4* R) {
         for (int j = 0; j < i; ++j) {
             float r    = vec4_dot(q[j], v[i]);
             R->m[j][i] = r;
-            q[i]       = vec4_sub(q[i], vec4_scale(q[j], r));
+
+            // q[i] = q[i] - r * q[j]
+            q[i] = vec4_sub(q[i], vec4_mul(q[j], r));
         }
+
         float norm = vec4_length(q[i]);
         if (norm < 1e-6f) norm = 1e-6f;
+
         R->m[i][i] = norm;
-        q[i]       = vec4_scale(q[i], 1.0f / norm);
+        q[i]       = vec4_mul(q[i], 1.0f / norm);
     }
 
-    // Form Q from orthonormal q vectors (as columns)
+    // Store Q columns
     for (int i = 0; i < 4; ++i) {
-        Q->m[0][i] = q[i].x;
-        Q->m[1][i] = q[i].y;
-        Q->m[2][i] = q[i].z;
-        Q->m[3][i] = q[i].w;
+        Q->cols[i] = q[i].v;
     }
 
-    // Fill lower triangle of R with 0
+    // Zero lower triangle of R
     for (int i = 0; i < 4; ++i)
         for (int j = 0; j < i; ++j)
             R->m[i][j] = 0.0f;
 }
 
 /**
- * Computes the dominant eigenpair of a 4x4 matrix using power iteration.
- * Iteratively multiplies a vector by the matrix to find the eigenvector
- * corresponding to the largest eigenvalue (in magnitude).
- *
- * @param A Input 4x4 matrix (column-major).
- * @param eigenvector Output dominant eigenvector (normalized). Must not be NULL.
- * @param eigenvalue Output dominant eigenvalue. Must not be NULL.
- * @param max_iter Maximum number of iterations.
- * @param tol Convergence tolerance for eigenvalue change.
- * @note Converges to the eigenvector with largest absolute eigenvalue.
- * @note May not converge if multiple eigenvalues have equal magnitude.
+ * Computes the dominant eigenpair of a 4x4 matrix using SIMD power iteration.
  */
 static inline void mat4_power_iteration(Mat4 A, Vec4* eigenvector, float* eigenvalue, int max_iter, float tol) {
-    Vec4 v = {1.0f, 0.0f, 0.0f, 0.0f};  // Start with an arbitrary vector
-    Vec4 Av;
+    SimdVec4 v = vec4_load((Vec4){1.0f, 0.0f, 0.0f, 0.0f});
+    SimdVec4 Av;
     float lambda_old = 0.0f;
 
     for (int iter = 0; iter < max_iter; ++iter) {
-        // Multiply matrix A by the eigenvector
-        Av = mat4_mul_vec4(A, v);
+        // Av = A * v (SIMD matrix-vector mul)
+        // We cast A to Mat4 to use the function from matrix.h
+        Vec4 v_scalar  = vec4_store(v);
+        Vec4 Av_scalar = mat4_mul_vec4(A, v_scalar);
+        Av             = vec4_load(Av_scalar);
 
-        // Compute the Rayleigh quotient (approximation of eigenvalue)
+        // lambda = dot(Av, v)
         *eigenvalue = vec4_dot(Av, v);
 
-        // Normalize the resulting vector (FIXED: was missing assignment)
+        // Normalize
         Av = vec4_normalize(Av);
 
-        // Check for convergence
         if (fabsf(*eigenvalue - lambda_old) < tol) {
             break;
         }
-
         lambda_old = *eigenvalue;
-
-        // Update the eigenvector
-        v = Av;
+        v          = Av;
     }
 
-    // Final eigenvector is stored in v
-    *eigenvector = v;
+    *eigenvector = vec4_store(v);
 }
 
 /**
- * Computes the Frobenius norm of a 4x4 matrix.
- * The Frobenius norm is the square root of the sum of squared elements.
- *
- * @param A Input 4x4 matrix (column-major).
- * @return Frobenius norm as a non-negative float.
- * @note Equivalent to treating the matrix as a 16-element vector and computing its L2 norm.
+ * Computes the Frobenius norm of a 4x4 matrix using SIMD.
  */
 static inline float mat4_norm_frobenius(Mat4 A) {
-    float norm = 0.0f;
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            norm += A.m[i][j] * A.m[i][j];
-        }
-    }
-    return sqrtf(norm);
+    // Sum of squares of all elements = Sum of dot product of each column with itself
+    SimdVec4 c0 = {.v = A.cols[0]};
+    SimdVec4 c1 = {.v = A.cols[1]};
+    SimdVec4 c2 = {.v = A.cols[2]};
+    SimdVec4 c3 = {.v = A.cols[3]};
+
+    float sum = 0.0f;
+    sum += vec4_dot(c0, c0);
+    sum += vec4_dot(c1, c1);
+    sum += vec4_dot(c2, c2);
+    sum += vec4_dot(c3, c3);
+
+    return sqrtf(sum);
 }
 
-/**
- * Checks if a 3x3 matrix is positive definite using Sylvester's criterion.
- * A symmetric matrix is positive definite if all leading principal minors are positive.
- *
- * @param A Input 3x3 matrix (column-major). Should be symmetric for meaningful results.
- * @return true if all leading principal minors are positive, false otherwise.
- * @note For non-symmetric matrices, this test may not be meaningful.
- * @note FIXED: Now correctly checks all three leading principal minors.
- */
 static inline bool mat3_is_positive_definite(Mat3 A) {
-    // First leading principal minor: A[0][0]
+    // 1. Leading principal minor 1: A[0][0]
     if (A.m[0][0] <= 0.0f) return false;
 
-    // Second leading principal minor: det([[A[0][0], A[1][0]], [A[0][1], A[1][1]]])
+    // 2. Leading principal minor 2: det 2x2
     float det2 = A.m[0][0] * A.m[1][1] - A.m[1][0] * A.m[0][1];
     if (det2 <= 0.0f) return false;
 
-    // Third leading principal minor: det(A)
-    float det3 = mat3_determinant(A);
-    if (det3 <= 0.0f) return false;
+    // 3. Leading principal minor 3: det 3x3
+    if (mat3_determinant(A) <= 0.0f) return false;
 
     return true;
 }
 
-/**
- * Computes the condition number of a 4x4 matrix.
- * The condition number is ||A|| * ||A^-1|| where ||.|| is the Frobenius norm.
- * Measures how sensitive the solution of Ax=b is to perturbations in A or b.
- *
- * @param A Input 4x4 matrix (column-major).
- * @return Condition number. Returns FLT_MAX if matrix is singular (non-invertible).
- * @note Large condition numbers indicate ill-conditioned matrices.
- * @note A condition number near 1 indicates a well-conditioned matrix.
- */
 static inline float mat4_condition_number(Mat4 A) {
-    Mat4 A_inv;
-    float norm_A = 0, norm_A_inv = 0;
-
-    // Compute the Frobenius norm of A
-    norm_A = mat4_norm_frobenius(A);
-
-    // Compute the inverse of A
-    A_inv = mat4_inverse(A);
+    float norm_A = mat4_norm_frobenius(A);
+    Mat4 A_inv   = mat4_inverse(A);
 
     if (mat4_equal(A_inv, mat4_identity())) {
-        return FLT_MAX;  // Matrix is singular, condition number is infinite
+        return FLT_MAX;  // Singular
     }
 
-    // Compute the Frobenius norm of the inverse
-    norm_A_inv = mat4_norm_frobenius(A_inv);
-
+    float norm_A_inv = mat4_norm_frobenius(A_inv);
     return norm_A * norm_A_inv;
 }
 
-/**
- * Solves the linear system Ax = b using LU decomposition (PA = LU).
- * Assumes column-major matrices.
- *
- * 1. PA = LU
- * 2. Ax = b  =>  (P^-1 LU)x = b  =>  LUx = Pb
- * 3. Let y = Ux, then Ly = Pb
- * 4. Solve Ly = Pb for y using forward substitution
- * 5. Solve Ux = y for x using backward substitution
- *
- * @param A Input matrix (column-major)
- * @param b Input vector
- * @return  Solution vector x
- */
-static inline Vec3 mat3_solve(Mat3 A, Vec3 b) {
-    Mat3 L, U, P;
-    if (!mat3_lu(A, &L, &U, &P)) {
-        Vec3 zero = {0, 0, 0};
-        return zero;
-    }
+// --- LU Decomposition & Solving (Scalar fallback for stability) ---
 
-    // Column-major correct permutation: Pb = P * b
-    Vec3 Pb;
-    Pb.x = P.m[0][0] * b.x + P.m[1][0] * b.y + P.m[2][0] * b.z;
-    Pb.y = P.m[0][1] * b.x + P.m[1][1] * b.y + P.m[2][1] * b.z;
-    Pb.z = P.m[0][2] * b.x + P.m[1][2] * b.y + P.m[2][2] * b.z;
-
-    Vec3 y = forward_substitution_mat3(L, Pb);
-    Vec3 x = backward_substitution_mat3(U, y);
-    return x;
-}
-
-// --- Substitution Functions ---
-
-/**
- * Forward substitution for solving Lx = b, where L is lower triangular.
- * Assumes L is column-major.
- * @param L Lower triangular matrix (column-major)
- * @param b Right-hand side vector
- * @return Solution vector x
- */
-static inline Vec4 forward_substitution_mat4(Mat4 L, Vec4 b) {
-    Vec4 x;
-    float* x_arr = &x.x;  // Treat Vec4 as an array for loop
-
-    // Solve Ly = Pb for y
-    // L is lower triangular. Solve row by row.
-    // x_i = (b_i - sum(L_i,j * x_j for j < i)) / L_i,i
-    // In column-major, L_i,j is L.m[j][i]
-    // x_i = (b_i - sum(L.m[j][i] * x_j for j from 0 to i-1)) / L.m[i][i]
-
-    // i = 0
-    x_arr[0] = b.x / L.m[0][0];
-
-    // i = 1
-    x_arr[1] = (b.y - L.m[0][1] * x_arr[0]) / L.m[1][1];
-
-    // i = 2
-    x_arr[2] = (b.z - (L.m[0][2] * x_arr[0] + L.m[1][2] * x_arr[1])) / L.m[2][2];
-
-    // i = 3
-    x_arr[3] = (b.w - (L.m[0][3] * x_arr[0] + L.m[1][3] * x_arr[1] + L.m[2][3] * x_arr[2])) / L.m[3][3];
-
-    return x;
-}
-
-/**
- * Backward substitution for solving Ux = b, where U is upper triangular.
- * Assumes U is column-major.
- * @param U Upper triangular matrix (column-major)
- * @param b Right-hand side vector
- * @return Solution vector x
- */
-static inline Vec4 backward_substitution_mat4(Mat4 U, Vec4 b) {
-    Vec4 x;
-    float* x_arr = &x.x;  // Treat Vec4 as an array for loop
-
-    // Solve Ux = y for x
-    // U is upper triangular. Solve row by row from bottom up.
-    // x_i = (b_i - sum(U_i,j * x_j for j > i)) / U_i,i
-    // In column-major, U_i,j is U.m[j][i]
-    // x_i = (b_i - sum(U.m[j][i] * x_j for j from i+1 to 3)) / U.m[i][i]
-
-    // i = 3
-    x_arr[3] = b.w / U.m[3][3];  // U.m[col][row] -> U.m[3][3] is U_3,3
-
-    // i = 2
-    x_arr[2] = (b.z - U.m[3][2] * x_arr[3]) / U.m[2][2];  // U.m[3][2] is U_2,3; U.m[2][2] is U_2,2
-
-    // i = 1
-    x_arr[1] = (b.y - (U.m[2][1] * x_arr[2] + U.m[3][1] * x_arr[3])) /
-               U.m[1][1];  // U.m[2][1] is U_1,2; U.m[3][1] is U_1,3; U.m[1][1] is U_1,1
-
-    // i = 0
-    x_arr[0] = (b.x - (U.m[1][0] * x_arr[1] + U.m[2][0] * x_arr[2] + U.m[3][0] * x_arr[3])) /
-               U.m[0][0];  // U.m[1][0] is U_0,1; U.m[2][0] is U_0,2; U.m[3][0] is
-                           // U_0,3; U.m[0][0] is U_0,0
-
-    return x;
-}
-
-// --- LU Decomposition ---
-
-/**
- * LU Decomposition with partial pivoting for a 4x4 matrix.
- * Assumes column-major matrices.
- *
- * @param A  Input matrix (column-major)
- * @param L  Output lower triangular matrix (column-major)
- * @param U  Output upper triangular matrix (column-major)
- * @param P  Output permutation matrix (column-major)
- * @return   True if decomposition successful, false if matrix is singular.
- */
 static inline bool mat4_lu(Mat4 A, Mat4* L, Mat4* U, Mat4* P) {
     const float tolerance = 1e-6f;
+    *U                    = A;
 
-    // Initialize U to A (assuming A is already column-major)
-    *U = A;
+    // Identity L and P
+    *L = mat4_identity();
+    *P = mat4_identity();
 
-    // Initialize L to identity (column-major identity: m[col][row] is 1 if
-    // col==row)
-    for (int i = 0; i < 4; ++i) {                 // row index
-        for (int j = 0; j < 4; ++j) {             // column index
-            L->m[j][i] = (i == j) ? 1.0f : 0.0f;  // m[col][row] = (row == col) ? 1 : 0
-        }
-    }
-
-    // Initialize P to identity (column-major identity)
-    for (int i = 0; i < 4; ++i) {                 // row index
-        for (int j = 0; j < 4; ++j) {             // column index
-            P->m[j][i] = (i == j) ? 1.0f : 0.0f;  // m[col][row] = (row == col) ? 1 : 0
-        }
-    }
-
-    // LU Decomposition with partial pivoting
-    for (int k = 0; k < 4; ++k) {  // k is the column index being processed
-
-        // Find pivot row (find max absolute value in column k, from row k
-        // downwards)
-        int pivot_row = k;                  // mathematical row index
-        float max_val = fabsf(U->m[k][k]);  // U.m[col][row] -> U.m[k][k] is U_k,k
-        for (int i = k + 1; i < 4; ++i) {   // i is the mathematical row index below k
-            float val = fabsf(U->m[k][i]);  // U.m[col][row] -> U.m[k][i] is U_i,k
+    for (int k = 0; k < 4; ++k) {
+        // Pivot
+        int pivot_row = k;
+        float max_val = fabsf(U->m[k][k]);
+        for (int i = k + 1; i < 4; ++i) {
+            float val = fabsf(U->m[k][i]);
             if (val > max_val) {
                 max_val   = val;
                 pivot_row = i;
             }
         }
 
-        if (max_val < tolerance) {
-            // mat4_print(*U, "Singular U"); // Debugging helper
-            return false;  // Singular matrix
-        }
+        if (max_val < tolerance) return false;
 
-        // Swap rows in U and P if needed
+        // Swap Rows
         if (pivot_row != k) {
-            for (int j = 0; j < 4; ++j) {  // j is the column index
-                // Swap U elements in math rows k and pivot_row, across all columns j
-                // U.m[j][k] is U_k,j ; U.m[j][pivot_row] is U_pivot_row,j
-                float tmp_U        = U->m[j][k];
+            for (int j = 0; j < 4; ++j) {
+                float tmp;
+                tmp                = U->m[j][k];
                 U->m[j][k]         = U->m[j][pivot_row];
-                U->m[j][pivot_row] = tmp_U;
-
-                // Swap P elements in math rows k and pivot_row, across all columns j
-                // P.m[j][k] is P_k,j ; P.m[j][pivot_row] is P_pivot_row,j
-                float tmp_P        = P->m[j][k];
+                U->m[j][pivot_row] = tmp;
+                tmp                = P->m[j][k];
                 P->m[j][k]         = P->m[j][pivot_row];
-                P->m[j][pivot_row] = tmp_P;
-
-                // Swap L elements in math rows k and pivot_row, but ONLY for columns j
-                // < k L.m[j][k] is L_k,j ; L.m[j][pivot_row] is L_pivot_row,j
+                P->m[j][pivot_row] = tmp;
                 if (j < k) {
-                    float tmp_L        = L->m[j][k];
+                    tmp                = L->m[j][k];
                     L->m[j][k]         = L->m[j][pivot_row];
-                    L->m[j][pivot_row] = tmp_L;
+                    L->m[j][pivot_row] = tmp;
                 }
             }
         }
 
-        // Elimination for rows i below pivot row k
-        for (int i = k + 1; i < 4; ++i) {  // i is the mathematical row index below k
-            // Calculate factor for math row i in column k
-            // U.m[k][i] is U_i,k ; U.m[k][k] is U_k,k
+        // Eliminate
+        for (int i = k + 1; i < 4; ++i) {
             float factor = U->m[k][i] / U->m[k][k];
-
-            // Store factor in L (L_i,k = factor). L.m[col][row] -> L.m[k][i] stores
-            // L_i,k
-            L->m[k][i] = factor;
-
-            // Perform row operation on U: U_i,j = U_i,j - factor * U_k,j for j from k
-            // to 3
-            for (int j = k; j < 4; ++j) {  // j is the column index
-                // U.m[j][i] is U_i,j ; U.m[j][k] is U_k,j
+            L->m[k][i]   = factor;
+            for (int j = k; j < 4; ++j) {
                 U->m[j][i] -= factor * U->m[j][k];
             }
         }
     }
-
     return true;
 }
 
-/**
- * Solves the linear system Ax = b using LU decomposition (PA = LU).
- * Assumes column-major matrices.
- *
- * 1. PA = LU
- * 2. Ax = b  =>  (P^-1 LU)x = b  =>  LUx = Pb
- * 3. Let y = Ux, then Ly = Pb
- * 4. Solve Ly = Pb for y using forward substitution
- * 5. Solve Ux = y for x using backward substitution
- *
- * @param A Input matrix (column-major)
- * @param b Input vector
- * @return  Solution vector x, or a zero vector if A is singular.
- */
+static inline Vec4 forward_substitution_mat4(Mat4 L, Vec4 b) {
+    Vec4 x;
+    float* x_arr = &x.x;
+    x_arr[0]     = b.x / L.m[0][0];
+    x_arr[1]     = (b.y - L.m[0][1] * x_arr[0]) / L.m[1][1];
+    x_arr[2]     = (b.z - (L.m[0][2] * x_arr[0] + L.m[1][2] * x_arr[1])) / L.m[2][2];
+    x_arr[3]     = (b.w - (L.m[0][3] * x_arr[0] + L.m[1][3] * x_arr[1] + L.m[2][3] * x_arr[2])) / L.m[3][3];
+    return x;
+}
+
+static inline Vec4 backward_substitution_mat4(Mat4 U, Vec4 b) {
+    Vec4 x;
+    float* x_arr = &x.x;
+    x_arr[3]     = b.w / U.m[3][3];
+    x_arr[2]     = (b.z - U.m[3][2] * x_arr[3]) / U.m[2][2];
+    x_arr[1]     = (b.y - (U.m[2][1] * x_arr[2] + U.m[3][1] * x_arr[3])) / U.m[1][1];
+    x_arr[0]     = (b.x - (U.m[1][0] * x_arr[1] + U.m[2][0] * x_arr[2] + U.m[3][0] * x_arr[3])) / U.m[0][0];
+    return x;
+}
+
 static inline Vec4 mat4_solve(Mat4 A, Vec4 b) {
     Mat4 L, U, P;
     if (!mat4_lu(A, &L, &U, &P)) {
-        Vec4 zero = {0.0f, 0.0f, 0.0f, 0.0f};
-        return zero;  // Matrix is singular
+        return (Vec4){0};
     }
 
-    // Optional: Print L, U, P for debugging
-    // mat4_print(L, "L");
-    // mat4_print(U, "U");
-    // mat4_print(P, "P");
-
-    // Permute the right-hand side vector: Pb = P * b
-    // Assuming P is column-major: Pb_i = sum(P_i,j * b_j for j from 0 to 3)
-    // P_i,j is stored at P.m[j][i]
+    // Permute b: Pb
     Vec4 Pb;
-    Pb.x = P.m[0][0] * b.x + P.m[1][0] * b.y + P.m[2][0] * b.z +
-           P.m[3][0] * b.w;  // Pb_0 = P_00*b0 + P_01*b1 + P_02*b2 + P_03*b3
-    Pb.y = P.m[0][1] * b.x + P.m[1][1] * b.y + P.m[2][1] * b.z +
-           P.m[3][1] * b.w;  // Pb_1 = P_10*b0 + P_11*b1 + P_12*b2 + P_13*b3
-    Pb.z = P.m[0][2] * b.x + P.m[1][2] * b.y + P.m[2][2] * b.z +
-           P.m[3][2] * b.w;  // Pb_2 = P_20*b0 + P_21*b1 + P_22*b2 + P_23*b3
-    Pb.w = P.m[0][3] * b.x + P.m[1][3] * b.y + P.m[2][3] * b.z +
-           P.m[3][3] * b.w;  // Pb_3 = P_30*b0 + P_31*b1 + P_32*b2 + P_33*b3
+    Pb.x = P.m[0][0] * b.x + P.m[1][0] * b.y + P.m[2][0] * b.z + P.m[3][0] * b.w;
+    Pb.y = P.m[0][1] * b.x + P.m[1][1] * b.y + P.m[2][1] * b.z + P.m[3][1] * b.w;
+    Pb.z = P.m[0][2] * b.x + P.m[1][2] * b.y + P.m[2][2] * b.z + P.m[3][2] * b.w;
+    Pb.w = P.m[0][3] * b.x + P.m[1][3] * b.y + P.m[2][3] * b.z + P.m[3][3] * b.w;
 
-    // Solve Ly = Pb for y using forward substitution
     Vec4 y = forward_substitution_mat4(L, Pb);
-    // vec4_print(y, "y"); // Optional: Print y for debugging
+    return backward_substitution_mat4(U, y);
+}
 
-    // Solve Ux = y for x using backward substitution
-    Vec4 x = backward_substitution_mat4(U, y);
+static inline Vec3 mat3_solve(Mat3 A, Vec3 b) {
+    Mat3 L, U, P;
+    if (!mat3_lu(A, &L, &U, &P)) return (Vec3){0};
 
-    return x;
+    Vec3 Pb;
+    Pb.x = P.m[0][0] * b.x + P.m[1][0] * b.y + P.m[2][0] * b.z;
+    Pb.y = P.m[0][1] * b.x + P.m[1][1] * b.y + P.m[2][1] * b.z;
+    Pb.z = P.m[0][2] * b.x + P.m[1][2] * b.y + P.m[2][2] * b.z;
+
+    Vec3 y = forward_substitution_mat3(L, Pb);
+    return backward_substitution_mat3(U, y);
 }
 
 #ifdef __cplusplus

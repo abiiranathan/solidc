@@ -16,7 +16,7 @@ static inline size_t arena_align_up_custom(size_t n, size_t alignment) {
     return (n + (alignment - 1)) & ~(alignment - 1);
 }
 
-typedef struct __attribute__((aligned(64))) Arena {
+typedef struct Arena {
     char* base;        // Memory buffer
     size_t head;       // Current allocation offset (no longer atomic)
     size_t size;       // Total arena size

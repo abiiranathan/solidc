@@ -27,9 +27,11 @@ set(TEST_MODULES
     hashset
     trie
     flags
+    linear_alg
 )
 
-# Then modify your test loop:
+
+# Create test executables
 foreach(module ${TEST_MODULES})
     add_executable(${module}_test ${module}_test.c)
     
@@ -38,14 +40,21 @@ foreach(module ${TEST_MODULES})
     
     # Platform-specific dependencies
     if(IS_WINDOWS_TARGET)
+        # Windows-specific libraries
         target_link_libraries(${module}_test PRIVATE ws2_32 advapi32 kernel32)
-        target_compile_options(${module}_test PRIVATE /arch:AVX2)
-    else()
+    elseif(APPLE)
+        # macOS-specific
         target_link_libraries(${module}_test PRIVATE pthread m)
-        target_compile_options(${module}_test PRIVATE -mavx -mavx2 -mfma)
-
+    elseif(UNIX)
+        # Linux/Unix-specific
+        target_link_libraries(${module}_test PRIVATE pthread m)
+        # Add rt library for older Linux systems (for clock_gettime, etc.)
+        if(NOT ANDROID)
+            target_link_libraries(${module}_test PRIVATE rt)
+        endif()
     endif()
     
+    # Add the test
     add_test(NAME ${module}_test COMMAND ${module}_test)
 endforeach()
 

@@ -1,0 +1,2 @@
+aarch64-linux-gnu-gcc -o main main.c -lm -march=armv8-a+simd --sysroot=/usr/aarch64-linux-gnu
+qemu-aarch64 -L /usr/aarch64-linux-gnu ./main

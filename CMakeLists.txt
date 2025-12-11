@@ -8,7 +8,6 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
-# Fix RPATH issue with Ninja + Windows
 if(UNIX AND NOT APPLE)
     set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 endif()
@@ -21,32 +20,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 option(BUILD_TESTS "Build the tests" ON)
 option(BUILD_BENCHMARKS "Build the benchmarks" OFF)
-option(BUILD_SHARED_LIBS "Build shared libraries" OFF) # Default to Static for easier dependency embedding
-
-# ==============================================================================
-# Platform Detection
-# ==============================================================================
-if(CMAKE_SYSTEM_NAME STREQUAL "Windows" OR WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
-    set(IS_WINDOWS_TARGET TRUE)
-    message(STATUS "Building for Windows target")
-else()
-    set(IS_WINDOWS_TARGET FALSE)
-    message(STATUS "Building for non-Windows target")
-endif()
-
-# Detect architecture
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
-    set(ARCH_X64 TRUE)
-    message(STATUS "Target architecture: x86-64")
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64|arm64")
-    set(ARCH_ARM64 TRUE)
-    message(STATUS "Target architecture: ARM64")
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
-    set(ARCH_ARM TRUE)
-    message(STATUS "Target architecture: ARM")
-else()
-    message(STATUS "Target architecture: ${CMAKE_SYSTEM_PROCESSOR}")
-endif()
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
 # ==============================================================================
 # Dependencies (FetchContent)
@@ -62,14 +36,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(xxHash)
 
-# Create xxHash as an OBJECT library (compiled but not linked as separate lib)
-add_library(xxHash_obj OBJECT 
-    ${xxhash_SOURCE_DIR}/xxhash.c
-)
-target_include_directories(xxHash_obj PUBLIC 
-    ${xxhash_SOURCE_DIR}
-)
-# Suppress warnings from xxHash
+add_library(xxHash_obj OBJECT ${xxhash_SOURCE_DIR}/xxhash.c)
+target_include_directories(xxHash_obj PUBLIC ${xxhash_SOURCE_DIR})
 target_compile_options(xxHash_obj PRIVATE 
     $<$<C_COMPILER_ID:MSVC>:/w>
     $<$<NOT:$<C_COMPILER_ID:MSVC>>:-w>
@@ -90,7 +58,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(mimalloc)
 
-# Ensure mimalloc targets exist as aliases if needed
 if(NOT TARGET mimalloc-static AND TARGET mimalloc)
     add_library(mimalloc-static ALIAS mimalloc)
 endif()
@@ -111,8 +78,6 @@ endif()
 # ==============================================================================
 # Project Configuration
 # ==============================================================================
-
-# Workaround for GNUInstallDirs warning during cross-compilation
 if(CMAKE_CROSSCOMPILING)
     set(CMAKE_INSTALL_LIBDIR "lib")
     set(CMAKE_INSTALL_BINDIR "bin")
@@ -164,6 +129,9 @@ set(HEADERS
     include/hashset.h
     include/trie.h
     include/flags.h
+    include/align.h
+    include/simd.h
+    include/linear_alg.h
 )
 
 # Source files
@@ -194,169 +162,103 @@ set(SOURCES
     src/flags.c
 )
 
-# Include math.h constants e.g M_PI in C23
 add_compile_definitions(_USE_MATH_DEFINES _GNU_SOURCE)
 
-# Create the library - add xxHash object files directly
+# Create the library
 add_library(solidc STATIC ${SOURCES} $<TARGET_OBJECTS:xxHash_obj>)
 add_library(solidc::solidc ALIAS solidc)
 
-# Headers (include xxHash headers for internal use)
 target_include_directories(solidc PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include/>
 )
-target_include_directories(solidc PRIVATE
-    ${xxhash_SOURCE_DIR}
-)
+target_include_directories(solidc PRIVATE ${xxhash_SOURCE_DIR})
 
-# Link Dependencies - only mimalloc now, xxHash is embedded via object files
-target_link_libraries(solidc PRIVATE 
-    mimalloc-static
-)
+target_link_libraries(solidc PRIVATE mimalloc-static)
 
 # ==============================================================================
-# Platform-Specific Compiler Flags & Threading
+# Platform-Specific Configuration
 # ==============================================================================
-
 if(WIN32 OR MINGW)
-    # ========== Windows ==========
-    target_compile_definitions(solidc PRIVATE 
+    target_compile_definitions(solidc PUBLIC
         _CRT_SECURE_NO_WARNINGS
         WIN32_LEAN_AND_MEAN
         NOMINMAX
-        _USE_MATH_DEFINES
     )
-
-    # Windows uses native threading (no -pthread needed)
     target_link_libraries(solidc PUBLIC ws2_32 advapi32 kernel32)
     
-    # Link math library on MinGW
     if(MINGW)
         target_link_libraries(solidc PUBLIC m)
     endif()
 
-    # MSVC-specific flags
     if(MSVC)
         target_compile_options(solidc PRIVATE
-            /W4
-            /wd4201  # nameless struct/union
-            /wd4996  # POSIX name deprecated
-            /wd5105  # macro expansion warning in windows headers
+            /W4 /wd4201 /wd4996 /wd5105
         )
-        
-        # SIMD for MSVC on x64
-        if(ARCH_X64)
-            target_compile_options(solidc PRIVATE /arch:AVX2)
-        endif()
     else()
-        # MinGW GCC/Clang on Windows
         target_compile_options(solidc PRIVATE -Wall -Wextra -Wno-unused-function)
-        
-        # SIMD for x64
-        if(ARCH_X64)
-            target_compile_options(solidc PRIVATE -mavx2 -msse4.2)
-        endif()
     endif()
-
 else()
-    # ========== Unix-like (Linux, macOS) ==========
-    
-    # Common flags for GCC/Clang
+    # Unix-like systems
     target_compile_options(solidc PRIVATE 
-        -Wall 
-        -Wextra 
-        -Werror 
-        -Wno-unused-function
+        -Wall -Wextra -Werror -Wno-unused-function
     )
     
-    # Threading: Use pthread on Linux, not needed explicitly on macOS
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         find_package(Threads REQUIRED)
         target_link_libraries(solidc PUBLIC Threads::Threads)
     endif()
     
-    # Math library
     target_link_libraries(solidc PUBLIC m)
     
-    # ========== Architecture-Specific SIMD Flags ==========
-    if(ARCH_X64)
-        # x86-64: AVX2 and SSE4.2
-        target_compile_options(solidc PRIVATE 
-            -mavx2 
-            -msse4.2
-        )
-        
-        # Add tuning for native CPU (only for non-cross-compilation)
-        if(NOT CMAKE_CROSSCOMPILING)
-            target_compile_options(solidc PRIVATE 
-                -mtune=native 
-                -march=native
-            )
-        else()
-            # Generic x86-64 baseline for cross-compilation
-            target_compile_options(solidc PRIVATE -march=x86-64)
-        endif()
-        
-    elseif(ARCH_ARM64)
-        # ARM64: NEON is standard, no special flags needed usually
-        # But we can enable specific features if needed
-        if(NOT CMAKE_CROSSCOMPILING)
-            target_compile_options(solidc PRIVATE -mcpu=native)
-        else()
-            # Generic ARM64 baseline
-            target_compile_options(solidc PRIVATE -march=armv8-a)
-        endif()
-        
-    elseif(ARCH_ARM)
-        # ARM 32-bit: Enable NEON if available
-        target_compile_options(solidc PRIVATE -mfpu=neon)
-    endif()
-    
-    # ========== Clang-Specific ==========
     if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
         target_compile_options(solidc PRIVATE 
-            -Wno-gnu-zero-variadic-macro-arguments 
-            -fblocks
+            -Wno-gnu-zero-variadic-macro-arguments -fblocks
         )
-        
-        # BlocksRuntime needed for blocks support on non-Apple Clang
         if(NOT APPLE)
             find_library(BLOCKSRUNTIME_LIB BlocksRuntime)
             if(BLOCKSRUNTIME_LIB)
                 target_link_libraries(solidc PUBLIC ${BLOCKSRUNTIME_LIB})
-            else()
-                message(WARNING "BlocksRuntime not found, blocks may not work")
             endif()
         endif()
     endif()
 
-    # ========== Security Hardening (Release Mode) ==========
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
         target_compile_options(solidc PRIVATE 
-            -fstack-protector-strong 
-            -D_FORTIFY_SOURCE=2 
-            -fPIE 
-            -fPIC
+            -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE -fPIC
         )
+    endif()
+endif()
+
+# ==============================================================================
+# SIMD Configuration
+# ==============================================================================
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
+    # x86-64: SSE4.1
+    if(NOT MSVC)
+        # GCC/Clang need explicit flag
+        target_compile_options(solidc PUBLIC -msse4.1)
+    endif()
+    # MSVC: SSE4.1 is always enabled on x64, no flag needed
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64|arm64|arm")
+    # ARM: NEON (standard on ARM64, optional on ARM32)
+    if(NOT MSVC)
+        target_compile_options(solidc PUBLIC -mfpu=neon)
     endif()
 endif()
 
 # ==============================================================================
 # Installation
 # ==============================================================================
-
 install(TARGETS solidc
     EXPORT solidc_export
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/solidc
 )
 
 install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/solidc)
 
-# Export config
 include(CMakePackageConfigHelpers)
 
 write_basic_package_version_file(
@@ -383,16 +285,16 @@ install(EXPORT solidc_export
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/solidc
 )
 
-# Pkg-config - only on Unix-like systems
 if(NOT WIN32)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/solidc.pc.in
         ${CMAKE_CURRENT_BINARY_DIR}/solidc.pc @ONLY)
-    
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/solidc.pc
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 endif()
 
-# Tests and benchmarks
+# ==============================================================================
+# Tests and Benchmarks
+# ==============================================================================
 if(BUILD_TESTS)
     add_subdirectory(tests)
 endif()
