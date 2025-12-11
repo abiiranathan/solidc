@@ -240,8 +240,11 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
         target_compile_options(solidc PUBLIC -msse4.1)
     endif()
     # MSVC: SSE4.1 is always enabled on x64, no flag needed
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64|arm64|arm")
-    # ARM: NEON (standard on ARM64, optional on ARM32)
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64|arm64")
+    # ARM64: NEON is always available, no flags needed
+    # (NEON intrinsics work by default on aarch64)
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
+    # ARM32: NEON is optional, enable explicitly
     if(NOT MSVC)
         target_compile_options(solidc PUBLIC -mfpu=neon)
     endif()
