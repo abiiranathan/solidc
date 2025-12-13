@@ -22,9 +22,9 @@ int main() {
     ASSERT(load_dotenv(env));
 
     // Load the environement variables and verify them
-    char* name        = secure_getenv("NAME");
-    char* author      = secure_getenv("AUTHOR");
-    char* name_author = secure_getenv("NAME_AUTHOR");
+    char* name        = GETENV("NAME");
+    char* author      = GETENV("AUTHOR");
+    char* name_author = GETENV("NAME_AUTHOR");
 
     ASSERT(name && author && name_author);
     ASSERT_STR_EQ(name, "SOLID C");

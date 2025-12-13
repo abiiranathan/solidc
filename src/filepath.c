@@ -1,4 +1,5 @@
 #include "../include/filepath.h"
+#include "../include/env.h"
 #include "../include/file.h"
 #include "../include/lock.h"
 #include "../include/wintypes.h"
@@ -650,7 +651,7 @@ char* get_tempdir(void) {
     }
     return temp;
 #else
-    const char* temp = getenv("TMPDIR");
+    const char* temp = GETENV("TMPDIR");
     if (!temp) {
         temp = "/tmp";
     }
@@ -882,9 +883,9 @@ int filepath_rename(const char* oldpath, const char* newpath) {
 // Get user home directory
 const char* user_home_dir(void) {
 #ifdef _WIN32
-    return getenv("USERPROFILE");
+    return GETENV("USERPROFILE");
 #else
-    return secure_getenv("HOME");
+    return GETENV("HOME");
 #endif
 }
 

@@ -132,6 +132,7 @@ set(HEADERS
     include/align.h
     include/simd.h
     include/linear_alg.h
+    include/env.h
 )
 
 # Source files

@@ -10,6 +10,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "env.h"
 
 /** Maximum length of an environment variable name. */
 #ifndef MAX_VAR_NAME_LEN

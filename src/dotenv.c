@@ -3,49 +3,7 @@
 #include <ctype.h>   // for isspace
 #include <errno.h>   // for errno
 #include <stdio.h>   // for fprintf, stderr, fopen, fgets, fclose
-#include <stdlib.h>  // for secure_getenv, setenv, _putenv_s
 #include <string.h>  // for strlen, strchr, memset
-
-/**
- * Cross-platform environment variable access macros.
- *
- * GETENV: Retrieves environment variable value safely.
- *   - Linux: Uses secure_getenv() which returns NULL in secure contexts
- *   - Other: Uses standard getenv()
- *
- * SETENV: Sets environment variable value.
- *   - POSIX: Uses setenv(name, value, overwrite)
- *   - Windows: Uses _putenv_s(name, value) - always overwrites
- */
-
-// Platform detection
-#if defined(__linux__)
-#define GETENV(name) secure_getenv(name)
-#else
-#define GETENV(name) getenv(name)
-#endif
-
-// SETENV macro - cross-platform environment variable setting
-#if defined(_WIN32) || defined(_WIN64)
-/**
- * Sets environment variable on Windows.
- * @param name Variable name
- * @param value Variable value
- * @param overwrite Ignored on Windows (always overwrites)
- * @return 0 on success, non-zero on failure
- */
-#define SETENV(name, value, overwrite) _putenv_s(name, value)
-#else
-// POSIX systems (Linux, macOS, BSD, etc.)
-/**
- * Sets environment variable on POSIX systems.
- * @param name Variable name
- * @param value Variable value
- * @param overwrite 1 to overwrite existing value, 0 to preserve
- * @return 0 on success, -1 on failure
- */
-#define SETENV(name, value, overwrite) setenv(name, value, overwrite)
-#endif
 
 /**
  * Removes leading and trailing whitespace from a string in-place.
