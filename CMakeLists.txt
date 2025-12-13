@@ -194,7 +194,7 @@ if(WIN32 OR MINGW)
 
     if(MSVC)
         target_compile_options(solidc PRIVATE
-            /W4 /wd4201 /wd4996 /wd5105
+            /W4 /wd4201 /wd4996 /wd5105 /experimental:c11atomics
         )
     else()
         target_compile_options(solidc PRIVATE -Wall -Wextra -Wno-unused-function)

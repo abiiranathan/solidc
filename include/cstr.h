@@ -669,10 +669,10 @@ static inline char* trim_string(char* str) {
  * @param haystack The string to search in.
  * @param needle The substring to search for.
  * @return Pointer to the first occurrence of needle in haystack (case-insensitive),
- *         or nullptr if not found. Returns haystack if needle is empty.
+ *         or NULL if not found. Returns haystack if needle is empty.
  */
 static inline char* strcasestr(const char* haystack, const char* needle) {
-    if (needle == nullptr || *needle == '\0') {
+    if (needle == NULL || *needle == '\0') {
         return (char*)haystack;
     }
 
@@ -680,7 +680,7 @@ static inline char* strcasestr(const char* haystack, const char* needle) {
     const size_t haystack_len = strlen(haystack);
 
     if (needle_len > haystack_len) {
-        return nullptr;
+        return NULL;
     }
 
     const size_t search_len = haystack_len - needle_len + 1;
@@ -700,7 +700,7 @@ static inline char* strcasestr(const char* haystack, const char* needle) {
         }
     }
 
-    return nullptr;
+    return NULL;
 }
 
 /**
@@ -711,10 +711,10 @@ static inline char* strcasestr(const char* haystack, const char* needle) {
  *         negative if s1 < s2, positive if s1 > s2.
  */
 static inline int strcasecmp(const char* s1, const char* s2) {
-    if (s1 == nullptr || s2 == nullptr) {
-        // Handle nullptr: nullptr == nullptr returns 0, otherwise compare addresses
+    if (s1 == NULL || s2 == NULL) {
+        // Handle NULL: NULL == NULL returns 0, otherwise compare addresses
         if (s1 == s2) return 0;
-        return (s1 == nullptr) ? -1 : 1;
+        return (s1 == NULL) ? -1 : 1;
     }
 
     while (*s1 != '\0' && *s2 != '\0') {
@@ -746,9 +746,9 @@ static inline int strncasecmp(const char* s1, const char* s2, size_t n) {
         return 0;
     }
 
-    if (s1 == nullptr || s2 == nullptr) {
+    if (s1 == NULL || s2 == NULL) {
         if (s1 == s2) return 0;
-        return (s1 == nullptr) ? -1 : 1;
+        return (s1 == NULL) ? -1 : 1;
     }
 
     for (size_t i = 0; i < n; i++) {

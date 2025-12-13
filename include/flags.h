@@ -102,48 +102,79 @@ Flag* flag_add(FlagParser* parser, FlagDataType type, const char* name, char sho
                void* value_ptr, bool required);
 
 // --- Type Macros (Optional Flags) ---
-#define flag_bool(p, n, s, d, v)   flag_add(p, TYPE_BOOL, n, s, d, v, false)
-#define flag_char(p, n, s, d, v)   flag_add(p, TYPE_CHAR, n, s, d, v, false)
-#define flag_string(p, n, s, d, v) flag_add(p, TYPE_STRING, n, s, d, v, false)
-#define flag_int(p, n, s, d, v)    flag_add(p, TYPE_INT32, n, s, d, v, false)  // Default int is 32
-#define flag_int8(p, n, s, d, v)   flag_add(p, TYPE_INT8, n, s, d, v, false)
-#define flag_int16(p, n, s, d, v)  flag_add(p, TYPE_INT16, n, s, d, v, false)
-#define flag_int32(p, n, s, d, v)  flag_add(p, TYPE_INT32, n, s, d, v, false)
-#define flag_int64(p, n, s, d, v)  flag_add(p, TYPE_INT64, n, s, d, v, false)
-#define flag_uint8(p, n, s, d, v)  flag_add(p, TYPE_UINT8, n, s, d, v, false)
-#define flag_uint16(p, n, s, d, v) flag_add(p, TYPE_UINT16, n, s, d, v, false)
-#define flag_uint32(p, n, s, d, v) flag_add(p, TYPE_UINT32, n, s, d, v, false)
-#define flag_uint64(p, n, s, d, v) flag_add(p, TYPE_UINT64, n, s, d, v, false)
-#define flag_size_t(p, n, s, d, v) flag_add(p, TYPE_SIZE_T, n, s, d, v, false)
-#define flag_float(p, n, s, d, v)  flag_add(p, TYPE_FLOAT, n, s, d, v, false)
-#define flag_double(p, n, s, d, v) flag_add(p, TYPE_DOUBLE, n, s, d, v, false)
+#define flag_bool(parser, name, short_name, desc, value)                                                               \
+    flag_add(parser, TYPE_BOOL, name, short_name, desc, value, false)
+#define flag_char(parser, name, short_name, desc, value)                                                               \
+    flag_add(parser, TYPE_CHAR, name, short_name, desc, value, false)
+#define flag_string(parser, name, short_name, desc, value)                                                             \
+    flag_add(parser, TYPE_STRING, name, short_name, desc, value, false)
+#define flag_int(parser, name, short_name, desc, value)                                                                \
+    flag_add(parser, TYPE_INT32, name, short_name, desc, value, false)  // Default int is 32
+#define flag_int8(parser, name, short_name, desc, value)                                                               \
+    flag_add(parser, TYPE_INT8, name, short_name, desc, value, false)
+#define flag_int16(parser, name, short_name, desc, value)                                                              \
+    flag_add(parser, TYPE_INT16, name, short_name, desc, value, false)
+#define flag_int32(parser, name, short_name, desc, value)                                                              \
+    flag_add(parser, TYPE_INT32, name, short_name, desc, value, false)
+#define flag_int64(parser, name, short_name, desc, value)                                                              \
+    flag_add(parser, TYPE_INT64, name, short_name, desc, value, false)
+#define flag_uint8(parser, name, short_name, desc, value)                                                              \
+    flag_add(parser, TYPE_UINT8, name, short_name, desc, value, false)
+#define flag_uint16(parser, name, short_name, desc, value)                                                             \
+    flag_add(parser, TYPE_UINT16, name, short_name, desc, value, false)
+#define flag_uint32(parser, name, short_name, desc, value)                                                             \
+    flag_add(parser, TYPE_UINT32, name, short_name, desc, value, false)
+#define flag_uint64(parser, name, short_name, desc, value)                                                             \
+    flag_add(parser, TYPE_UINT64, name, short_name, desc, value, false)
+#define flag_size_t(parser, name, short_name, desc, value)                                                             \
+    flag_add(parser, TYPE_SIZE_T, name, short_name, desc, value, false)
+#define flag_float(parser, name, short_name, desc, value)                                                              \
+    flag_add(parser, TYPE_FLOAT, name, short_name, desc, value, false)
+#define flag_double(parser, name, short_name, desc, value)                                                             \
+    flag_add(parser, TYPE_DOUBLE, name, short_name, desc, value, false)
 
 // --- Type Macros (Required Flags) ---
 // Boolean (Rarely required, but possible)
-#define flag_req_bool(p, n, s, d, v) flag_add(p, TYPE_BOOL, n, s, d, v, true)
+#define flag_req_bool(parser, name, short_name, desc, value)                                                           \
+    flag_add(parser, TYPE_BOOL, name, short_name, desc, value, true)
 
 // Char & String
-#define flag_req_char(p, n, s, d, v)   flag_add(p, TYPE_CHAR, n, s, d, v, true)
-#define flag_req_string(p, n, s, d, v) flag_add(p, TYPE_STRING, n, s, d, v, true)
+#define flag_req_char(parser, name, short_name, desc, value)                                                           \
+    flag_add(parser, TYPE_CHAR, name, short_name, desc, value, true)
+#define flag_req_string(parser, name, short_name, desc, value)                                                         \
+    flag_add(parser, TYPE_STRING, name, short_name, desc, value, true)
 
 // Standard Aliases (Default to 32-bit)
-#define flag_req_int(p, n, s, d, v)  flag_add(p, TYPE_INT32, n, s, d, v, true)
-#define flag_req_uint(p, n, s, d, v) flag_add(p, TYPE_UINT32, n, s, d, v, true)
+#define flag_req_int(parser, name, short_name, desc, value)                                                            \
+    flag_add(parser, TYPE_INT32, name, short_name, desc, value, true)
+#define flag_req_uint(parser, name, short_name, desc, value)                                                           \
+    flag_add(parser, TYPE_UINT32, name, short_name, desc, value, true)
 
 // Explicit Sized Integers
-#define flag_req_int8(p, n, s, d, v)   flag_add(p, TYPE_INT8, n, s, d, v, true)
-#define flag_req_uint8(p, n, s, d, v)  flag_add(p, TYPE_UINT8, n, s, d, v, true)
-#define flag_req_int16(p, n, s, d, v)  flag_add(p, TYPE_INT16, n, s, d, v, true)
-#define flag_req_uint16(p, n, s, d, v) flag_add(p, TYPE_UINT16, n, s, d, v, true)
-#define flag_req_int32(p, n, s, d, v)  flag_add(p, TYPE_INT32, n, s, d, v, true)
-#define flag_req_uint32(p, n, s, d, v) flag_add(p, TYPE_UINT32, n, s, d, v, true)
-#define flag_req_int64(p, n, s, d, v)  flag_add(p, TYPE_INT64, n, s, d, v, true)
-#define flag_req_uint64(p, n, s, d, v) flag_add(p, TYPE_UINT64, n, s, d, v, true)
+#define flag_req_int8(parser, name, short_name, desc, value)                                                           \
+    flag_add(parser, TYPE_INT8, name, short_name, desc, value, true)
+#define flag_req_uint8(parser, name, short_name, desc, value)                                                          \
+    flag_add(parser, TYPE_UINT8, name, short_name, desc, value, true)
+#define flag_req_int16(parser, name, short_name, desc, value)                                                          \
+    flag_add(parser, TYPE_INT16, name, short_name, desc, value, true)
+#define flag_req_uint16(parser, name, short_name, desc, value)                                                         \
+    flag_add(parser, TYPE_UINT16, name, short_name, desc, value, true)
+#define flag_req_int32(parser, name, short_name, desc, value)                                                          \
+    flag_add(parser, TYPE_INT32, name, short_name, desc, value, true)
+#define flag_req_uint32(parser, name, short_name, desc, value)                                                         \
+    flag_add(parser, TYPE_UINT32, name, short_name, desc, value, true)
+#define flag_req_int64(parser, name, short_name, desc, value)                                                          \
+    flag_add(parser, TYPE_INT64, name, short_name, desc, value, true)
+#define flag_req_uint64(parser, name, short_name, desc, value)                                                         \
+    flag_add(parser, TYPE_UINT64, name, short_name, desc, value, true)
 
 // Memory & Floating Point
-#define flag_req_size_t(p, n, s, d, v) flag_add(p, TYPE_SIZE_T, n, s, d, v, true)
-#define flag_req_float(p, n, s, d, v)  flag_add(p, TYPE_FLOAT, n, s, d, v, true)
-#define flag_req_double(p, n, s, d, v) flag_add(p, TYPE_DOUBLE, n, s, d, v, true)
+#define flag_req_size_t(parser, name, short_name, desc, value)                                                         \
+    flag_add(parser, TYPE_SIZE_T, name, short_name, desc, value, true)
+#define flag_req_float(parser, name, short_name, desc, value)                                                          \
+    flag_add(parser, TYPE_FLOAT, name, short_name, desc, value, true)
+#define flag_req_double(parser, name, short_name, desc, value)                                                         \
+    flag_add(parser, TYPE_DOUBLE, name, short_name, desc, value, true)
 
 /** Register a subcommand. Returns the child parser. */
 FlagParser* flag_add_subcommand(FlagParser* parser, const char* name, const char* desc, void (*handler)(void* data));
