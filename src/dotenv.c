@@ -3,8 +3,49 @@
 #include <ctype.h>   // for isspace
 #include <errno.h>   // for errno
 #include <stdio.h>   // for fprintf, stderr, fopen, fgets, fclose
-#include <stdlib.h>  // for secure_getenv, setenv
+#include <stdlib.h>  // for secure_getenv, setenv, _putenv_s
 #include <string.h>  // for strlen, strchr, memset
+
+/**
+ * Cross-platform environment variable access macros.
+ *
+ * GETENV: Retrieves environment variable value safely.
+ *   - Linux: Uses secure_getenv() which returns NULL in secure contexts
+ *   - Other: Uses standard getenv()
+ *
+ * SETENV: Sets environment variable value.
+ *   - POSIX: Uses setenv(name, value, overwrite)
+ *   - Windows: Uses _putenv_s(name, value) - always overwrites
+ */
+
+// Platform detection
+#if defined(__linux__)
+#define GETENV(name) secure_getenv(name)
+#else
+#define GETENV(name) getenv(name)
+#endif
+
+// SETENV macro - cross-platform environment variable setting
+#if defined(_WIN32) || defined(_WIN64)
+/**
+ * Sets environment variable on Windows.
+ * @param name Variable name
+ * @param value Variable value
+ * @param overwrite Ignored on Windows (always overwrites)
+ * @return 0 on success, non-zero on failure
+ */
+#define SETENV(name, value, overwrite) _putenv_s(name, value)
+#else
+// POSIX systems (Linux, macOS, BSD, etc.)
+/**
+ * Sets environment variable on POSIX systems.
+ * @param name Variable name
+ * @param value Variable value
+ * @param overwrite 1 to overwrite existing value, 0 to preserve
+ * @return 0 on success, -1 on failure
+ */
+#define SETENV(name, value, overwrite) setenv(name, value, overwrite)
+#endif
 
 /**
  * Removes leading and trailing whitespace from a string in-place.
@@ -106,7 +147,7 @@ static bool interpolate(const char* value, char* result, size_t result_size) {
             snprintf(var_name, sizeof(var_name), "%.*s", (int)var_name_len, start);
 
             // Get variable value from environment
-            const char* var_value = secure_getenv(var_name);
+            const char* var_value = GETENV(var_name);
             if (var_value != NULL) {
                 size_t var_value_len = strlen(var_value);
                 // Check if we have enough space (account for null terminator)
@@ -168,12 +209,12 @@ static bool process_env_pair(char* key, char* value) {
             return false;
         }
 
-        if (setenv(key, interpolated_value, 1) != 0) {
+        if (SETENV(key, interpolated_value, 1) != 0) {
             fprintf(stderr, "Error: Failed to set environment variable '%s': %s\n", key, strerror(errno));
             return false;
         }
     } else {
-        if (setenv(key, value, 1) != 0) {
+        if (SETENV(key, value, 1) != 0) {
             fprintf(stderr, "Error: Failed to set environment variable '%s': %s\n", key, strerror(errno));
             return false;
         }

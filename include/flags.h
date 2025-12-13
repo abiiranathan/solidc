@@ -7,7 +7,6 @@
 #ifndef FLAGS_H
 #define FLAGS_H
 
-#include <ctype.h>     // strcasecmp
 #include <errno.h>     // errno
 #include <inttypes.h>  // Printing int types
 #include <limits.h>    // INT_MAX, INT8_MAX, etc.
@@ -17,7 +16,7 @@
 #include <stdint.h>    // intN_t, uintN_t
 #include <stdio.h>     // printf, snprintf
 #include <stdlib.h>    // malloc, free, strtol
-#include <string.h>    // strcmp, strlen
+#include "cstr.h"      // String comparison
 
 #ifdef __cplusplus
 extern "C" {

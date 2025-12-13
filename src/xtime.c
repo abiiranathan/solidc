@@ -7,7 +7,9 @@
 
 // Platform-specific includes for high-resolution time
 #if defined(_WIN32) || defined(_WIN64)
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #elif defined(__APPLE__)
 #include <mach/mach_time.h>
