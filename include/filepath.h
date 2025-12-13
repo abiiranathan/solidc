@@ -11,8 +11,9 @@
 #include "macros.h"
 
 #ifdef _WIN32
-#include <dirent.h>
 #include <windows.h>
+// Must come after windows include
+#include <dirent.h>
 
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0400  // Required for syncapi
