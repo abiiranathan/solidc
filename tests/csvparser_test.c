@@ -6,7 +6,7 @@
 #include <string.h>  // for strcmp, strlen
 
 /** Test framework macros for better assertion handling. */
-#define ASSERT(condition, message, ...)                                                                                \
+#define CSV_ASSERT(condition, message, ...)                                                                            \
     do {                                                                                                               \
         if (!(condition)) {                                                                                            \
             fprintf(stderr, "ASSERTION FAILED at %s:%d in %s(): " message "\n", __FILE__, __LINE__, __func__,          \
@@ -15,7 +15,7 @@
         }                                                                                                              \
     } while (0)
 
-#define ASSERT_EQ(expected, actual, message, ...)                                                                      \
+#define CSV_ASSERT_EQ(expected, actual, message, ...)                                                                  \
     do {                                                                                                               \
         if ((expected) != (actual)) {                                                                                  \
             fprintf(stderr, "ASSERTION FAILED at %s:%d in %s(): Expected %ld, got %ld. " message "\n", __FILE__,       \
@@ -24,7 +24,7 @@
         }                                                                                                              \
     } while (0)
 
-#define ASSERT_STR_EQ(expected, actual, message, ...)                                                                  \
+#define CSV_ASSERT_STR_EQ(expected, actual, message, ...)                                                              \
     do {                                                                                                               \
         if (strcmp((expected), (actual)) != 0) {                                                                       \
             fprintf(stderr, "ASSERTION FAILED at %s:%d in %s(): Expected \"%s\", got \"%s\". " message "\n", __FILE__, \
@@ -33,9 +33,9 @@
         }                                                                                                              \
     } while (0)
 
-#define ASSERT_NOT_NULL(ptr, message, ...) ASSERT((ptr) != NULL, message, ##__VA_ARGS__)
+#define CSV_ASSERT_NOT_NULL(ptr, message, ...) CSV_ASSERT((ptr) != NULL, message, ##__VA_ARGS__)
 
-#define ASSERT_NULL(ptr, message, ...) ASSERT((ptr) == NULL, message, ##__VA_ARGS__)
+#define CSV_ASSERT_NULL(ptr, message, ...) CSV_ASSERT((ptr) == NULL, message, ##__VA_ARGS__)
 
 /** Test case counter for progress reporting. */
 static size_t test_count  = 0;
@@ -64,16 +64,16 @@ static size_t test_passed = 0;
  * @return true if rows match, false otherwise.
  */
 static bool compare_csv_rows(const Row* expected, const Row* actual, size_t row_index) {
-    ASSERT_NOT_NULL(expected, "Expected row cannot be null");
-    ASSERT_NOT_NULL(actual, "Actual row cannot be null");
+    CSV_ASSERT_NOT_NULL(expected, "Expected row cannot be null");
+    CSV_ASSERT_NOT_NULL(actual, "Actual row cannot be null");
 
-    ASSERT_EQ(expected->count, actual->count, "Field count mismatch in row %zu", row_index);
+    CSV_ASSERT_EQ(expected->count, actual->count, "Field count mismatch in row %zu", row_index);
 
     for (size_t i = 0; i < expected->count; i++) {
-        ASSERT_NOT_NULL(expected->fields[i], "Expected field %zu in row %zu is null", i, row_index);
-        ASSERT_NOT_NULL(actual->fields[i], "Actual field %zu in row %zu is null", i, row_index);
+        CSV_ASSERT_NOT_NULL(expected->fields[i], "Expected field %zu in row %zu is null", i, row_index);
+        CSV_ASSERT_NOT_NULL(actual->fields[i], "Actual field %zu in row %zu is null", i, row_index);
 
-        ASSERT_STR_EQ(expected->fields[i], actual->fields[i], "Field %zu mismatch in row %zu", i, row_index);
+        CSV_ASSERT_STR_EQ(expected->fields[i], actual->fields[i], "Field %zu mismatch in row %zu", i, row_index);
     }
 
     return true;
@@ -85,20 +85,20 @@ static bool compare_csv_rows(const Row* expected, const Row* actual, size_t row_
  * @return Path to temporary file. Caller must free and remove file.
  */
 static char* create_temp_csv_file(const char* csv_data) {
-    ASSERT_NOT_NULL(csv_data, "CSV data cannot be null");
+    CSV_ASSERT_NOT_NULL(csv_data, "CSV data cannot be null");
 
     char* tmpfile = make_tempfile();
-    ASSERT_NOT_NULL(tmpfile, "Failed to create temporary file path");
+    CSV_ASSERT_NOT_NULL(tmpfile, "Failed to create temporary file path");
 
     FILE* file = fopen(tmpfile, "w");
-    ASSERT_NOT_NULL(file, "Failed to open temporary file for writing: %s", tmpfile);
+    CSV_ASSERT_NOT_NULL(file, "Failed to open temporary file for writing: %s", tmpfile);
 
     size_t data_len = strlen(csv_data);
     size_t written  = fwrite(csv_data, 1, data_len, file);
-    ASSERT_EQ(data_len, written, "Failed to write complete CSV data to file");
+    CSV_ASSERT_EQ(data_len, written, "Failed to write complete CSV data to file");
 
     int close_result = fclose(file);
-    ASSERT_EQ(0, close_result, "Failed to close temporary file");
+    CSV_ASSERT_EQ(0, close_result, "Failed to close temporary file");
 
     return tmpfile;
 }
@@ -122,32 +122,36 @@ static void run_csv_reader_test(const char* test_name, const char* csv_data, Row
     // Create and configure CSV reader
     CsvReader* reader = csv_reader_new(tmpfile, 0);
 
-    ASSERT_NOT_NULL(reader, "Failed to create CSV reader");
+    CSV_ASSERT_NOT_NULL(reader, "Failed to create CSV reader");
 
-    CsvReaderConfigure(reader, .skip_header = skip_header, .has_header = has_header);
+    CsvReaderConfig config = csv_reader_getconfig(reader);
+    config.has_header      = has_header;
+    config.skip_header     = skip_header;
+
+    csv_reader_setconfig(reader, config);
 
     // Parse CSV data
     Row** rows = csv_reader_parse(reader);
     if (num_expected_rows > 0) {
-        ASSERT_NOT_NULL(rows, "CSV parsing returned null");
+        CSV_ASSERT_NOT_NULL(rows, "CSV parsing returned null");
 
         // Verify row count
         size_t actual_row_count = csv_reader_numrows(reader);
-        ASSERT_EQ(num_expected_rows, actual_row_count, "Row count mismatch: expected %zu, got %zu", num_expected_rows,
-                  actual_row_count);
+        CSV_ASSERT_EQ(num_expected_rows, actual_row_count, "Row count mismatch: expected %zu, got %zu",
+                      num_expected_rows, actual_row_count);
 
         // Compare each row
         for (size_t i = 0; i < num_expected_rows; i++) {
             compare_csv_rows(&expected_rows[i], rows[i], i);
         }
     } else {
-        ASSERT_NULL(rows, "rows should be NULL pointer");
+        CSV_ASSERT_NULL(rows, "rows should be NULL pointer");
     }
 
     // Cleanup
     csv_reader_free(reader);
     int remove_result = remove(tmpfile);
-    ASSERT_EQ(0, remove_result, "Failed to remove temporary file: %s", tmpfile);
+    CSV_ASSERT_EQ(0, remove_result, "Failed to remove temporary file: %s", tmpfile);
 
     free(tmpfile);  // Assuming make_tempfile() returns malloc'd memory
 
@@ -164,7 +168,7 @@ static void test_csv_writer(void) {
 
     // Create writer and write test data
     CsvWriter* writer = csvwriter_new(test_filename);
-    ASSERT_NOT_NULL(writer, "Failed to create CSV writer");
+    CSV_ASSERT_NOT_NULL(writer, "Failed to create CSV writer");
 
     // Write header and data rows
     const char* header_fields[]  = {"name", "age"};
@@ -173,27 +177,25 @@ static void test_csv_writer(void) {
     const char* charlie_fields[] = {"Charlie", "35"};
 
     bool ok = csvwriter_write_row(writer, header_fields, 2);
-    ASSERT(ok, "Failed to write header row");
+    CSV_ASSERT(ok, "Failed to write header row");
 
     ok = csvwriter_write_row(writer, alice_fields, 2);
-    ASSERT(ok, "Failed to write Alice row");
+    CSV_ASSERT(ok, "Failed to write Alice row");
 
     ok = csvwriter_write_row(writer, bob_fields, 2);
-    ASSERT(ok, "Failed to write Bob row");
+    CSV_ASSERT(ok, "Failed to write Bob row");
 
     ok = csvwriter_write_row(writer, charlie_fields, 2);
-    ASSERT(ok, "Failed to write Charlie row");
+    CSV_ASSERT(ok, "Failed to write Charlie row");
 
     csvwriter_free(writer);
 
     // Read back and verify the written data
     CsvReader* reader = csv_reader_new(test_filename, 0);
-    ASSERT_NOT_NULL(reader, "Failed to create CSV reader for written file");
-
-    CsvReaderConfigure(reader, .skip_header = false, .has_header = true);
+    CSV_ASSERT_NOT_NULL(reader, "Failed to create CSV reader for written file");
 
     Row** rows = csv_reader_parse(reader);
-    ASSERT_NOT_NULL(rows, "Failed to parse written CSV file");
+    CSV_ASSERT_NOT_NULL(rows, "Failed to parse written CSV file");
 
     // Define expected results (including header since skip_header=false)
     Row expected_rows[] = {
@@ -204,7 +206,7 @@ static void test_csv_writer(void) {
     };
 
     size_t actual_row_count = csv_reader_numrows(reader);
-    ASSERT_EQ(4, actual_row_count, "Written CSV should have 4 rows");
+    CSV_ASSERT_EQ(4, actual_row_count, "Written CSV should have 4 rows");
 
     // Verify each row
     for (size_t i = 0; i < 4; i++) {
@@ -214,7 +216,7 @@ static void test_csv_writer(void) {
     // Cleanup
     csv_reader_free(reader);
     int remove_result = remove(test_filename);
-    ASSERT_EQ(0, remove_result, "Failed to remove test CSV file");
+    CSV_ASSERT_EQ(0, remove_result, "Failed to remove test CSV file");
 
     TEST_PASS();
 }

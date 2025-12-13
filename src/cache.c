@@ -1,5 +1,6 @@
 #include "../include/cache.h"
 #include "../include/align.h"
+#include "../include/aligned_alloc.h"
 #include "../include/spinlock.h"
 
 #include <errno.h>
@@ -47,7 +48,12 @@ typedef struct ALIGN(CACHE_LINE_SIZE) {
     uint32_t hash;              // Full 32-bit hash of the key
     uint32_t key_len;           // Length of the key string (excluding null terminator)
     size_t value_len;           // Length of the value data
-    unsigned char data[];       // Flexible array: [key]['\0'][back_ptr][value]
+    // Flexible array: [key]['\0'][back_ptr][value]
+#if defined(_MSC_VER) && !defined(__cplusplus)
+    unsigned char data[1];  // MSVC C mode workaround
+#else
+    unsigned char data[];  // C99 flexible array member
+#endif
 } cache_entry_t;
 
 /**
@@ -349,7 +355,8 @@ cache_t* cache_create(size_t capacity, uint32_t default_ttl) {
 
         // Allocate slots array aligned to cache line
         // Each slot is 16 bytes, so 4 slots fit exactly in one 64-byte line
-        if (posix_memalign((void**)&s->slots, CACHE_LINE_SIZE, s->bucket_count * sizeof(cache_slot_t)) != 0) {
+        s->slots = ALIGNED_ALLOC(CACHE_LINE_SIZE, s->bucket_count * sizeof(cache_slot_t));
+        if (!s->slots) {
             goto cleanup_error;
         }
 
@@ -472,7 +479,7 @@ bool cache_set(cache_t* cache_ptr, const char* key, size_t klen, const void* val
     uint32_t hash         = hash_key(key, klen);
 
     // Allocate single contiguous block: [entry][key]['\0'][back_ptr][value]
-    size_t alloc_sz          = sizeof(cache_entry_t) + klen + 1 + sizeof(cache_entry_t*) + value_len;
+    size_t alloc_sz          = offsetof(cache_entry_t, data) + klen + 1 + sizeof(void*) + value_len;
     cache_entry_t* new_entry = malloc(alloc_sz);
     if (!new_entry) return false;
 

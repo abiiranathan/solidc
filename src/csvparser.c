@@ -35,6 +35,14 @@ static size_t line_count(CsvReader* reader);
 static size_t get_num_fields(const char* line, char delim, char quote);
 static bool parse_csv_line(csv_line_params* args);
 
+static inline void set_default_config(CsvReader* reader) {
+    reader->delim       = ';';
+    reader->comment     = '#';
+    reader->has_header  = true;
+    reader->skip_header = false;
+    reader->quote       = '"';
+}
+
 CsvReader* csv_reader_new(const char* filename, size_t arena_memory) {
     CsvReader* reader = malloc(sizeof(CsvReader));
     if (!reader) {
@@ -61,10 +69,8 @@ CsvReader* csv_reader_new(const char* filename, size_t arena_memory) {
     reader->arena    = arena;
     reader->num_rows = 0;
     reader->stream   = stream;
-
-    // Set default configuration
-    CsvReaderConfigure(reader, .delim = ',');
-    reader->rows = NULL;
+    reader->rows     = NULL;
+    set_default_config(reader);
     return reader;
 }
 
@@ -311,6 +317,17 @@ void csv_reader_setconfig(CsvReader* reader, CsvReaderConfig config) {
 
     reader->has_header  = config.has_header;
     reader->skip_header = config.skip_header;
+}
+
+CsvReaderConfig csv_reader_getconfig(CsvReader* reader) {
+    CsvReaderConfig config = {
+        .comment     = reader->comment,
+        .delim       = reader->delim,
+        .has_header  = reader->has_header,
+        .skip_header = reader->skip_header,
+        .quote       = reader->quote,
+    };
+    return config;
 }
 
 // Function to count the number of fields in a CSV line

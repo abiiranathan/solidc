@@ -4,10 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-// round size up to alignment
+#define ALIGNMENT      8U
+#define ALIGNMENT_MASK (ALIGNMENT - 1)
+
+// Round up to proper alignment
 static inline size_t aligned_size(size_t n) {
-    size_t a = alignof(max_align_t);
-    return (n + a - 1) & ~(a - 1);
+    return (n + ALIGNMENT_MASK) & ~(ALIGNMENT_MASK);
 }
 
 slist* slist_new(size_t elem_size) {

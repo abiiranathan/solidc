@@ -22,7 +22,6 @@
 #include <sys/stat.h>
 #include <windows.h>
 #include "wintypes.h"
-
 #else
 #include <fcntl.h>
 #include <signal.h>

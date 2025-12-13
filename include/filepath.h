@@ -8,25 +8,17 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
-
-// In macros.h
-
-#if defined(__GNUC__) || defined(__clang__)
-#define WARN_UNUSED_RESULT __attribute__((warn_unused_result))
-#elif defined(_MSC_VER)
-#define WARN_UNUSED_RESULT _Check_return_
-#else
-#define WARN_UNUSED_RESULT
-#endif
+#include "macros.h"
 
 #ifdef _WIN32
 #include <dirent.h>
 #include <windows.h>
+
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0400  // Required for syncapi
+#endif
 #define PATH_SEP     '\\'
 #define PATH_SEP_STR "\\"
-#endif
 #else
 #include <dirent.h>
 #include <pwd.h>
@@ -34,12 +26,13 @@
 #include <sys/random.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
 #define PATH_SEP     '/'
 #define PATH_SEP_STR "/"
-#endif
 
 #ifndef MAX_PATH
 #define MAX_PATH 1024
+#endif
 #endif
 
 #ifdef __cplusplus

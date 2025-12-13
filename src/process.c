@@ -7,14 +7,38 @@
 #include <errno.h>
 #include <stddef.h>
 
+#ifdef _WIN32
+#include <io.h>  // for _access
+#define ACCESS   _access
+#define X_OK     0         // Windows doesn't have X_OK, just check existence
+#define PATH_SEP ";"       // Windows uses semicolon
+#define DIR_SEP  "\\"      // Windows directory separator
+#define strtok_r strtok_s  // MSVC equivalent
+
+#else
+#include <unistd.h>  // for access
+#define ACCESS   access
+#define PATH_SEP ":"  // POSIX uses colon
+#define DIR_SEP  "/"  // POSIX directory separator
+#endif
+
 // Helper function to search for command in PATH
 static char* find_in_path(const char* command, const char* const* environment) {
     if (!command) return NULL;
 
-    if (command[0] == '/' || command[0] == '.') {
-        // Absolute or relative path - use as-is
+#ifdef _WIN32
+    // Windows: Check for absolute path (C:\ or \\) or relative path (. or ..)
+    if ((command[0] != '\0' && command[1] == ':') ||  // C:\path
+        command[0] == '\\' ||                         // \path or \\network
+        command[0] == '.') {                          // .\path or ..\path
         return strdup(command);
     }
+#else
+    // POSIX: Check for absolute or relative path
+    if (command[0] == '/' || command[0] == '.') {
+        return strdup(command);
+    }
+#endif
 
     // Find PATH in environment
     const char* path_env = NULL;
@@ -31,16 +55,37 @@ static char* find_in_path(const char* command, const char* const* environment) {
 
     // Search each PATH component
     char* path_copy = strdup(path_env);
-    char* dir       = strtok(path_copy, ":");
+    if (!path_copy) return NULL;
+
+    char* saveptr = NULL;
+    char* dir     = strtok_r(path_copy, PATH_SEP, &saveptr);
     char full_path[4096];
 
     while (dir) {
-        snprintf(full_path, sizeof(full_path), "%s/%s", dir, command);
-        if (access(full_path, X_OK) == 0) {
+        snprintf(full_path, sizeof(full_path), "%s%s%s", dir, DIR_SEP, command);
+#ifdef _WIN32
+        // Windows: Try with and without .exe extension
+        if (ACCESS(full_path, X_OK) == 0) {
             free(path_copy);
             return strdup(full_path);
         }
-        dir = strtok(NULL, ":");
+
+        // Try adding .exe extension
+        char exe_path[4096];
+        snprintf(exe_path, sizeof(exe_path), "%s.exe", full_path);
+
+        if (ACCESS(exe_path, X_OK) == 0) {
+            free(path_copy);
+            return strdup(exe_path);
+        }
+#else
+        if (ACCESS(full_path, X_OK) == 0) {
+            free(path_copy);
+            return strdup(full_path);
+        }
+#endif
+
+        dir = strtok_r(NULL, PATH_SEP, &saveptr);
     }
 
     free(path_copy);

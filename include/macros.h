@@ -114,6 +114,20 @@
 #define STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#define PRINTF_FORMAT(fmt_idx, arg_idx) __attribute__((format(printf, fmt_idx, arg_idx)))
+#else
+#define PRINTF_FORMAT(fmt_idx, arg_idx)
+#endif
+
+#if defined(__GNUC__) || defined(__clang__)
+#define WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+#elif defined(_MSC_VER)
+#define WARN_UNUSED_RESULT _Check_return_
+#else
+#define WARN_UNUSED_RESULT
+#endif
+
 #define IS_POWER_OF_2(n)           ((n) > 0 && ((n) & ((n) - 1)) == 0)
 #define STATIC_CHECK_POWER_OF_2(n) STATIC_ASSERT(IS_POWER_OF_2(n), #n " is not a power of 2")
 

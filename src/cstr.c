@@ -38,7 +38,7 @@
 #elif defined(__x86_64__) && defined(__SSE2__)
 #define STR_ALIGNMENT 16  // SSE alignment
 #else
-#define STR_ALIGNMENT sizeof(max_align_t)  // Portable fallback
+#define STR_ALIGNMENT 8
 #endif
 
 // Macros for capacity manipulation

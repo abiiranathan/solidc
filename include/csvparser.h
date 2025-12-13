@@ -8,15 +8,6 @@
 #ifndef __CSV_PARSER_H__
 #define __CSV_PARSER_H__
 
-// If clang, ignore the initializer-overrides warning
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Winitializer-overrides"
-#else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Woverride-init"
-#endif
-
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -151,11 +142,7 @@ typedef struct CsvReaderConfig CsvReaderConfig;
 typedef struct CsvWriterConfig CsvWriterConfig;
 
 void csv_reader_setconfig(CsvReader* reader, CsvReaderConfig config);
-
-#define CsvReaderConfigure(reader, ...)                                                                                \
-    csv_reader_setconfig(                                                                                              \
-        reader, (CsvReaderConfig){                                                                                     \
-                    .delim = ',', .quote = '"', .comment = '#', .has_header = true, .skip_header = true, __VA_ARGS__})
+CsvReaderConfig csv_reader_getconfig(CsvReader* reader);
 
 /**
 CsvWriter* writer = csvwriter_new("test.csv");
