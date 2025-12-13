@@ -181,8 +181,14 @@ void socket_strerror(int err, char* buffer, size_t size) {
 #ifdef _WIN32
     FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, 0, buffer, size, NULL);
 #else
+#if defined(__GLIBC__) || defined(__linux__)
+    // GNU version returns char*
     char* msg = strerror_r(err, buffer, size);
     (void)msg;
+#else
+    // POSIX version (macOS, BSD) returns int
+    strerror_r(err, buffer, size);
+#endif
 #endif
 }
 
@@ -209,7 +215,6 @@ int socket_set_option(Socket* sock, int level, int optname, const void* optval, 
     return ret;
 }
 
-// Call this function be4 binding the socket.
 int socket_reuse_port(Socket* sock, int enable) {
 #ifdef _WIN32
     // Enable SO_REUSEADDR
@@ -227,7 +232,20 @@ int socket_reuse_port(Socket* sock, int enable) {
     }
     return 0;
 #else
-    return setsockopt(sock->handle, SOL_SOCKET, SO_REUSEPORT | SO_REUSEADDR, &enable, sizeof(int));
+    int ret = 0;
+    // Always set SO_REUSEADDR
+    if (setsockopt(sock->handle, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) != 0) {
+        ret = -1;
+    }
+
+// SO_REUSEPORT is available on Linux and modern BSD/macOS
+#ifdef SO_REUSEPORT
+    if (setsockopt(sock->handle, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) != 0) {
+        ret = -1;
+    }
+#endif
+
+    return ret;
 #endif
 }
 
@@ -262,8 +280,15 @@ int socket_family(Socket* sock) {
     socklen_t len = sizeof(domain);
 #ifdef _WIN32
     domain = socket_get_option(sock, SOL_SOCKET, SO_TYPE, &domain, &len);
+#elif defined(__APPLE__)
+    // macOS doesn't support SO_DOMAIN, use getsockname instead
+    struct sockaddr_storage addr;
+    socklen_t addr_len = sizeof(addr);
+    if (getsockname(sock->handle, (struct sockaddr*)&addr, &addr_len) == 0) {
+        domain = addr.ss_family;
+    }
 #else
-    domain = socket_get_option(sock, SOL_SOCKET, SO_DOMAIN, &domain, &len);
+    socket_get_option(sock, SOL_SOCKET, SO_DOMAIN, &domain, &len);
 #endif
     return domain;
 }
