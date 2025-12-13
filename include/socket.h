@@ -19,9 +19,10 @@ extern "C" {
 #endif
 
 #ifdef _WIN32
-#include <mswsock.h>
-#include <windows.h>   // Include after winsock2.h
 #include <winsock2.h>  // Must be first on Windows
+// Add commen to disable formatting messing up order
+#include <mswsock.h>
+#include <windows.h>  // Include after winsock2.h
 #include <ws2tcpip.h>
 #else
 #include <arpa/inet.h>
@@ -31,6 +32,8 @@ extern "C" {
 #include <sys/types.h>
 #include <unistd.h>
 #endif
+
+#include "platform.h"
 
 // Socket abstraction that works on both Windows and Unix
 // On windows, you need to call initialize_winsock() before using any socket

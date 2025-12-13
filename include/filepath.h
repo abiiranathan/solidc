@@ -9,6 +9,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include "macros.h"
+#include "platform.h"
 
 #ifdef _WIN32
 #include <windows.h>

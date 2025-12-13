@@ -1,8 +1,10 @@
 #ifndef E8CAA280_1C10_4862_B560_47F74D754175
 #define E8CAA280_1C10_4862_B560_47F74D754175
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include "platform.h"
 
 #ifdef __cplusplus
 extern "C" {
