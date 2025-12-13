@@ -281,6 +281,7 @@ int socket_family(Socket* sock) {
 #ifdef _WIN32
     domain = socket_get_option(sock, SOL_SOCKET, SO_TYPE, &domain, &len);
 #elif defined(__APPLE__)
+    (void)len;
     // macOS doesn't support SO_DOMAIN, use getsockname instead
     struct sockaddr_storage addr;
     socklen_t addr_len = sizeof(addr);
