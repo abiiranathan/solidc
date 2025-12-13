@@ -27,7 +27,6 @@ extern "C" {
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
-#include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -110,12 +109,6 @@ int socket_family(Socket* sock);
 
 // Get the socket type
 int socket_type(Socket* sock);
-
-// Check if the system is little endian.
-bool is_little_endian(void);
-
-// Check if the system is big endian.
-bool is_big_endian(void);
 
 #if defined(__cplusplus)
 }

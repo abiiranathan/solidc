@@ -288,50 +288,6 @@ int socket_set_non_blocking(Socket* sock, int enable) {
 #endif
 }
 
-// epoll_create
-#ifndef _WIN32
-
-int socket_epoll_ctl_add(int epoll_fd, int sock_fd, struct epoll_event* event, uint32_t events) {
-    event->events  = events;
-    event->data.fd = sock_fd;
-    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, sock_fd, event) == -1) {
-        perror("epoll_ctl");
-        return -1;
-    }
-    return 0;
-}
-
-// Modify an existing file descriptor in the epoll instance.
-int socket_epoll_ctl_mod(int epoll_fd, int sock_fd, struct epoll_event* event, uint32_t events) {
-    event->events  = events;
-    event->data.fd = sock_fd;
-    if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, sock_fd, event) == -1) {
-        perror("epoll_ctl");
-        return -1;
-    }
-    return 0;
-}
-
-// Remove a file descriptor from the epoll instance.
-int socket_epoll_ctl_delete(int epoll_fd, int sock_fd) {
-    if (epoll_ctl(epoll_fd, EPOLL_CTL_DEL, sock_fd, NULL) == -1) {
-        perror("epoll_ctl");
-        return -1;
-    }
-    return 0;
-}
-
-// Wait for events on an epoll instance.
-// Returns the number of file descriptors ready for I/O, or -1
-// on error. Timeout can be -1 to block indefinitely, or 0 to return
-// immediately. Otherwise, it specifies the maximum number of milliseconds to
-// wait.
-int socket_epoll_wait(int epoll_fd, struct epoll_event* events, int maxevents, int timeout) {
-    return epoll_wait(epoll_fd, events, maxevents, timeout);
-}
-
-#endif
-
 // Create an IPv4 address
 // Allocates a new sockaddr_in and set the address and port.
 struct sockaddr_in* socket_ipv4_address(const char* ip, uint16_t port) {
@@ -360,13 +316,4 @@ struct sockaddr_in6* socket_ipv6_address(const char* ip, uint16_t port) {
     addr->sin6_port   = htons(port);
     inet_pton(AF_INET6, ip, &addr->sin6_addr);
     return addr;
-}
-
-bool is_little_endian(void) {
-    int n = 1;
-    return (*(char*)&n == 1);
-}
-
-bool is_big_endian(void) {
-    return !is_little_endian();
 }
