@@ -5,6 +5,10 @@
 #include <stdlib.h>  // for strtol, abs
 #include <string.h>  // for strncpy, memset, strlen
 
+#if defined(__APPLE__) || defined(__unix__) || defined(__linux__)
+#include <sys/time.h>  // for gettimeofday
+#endif
+
 // Platform-specific includes for high-resolution time
 #if defined(_WIN32) || defined(_WIN64)
 #ifndef WIN32_LEAN_AND_MEAN
@@ -464,24 +468,20 @@ xtime_error_t xtime_now(xtime_t* t) {
     t->nanoseconds = (uint32_t)((total_100ns % 10000000LL) * 100);
 
 #elif defined(__APPLE__)
-    // macOS: Use mach_absolute_time
-    static mach_timebase_info_data_t timebase_info = {0};
-    if (timebase_info.denom == 0) {
-        mach_timebase_info(&timebase_info);
+    // macOS: Use clock_gettime with CLOCK_REALTIME (available since macOS 10.12)
+    struct timespec ts;
+    if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
+        // Fallback to gettimeofday if clock_gettime fails
+        struct timeval tv;
+        if (gettimeofday(&tv, NULL) != 0) {
+            return XTIME_ERR_SYSTEM;
+        }
+        t->seconds     = (int64_t)tv.tv_sec;
+        t->nanoseconds = (uint32_t)(tv.tv_usec * 1000);
+    } else {
+        t->seconds     = (int64_t)ts.tv_sec;
+        t->nanoseconds = (uint32_t)ts.tv_nsec;
     }
-
-    uint64_t mach_time = mach_absolute_time();
-    uint64_t nanos     = (mach_time * timebase_info.numer) / timebase_info.denom;
-
-    // Get wall clock time for seconds component
-    struct timeval tv;
-    if (gettimeofday(&tv, NULL) != 0) {
-        return XTIME_ERR_SYSTEM;
-    }
-
-    t->seconds     = (int64_t)tv.tv_sec;
-    t->nanoseconds = (uint32_t)(tv.tv_usec * 1000);
-
 #else
     // Linux/POSIX: Use clock_gettime with CLOCK_REALTIME
     struct timespec ts;
