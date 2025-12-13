@@ -6,6 +6,12 @@
 #include <stddef.h>
 #include "macros.h"
 
+#if defined(__GNUC__) || defined(__clang__)
+#define PRINTF_FORMAT(fmt_idx, arg_idx) __attribute__((format(printf, fmt_idx, arg_idx)))
+#else
+#define PRINTF_FORMAT(fmt_idx, arg_idx)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -173,7 +179,7 @@ bool cstr_append_fast(cstr* s, const char* append);
  * @return Pointer to new formatted cstr on success, NULL on failure
  * @note Caller must call str_free() to release memory
  */
-__attribute__((format(printf, 1, 2))) cstr* cstr_format(const char* format, ...);
+PRINTF_FORMAT(1, 2) cstr* cstr_format(const char* format, ...);
 
 /**
  * @brief Appends a formatted string to the cstr.

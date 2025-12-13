@@ -51,7 +51,7 @@ void socket_initialize(void);
 void socket_cleanup(void);
 
 // Create a socket, returns NULL on error.
-Socket* socket_create(int domain, int type, int protocol) __attribute__((warn_unused_result));
+Socket* socket_create(int domain, int type, int protocol);
 
 // Close a socket and free the memory.
 int socket_close(Socket* sock);
@@ -66,7 +66,7 @@ int socket_bind(Socket* sock, const struct sockaddr* addr, socklen_t addrlen);
 int socket_listen(Socket* sock, int backlog);
 
 // Accept an incoming connection
-Socket* socket_accept(Socket* sock, struct sockaddr* addr, socklen_t* addrlen) __attribute__((warn_unused_result));
+Socket* socket_accept(Socket* sock, struct sockaddr* addr, socklen_t* addrlen);
 
 // Connect to a remote socket
 int socket_connect(Socket* sock, const struct sockaddr* addr, socklen_t addrlen);

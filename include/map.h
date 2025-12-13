@@ -76,7 +76,7 @@ typedef struct hash_map HashMap;
 // capacity is used, otherwise its used as it.
 // key_compare is a function pointer used to compare 2 keys for equality.
 // If free_entries is true, the keys and values are also freed.
-HashMap* map_create(const MapConfig* config) __attribute__((warn_unused_result));
+HashMap* map_create(const MapConfig* config);
 
 // Destroy the map and free the memory.
 void map_destroy(HashMap* m);

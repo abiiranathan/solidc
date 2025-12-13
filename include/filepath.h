@@ -9,6 +9,16 @@
 #include <stddef.h>
 #include <stdio.h>
 
+// In macros.h
+
+#if defined(__GNUC__) || defined(__clang__)
+#define WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+#elif defined(_MSC_VER)
+#define WARN_UNUSED_RESULT _Check_return_
+#else
+#define WARN_UNUSED_RESULT
+#endif
+
 #ifdef _WIN32
 #include <dirent.h>
 #include <windows.h>
@@ -49,13 +59,13 @@ typedef struct {
 } Directory;
 
 // Open a directory for reading
-Directory* dir_open(const char* path) __attribute__((warn_unused_result));
+WARN_UNUSED_RESULT Directory* dir_open(const char* path);
 
 // Close a directory
 void dir_close(Directory* dir);
 
 // Read the next entry in the directory.
-char* dir_next(Directory* dir) __attribute__((warn_unused_result));
+WARN_UNUSED_RESULT char* dir_next(Directory* dir);
 
 // Create a directory. Returns 0 if successful, -1 otherwise
 int dir_create(const char* path);
@@ -73,7 +83,7 @@ int dir_chdir(const char* path);
 // NULL on error The caller is responsible for freeing the memory. The number
 // of files is stored in the count parameter. Note: This algorithm walks the
 // directory tree recursively and may be slow for large directories.
-char** dir_list(const char* path, size_t* count) __attribute__((warn_unused_result));
+WARN_UNUSED_RESULT char** dir_list(const char* path, size_t* count);
 
 // List all contents of the directory and passes the name of file/dir in a
 // callback. Skips over "." and ".." to avoid infinite loops.
@@ -97,13 +107,13 @@ bool filepath_makedirs(const char* path);
 // then TMP, and finally C:\Windows\Temp
 // On Unix, /tmp is returned.
 // The caller is responsible for freeing the memory
-char* get_tempdir(void) __attribute__((warn_unused_result));
+WARN_UNUSED_RESULT char* get_tempdir(void);
 
 // Create a temporary file.
-char* make_tempfile(void) __attribute__((warn_unused_result));
+WARN_UNUSED_RESULT char* make_tempfile(void);
 
 // Create a temporary directory.
-char* make_tempdir(void) __attribute__((warn_unused_result));
+WARN_UNUSED_RESULT char* make_tempdir(void);
 
 typedef enum WalkDirOption {
     DirContinue,  // Continue walking the directory recursively
@@ -138,7 +148,7 @@ ssize_t dir_size(const char* path);
 bool path_exists(const char* path);
 
 // Returns the path to the current working directory.
-char* get_cwd(void) __attribute__((warn_unused_result));
+WARN_UNUSED_RESULT char* get_cwd(void);
 
 /**
 get the file's basename.
@@ -160,7 +170,7 @@ void filepath_nameonly(const char* path, char* name, size_t size);
 // Get the absolute path of a file Returns a pointer to the absolute path
 // or NULL on error.
 // The caller is responsible for freeing the memory.
-char* filepath_absolute(const char* path) __attribute__((warn_unused_result));
+WARN_UNUSED_RESULT char* filepath_absolute(const char* path);
 
 // Delete or unlink file or directory. Returns 0 if successful, -1 otherwise.
 int filepath_remove(const char* path);
@@ -173,7 +183,7 @@ int filepath_rename(const char* oldpath, const char* newpath);
 const char* user_home_dir(void);
 
 // Expand user home directory.
-char* filepath_expanduser(const char* path) __attribute__((warn_unused_result));
+WARN_UNUSED_RESULT char* filepath_expanduser(const char* path);
 
 // Expand user home directory and store in expanded buffer.
 // Returns true if successful, false otherwise.
@@ -181,7 +191,7 @@ bool filepath_expanduser_buf(const char* path, char* expanded, size_t len);
 
 // Join path1 and path2 using standard os specific separator.
 // Returns a pointer to the joined path or NULL on error.
-char* filepath_join(const char* path1, const char* path2) __attribute__((warn_unused_result));
+WARN_UNUSED_RESULT char* filepath_join(const char* path1, const char* path2);
 
 // Join path1 and path2 using standard os specific separator and store in
 // abspath buffer. Returns true if successful, false otherwise.
