@@ -41,10 +41,13 @@
 #include <stdint.h>  // for uintptr_t
 
 #ifdef _WIN32
+// Windows comes first before tlhelp32.h
+#include <windows.h>
+
+// This comment prevents clang-format messing order of imports
 #include <io.h>
 #include <lmcons.h>    // for UNLEN constant (get_username)
 #include <tlhelp32.h>  // for CreateToolhelp32Snapshot (get_ppid)
-#include <windows.h>
 #else
 #include <errno.h>     // for error constants
 #include <grp.h>       // for getgrgid

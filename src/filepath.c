@@ -19,9 +19,7 @@ static inline size_t safe_strlcpy(char* dst, const char* src, size_t size) {
 
     size_t srclen = 0;
 #ifdef _WIN32
-#ifndef RSIZE_MAX
-#define RSIZE_MAX ((size_t)-1)
-#endif
+#define RSIZE_MAX (SIZE_MAX >> 1)
     srclen = strnlen_s(src, RSIZE_MAX);
 #else
     srclen = strnlen(src, size);

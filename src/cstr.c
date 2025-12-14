@@ -15,11 +15,6 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-#ifdef _WIN32
-#define ckd_add(r, a, b) ckd_add_ull((unsigned long long*)(r), (unsigned long long)(a), (unsigned long long)(b))
-#define ckd_mul(r, a, b) ckd_mul_ull((unsigned long long*)(r), (unsigned long long)(a), (unsigned long long)(b))
-#endif
-
 // Small String Optimization (SSO) constants
 #define SSO_MAX_SIZE    (sizeof(size_t) + sizeof(size_t) + sizeof(char*) - 1)
 #define SSO_HEAP_FLAG   0x80

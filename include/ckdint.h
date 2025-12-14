@@ -42,11 +42,9 @@
 /* ======================================================================== */
 
 #if HAS_OVERFLOW_BUILTINS
-
 #define ckd_add(result, a, b) __builtin_add_overflow((a), (b), (result))
 #define ckd_sub(result, a, b) __builtin_sub_overflow((a), (b), (result))
 #define ckd_mul(result, a, b) __builtin_mul_overflow((a), (b), (result))
-
 #else
 
 /* ======================================================================== */
@@ -164,11 +162,13 @@ static __inline bool ckd_mul_u64(uint64_t* r, uint64_t a, uint64_t b) {
     *r = a * b;
     return false;
 }
+
 static __inline bool ckd_mul_ul(unsigned long* r, unsigned long a, unsigned long b) {
     unsigned long long tmp = (unsigned long long)a * b;
     *r                     = (unsigned long)tmp;
     return tmp > ULONG_MAX;
 }
+
 static __inline bool ckd_mul_ull(unsigned long long* r, unsigned long long a, unsigned long long b) {
     if (a == 0 || b == 0) {
         *r = 0;
@@ -181,6 +181,7 @@ static __inline bool ckd_mul_ull(unsigned long long* r, unsigned long long a, un
     *r = a * b;
     return false;
 }
+
 #endif /* !HAS_OVERFLOW_BUILTINS */
 
 #endif /* SOLIDC_CKDINT_H */

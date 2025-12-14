@@ -703,6 +703,7 @@ static inline char* strcasestr(const char* haystack, const char* needle) {
     return NULL;
 }
 
+#ifndef strcasecmp
 /**
  * Case-insensitive string comparison (Windows implementation of POSIX strcasecmp).
  * @param s1 First string to compare.
@@ -733,6 +734,9 @@ static inline int strcasecmp(const char* s1, const char* s2) {
     return tolower((unsigned char)*s1) - tolower((unsigned char)*s2);
 }
 
+#endif
+
+#ifndef strncasecmp
 /**
  * Case-insensitive string comparison with length limit (Windows implementation of POSIX strncasecmp).
  * @param s1 First string to compare.
@@ -767,6 +771,8 @@ static inline int strncasecmp(const char* s1, const char* s2, size_t n) {
 
     return 0;  // First n characters match
 }
+
+#endif
 
 #endif  // _WIN32
 

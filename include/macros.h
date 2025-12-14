@@ -1,6 +1,7 @@
 #ifndef __SOLIDC_MACROS__
 #define __SOLIDC_MACROS__
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,7 +24,7 @@
         typeof(b) _b = (b);                                                                                            \
         if (_a != _b) {                                                                                                \
             printf("%s:%d [%s]: Assertion '%s == %s' failed (%ld != %ld).\n", __FILE__, __LINE__, __func__, #a, #b,    \
-                   (long)_a, (long)_b);                                                                                \
+                   (intptr_t)_a, (intptr_t)_b);                                                                        \
             exit(1);                                                                                                   \
         }                                                                                                              \
     } while (0)
@@ -34,7 +35,7 @@
         typeof(b) _b = (b);                                                                                            \
         if (_a == _b) {                                                                                                \
             printf("%s:%d [%s]: Assertion '%s != %s' failed (both are %ld).\n", __FILE__, __LINE__, __func__, #a, #b,  \
-                   (long)_a);                                                                                          \
+                   (intptr_t)_a);                                                                                      \
             exit(1);                                                                                                   \
         }                                                                                                              \
     } while (0)

@@ -39,6 +39,9 @@ extern "C" {
 #pragma comment(lib, "Shlwapi.lib")
 #endif
 
+#include <wincrypt.h>                 // For HCRYPTPROV, CryptAcquireContextW, CryptGenRandom, etc.
+#pragma comment(lib, "advapi32.lib")  // Link against the Crypto API library
+
 /*
  * Constants and Macros
  */
