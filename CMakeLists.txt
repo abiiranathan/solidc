@@ -164,13 +164,6 @@ set(SOURCES
     src/flags.c
 )
 
-if(WIN32 OR MINGW)
-    # Append to HEADERS variable win32_dirent.h
-    list(APPEND HEADERS include/win32_dirent.h)
-
-    # Add the Windows-specific dirent implementation source
-    target_sources(solidc PRIVATE src/win32_dirent.c)
-endif()
 
 add_compile_definitions(_USE_MATH_DEFINES _GNU_SOURCE)
 
@@ -189,7 +182,12 @@ target_link_libraries(solidc PRIVATE mimalloc-static)
 # ==============================================================================
 # Platform-Specific Configuration
 # ==============================================================================
+
 if(WIN32 OR MINGW)
+    # Add the Windows-specific dirent implementation source
+    list(APPEND HEADERS include/win32_dirent.h)
+    target_sources(solidc PRIVATE src/win32_dirent.c)
+
     target_compile_definitions(solidc PUBLIC
         _CRT_SECURE_NO_WARNINGS
         WIN32_LEAN_AND_MEAN
