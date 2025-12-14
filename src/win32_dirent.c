@@ -24,10 +24,7 @@ SOFTWARE.
 #ifndef __DIRENT_H_9DE6B42C_8D0C_4D31_A8EF_8E4C30E6C46A__
 #define __DIRENT_H_9DE6B42C_8D0C_4D31_A8EF_8E4C30E6C46A__
 
-#ifndef _WIN32
-#pragma message("this dirent.h implementation is for Windows only!")
-#else /* _WIN32 */
-
+#ifdef _WIN32
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
