@@ -164,6 +164,14 @@ set(SOURCES
     src/flags.c
 )
 
+if(WIN32 OR MINGW)
+    # Append to HEADERS variable win32_dirent.h
+    list(APPEND HEADERS include/win32_dirent.h)
+
+    # Add the Windows-specific dirent implementation source
+    target_sources(solidc PRIVATE src/win32_dirent.c)
+endif()
+
 add_compile_definitions(_USE_MATH_DEFINES _GNU_SOURCE)
 
 # Create the library
@@ -195,7 +203,7 @@ if(WIN32 OR MINGW)
 
     if(MSVC)
         target_compile_options(solidc PRIVATE
-            /W4 /wd4201 /wd4996 /wd5105 /experimental:c11atomics /wd4324 /C4244
+            /W4 /wd4201 /wd4996 /wd5105 /experimental:c11atomics /wd4324
         )
     else()
         target_compile_options(solidc PRIVATE -Wall -Wextra -Wno-unused-function)

@@ -13,8 +13,7 @@
 
 #ifdef _WIN32
 #include <windows.h>
-// Must come after windows include
-#include <dirent.h>
+#include "win32_dirent.h"
 
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0400  // Required for syncapi
@@ -49,7 +48,7 @@ typedef struct {
     HANDLE handle;
     WIN32_FIND_DATAW find_data;  // found in windows.h
 #else
-    DIR* dir;  // directory pointer found in dirent.h
+    DIR* dir;
 #endif
 } Directory;
 
