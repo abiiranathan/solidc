@@ -19,26 +19,105 @@ SOFTWARE.
 */
 
 // Source: https://github.com/win32ports/dirent_h
-#pragma once
-
-#ifndef __DIRENT_H_9DE6B42C_8D0C_4D31_A8EF_8E4C30E6C46A__
-#define __DIRENT_H_9DE6B42C_8D0C_4D31_A8EF_8E4C30E6C46A__
 
 #ifdef _WIN32
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
-#include "../include/win32_dirent.h"
-#include <shlwapi.h>
-#include <windows.h>
+#include <ctype.h>  // for isdigit
+#include <errno.h>
+#include <shlwapi.h>  // for PathIsRelativeW
+#include <stdint.h>
+#include <stdlib.h>  // for malloc, free
+#include <string.h>  // for memcpy, memset
+#include <sys/types.h>
+#include <windows.h>   // for Windows API
+#include <winioctl.h>  // for FSCTL_GET_REPARSE_POINT
 
 #ifdef _MSC_VER
 #pragma comment(lib, "Shlwapi.lib")
 #endif
 
+/*
+ * Constants and Macros
+ */
+
+#ifndef NAME_MAX
+#define NAME_MAX 260
+#endif /* NAME_MAX */
+
+#ifndef DT_UNKNOWN
+#define DT_UNKNOWN 0
+#endif /* DT_UNKNOWN */
+
+#ifndef DT_FIFO
+#define DT_FIFO 1
+#endif /* DT_FIFO */
+
+#ifndef DT_CHR
+#define DT_CHR 2
+#endif /* DT_CHR */
+
+#ifndef DT_DIR
+#define DT_DIR 4
+#endif /* DT_DIR */
+
+#ifndef DT_BLK
+#define DT_BLK 6
+#endif /* DT_BLK */
+
+#ifndef DT_REG
+#define DT_REG 8
+#endif /* DT_REG */
+
+#ifndef DT_LNK
+#define DT_LNK 10
+#endif /* DT_LNK */
+
+#ifndef DT_SOCK
+#define DT_SOCK 12
+#endif /* DT_SOCK */
+
+#ifndef DT_WHT
+#define DT_WHT 14
+#endif /* DT_WHT */
+
+#ifndef NTFS_MAX_PATH
+#define NTFS_MAX_PATH 32768
+#endif /* NTFS_MAX_PATH */
+
+#ifndef MAXIMUM_REPARSE_DATA_BUFFER_SIZE
+#define MAXIMUM_REPARSE_DATA_BUFFER_SIZE 16384
+#endif /* MAXIMUM_REPARSE_DATA_BUFFER_SIZE */
+
+#ifndef IO_REPARSE_TAG_SYMLINK
+#define IO_REPARSE_TAG_SYMLINK 0xA000000C
+#endif /* IO_REPARSE_TAG_SYMLINK */
+
+#ifndef FILE_NAME_NORMALIZED
+#define FILE_NAME_NORMALIZED 0
+#endif /* FILE_NAME_NORMALIZED */
+
 typedef void* DIR;
 
+/** Inode structure for Windows */
+typedef struct ino_t {
+    unsigned long long serial;
+    unsigned char fileid[16];
+} __ino_t;
+
+/** Directory entry structure */
+struct dirent {
+    __ino_t d_ino;           /* File serial number */
+    off_t d_off;             /* Offset to the next dirent */
+    unsigned short d_reclen; /* Length of this record */
+    unsigned char d_namelen; /* Length of the name */
+    unsigned char d_type;    /* Type of file (DT_*) */
+    char d_name[NAME_MAX];   /* Null-terminated filename */
+};
+
+/** Internal directory structure */
 struct __dir {
     struct dirent* entries;
     intptr_t fd;
@@ -46,6 +125,12 @@ struct __dir {
     long int index;
 };
 
+/**
+ * @brief Closes a directory stream.
+ *
+ * @param dirp The directory stream to close.
+ * @return int 0 on success, -1 on error (errno is set).
+ */
 int closedir(DIR* dirp) {
     struct __dir* data = NULL;
     if (!dirp) {
@@ -59,6 +144,7 @@ int closedir(DIR* dirp) {
     return 0;
 }
 
+/** Sets errno in a compiler-agnostic way. */
 static void __seterrno(int value) {
 #ifdef _MSC_VER
     _set_errno(value);
@@ -67,6 +153,7 @@ static void __seterrno(int value) {
 #endif /* _MSC_VER */
 }
 
+/** Checks if a path is a symbolic link. */
 static int __islink(const wchar_t* name, char* buffer) {
     DWORD io_result      = 0;
     DWORD bytes_returned = 0;
@@ -99,6 +186,7 @@ typedef struct _dirent_FILE_ID_INFO {
 
 typedef enum dirent_FILE_INFO_BY_HANDLE_CLASS { dirent_FileIdInfo = 18 } dirent_FILE_INFO_BY_HANDLE_CLASS;
 
+/** Retrieves the inode information for a file. */
 static __ino_t __inode(const wchar_t* name) {
     __ino_t value = {0};
     BOOL result;
@@ -134,6 +222,7 @@ static __ino_t __inode(const wchar_t* name) {
     return value;
 }
 
+/** Internal implementation of opendir with wide-character path. */
 static DIR* __internal_opendir(wchar_t* wname, int size) {
     struct __dir* data         = NULL;
     struct dirent* tmp_entries = NULL;
@@ -192,7 +281,7 @@ static DIR* __internal_opendir(wchar_t* wname, int size) {
         data->entries[data->index].d_ino     = __inode(wname);
         data->entries[data->index].d_reclen  = sizeof(struct dirent);
         data->entries[data->index].d_namelen = (unsigned char)wcslen(w32fd.cFileName);
-        data->entries[data->index].d_off     = 0;
+        data->entries[data->index].d_off     = data->index + 1;  // POSIX fix: offset to next entry
 
         if (++data->index == data->count) {
             tmp_entries = (struct dirent*)realloc(data->entries, sizeof(struct dirent) * data->count * grow_factor);
@@ -220,12 +309,19 @@ out_of_memory:
     return NULL;
 }
 
-static wchar_t* __get_buffer() {
+/** Allocates a buffer for the wide-character path with long path prefix. */
+static wchar_t* __get_buffer(void) {
     wchar_t* name = malloc(sizeof(wchar_t) * (NTFS_MAX_PATH + NAME_MAX + 8));
     if (name) memcpy(name, L"\\\\?\\", sizeof(wchar_t) * 4);
     return name;
 }
 
+/**
+ * @brief Opens a directory stream corresponding to the directory name.
+ *
+ * @param name The path to the directory to open (UTF-8).
+ * @return DIR* A pointer to the directory stream, or NULL on error (errno is set).
+ */
 DIR* opendir(const char* name) {
     DIR* dirp      = NULL;
     wchar_t* wname = __get_buffer();
@@ -244,6 +340,12 @@ DIR* opendir(const char* name) {
     return dirp;
 }
 
+/**
+ * @brief Opens a directory stream using a wide-character string (Windows extension).
+ *
+ * @param name The path to the directory to open (wchar_t).
+ * @return DIR* A pointer to the directory stream, or NULL on error.
+ */
 DIR* _wopendir(const wchar_t* name) {
     DIR* dirp      = NULL;
     wchar_t* wname = __get_buffer();
@@ -263,6 +365,12 @@ DIR* _wopendir(const wchar_t* name) {
     return dirp;
 }
 
+/**
+ * @brief Opens a directory stream from an existing file descriptor.
+ *
+ * @param fd The file descriptor/handle.
+ * @return DIR* A pointer to the directory stream, or NULL on error.
+ */
 DIR* fdopendir(intptr_t fd) {
     DIR* dirp      = NULL;
     wchar_t* wname = __get_buffer();
@@ -298,6 +406,12 @@ DIR* fdopendir(intptr_t fd) {
     return dirp;
 }
 
+/**
+ * @brief Reads the next directory entry from the stream.
+ *
+ * @param dirp The directory stream.
+ * @return struct dirent* Pointer to the directory entry structure, or NULL if end of stream or error.
+ */
 struct dirent* readdir(DIR* dirp) {
     struct __dir* data = (struct __dir*)dirp;
     if (!data) {
@@ -310,38 +424,72 @@ struct dirent* readdir(DIR* dirp) {
     return NULL;
 }
 
+/**
+ * @brief Thread-safe version of readdir.
+ *
+ * @param dirp The directory stream.
+ * @param entry The caller-allocated buffer to store the entry.
+ * @param result Pointer to the resulting entry pointer (set to NULL on end of stream).
+ * @return int 0 on success, or an error number.
+ */
 int readdir_r(DIR* dirp, struct dirent* entry, struct dirent** result) {
     struct __dir* data = (struct __dir*)dirp;
-    if (!data) {
-        return EBADF;
+    if (!data || !entry || !result) {
+        return EINVAL;
     }
     if (data->index < data->count) {
-        if (entry) memcpy(entry, &data->entries[data->index++], sizeof(struct dirent));
-        if (result) *result = entry;
-    } else if (result)
+        memcpy(entry, &data->entries[data->index++], sizeof(struct dirent));
+        *result = entry;
+    } else {
         *result = NULL;
+    }
     return 0;
 }
 
+/**
+ * @brief Sets the position of the directory stream.
+ *
+ * @param dirp The directory stream.
+ * @param offset The offset to seek to.
+ */
 void seekdir(DIR* dirp, long int offset) {
     if (dirp) {
         struct __dir* data = (struct __dir*)dirp;
-        data->index        = (offset < data->count) ? offset : data->index;
+        if (offset >= 0 && offset <= data->count) {
+            data->index = offset;
+        }
     }
 }
 
+/**
+ * @brief Resets the position of the directory stream to the beginning.
+ *
+ * @param dirp The directory stream.
+ */
 void rewinddir(DIR* dirp) {
     seekdir(dirp, 0);
 }
 
+/**
+ * @brief Returns the current position of the directory stream.
+ *
+ * @param dirp The directory stream.
+ * @return long int The current position (index), or -1 on error.
+ */
 long int telldir(DIR* dirp) {
     if (!dirp) {
         errno = EBADF;
         return -1;
     }
-    return ((struct __dir*)dirp)->count;
+    return ((struct __dir*)dirp)->index;
 }
 
+/**
+ * @brief Returns the underlying file descriptor/handle of the directory stream.
+ *
+ * @param dirp The directory stream.
+ * @return intptr_t The handle, or -1 on error.
+ */
 intptr_t dirfd(DIR* dirp) {
     if (!dirp) {
         errno = EINVAL;
@@ -350,6 +498,15 @@ intptr_t dirfd(DIR* dirp) {
     return ((struct __dir*)dirp)->fd;
 }
 
+/**
+ * @brief Scans a directory for matching entries.
+ *
+ * @param dirp The path of the directory to scan.
+ * @param namelist Returns a pointer to an array of pointers to directory entries.
+ * @param filter Function to filter entries (return non-zero to include).
+ * @param compar Function to compare entries for sorting (passed to qsort).
+ * @return int The number of entries selected, or -1 on error.
+ */
 int scandir(const char* dirp, struct dirent*** namelist, int (*filter)(const struct dirent*),
             int (*compar)(const struct dirent**, const struct dirent**)) {
     struct dirent **entries = NULL, **tmp_entries = NULL;
@@ -373,7 +530,7 @@ int scandir(const char* dirp, struct dirent*** namelist, int (*filter)(const str
             if (!entries[index]) {
                 closedir(d);
                 for (i = 0; i < index; ++i)
-                    free(entries[index]);
+                    free(entries[i]);
                 free(entries);
                 __seterrno(ENOMEM);
                 return -1;
@@ -384,7 +541,7 @@ int scandir(const char* dirp, struct dirent*** namelist, int (*filter)(const str
                 if (!tmp_entries) {
                     closedir(d);
                     for (i = 0; i < index; ++i)
-                        free(entries[index - 1]);
+                        free(entries[i]);
                     free(entries);
                     __seterrno(ENOMEM);
                     return -1;
@@ -394,27 +551,51 @@ int scandir(const char* dirp, struct dirent*** namelist, int (*filter)(const str
             }
         }
     }
-    qsort(entries, index, sizeof(struct dirent*), compar);
+    qsort(entries, index, sizeof(struct dirent*), (int (*)(const void*, const void*))compar);
     entries[index] = NULL;
     if (namelist) *namelist = entries;
     closedir(d);
-    return index;
+    return (int)index;
 }
 
-int alphasort(const void* a, const void* b) {
-    struct dirent **dira = (struct dirent**)a, **dirb = (struct dirent**)b;
-    if (!dira || !dirb) return 0;
-    return strcoll((*dira)->d_name, (*dirb)->d_name);
+/**
+ * @brief Compare two directory entries alphabetically.
+ * Use as the 'compar' argument for scandir.
+ */
+int alphasort(const struct dirent** a, const struct dirent** b) {
+    if (!a || !b || !*a || !*b) return 0;
+    return strcoll((*a)->d_name, (*b)->d_name);
 }
 
+/**
+ * @brief Minimal implementation of version/natural sort comparison.
+ * Compares numeric parts as numbers, text parts lexicographically.
+ */
 static int __strverscmp(const char* s1, const char* s2) {
-    return alphasort(s1, s2);
+    if (!s1 || !s2) return 0;
+
+    while (*s1 && *s2) {
+        if (isdigit((unsigned char)*s1) && isdigit((unsigned char)*s2)) {
+            // Compare numeric parts
+            unsigned long n1 = strtoul(s1, (char**)&s1, 10);
+            unsigned long n2 = strtoul(s2, (char**)&s2, 10);
+            if (n1 != n2) return (n1 < n2) ? -1 : 1;
+        } else {
+            if (*s1 != *s2) return ((unsigned char)*s1 < (unsigned char)*s2) ? -1 : 1;
+            s1++;
+            s2++;
+        }
+    }
+    return *s1 ? 1 : (*s2 ? -1 : 0);
 }
 
-int versionsort(const void* a, const void* b) {
-    struct dirent **dira = (struct dirent**)a, **dirb = (struct dirent**)b;
-    if (!dira || !dirb) return 0;
-    return __strverscmp((*dira)->d_name, (*dirb)->d_name);
+/**
+ * @brief Compare two directory entries by version (natural sort).
+ * Use as the 'compar' argument for scandir.
+ */
+int versionsort(const struct dirent** a, const struct dirent** b) {
+    if (!a || !b || !*a || !*b) return 0;
+    return __strverscmp((*a)->d_name, (*b)->d_name);
 }
 
 #ifdef __cplusplus
@@ -422,5 +603,3 @@ int versionsort(const void* a, const void* b) {
 #endif /* __cplusplus */
 
 #endif /* _WIN32 */
-
-#endif /* __DIRENT_H_9DE6B42C_8D0C_4D31_A8EF_8E4C30E6C46A__ */
