@@ -151,7 +151,7 @@ target_include_directories(solidc PRIVATE ${xxhash_SOURCE_DIR})
 
 # Platform-specific compile definitions
 if(WIN32)
-    target_compile_definitions(solidc PUBLIC _WIN32_WINNT=0x0601)  # Windows 7+
+    target_compile_definitions(solidc PUBLIC _WIN32_WINNT=0x0602)  # Windows 8+
 endif()
 
 if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
@@ -173,8 +173,34 @@ if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
 
     if(MSVC)
         target_compile_options(solidc PRIVATE
-            /W4 /wd4201 /wd4996 /wd5105 /wd4324 /experimental:c11atomics 
+            /W4 /wd4201 /wd5105 /wd4324 /experimental:c11atomics 
         )
+
+        target_compile_options(${PROJECT_NAME} PRIVATE
+        # C4146: unary minus operator applied to unsigned type
+        # (Standard practice in hashing algorithms, safe to ignore)
+        /wd4146
+
+        # C4244: conversion from 'type1' to 'type2', possible loss of data
+        /wd4244
+
+        # C4267: conversion from 'size_t' to 'type', possible loss of data
+        # (Common when assigning size_t len to int variables)
+        /wd4267
+        
+        # C4245: signed/unsigned mismatch
+        /wd4245
+        
+        # C4018: signed/unsigned mismatch (variation)
+        /wd4018
+        
+        # C4996: 'function': The POSIX name for this item is deprecated
+        # (Fixes warnings about strdup, stricmp, etc.)
+        /wd4996
+        )
+    
+        # Define CRT security logic to stop warnings about fopen, strcpy, etc.
+        add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
     else()
         target_compile_options(solidc PRIVATE -Wall -Wextra -Wno-unused-function)
     endif()
