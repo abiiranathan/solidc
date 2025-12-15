@@ -8,6 +8,15 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
+if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
+    set(CMAKE_INSTALL_LIBDIR "lib")
+    set(CMAKE_INSTALL_BINDIR "bin")
+    set(CMAKE_INSTALL_INCLUDEDIR "include")
+else()
+    include(GNUInstallDirs)
+endif()
+
+
 if(UNIX AND NOT APPLE)
     set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 endif()
@@ -44,50 +53,7 @@ target_compile_options(xxHash_obj PRIVATE
 )
 set_target_properties(xxHash_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-# --- mimalloc ---
-set(MI_BUILD_SHARED OFF CACHE BOOL "Build mimalloc shared lib" FORCE)
-set(MI_BUILD_STATIC ON CACHE BOOL "Build mimalloc static lib" FORCE)
-set(MI_BUILD_TESTS OFF CACHE BOOL "Build mimalloc tests" FORCE)
-set(MI_OVERRIDE ON CACHE BOOL "Override standard malloc" FORCE)
-set(MI_INSTALL_TOPLEVEL OFF CACHE BOOL "Install mimalloc to top level" FORCE)
-
-FetchContent_Declare(
-    mimalloc
-    GIT_REPOSITORY https://github.com/microsoft/mimalloc.git
-    GIT_TAG        v2.1.7
-)
-FetchContent_MakeAvailable(mimalloc)
-
-if(NOT TARGET mimalloc-static AND TARGET mimalloc)
-    add_library(mimalloc-static ALIAS mimalloc)
-endif()
-
-if(TARGET mimalloc-obj)
-    target_compile_options(mimalloc-obj PRIVATE 
-        $<$<C_COMPILER_ID:MSVC>:/w>
-        $<$<NOT:$<C_COMPILER_ID:MSVC>>:-w>
-    )
-endif()
-if(TARGET mimalloc-static)
-    target_compile_options(mimalloc-static PRIVATE 
-        $<$<C_COMPILER_ID:MSVC>:/w>
-        $<$<NOT:$<C_COMPILER_ID:MSVC>>:-w>
-    )
-endif()
-
 # ==============================================================================
-# Project Configuration
-# ==============================================================================
-if(CMAKE_CROSSCOMPILING)
-    set(CMAKE_INSTALL_LIBDIR "lib")
-    set(CMAKE_INSTALL_BINDIR "bin")
-    set(CMAKE_INSTALL_INCLUDEDIR "include")
-else()
-    include(GNUInstallDirs)
-endif()
-
-include(CTest)
-enable_testing()
 
 # Header files
 set(HEADERS 
@@ -177,13 +143,17 @@ target_include_directories(solidc PUBLIC
 )
 target_include_directories(solidc PRIVATE ${xxhash_SOURCE_DIR})
 
-target_link_libraries(solidc PRIVATE mimalloc-static)
 
 # ==============================================================================
 # Platform-Specific Configuration
 # ==============================================================================
 
-if(WIN32 OR MINGW)
+# Platform-specific compile definitions
+if(WIN32)
+    target_compile_definitions(solidc PUBLIC _WIN32_WINNT=0x0601)  # Windows 7+
+endif()
+
+if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
     # Add the Windows-specific dirent implementation source
     list(APPEND HEADERS include/win32_dirent.h)
     target_sources(solidc PRIVATE src/win32_dirent.c)
@@ -193,6 +163,7 @@ if(WIN32 OR MINGW)
         WIN32_LEAN_AND_MEAN
         NOMINMAX
     )
+
     target_link_libraries(solidc PUBLIC ws2_32 advapi32 kernel32)
     
     if(MINGW)
@@ -201,7 +172,7 @@ if(WIN32 OR MINGW)
 
     if(MSVC)
         target_compile_options(solidc PRIVATE
-            /W4 /wd4201 /wd4996 /wd5105 /experimental:c11atomics /wd4324
+            /W4 /wd4201 /wd4996 /wd5105 /wd4324 /experimental:c11atomics 
         )
     else()
         target_compile_options(solidc PRIVATE -Wall -Wextra -Wno-unused-function)
@@ -257,6 +228,11 @@ elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
         target_compile_options(solidc PUBLIC -mfpu=neon)
     endif()
 endif()
+
+# Project Configuration
+# ==============================================================================
+include(CTest)
+enable_testing()
 
 # ==============================================================================
 # Installation

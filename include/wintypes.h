@@ -9,6 +9,9 @@
 #include <sys/types.h>  // mode_t
 #include <windows.h>    // Windows HANDLE, etc.
 
+// Must come after windows.
+#include <wincrypt.h>  // For Cryptographic functions on windows
+
 // File access flags
 #define O_RDONLY     _O_RDONLY
 #define O_WRONLY     _O_WRONLY

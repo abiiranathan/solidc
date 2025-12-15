@@ -9,8 +9,12 @@
 
 #ifdef _WIN32
 #include <io.h>  // for _access
-#define ACCESS   _access
-#define X_OK     0         // Windows doesn't have X_OK, just check existence
+#define ACCESS _access
+#ifndef X_OK
+// Windows doesn't have X_OK, but MinGW does.
+#define X_OK 0
+#endif
+
 #define PATH_SEP ";"       // Windows uses semicolon
 #define DIR_SEP  "\\"      // Windows directory separator
 #define strtok_r strtok_s  // MSVC equivalent
@@ -833,7 +837,7 @@ void NANOSLEEP(long seconds, long nanoseconds) {
 #ifdef _WIN32
     // On Windows, Sleep works in milliseconds,
     // so we convert seconds and nanoseconds to milliseconds
-    long total_milliseconds = seconds * 1000 + nanoseconds / 1000000;
+    unsigned long total_milliseconds = (unsigned)(seconds * 1000 + nanoseconds / 1000000);
     Sleep(total_milliseconds);
 #else
     // On Linux/Unix, we can use nanosleep directly
@@ -972,8 +976,8 @@ ProcessError process_run_and_capture(const char* command, const char* const argv
         return err;
     }
 
-    ProcessResult res;
-    err = process_wait(proc, &res, -1);
+    ProcessResult res = {0};
+    err               = process_wait(proc, &res, -1);
     process_free(proc);
 
     if (exit_code) {

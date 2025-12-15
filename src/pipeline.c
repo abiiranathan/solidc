@@ -36,14 +36,14 @@ CommandNode* create_command_node(char** args) {
  * command.
  */
 void execute_pipeline(CommandNode* head, int output_fd) {
-    int pipefd[2];
+    int pipefd[2]          = {0};
     int prev_pipe_read_end = -1;
     CommandNode* current   = head;
-    STARTUPINFO si;
-    PROCESS_INFORMATION pi;
-    HANDLE* proc_handles = NULL;
-    int proc_count       = 0;
-    int command_count    = 0;
+    STARTUPINFO si         = {0};
+    PROCESS_INFORMATION pi = {0};
+    HANDLE* proc_handles   = NULL;
+    DWORD proc_count       = 0;
+    DWORD command_count    = 0;
 
     // Count commands first to allocate handles array
     CommandNode* count_node = head;
@@ -52,9 +52,9 @@ void execute_pipeline(CommandNode* head, int output_fd) {
         count_node = count_node->next;
     }
 
-    proc_handles = (HANDLE*)malloc(command_count * sizeof(HANDLE));
+    proc_handles = (HANDLE*)calloc(command_count, sizeof(HANDLE));
     if (!proc_handles) {
-        perror("malloc");
+        perror("calloc");
         exit(EXIT_FAILURE);
     }
 
@@ -148,7 +148,7 @@ void execute_pipeline(CommandNode* head, int output_fd) {
     WaitForMultipleObjects(proc_count, proc_handles, TRUE, INFINITE);
 
     // Close process handles
-    for (int i = 0; i < proc_count; i++) {
+    for (size_t i = 0; i < proc_count; i++) {
         CloseHandle(proc_handles[i]);
     }
 

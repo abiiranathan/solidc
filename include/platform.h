@@ -8,6 +8,7 @@
 
 // Windows-specific type definitions
 #ifdef _WIN32
+#include <windows.h>
 // ssize_t is not defined in Windows
 #ifndef _SSIZE_T_DEFINED
 #define _SSIZE_T_DEFINED

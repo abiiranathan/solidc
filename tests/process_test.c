@@ -202,7 +202,7 @@ void test_process_inherit_environment(void) {
     LOG_ASSERT(err == PROCESS_SUCCESS, "pipe_create failed: %s", process_error_string(err));
 
     // Set an environment variable in the current process
-    setenv("TEST_INHERITED_VAR", "inherited_value", 1);
+    SETENV("TEST_INHERITED_VAR", "inherited_value", 1);
 
     const char* cmd    = "sh";
     const char* argv[] = {cmd, "-c", "echo $TEST_INHERITED_VAR", NULL};
@@ -231,7 +231,7 @@ void test_process_inherit_environment(void) {
 
     process_free(process);
     pipe_close(stdout_pipe);
-    unsetenv("TEST_INHERITED_VAR");
+    UNSETENV("TEST_INHERITED_VAR");
 }
 
 /**

@@ -164,8 +164,8 @@ static int __islink(const wchar_t* name, char* buffer) {
         CreateFileW(name, 0, 0, NULL, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, 0);
     if (hFile == INVALID_HANDLE_VALUE) return 0;
 
-    io_result = DeviceIoControl(hFile, FSCTL_GET_REPARSE_POINT, NULL, 0, buffer, MAXIMUM_REPARSE_DATA_BUFFER_SIZE,
-                                &bytes_returned, NULL);
+    io_result = (DWORD)DeviceIoControl(hFile, FSCTL_GET_REPARSE_POINT, NULL, 0, buffer,
+                                       MAXIMUM_REPARSE_DATA_BUFFER_SIZE, &bytes_returned, NULL);
 
     CloseHandle(hFile);
 
@@ -203,7 +203,8 @@ static __ino_t __inode(const wchar_t* name) {
     if (!hKernel32) return value;
 
     pfnGetFileInformationByHandleEx fnGetFileInformationByHandleEx =
-        (pfnGetFileInformationByHandleEx)GetProcAddress(hKernel32, "GetFileInformationByHandleEx");
+        (pfnGetFileInformationByHandleEx)(void*)GetProcAddress(hKernel32, "GetFileInformationByHandleEx");
+
     if (!fnGetFileInformationByHandleEx) return value;
 
     HANDLE hFile = CreateFileW(name, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, 0);
@@ -230,18 +231,17 @@ static DIR* __internal_opendir(wchar_t* wname, int size) {
     struct __dir* data         = NULL;
     struct dirent* tmp_entries = NULL;
     static char default_char   = '?';
-    static wchar_t* prefix     = L"\\\\?\\";
     static wchar_t* suffix     = L"\\*.*";
     static int extra_prefix    = 4; /* use prefix "\\?\" to handle long file names */
     static int extra_suffix    = 4; /* use suffix "\*.*" to find everything */
     WIN32_FIND_DATAW w32fd     = {0};
     HANDLE hFindFile           = INVALID_HANDLE_VALUE;
-    static int grow_factor     = 2;
+    static size_t grow_factor  = 2;
     char* buffer               = NULL;
 
     BOOL relative = PathIsRelativeW(wname + extra_prefix);
 
-    memcpy(wname + size - 1, suffix, sizeof(wchar_t) * extra_suffix);
+    memcpy(wname + size - 1, suffix, sizeof(wchar_t) * (size_t)extra_suffix);
     wname[size + extra_suffix - 1] = 0;
 
     if (relative) {
@@ -261,7 +261,7 @@ static DIR* __internal_opendir(wchar_t* wname, int size) {
     wname[size - 1] = L'\\';
     data->count     = 16;
     data->index     = 0;
-    data->entries   = (struct dirent*)malloc(sizeof(struct dirent) * data->count);
+    data->entries   = (struct dirent*)malloc(sizeof(struct dirent) * (size_t)data->count);
     if (!data->entries) goto out_of_memory;
     buffer = malloc(MAXIMUM_REPARSE_DATA_BUFFER_SIZE);
     if (!buffer) goto out_of_memory;
@@ -287,7 +287,8 @@ static DIR* __internal_opendir(wchar_t* wname, int size) {
         data->entries[data->index].d_off     = data->index + 1;  // POSIX fix: offset to next entry
 
         if (++data->index == data->count) {
-            tmp_entries = (struct dirent*)realloc(data->entries, sizeof(struct dirent) * data->count * grow_factor);
+            tmp_entries =
+                (struct dirent*)realloc(data->entries, sizeof(struct dirent) * (size_t)data->count * grow_factor);
             if (!tmp_entries) goto out_of_memory;
             data->entries = tmp_entries;
             data->count *= grow_factor;
@@ -357,12 +358,12 @@ DIR* _wopendir(const wchar_t* name) {
         errno = ENOMEM;
         return NULL;
     }
-    size = (int)wcslen(name);
+    size = wcslen(name);
     if (size > NTFS_MAX_PATH) {
         free(wname);
         return NULL;
     }
-    memcpy(wname + 4, name, sizeof(wchar_t) * (size + 1));
+    memcpy(wname + 4, name, sizeof(wchar_t) * ((size_t)size + 1));
     dirp = __internal_opendir(wname, size + 5);
     free(wname);
     return dirp;
@@ -387,13 +388,13 @@ DIR* fdopendir(intptr_t fd) {
     }
 
     pfnGetFinalPathNameByHandleW fnGetFinalPathNameByHandleW =
-        (pfnGetFinalPathNameByHandleW)GetProcAddress(hKernel32, "GetFinalPathNameByHandleW");
+        (pfnGetFinalPathNameByHandleW)(void*)GetProcAddress(hKernel32, "GetFinalPathNameByHandleW");
     if (!fnGetFinalPathNameByHandleW) {
         errno = EINVAL;
         return NULL;
     }
 
-    int size = 0;
+    size_t size = 0;
     if (!wname) {
         errno = ENOMEM;
         return NULL;
@@ -513,7 +514,7 @@ intptr_t dirfd(DIR* dirp) {
 int scandir(const char* dirp, struct dirent*** namelist, int (*filter)(const struct dirent*),
             int (*compar)(const struct dirent**, const struct dirent**)) {
     struct dirent **entries = NULL, **tmp_entries = NULL;
-    long int i = 0, index = 0, count = 16;
+    unsigned long int i = 0, index = 0, count = 16;
     DIR* d             = opendir(dirp);
     struct __dir* data = (struct __dir*)d;
     if (!data) {
@@ -527,7 +528,8 @@ int scandir(const char* dirp, struct dirent*** namelist, int (*filter)(const str
         __seterrno(ENOMEM);
         return -1;
     }
-    for (i = 0; i < data->count; ++i) {
+
+    for (i = 0; i < (size_t)data->count; ++i) {
         if (!filter || filter(&data->entries[i])) {
             entries[index] = (struct dirent*)malloc(sizeof(struct dirent));
             if (!entries[index]) {

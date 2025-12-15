@@ -11,11 +11,11 @@ extern "C" {
 #endif
 
 #if !defined(STR_MIN_CAPACITY)
-#define STR_MIN_CAPACITY 16
+#define STR_MIN_CAPACITY 16U
 #endif
 
 #if !defined(STR_RESIZE_FACTOR)
-#define STR_RESIZE_FACTOR 1.5
+#define STR_RESIZE_FACTOR 1.5f
 #endif
 
 STATIC_CHECK_POWER_OF_2(STR_MIN_CAPACITY);

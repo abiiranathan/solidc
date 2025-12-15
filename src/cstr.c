@@ -25,7 +25,6 @@
 #define CSTR_GROWTH_FACTOR     2
 #define CSTR_MIN_HEAP_CAPACITY 16
 #define CSTR_MAX_SIZE          (SIZE_MAX / 2)  // Prevent overflow attacks
-#define STR_MIN_CAPACITY       16
 
 // Optimized string alignment for heap data.
 #if defined(__x86_64__) && defined(__AVX2__)
@@ -60,15 +59,15 @@
 struct cstr {
     union {
         struct {
+            /// @brief Pointer to heap-allocated string data
+            char* data;
+
             /// @brief Length of the string (excluding null terminator)
             size_t length;
 
             /// @brief Capacity with heap flag in MSB. Use CSTR_GET_HEAP_CAPACITY() to
             /// extract actual capacity.
             size_t capacity;
-
-            /// @brief Pointer to heap-allocated string data
-            char* data;
         } heap;
 
         struct {
@@ -190,36 +189,26 @@ static size_t calculate_growth_capacity(size_t current_cap, size_t min_needed) {
  * @pre s != NULL && !CSTR_IS_HEAP(s)
  * @pre capacity_needed > SSO_MAX_SIZE
  */
-static bool cstr_promote_to_heap(cstr* s, size_t capacity_needed) {
-    assert(!CSTR_IS_HEAP(s));
+static bool cstr_promote_to_heap(cstr* s, size_t new_capacity) {
+    // Calculate actual allocation size (powers of 2, etc.)
+    size_t cap = calculate_growth_capacity(SSO_MAX_SIZE, new_capacity);
+    if (cap == 0) return false;
 
-    // Prevent overflow attacks
-    if (capacity_needed > CSTR_MAX_SIZE) {
-        return false;
-    }
+    // Allocate the NEW memory first
+    char* new_mem = malloc(cap);
+    if (!new_mem) return false;
 
-    // Extract stack data before modifying the struct
-    size_t current_len = s->stack.len & SSO_LENGTH_MASK;
-    char stack_data[SSO_MAX_SIZE];
-    memcpy(stack_data, s->stack.data, current_len + 1);
+    // COPY data from Stack to the new Heap buffer
+    // We must do this BEFORE modifying the struct, because writing to
+    // s->heap members might overwrite s->stack.data members!
+    memcpy(new_mem, s->stack.data, s->stack.len);
 
-    // Calculate optimal capacity
-    size_t new_capacity = calculate_growth_capacity(SSO_MAX_SIZE, capacity_needed);
-    if (new_capacity == 0) {
-        return false;
-    }
-
-    char* new_data = ALIGNED_ALLOC(STR_ALIGNMENT, new_capacity);
-    if (!new_data) {
-        return false;
-    }
-
-    // Copy data and transition to heap mode
-    memcpy(new_data, stack_data, current_len + 1);
-
-    s->heap.data     = new_data;
-    s->heap.length   = current_len;
-    s->heap.capacity = CSTR_SET_HEAP_CAPACITY(new_capacity);
+    // Null terminate the new buffer
+    new_mem[s->stack.len] = '\0';
+    size_t old_len        = s->stack.len;
+    s->heap.data          = new_mem;
+    s->heap.length        = old_len;
+    s->heap.capacity      = CSTR_SET_HEAP_CAPACITY(cap);
 
     return true;
 }

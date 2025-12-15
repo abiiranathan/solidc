@@ -11,6 +11,7 @@
 #include "../include/cmp.h"
 #include "../include/lock.h"
 #include "../include/map.h"
+#include "../include/platform.h"
 
 // Default maximum load factor
 #define DEFAULT_MAX_LOAD_FACTOR   0.75f
@@ -84,6 +85,11 @@ static inline size_t calculate_new_capacity(size_t current) {
     return (new_cap < current) ? SIZE_MAX : new_cap;
 }
 
+// Wrapper to match HashFunction signature
+static inline size_t xxhash_wrapper(const void* key, size_t len) {
+    return (size_t)xxhash(key, (size_t)len);
+}
+
 // Map creation with better error handling and memory optimization
 HashMap* map_create(const MapConfig* config) {
     if (!config || !config->key_compare) {
@@ -121,7 +127,7 @@ HashMap* map_create(const MapConfig* config) {
     m->capacity        = capacity;
     m->tombstone_count = 0;
     m->max_load_factor = max_load_factor;
-    m->hash            = config->hash_func ? config->hash_func : xxhash;
+    m->hash            = config->hash_func ? config->hash_func : xxhash_wrapper;
     m->key_compare     = config->key_compare;
     m->key_free        = config->key_free;
     m->value_free      = config->value_free;

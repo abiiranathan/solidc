@@ -11,8 +11,8 @@ void print_cstr(const cstr* s) {
     if (!s) {
         printf("NULL\n");
     } else {
-        printf("\"%s\" (len=%zu, cap=%zu, heap=%d)\n", cstr_data_const(s), cstr_len(s),
-               cstr_capacity(s), cstr_allocated(s));
+        printf("\"%s\" (len=%zu, cap=%zu, heap=%d)\n", cstr_data_const(s), cstr_len(s), cstr_capacity(s),
+               cstr_allocated(s));
     }
 }
 
@@ -580,13 +580,12 @@ int main(void) {
 
         // Verify we got the expected number of splits
         const size_t expected_splits = 10;  // 10 pairs separated by ", "
-        printf("Splits=%lu\n", count);
+        printf("Splits=%zu\n", count);
         ASSERT(count == expected_splits && "long prose split count incorrect");
 
         // Verify first and last segments
         ASSERT_cstr_equals(arr[0], "It was the best of times", "long prose first element");
-        ASSERT_cstr_equals(arr[expected_splits - 1], "it was the winter of despair.",
-                           "long prose last element");
+        ASSERT_cstr_equals(arr[expected_splits - 1], "it was the winter of despair.", "long prose last element");
 
         // Verify a middle segment
         ASSERT_cstr_equals(arr[7], "it was the season of Darkness", "long prose middle element");

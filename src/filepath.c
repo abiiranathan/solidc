@@ -13,22 +13,14 @@
 // Length of the temporary directory prefix
 #define TEMP_PREF_PREFIX_LEN 12
 
-// Safe string copy with bounds checking
 static inline size_t safe_strlcpy(char* dst, const char* src, size_t size) {
-    if (!dst || !src || size == 0) return 0;
-
-    size_t srclen = 0;
-#ifdef _WIN32
-#define RSIZE_MAX (SIZE_MAX >> 1)
-    srclen = strnlen_s(src, RSIZE_MAX);
-#else
-    srclen = strnlen(src, size);
-#endif
-
-    size_t n = (srclen < size - 1) ? srclen : size - 1;
+    if (!dst || !src || size == 0) {
+        return 0;
+    }
+    size_t n = strnlen(src, size - 1);
     memcpy(dst, src, n);
     dst[n] = '\0';
-    return srclen;
+    return n;
 }
 
 // Generate a random string for temporary file/directory names.
@@ -810,6 +802,8 @@ void filepath_extension(const char* path, char* ext, size_t size) {
     safe_strlcpy(ext, dot ? dot : "", size);
 }
 
+#define BASENAME_MAX 512
+
 // Get filename without extension
 void filepath_nameonly(const char* path, char* name, size_t size) {
     if (!path || !name || size == 0) {
@@ -817,10 +811,17 @@ void filepath_nameonly(const char* path, char* name, size_t size) {
         return;
     }
 
-    char base[FILENAME_MAX] = {0};
-    filepath_basename(path, base, FILENAME_MAX);
+    char base[BASENAME_MAX] = {0};
+    filepath_basename(path, base, BASENAME_MAX);
     char* dot = strrchr(base, '.');
-    safe_strlcpy(name, base, dot ? (size_t)(dot - base + 1) : size);
+
+    size_t base_len   = strnlen(base, BASENAME_MAX);
+    size_t source_len = dot ? (size_t)(dot - base) : base_len;
+
+    // Don't exceed destination size
+    size_t to_copy = source_len < size - 1 ? source_len : size - 1;
+    memcpy(name, base, to_copy);
+    name[to_copy] = '\0';
 }
 
 // Get absolute path
@@ -985,25 +986,29 @@ char* filepath_join(const char* path1, const char* path2) {
     return joined;
 }
 
-// Join paths into buffer
 bool filepath_join_buf(const char* path1, const char* path2, char* abspath, size_t len) {
     if (!path1 || !path2 || !abspath || len == 0) {
-        if (abspath) abspath[0] = '\0';
+        if (abspath && len > 0) abspath[0] = '\0';
         errno = EINVAL;
         return false;
     }
 
-    size_t newlen = strlen(path1) + strlen(path2) + 2;
-    if (newlen > len) {
-        errno = ENAMETOOLONG;
+#ifdef _WIN32
+    // On Windows, decide which separator to use based on what path1 already uses
+    const char* sep = strchr(path1, '\\') ? "\\" : "/";
+    int result      = snprintf(abspath, len, "%s%s%s", path1, sep, path2);
+#else
+    int result = snprintf(abspath, len, "%s/%s", path1, path2);
+#endif
+
+    // Check for encoding error or truncation
+    if (result < 0 || (size_t)result >= len) {
+        // Ensure null-termination if truncated (snprintf does this, but good practice to be sure)
+        abspath[len - 1] = '\0';
+        errno            = ENAMETOOLONG;
         return false;
     }
 
-#ifdef _WIN32
-    snprintf(abspath, len, "%s%s%s", path1, strchr(path1, '\\') ? "\\" : "/", path2);
-#else
-    snprintf(abspath, len, "%s/%s", path1, path2);
-#endif
     return true;
 }
 

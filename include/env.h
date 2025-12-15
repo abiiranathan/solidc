@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include <stdlib.h>  // for getenv, setenv, secure_getenv (Linux)
+#include <stdlib.h>  // for getenv, setenv, unsetenv, secure_getenv (Linux)
 
 /**
  * Cross-platform environment variable access macros.
@@ -17,6 +17,10 @@ extern "C" {
  * SETENV: Sets environment variable value.
  *   - POSIX: Uses setenv(name, value, overwrite)
  *   - Windows: Uses _putenv_s(name, value) - always overwrites
+ *
+ * UNSETENV: Removes environment variable.
+ *   - POSIX: Uses unsetenv(name)
+ *   - Windows: Uses _putenv_s(name, "") to clear the variable
  */
 
 // Platform detection
@@ -37,6 +41,14 @@ extern "C" {
  * @return 0 on success, non-zero on failure
  */
 #define SETENV(name, value, overwrite) _putenv_s(name, value)
+
+/**
+ * Removes environment variable on Windows.
+ * @param name Variable name to remove
+ * @return 0 on success, non-zero on failure
+ * @note Windows unsets by setting to empty string
+ */
+#define UNSETENV(name) _putenv_s(name, "")
 #else
 // POSIX systems (Linux, macOS, BSD, etc.)
 /**
@@ -47,6 +59,13 @@ extern "C" {
  * @return 0 on success, -1 on failure
  */
 #define SETENV(name, value, overwrite) setenv(name, value, overwrite)
+
+/**
+ * Removes environment variable on POSIX systems.
+ * @param name Variable name to remove
+ * @return 0 on success, -1 on failure
+ */
+#define UNSETENV(name)                 unsetenv(name)
 #endif
 
 #ifdef __cplusplus

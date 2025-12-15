@@ -11,8 +11,8 @@ static void printLastErrorMessage(const char* prefix) {
     // create format flags
     DWORD flags = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS;
 
-    FormatMessageA(flags, NULL, WSAGetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errorText, 0,
-                   NULL);
+    FormatMessageA(flags, NULL, (DWORD)WSAGetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errorText,
+                   0, NULL);
 
     if (errorText != NULL) {
         fprintf(stderr, "%s failed with error %d: %s\n", prefix, WSAGetLastError(), errorText);
@@ -48,7 +48,6 @@ Socket* socket_create(int domain, int type, int protocol) {
         perror("malloc");
         return NULL;
     }
-    sock->handle = -1;
 #ifdef _WIN32
     sock->handle = socket(domain, type, protocol);
     if (sock->handle == INVALID_SOCKET) {
@@ -179,7 +178,7 @@ int socket_error(void) {
 
 void socket_strerror(int err, char* buffer, size_t size) {
 #ifdef _WIN32
-    FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, 0, buffer, size, NULL);
+    FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, (DWORD)err, 0, buffer, size, NULL);
 #else
 #if defined(__GLIBC__) || defined(__linux__)
     // GNU version returns char*
