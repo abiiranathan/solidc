@@ -125,8 +125,8 @@ jobs:
           name: solidc-windows-x64
           path: solidc-windows-x64.zip
 
-build-macos-x64:
-    runs-on: macos-14  # Use the stable Apple Silicon runner
+  build-macos-x64:
+    runs-on: macos-14 # Use the stable Apple Silicon runner
     steps:
       - uses: actions/checkout@v4
 
