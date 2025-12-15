@@ -36,7 +36,7 @@ static size_t get_num_fields(const char* line, char delim, char quote);
 static bool parse_csv_line(csv_line_params* args);
 
 static inline void set_default_config(CsvReader* reader) {
-    reader->delim       = ';';
+    reader->delim       = ',';
     reader->comment     = '#';
     reader->has_header  = true;
     reader->skip_header = false;
