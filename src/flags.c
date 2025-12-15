@@ -1,4 +1,5 @@
 #include "../include/flags.h"
+#include "../include/str_utils.h"
 
 #define INITIAL_CAPACITY  8
 #define ERR_BUF_SIZE      128

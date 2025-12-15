@@ -1,6 +1,7 @@
 #ifndef SOLIDC_H
 #define SOLIDC_H
 
+#include "align.h"
 #include "aligned_alloc.h"
 #include "arena.h"
 #include "array.h"
@@ -11,6 +12,7 @@
 #include "defer.h"
 #include "dotenv.h"
 #include "dynarray.h"
+#include "env.h"
 #include "file.h"
 #include "filepath.h"
 #include "flags.h"
@@ -24,13 +26,16 @@
 #include "map.h"
 #include "matrix.h"
 #include "pipeline.h"
+#include "platform.h"
 #include "process.h"
 #include "rwlock.h"
+#include "simd.h"
 #include "slist.h"
 #include "socket.h"
 #include "spinlock.h"
 #include "stdstreams.h"
 #include "str_to_num.h"
+#include "str_utils.h"
 #include "thread.h"
 #include "threadpool.h"
 #include "trie.h"

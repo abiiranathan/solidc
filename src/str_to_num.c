@@ -1,4 +1,5 @@
 #include "../include/str_to_num.h"
+#include "../include/str_utils.h"
 
 #include <errno.h>     // for errno, ERANGE
 #include <float.h>     // for FLT_EPSILON, DBL_EPSILON, FLT_MAX, DBL_MAX
@@ -9,7 +10,6 @@
 #include <stdio.h>    // for fprintf, stderr
 #include <stdlib.h>   // for strtod, strtof
 #include <string.h>   // for strlen
-#include <strings.h>  // for strcasecmp
 
 /** Internal helper for validating string input and performing base conversion. */
 static inline StoError validate_and_parse_signed(const char* str, int base, intmax_t* result) {

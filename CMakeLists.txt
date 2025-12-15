@@ -100,6 +100,7 @@ set(HEADERS
     include/linear_alg.h
     include/env.h
     include/platform.h
+    include/str_utils.h
 )
 
 # Source files
