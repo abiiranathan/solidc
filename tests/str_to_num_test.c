@@ -5,13 +5,14 @@
 #include "../include/cmp.h"
 
 // Utility macro for logging
-#define LOG_TEST_RESULT(test_name, condition)                                                      \
-    do {                                                                                           \
-        if (condition) {                                                                           \
-            printf("[PASS] %s\n", test_name);                                                      \
-        } else {                                                                                   \
-            printf("[FAIL] %s\n", test_name);                                                      \
-        }                                                                                          \
+#define LOG_TEST_RESULT(test_name, condition)                                                                          \
+    do {                                                                                                               \
+        if (condition) {                                                                                               \
+            printf("[PASS] %s\n", test_name);                                                                          \
+        } else {                                                                                                       \
+            printf("[FAIL] %s\n", test_name);                                                                          \
+            exit(1);                                                                                                   \
+        }                                                                                                              \
     } while (0)
 
 // Test function prototypes
@@ -138,7 +139,7 @@ void test_str_to_ulong_b(void) {
     LOG_TEST_RESULT("str_to_ulong_b invalid input", err == STO_INVALID);
 
     // Overflow input
-    err = str_to_ulong_base("ffffffffffffffff", 16, &result);
+    err = str_to_ulong_base("ffffffffffffffffffff", 16, &result);
     LOG_TEST_RESULT("str_to_ulong_b overflow input", err == STO_OVERFLOW);
 }
 
@@ -237,7 +238,7 @@ void test_str_to_u8(void) {
 
     // Underflow input
     err = str_to_u8("-1", &result);
-    LOG_TEST_RESULT("str_to_u8 underflow input", err == STO_OVERFLOW);
+    LOG_TEST_RESULT("str_to_u8 underflow input", err == STO_UNDERFLOW);
 }
 
 void test_str_to_i8(void) {
@@ -279,7 +280,7 @@ void test_str_to_u16(void) {
 
     // Underflow input
     err = str_to_u16("-1", &result);
-    LOG_TEST_RESULT("str_to_u16 underflow input", err == STO_OVERFLOW);
+    LOG_TEST_RESULT("str_to_u16 underflow input", err == STO_UNDERFLOW);
 }
 
 void test_str_to_i16(void) {
@@ -300,7 +301,7 @@ void test_str_to_i16(void) {
 
     // Underflow input
     err = str_to_i16("-32769", &result);
-    LOG_TEST_RESULT("str_to_i16 underflow input", err == STO_OVERFLOW);
+    LOG_TEST_RESULT("str_to_i16 overflow input", err == STO_OVERFLOW);
 }
 
 void test_str_to_u32(void) {
@@ -321,7 +322,7 @@ void test_str_to_u32(void) {
 
     // Underflow input
     err = str_to_u32("-1", &result);
-    LOG_TEST_RESULT("str_to_u32 underflow input", err == STO_OVERFLOW);
+    LOG_TEST_RESULT("str_to_u32 underflow input", err == STO_UNDERFLOW);
 }
 
 void test_str_to_i32(void) {
@@ -351,8 +352,7 @@ void test_str_to_u64(void) {
 
     // Valid input
     err = str_to_u64("18446744073709551615", &result);
-    LOG_TEST_RESULT("str_to_u64 valid input",
-                    err == STO_SUCCESS && result == 18446744073709551615ULL);
+    LOG_TEST_RESULT("str_to_u64 valid input", err == STO_SUCCESS && result == 18446744073709551615ULL);
 
     // Invalid input
     err = str_to_u64("abc", &result);
@@ -364,7 +364,7 @@ void test_str_to_u64(void) {
 
     // Underflow input
     err = str_to_u64("-1", &result);
-    LOG_TEST_RESULT("str_to_u64 underflow input", err == STO_OVERFLOW);
+    LOG_TEST_RESULT("str_to_u64 underflow input", err == STO_UNDERFLOW);
 }
 
 void test_str_to_i64(void) {
@@ -373,8 +373,7 @@ void test_str_to_i64(void) {
 
     // Valid input
     err = str_to_i64("9223372036854775807", &result);
-    LOG_TEST_RESULT("str_to_i64 valid input",
-                    err == STO_SUCCESS && result == 9223372036854775807LL);
+    LOG_TEST_RESULT("str_to_i64 valid input", err == STO_SUCCESS && result == 9223372036854775807LL);
 
     // Invalid input
     err = str_to_i64("abc", &result);

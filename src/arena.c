@@ -97,6 +97,10 @@ bool arena_restore(Arena* arena, size_t offset) {
 }
 
 static inline void* alloc_aligned_helper(Arena* arena, size_t aligned_size) {
+    if (aligned_size == 0) {
+        return NULL;
+    }
+
     const size_t new_head = arena->head + aligned_size;
     if (new_head > arena->size) {
         return NULL;

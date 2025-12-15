@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 // Define error codes
-typedef enum { STO_SUCCESS, STO_OVERFLOW, STO_INVALID } StoError;
+typedef enum { STO_SUCCESS, STO_OVERFLOW, STO_UNDERFLOW, STO_INVALID } StoError;
 
 /**
  * @brief Converts a string to a uint8_t.

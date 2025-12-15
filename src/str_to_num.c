@@ -1,15 +1,15 @@
 #include "../include/str_to_num.h"
-#include "../include/cmp.h"
 
 #include <errno.h>     // for errno, ERANGE
 #include <float.h>     // for FLT_EPSILON, DBL_EPSILON, FLT_MAX, DBL_MAX
 #include <inttypes.h>  // for strtoimax, strtoumax, intmax_t, uintmax_t
 #include <limits.h>    // for INT_MAX, UINT_MAX, etc.
-#include <stdbool.h>   // for bool, true, false
-#include <stdio.h>     // for fprintf, stderr
-#include <stdlib.h>    // for strtod, strtof
-#include <string.h>    // for strlen
-#include <strings.h>   // for strcasecmp
+#include <math.h>
+#include <stdbool.h>  // for bool, true, false
+#include <stdio.h>    // for fprintf, stderr
+#include <stdlib.h>   // for strtod, strtof
+#include <string.h>   // for strlen
+#include <strings.h>  // for strcasecmp
 
 /** Internal helper for validating string input and performing base conversion. */
 static inline StoError validate_and_parse_signed(const char* str, int base, intmax_t* result) {
@@ -21,7 +21,7 @@ static inline StoError validate_and_parse_signed(const char* str, int base, intm
     errno        = 0;
     *result      = strtoimax(str, &endptr, base);
 
-    // Check for conversion errors
+    // Check for standard ERANGE (overflow of intmax_t)
     if (errno == ERANGE) {
         return STO_OVERFLOW;
     }
@@ -40,11 +40,24 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
         return STO_INVALID;
     }
 
+    // Skip whitespace to correctly find the sign
+    const char* p = str;
+    while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r' || *p == '\v' || *p == '\f') {
+        p++;
+    }
+
+    // Check for negative input manually.
+    // Standard strtoumax wraps negative numbers (e.g. "-1" -> UINTMAX_MAX).
+    // For a strict "string to unsigned" conversion, negative input is an underflow.
+    if (*p == '-') {
+        return STO_UNDERFLOW;
+    }
+
     char* endptr = NULL;
     errno        = 0;
     *result      = strtoumax(str, &endptr, base);
 
-    // Check for conversion errors
+    // Check for standard conversion errors (overflow of uintmax_t)
     if (errno == ERANGE) {
         return STO_OVERFLOW;
     }
@@ -56,9 +69,12 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
 
     return STO_SUCCESS;
 }
-
 // NOLINTBEGIN(bugprone-macro-parentheses)
-/** Generic macro for signed integer conversion with range checking. */
+
+/**
+ * Generic macro for signed integer conversion with range checking.
+ * FIX: Explicitly check if the intmax_t result fits in the target type.
+ */
 #define IMPLEMENT_SIGNED_CONVERSION(func_name, type_name, type_max, type_min)                                          \
     StoError func_name(const char* str, type_name* result) {                                                           \
         if (result == NULL) {                                                                                          \
@@ -71,7 +87,8 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
             return err;                                                                                                \
         }                                                                                                              \
                                                                                                                        \
-        if (temp > (type_max) || temp < (type_min)) {                                                                  \
+        /* Range check before casting */                                                                               \
+        if (temp > (intmax_t)(type_max) || temp < (intmax_t)(type_min)) {                                              \
             return STO_OVERFLOW;                                                                                       \
         }                                                                                                              \
                                                                                                                        \
@@ -79,7 +96,10 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
         return STO_SUCCESS;                                                                                            \
     }
 
-/** Generic macro for unsigned integer conversion with range checking. */
+/**
+ * Generic macro for unsigned integer conversion with range checking.
+ * FIX: Explicitly check if the uintmax_t result fits in the target type.
+ */
 #define IMPLEMENT_UNSIGNED_CONVERSION(func_name, type_name, type_max)                                                  \
     StoError func_name(const char* str, type_name* result) {                                                           \
         if (result == NULL) {                                                                                          \
@@ -92,7 +112,8 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
             return err;                                                                                                \
         }                                                                                                              \
                                                                                                                        \
-        if (temp > (type_max)) {                                                                                       \
+        /* Range check before casting */                                                                               \
+        if (temp > (uintmax_t)(type_max)) {                                                                            \
             return STO_OVERFLOW;                                                                                       \
         }                                                                                                              \
                                                                                                                        \
@@ -113,7 +134,8 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
             return err;                                                                                                \
         }                                                                                                              \
                                                                                                                        \
-        if (temp > (type_max) || temp < (type_min)) {                                                                  \
+        /* Range check before casting */                                                                               \
+        if (temp > (intmax_t)(type_max) || temp < (intmax_t)(type_min)) {                                              \
             return STO_OVERFLOW;                                                                                       \
         }                                                                                                              \
                                                                                                                        \
@@ -134,7 +156,8 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
             return err;                                                                                                \
         }                                                                                                              \
                                                                                                                        \
-        if (temp > (type_max)) {                                                                                       \
+        /* Range check before casting */                                                                               \
+        if (temp > (uintmax_t)(type_max)) {                                                                            \
             return STO_OVERFLOW;                                                                                       \
         }                                                                                                              \
                                                                                                                        \
@@ -190,23 +213,13 @@ StoError str_to_float(const char* str, float* result) {
     if (str == NULL || result == NULL) {
         return STO_INVALID;
     }
-
     char* endptr = NULL;
     errno        = 0;
     *result      = strtof(str, &endptr);
-
-    // Check for invalid input
-    if (endptr == str || *endptr != '\0') {
-        return STO_INVALID;
-    }
-
-    // Check for overflow/underflow
+    if (endptr == str || *endptr != '\0') return STO_INVALID;
     if (errno == ERANGE) {
-        // Use comparison function for floating point overflow detection
-        const cmp_config_t config = {.epsilon = FLT_EPSILON};
-        if (cmp_float(*result, FLT_MAX, config) || cmp_float(*result, -FLT_MAX, config)) {
-            return STO_OVERFLOW;
-        }
+        if (isinf(*result) || fabsf(*result) > FLT_MAX) return STO_OVERFLOW;
+        if (*result == 0.0f || fabsf(*result) < FLT_MIN) return STO_UNDERFLOW;
     }
 
     return STO_SUCCESS;
@@ -216,25 +229,14 @@ StoError str_to_double(const char* str, double* result) {
     if (str == NULL || result == NULL) {
         return STO_INVALID;
     }
-
     char* endptr = NULL;
     errno        = 0;
     *result      = strtod(str, &endptr);
-
-    // Check for invalid input
-    if (endptr == str || *endptr != '\0') {
-        return STO_INVALID;
-    }
-
-    // Check for overflow/underflow
+    if (endptr == str || *endptr != '\0') return STO_INVALID;
     if (errno == ERANGE) {
-        // Use comparison function for floating point overflow detection
-        const cmp_config_t config = {.epsilon = DBL_EPSILON};
-        if (cmp_double(*result, DBL_MAX, config) || cmp_double(*result, -DBL_MAX, config)) {
-            return STO_OVERFLOW;
-        }
+        if (isinf(*result) || fabs(*result) > DBL_MAX) return STO_OVERFLOW;
+        if (*result == 0.0 || fabs(*result) < DBL_MIN) return STO_UNDERFLOW;
     }
-
     return STO_SUCCESS;
 }
 
@@ -274,7 +276,9 @@ const char* sto_error_string(StoError code) {
         case STO_INVALID:
             return "Invalid input string or null pointer";
         case STO_OVERFLOW:
-            return "Numeric overflow or underflow";
+            return "Numeric overflow";
+        case STO_UNDERFLOW:
+            return "Numeric overflow";
         default:
             return "Unknown error code";
     }

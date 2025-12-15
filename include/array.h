@@ -58,7 +58,6 @@ typedef enum {
 #define DARRAY_CHECK_NULL(ptr, err_code)                                                                               \
     do {                                                                                                               \
         if (DARRAY_UNLIKELY(!(ptr))) {                                                                                 \
-            DARRAY_ERROR(err_code, "null pointer");                                                                    \
             return;                                                                                                    \
         }                                                                                                              \
     } while (0)
@@ -66,7 +65,6 @@ typedef enum {
 #define DARRAY_CHECK_NULL_RET(ptr, err_code, ret_val)                                                                  \
     do {                                                                                                               \
         if (DARRAY_UNLIKELY(!(ptr))) {                                                                                 \
-            DARRAY_ERROR(err_code, "null pointer");                                                                    \
             return ret_val;                                                                                            \
         }                                                                                                              \
     } while (0)

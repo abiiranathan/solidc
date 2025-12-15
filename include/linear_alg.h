@@ -20,28 +20,19 @@ typedef struct {
 
 /**
  * Constructs an orthonormal basis from two input vectors using Gram-Schmidt orthogonalization.
- *
- * @param v0 First input vector (will be primary axis).
- * @param v1 Second input vector (will be projected to be orthogonal).
- * @return OrthonormalBasis (Right-handed).
  */
 static inline OrthonormalBasis orthonormalize(Vec3 v0, Vec3 v1) {
-    // Load into SIMD registers
     SimdVec3 sv0 = vec3_load(v0);
     SimdVec3 sv1 = vec3_load(v1);
 
-    // Normalize v0
     sv0 = vec3_normalize(sv0);
 
-    // Project v1 onto v0 and subtract to make orthogonal: v1 = v1 - dot(v1, v0) * v0
     float dot = vec3_dot(sv0, sv1);
     sv1       = vec3_sub(sv1, vec3_mul(sv0, dot));
     sv1       = vec3_normalize(sv1);
 
-    // Cross product for v2
     SimdVec3 sv2 = vec3_cross(sv0, sv1);
 
-    // Store results
     return (OrthonormalBasis){vec3_store(sv0), vec3_store(sv1), vec3_store(sv2)};
 }
 
@@ -55,10 +46,6 @@ typedef struct {
 
 /**
  * Computes eigenvalues/vectors of a symmetric 3x3 matrix using Jacobi iteration.
- *
- * @note Jacobi iteration is inherently scalar due to the need to access
- * pivoting elements at random indices (p, q). Vectorization overhead
- * usually exceeds benefits for 3x3.
  */
 static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
     EigenDecomposition result;
@@ -68,7 +55,6 @@ static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
     const float EPSILON = 1e-10f;
 
     for (int iter = 0; iter < MAX_ITERS; ++iter) {
-        // Find largest off-diagonal absolute value
         int p = 0, q = 1;
         float max = fabsf(A.m[0][1]);
 
@@ -93,7 +79,6 @@ static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
         float c   = cosf(phi);
         float s   = sinf(phi);
 
-        // Perform Jacobi rotation (Scalar)
         for (int r = 0; r < 3; ++r) {
             float arp = A.m[r][p];
             float arq = A.m[r][q];
@@ -112,7 +97,6 @@ static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
         A.m[q][q] = s * s * app + 2 * s * c * apq + c * c * aqq;
         A.m[p][q] = A.m[q][p] = 0.0f;
 
-        // Update eigenvectors
         for (int r = 0; r < 3; ++r) {
             float vrp = V.m[r][p];
             float vrq = V.m[r][q];
@@ -128,14 +112,11 @@ static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
 
 /**
  * Computes Singular Value Decomposition (SVD) of a 3x3 matrix.
- * A = U * S * V^T
  */
 static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
-    // Step 1: Compute ATA = A^T * A
-    // Manual multiplication is fastest for 3x3 here
     Mat3 ATA = {0};
-    for (int i = 0; i < 3; ++i) {      // col of A^T (row of A)
-        for (int j = 0; j < 3; ++j) {  // row of A^T (col of A)
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
             ATA.m[i][j] = 0.0f;
             for (int k = 0; k < 3; ++k) {
                 ATA.m[i][j] += A.m[i][k] * A.m[j][k];
@@ -143,11 +124,9 @@ static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
         }
     }
 
-    // Step 2: Eigen decomposition of ATA
     EigenDecomposition ed = mat3_eigen_symmetric(ATA);
     *V                    = ed.eigenvectors;
 
-    // Step 3: Sort eigenvalues/vectors (descending)
     int order[3]  = {0, 1, 2};
     float vals[3] = {ed.eigenvalues.x, ed.eigenvalues.y, ed.eigenvalues.z};
 
@@ -171,50 +150,41 @@ static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
     }
     *V = V_sorted;
 
-    // Step 4: Compute Singular Values
     S->x = sqrtf(fmaxf(0.0f, sorted_eigen.x));
     S->y = sqrtf(fmaxf(0.0f, sorted_eigen.y));
     S->z = sqrtf(fmaxf(0.0f, sorted_eigen.z));
 
-    // Step 5: Compute U = A * V * S^-1
-    // We treat U columns as SimdVec3 for calculation
     SimdVec3 colA[3] = {vec3_load((Vec3){A.m[0][0], A.m[0][1], A.m[0][2]}),
                         vec3_load((Vec3){A.m[1][0], A.m[1][1], A.m[1][2]}),
                         vec3_load((Vec3){A.m[2][0], A.m[2][1], A.m[2][2]})};
 
     float* s_arr = (float*)S;
-    for (int i = 0; i < 3; ++i) {  // For each column of U
+    for (int i = 0; i < 3; ++i) {
         float sigma = s_arr[i];
         if (sigma > 1e-6f) {
-            // U_col_i = (A * V_col_i) / sigma
             Vec3 v_col = {V->m[i][0], V->m[i][1], V->m[i][2]};
             SimdVec3 Av =
                 vec3_add(vec3_add(vec3_mul(colA[0], v_col.x), vec3_mul(colA[1], v_col.y)), vec3_mul(colA[2], v_col.z));
             SimdVec3 u_col = vec3_mul(Av, 1.0f / sigma);
-
-            // Store back to matrix
-            Vec3 res   = vec3_store(u_col);
-            U->m[i][0] = res.x;
-            U->m[i][1] = res.y;
-            U->m[i][2] = res.z;
+            Vec3 res       = vec3_store(u_col);
+            U->m[i][0]     = res.x;
+            U->m[i][1]     = res.y;
+            U->m[i][2]     = res.z;
         } else {
             U->m[i][0] = U->m[i][1] = U->m[i][2] = 0.0f;
         }
     }
 
-    // Step 6: Orthonormalize U if rank-deficient (using Cross Product)
     if (S->y > 1e-6f && S->z < 1e-6f) {
         SimdVec3 u0 = vec3_load((Vec3){U->m[0][0], U->m[0][1], U->m[0][2]});
         SimdVec3 u1 = vec3_load((Vec3){U->m[1][0], U->m[1][1], U->m[1][2]});
-        SimdVec3 u2 = vec3_cross(u0, u1);  // U2 = U0 x U1
-
-        Vec3 res   = vec3_store(u2);
-        U->m[2][0] = res.x;
-        U->m[2][1] = res.y;
-        U->m[2][2] = res.z;
+        SimdVec3 u2 = vec3_cross(u0, u1);
+        Vec3 res    = vec3_store(u2);
+        U->m[2][0]  = res.x;
+        U->m[2][1]  = res.y;
+        U->m[2][2]  = res.z;
     }
 
-    // Step 7: Fix det(U) = +1
     if (mat3_determinant(*U) < 0.0f) {
         U->m[2][0] = -U->m[2][0];
         U->m[2][1] = -U->m[2][1];
@@ -227,20 +197,19 @@ static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
  * A = Q * R
  */
 static inline void mat4_qr(Mat4 A, Mat4* Q, Mat4* R) {
-    // Load columns into SIMD registers
     SimdVec4 v[4], q[4];
     for (int i = 0; i < 4; ++i) {
-        v[i].v = A.cols[i];  // Direct access to underlying SIMD type
+        v[i].v = A.cols[i];
     }
 
     for (int i = 0; i < 4; ++i) {
         q[i] = v[i];
         for (int j = 0; j < i; ++j) {
-            float r    = vec4_dot(q[j], v[i]);
-            R->m[j][i] = r;
-
-            // q[i] = q[i] - r * q[j]
-            q[i] = vec4_sub(q[i], vec4_mul(q[j], r));
+            float r = vec4_dot(q[j], v[i]);
+            // Write to Upper Triangle (Col i, Row j)
+            // Assuming Mat4 m[col][row], this is m[i][j]
+            R->m[i][j] = r;
+            q[i]       = vec4_sub(q[i], vec4_mul(q[j], r));
         }
 
         float norm = vec4_length(q[i]);
@@ -248,17 +217,16 @@ static inline void mat4_qr(Mat4 A, Mat4* Q, Mat4* R) {
 
         R->m[i][i] = norm;
         q[i]       = vec4_mul(q[i], 1.0f / norm);
+
+        // Zero the Lower Triangle (Col j, Row i where i > j)
+        for (int j = 0; j < i; ++j) {
+            R->m[j][i] = 0.0f;
+        }
     }
 
-    // Store Q columns
     for (int i = 0; i < 4; ++i) {
         Q->cols[i] = q[i].v;
     }
-
-    // Zero lower triangle of R
-    for (int i = 0; i < 4; ++i)
-        for (int j = 0; j < i; ++j)
-            R->m[i][j] = 0.0f;
 }
 
 /**
@@ -270,17 +238,12 @@ static inline void mat4_power_iteration(Mat4 A, Vec4* eigenvector, float* eigenv
     float lambda_old = 0.0f;
 
     for (int iter = 0; iter < max_iter; ++iter) {
-        // Av = A * v (SIMD matrix-vector mul)
-        // We cast A to Mat4 to use the function from matrix.h
         Vec4 v_scalar  = vec4_store(v);
         Vec4 Av_scalar = mat4_mul_vec4(A, v_scalar);
         Av             = vec4_load(Av_scalar);
 
-        // lambda = dot(Av, v)
         *eigenvalue = vec4_dot(Av, v);
-
-        // Normalize
-        Av = vec4_normalize(Av);
+        Av          = vec4_normalize(Av);
 
         if (fabsf(*eigenvalue - lambda_old) < tol) {
             break;
@@ -292,11 +255,7 @@ static inline void mat4_power_iteration(Mat4 A, Vec4* eigenvector, float* eigenv
     *eigenvector = vec4_store(v);
 }
 
-/**
- * Computes the Frobenius norm of a 4x4 matrix using SIMD.
- */
 static inline float mat4_norm_frobenius(Mat4 A) {
-    // Sum of squares of all elements = Sum of dot product of each column with itself
     SimdVec4 c0 = {.v = A.cols[0]};
     SimdVec4 c1 = {.v = A.cols[1]};
     SimdVec4 c2 = {.v = A.cols[2]};
@@ -312,43 +271,29 @@ static inline float mat4_norm_frobenius(Mat4 A) {
 }
 
 static inline bool mat3_is_positive_definite(Mat3 A) {
-    // 1. Leading principal minor 1: A[0][0]
     if (A.m[0][0] <= 0.0f) return false;
-
-    // 2. Leading principal minor 2: det 2x2
     float det2 = A.m[0][0] * A.m[1][1] - A.m[1][0] * A.m[0][1];
     if (det2 <= 0.0f) return false;
-
-    // 3. Leading principal minor 3: det 3x3
     if (mat3_determinant(A) <= 0.0f) return false;
-
     return true;
 }
 
 static inline float mat4_condition_number(Mat4 A) {
-    float norm_A = mat4_norm_frobenius(A);
-    Mat4 A_inv   = mat4_inverse(A);
-
-    if (mat4_equal(A_inv, mat4_identity())) {
-        return FLT_MAX;  // Singular
-    }
-
+    float norm_A     = mat4_norm_frobenius(A);
+    Mat4 A_inv       = mat4_inverse(A);
     float norm_A_inv = mat4_norm_frobenius(A_inv);
     return norm_A * norm_A_inv;
 }
 
-// --- LU Decomposition & Solving (Scalar fallback for stability) ---
+// --- LU Decomposition & Solving ---
 
 static inline bool mat4_lu(Mat4 A, Mat4* L, Mat4* U, Mat4* P) {
     const float tolerance = 1e-6f;
     *U                    = A;
-
-    // Identity L and P
-    *L = mat4_identity();
-    *P = mat4_identity();
+    *L                    = mat4_identity();
+    *P                    = mat4_identity();
 
     for (int k = 0; k < 4; ++k) {
-        // Pivot
         int pivot_row = k;
         float max_val = fabsf(U->m[k][k]);
         for (int i = k + 1; i < 4; ++i) {
@@ -361,7 +306,6 @@ static inline bool mat4_lu(Mat4 A, Mat4* L, Mat4* U, Mat4* P) {
 
         if (max_val < tolerance) return false;
 
-        // Swap Rows
         if (pivot_row != k) {
             for (int j = 0; j < 4; ++j) {
                 float tmp;
@@ -379,7 +323,6 @@ static inline bool mat4_lu(Mat4 A, Mat4* L, Mat4* U, Mat4* P) {
             }
         }
 
-        // Eliminate
         for (int i = k + 1; i < 4; ++i) {
             float factor = U->m[k][i] / U->m[k][k];
             L->m[k][i]   = factor;
@@ -416,8 +359,6 @@ static inline Vec4 mat4_solve(Mat4 A, Vec4 b) {
     if (!mat4_lu(A, &L, &U, &P)) {
         return (Vec4){0};
     }
-
-    // Permute b: Pb
     Vec4 Pb;
     Pb.x = P.m[0][0] * b.x + P.m[1][0] * b.y + P.m[2][0] * b.z + P.m[3][0] * b.w;
     Pb.y = P.m[0][1] * b.x + P.m[1][1] * b.y + P.m[2][1] * b.z + P.m[3][1] * b.w;
