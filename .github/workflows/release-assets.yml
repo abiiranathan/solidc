@@ -125,8 +125,8 @@ jobs:
           name: solidc-windows-x64
           path: solidc-windows-x64.zip
 
-  build-macos-x64:
-    runs-on: macos-13
+build-macos-x64:
+    runs-on: macos-14  # Use the stable Apple Silicon runner
     steps:
       - uses: actions/checkout@v4
 
@@ -141,23 +141,11 @@ jobs:
             -DBUILD_SHARED_LIBS=OFF \
             -DBUILD_TESTS=OFF \
             -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 \
             -DCMAKE_C_STANDARD=${{env.CMAKE_C_STANDARD}}
 
       - name: Build
         run: cmake --build build --config ${{env.BUILD_TYPE}}
-
-      - name: Create artifact directory
-        run: |
-          mkdir -p artifact/lib artifact/include
-          cp build/libsolidc.a artifact/lib/
-          cp -r include/* artifact/include/
-          cd artifact && tar czf ../solidc-macos-x64.tar.gz .
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: solidc-macos-x64
-          path: solidc-macos-x64.tar.gz
 
   build-macos-arm64:
     runs-on: macos-14
