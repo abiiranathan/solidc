@@ -16,101 +16,223 @@ static inline size_t arena_align_up_custom(size_t n, size_t alignment) {
     return (n + (alignment - 1)) & ~(alignment - 1);
 }
 
-typedef struct Arena {
-    char* base;        // Memory buffer
-    size_t head;       // Current allocation offset (no longer atomic)
-    size_t size;       // Total arena size
-    bool owns_memory;  // Memory ownership flag
-} Arena;
+/** Represents a single memory block in the arena chain. */
+typedef struct ArenaBlock {
+    size_t head;              // Current allocation offset in this block
+    size_t size;              // Total size of this block
+    struct ArenaBlock* next;  // Next block in the chain
+#if defined(_MSC_VER) && !defined(__cplusplus)
+    char memory[1];  // MSVC C mode workaround
+#else
+    char memory[];  // C99 flexible array member
+#endif
+} ArenaBlock;
+
+// Arena structure contains pointers to head of linked list and current
+// block. Allocations happen in the current block.
+struct Arena {
+    ArenaBlock* first_block;    // Head of the block list
+    ArenaBlock* current_block;  // Current block for fast allocation
+    size_t default_block_size;  // Default size for new blocks
+};
+
+/**
+ * Creates a new arena block using a single allocation for metadata and buffer.
+ * @param size The size of the memory buffer within the block.
+ * @return Pointer to new block on success, NULL on failure.
+ */
+static ArenaBlock* arena_block_create(size_t size) {
+    // Calculate total allocation size: metadata + memory buffer
+    const size_t total_size = sizeof(ArenaBlock) + size;
+
+    // Check for overflow
+    if (total_size < size) {
+        fprintf(stderr, "arena_block_create: size overflow\n");
+        return NULL;
+    }
+
+    // Single allocation for block + memory
+    ArenaBlock* block = ALIGNED_ALLOC(ARENA_ALIGNMENT, total_size);
+    if (!block) {
+        perror("aligned_alloc");
+        return NULL;
+    }
+
+    block->head = 0;
+    block->size = size;
+    block->next = NULL;
+
+    return block;
+}
+
+/**
+ * Destroys an arena block and all subsequent blocks in the chain.
+ * @param block The first block to destroy.
+ */
+static void arena_block_destroy_chain(ArenaBlock* block) {
+    while (block) {
+        ArenaBlock* next = block->next;
+        ALIGNED_FREE(block);
+        block = next;
+    }
+}
+
+/**
+ * Attempts to allocate a new block and chain it to the arena.
+ * @param arena The arena to extend.
+ * @param min_size The minimum size required in the new block.
+ * @return true on success, false on allocation failure.
+ */
+static bool arena_extend(Arena* arena, size_t min_size) {
+    // Calculate new block size: max of default size and requested size
+    size_t new_block_size = arena->default_block_size;
+    if (min_size > new_block_size) {
+        new_block_size = arena_align_up(min_size);
+    }
+
+    ArenaBlock* new_block = arena_block_create(new_block_size);
+    if (!new_block) {
+        return false;
+    }
+
+    // Chain the new block
+    arena->current_block->next = new_block;
+    arena->current_block       = new_block;
+
+    return true;
+}
 
 Arena* arena_create(size_t arena_size) {
     if (arena_size < ARENA_MIN_SIZE) {
         arena_size = ARENA_MIN_SIZE;
     }
 
-    arena_size   = arena_align_up(arena_size);
+    arena_size = arena_align_up(arena_size);
+
     Arena* arena = malloc(sizeof(Arena));
     if (!arena) {
         perror("malloc arena");
         return NULL;
     }
 
-    char* memory = ALIGNED_ALLOC(ARENA_ALIGNMENT, arena_size);
-    if (!memory) {
-        perror("aligned_alloc");
+    ArenaBlock* first_block = arena_block_create(arena_size);
+    if (!first_block) {
         free(arena);
         return NULL;
     }
 
-    arena->head        = 0;
-    arena->size        = arena_size;
-    arena->base        = memory;
-    arena->owns_memory = true;
-
-    return arena;
-}
-
-Arena* arena_create_from_buffer(void* buffer, size_t buffer_size) {
-    if (!buffer || buffer_size < ARENA_MIN_SIZE) {
-        return NULL;
-    }
-
-    if ((uintptr_t)buffer & ALIGNMENT_MASK) {
-        fprintf(stderr, "arena_create_from_buffer(): buffer %p is not properly aligned\n", buffer);
-        return NULL;
-    }
-
-    Arena* arena = malloc(sizeof(Arena));
-    if (!arena) {
-        perror("malloc arena");
-        return NULL;
-    }
-
-    arena->head        = 0;
-    arena->size        = buffer_size;
-    arena->base        = buffer;
-    arena->owns_memory = false;
-
+    arena->first_block        = first_block;
+    arena->current_block      = first_block;
+    arena->default_block_size = arena_size;
     return arena;
 }
 
 void arena_destroy(Arena* arena) {
-    if (arena->owns_memory) {
-        ALIGNED_FREE(arena->base);
+    if (!arena) {
+        return;
     }
+
+    arena_block_destroy_chain(arena->first_block);
     free(arena);
 }
 
 void arena_reset(Arena* arena) {
-    arena->head = 0;
+    // Reset all blocks to empty state
+    ArenaBlock* block = arena->first_block;
+    while (block) {
+        block->head = 0;
+        block       = block->next;
+    }
+
+    // Reset current block to first block for allocation efficiency
+    arena->current_block = arena->first_block;
 }
 
 size_t arena_get_offset(Arena* arena) {
-    return arena->head;
+    // Calculate total bytes used across all blocks up to current
+    size_t total_offset = 0;
+    ArenaBlock* block   = arena->first_block;
+
+    while (block && block != arena->current_block) {
+        total_offset += block->size;
+        block = block->next;
+    }
+
+    if (block == arena->current_block) {
+        total_offset += arena->current_block->head;
+    }
+
+    return total_offset;
 }
 
 bool arena_restore(Arena* arena, size_t offset) {
-    if (offset > arena->head) return false;
+    size_t accumulated = 0;
+    ArenaBlock* block  = arena->first_block;
 
-    arena->head = offset;
-    return true;
+    // Find the block containing this offset
+    while (block) {
+        if (accumulated + block->size > offset) {
+            // Found the target block
+            size_t block_offset = offset - accumulated;
+
+            // Validate offset is not beyond current usage
+            if (block == arena->current_block && block_offset > block->head) {
+                return false;
+            }
+
+            // Reset blocks after the target block
+            ArenaBlock* reset_block = block->next;
+            while (reset_block) {
+                reset_block->head = 0;
+                reset_block       = reset_block->next;
+            }
+
+            // Set the target block state
+            block->head          = block_offset;
+            arena->current_block = block;
+            return true;
+        }
+
+        accumulated += block->size;
+        block = block->next;
+    }
+
+    return false;
 }
 
+/**
+ * Attempts to allocate from the current block or extends the arena.
+ * @param arena The arena to allocate from.
+ * @param aligned_size The aligned size to allocate.
+ * @return Pointer to allocated memory on success, NULL on failure.
+ */
 static inline void* alloc_aligned_helper(Arena* arena, size_t aligned_size) {
     if (aligned_size == 0) {
         return NULL;
     }
 
-    const size_t new_head = arena->head + aligned_size;
-    if (new_head > arena->size) {
+    ArenaBlock* block = arena->current_block;
+
+    // Try to allocate from current block
+    const size_t new_head = block->head + aligned_size;
+    if (new_head <= block->size) {
+        char* ptr   = block->memory + block->head;
+        block->head = new_head;
+        return ptr;
+    }
+
+    // Need to extend the arena with a new block
+    if (!arena_extend(arena, aligned_size)) {
         return NULL;
     }
-    char* ptr   = arena->base + arena->head;
-    arena->head = new_head;
+
+    // Allocate from the newly created block
+    block       = arena->current_block;
+    char* ptr   = block->memory;
+    block->head = aligned_size;
     return ptr;
 }
 
-// Ultra-fast allocation - simple pointer arithmetic, no atomic operations
 void* arena_alloc(Arena* arena, size_t size) {
     const size_t aligned_size = arena_align_up(size);
     return alloc_aligned_helper(arena, aligned_size);
@@ -122,36 +244,57 @@ void* arena_alloc_align(Arena* arena, size_t size, size_t alignment) {
 }
 
 bool arena_alloc_batch(Arena* arena, const size_t sizes[], size_t count, void* out_ptrs[]) {
-    size_t current_head = arena->head;
-
+    // Calculate total required space
+    size_t total_aligned = 0;
     for (size_t i = 0; i < count; i++) {
         const size_t aligned_size = arena_align_up(sizes[i]);
-        const size_t new_head     = current_head + aligned_size;
-
-        // Early exit on overflow
-        if (new_head > arena->size) {
-            return false;
-        }
-
-        out_ptrs[i]  = arena->base + current_head;
-        current_head = new_head;
+        total_aligned += aligned_size;
     }
 
-    arena->head = current_head;
+    // Fast path: try to allocate all from current block
+    ArenaBlock* block     = arena->current_block;
+    const size_t new_head = block->head + total_aligned;
+
+    if (new_head <= block->size) {
+        // All allocations fit in current block
+        size_t current_offset = block->head;
+        for (size_t i = 0; i < count; i++) {
+            out_ptrs[i] = block->memory + current_offset;
+            current_offset += arena_align_up(sizes[i]);
+        }
+        block->head = new_head;
+        return true;
+    }
+
+    // Slow path: allocate individually (may span multiple blocks)
+    for (size_t i = 0; i < count; i++) {
+        void* ptr = arena_alloc(arena, sizes[i]);
+        if (!ptr) {
+            // Allocation failed - batch allocation is atomic, so we fail
+            return false;
+        }
+        out_ptrs[i] = ptr;
+    }
     return true;
 }
 
-// Simplified string allocation without headers
 char* arena_strdup(Arena* arena, const char* str) {
-    const size_t len = strlen(str);
-    char* s          = arena_alloc(arena, len + 1);
+    if (!str) {
+        return NULL;
+    }
+    const size_t str_cap = strlen(str) + 1;
+    char* s              = arena_alloc(arena, str_cap);
     if (s) {
-        memcpy(s, str, len + 1);  // Copy null terminator too
+        memcpy(s, str, str_cap);
     }
     return s;
 }
 
 char* arena_strdupn(Arena* arena, const char* str, size_t length) {
+    if (!str || length == 0) {
+        return NULL;
+    }
+
     char* s = arena_alloc(arena, length + 1);
     if (s) {
         memcpy(s, str, length);
@@ -160,7 +303,6 @@ char* arena_strdupn(Arena* arena, const char* str, size_t length) {
     return s;
 }
 
-// Simplified int allocation
 int* arena_alloc_int(Arena* arena, int n) {
     int* number = arena_alloc(arena, sizeof(int));
     if (number) {
@@ -169,33 +311,39 @@ int* arena_alloc_int(Arena* arena, int n) {
     return number;
 }
 
-// Fast remaining space calculation
-size_t arena_remaining(Arena* arena) {
-    return arena->size - arena->head;
-}
-
-// Fast capacity check
-bool arena_can_fit(Arena* arena, size_t size) {
-    const size_t aligned_size = arena_align_up(size);
-    return aligned_size <= (arena->size - arena->head);
-}
-
 size_t arena_size(const Arena* arena) {
-    return arena->size;
+    // Calculate total capacity across all blocks
+    size_t total_size       = 0;
+    const ArenaBlock* block = arena->first_block;
+
+    while (block) {
+        total_size += block->size;
+        block = block->next;
+    }
+
+    return total_size;
 }
 
 size_t arena_used(Arena* arena) {
-    return arena->head;
+    // Calculate total bytes used across all blocks
+    size_t total_used = 0;
+    ArenaBlock* block = arena->first_block;
+
+    while (block) {
+        total_used += block->head;
+        block = block->next;
+    }
+
+    return total_used;
 }
 
-// Memory-efficient allocation for arrays
 void* arena_alloc_array(Arena* arena, size_t elem_size, size_t count) {
-    // Check for overflow
-    if (count > SIZE_MAX / elem_size) return NULL;
+    if (count > SIZE_MAX / elem_size) {
+        return NULL;
+    }
     return arena_alloc(arena, elem_size * count);
 }
 
-// Zero-initialized allocation
 void* arena_alloc_zero(Arena* arena, size_t size) {
     void* ptr = arena_alloc(arena, size);
     if (ptr) {

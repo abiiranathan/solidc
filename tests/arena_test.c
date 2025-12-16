@@ -170,16 +170,6 @@ void test_arena_alloc_array() {
     arena_destroy(arena);
 }
 
-void test_arena_create_from_buffer() {
-    static unsigned char buffer[1024];
-    Arena* arena = arena_create_from_buffer(buffer, sizeof(buffer));
-    ASSERT(arena && "failed to create arena from buffer");
-
-    int* ptr = arena_alloc(arena, sizeof(int));
-    ASSERT(ptr);
-    print_test_result("Arena Create From Buffer", 1);
-}
-
 int main() {
     // Run all tests
     test_basic_allocations();
@@ -187,7 +177,6 @@ int main() {
     test_arena_alloc_array();
     test_multithreaded_allocations();
     stress_test_arena();
-    test_arena_create_from_buffer();
 
     // Test some macros
     TIME_BLOCK_MS("for loop duration", {

@@ -17,12 +17,26 @@ extern "C" {
 // CONSTANTS
 // =============================================================================
 
+// Alignment for the arena pointers.
 #define ARENA_ALIGNMENT 8UL
 
 /** Minimum arena size in bytes */
 #define ARENA_MIN_SIZE 1024UL
 
-// Opaque arena structure.
+/**
+ * Opaque arena structure.
+ *
+ * Arena provides fast, bump-pointer allocation with automatic block chaining.
+ * Allocations are extremely fast (simple pointer arithmetic) and memory is
+ * automatically freed when the arena is destroyed. Individual allocations
+ * cannot be freed; instead, use arena_reset() to reclaim all memory at once.
+ *
+ * Arenas automatically extend by allocating new blocks when the current block
+ * is exhausted, allowing growth beyond the initial capacity.
+ *
+ * @note Not thread-safe. External synchronization required for concurrent access.
+ * @see arena_create(), arena_destroy(), arena_alloc(), arena_reset()
+ */
 typedef struct Arena Arena;
 
 /**
@@ -32,16 +46,6 @@ typedef struct Arena Arena;
  * @return Pointer to the new Arena, or NULL on failure
  */
 Arena* arena_create(size_t arena_size);
-
-/**
- * Create a thread-safe arena from an existing aligned buffer.
- * The buffer must be aligned to 32-byte boundaries.
- *
- * @param buffer Pre-allocated buffer (must be 32-byte aligned)
- * @param buffer_size Size of the buffer in bytes
- * @return Pointer to the new Arena, or NULL on failure
- */
-Arena* arena_create_from_buffer(void* buffer, size_t buffer_size);
 
 /**
  * Destroy the arena and free all associated memory.
@@ -131,23 +135,6 @@ char* arena_strdupn(Arena* arena, const char* str, size_t length);
  * @return Pointer to allocated integer, or NULL on failure
  */
 int* arena_alloc_int(Arena* arena, int n);
-
-/**
- * Get the remaining available space in the arena.
- *
- * @param arena Target arena
- * @return Number of bytes remaining
- */
-size_t arena_remaining(Arena* arena);
-
-/**
- * Check if the arena can fit an allocation of the specified size.
- *
- * @param arena Target arena
- * @param size Size to check
- * @return true if the allocation would fit, false otherwise
- */
-bool arena_can_fit(Arena* arena, size_t size);
 
 /**
  * Get the total size of the arena.
