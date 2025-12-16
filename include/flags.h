@@ -1,9 +1,10 @@
-/*
+/**
  * @file flags.h
+ * @brief Command-line flag parsing library.
  *
  * A robust, single-file C flag parsing library.
- *
  */
+
 #ifndef FLAGS_H
 #define FLAGS_H
 

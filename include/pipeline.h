@@ -1,3 +1,8 @@
+/**
+ * @file pipeline.h
+ * @brief Data pipeline utilities for processing streams.
+ */
+
 #ifndef PIPELINE_H
 #define PIPELINE_H
 

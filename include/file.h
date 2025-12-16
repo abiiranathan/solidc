@@ -1,3 +1,8 @@
+/**
+ * @file file.h
+ * @brief Cross-platform file handling API with synchronous and asynchronous I/O support.
+ */
+
 #ifndef SOLIDC_FILE_H
 #define SOLIDC_FILE_H
 

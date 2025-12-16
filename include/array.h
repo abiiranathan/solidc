@@ -1,3 +1,8 @@
+/**
+ * @file array.h
+ * @brief Dynamic array implementation with type safety and performance optimizations.
+ */
+
 #ifndef __ARRAY__H__
 #define __ARRAY__H__
 

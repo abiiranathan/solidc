@@ -1,3 +1,8 @@
+/**
+ * @file env.h
+ * @brief Environment variable utilities and safe access functions.
+ */
+
 #ifndef ENV_H
 #define ENV_H
 

@@ -1,3 +1,8 @@
+/**
+ * @file trie.h
+ * @brief Trie data structure implementation for efficient string storage and retrieval.
+ */
+
 #include <stdbool.h>  // for bool type
 #include <stdint.h>   // for uint32_t
 #include <stdio.h>    // for fprintf, stderr

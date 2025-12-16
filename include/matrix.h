@@ -1,3 +1,8 @@
+/**
+ * @file matrix.h
+ * @brief Matrix operations and mathematical utilities.
+ */
+
 #ifndef MATRIX_H
 #define MATRIX_H
 

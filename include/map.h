@@ -1,3 +1,8 @@
+/**
+ * @file map.h
+ * @brief Generic hash map implementation with customizable hashing and load balancing.
+ */
+
 #ifndef SOLIDC_MAP_H
 #define A02E572A_DDD85_4D77_AC81_41037EDE290A
 

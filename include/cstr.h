@@ -1,3 +1,8 @@
+/**
+ * @file cstr.h
+ * @brief C string utilities and safe string operations.
+ */
+
 #ifndef CSTR_H
 #define CSTR_H
 

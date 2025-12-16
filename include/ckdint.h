@@ -1,3 +1,8 @@
+/**
+ * @file ckdint.h
+ * @brief Checked integer arithmetic to prevent overflow.
+ */
+
 #ifndef SOLIDC_CKDINT_H
 #define SOLIDC_CKDINT_H
 

@@ -1,3 +1,8 @@
+/**
+ * @file list.h
+ * @brief Doubly linked list implementation with memory management.
+ */
+
 #ifndef LIST_H
 #define LIST_H
 

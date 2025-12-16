@@ -1,3 +1,8 @@
+/**
+ * @file str_to_num.h
+ * @brief String to number conversion utilities.
+ */
+
 #ifndef D098E3F2_2EEB_4E1A_892A_156C7D7533C3
 #define D098E3F2_2EEB_4E1A_892A_156C7D7533C3
 

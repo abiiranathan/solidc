@@ -1,3 +1,8 @@
+/**
+ * @file arena.h
+ * @brief Arena-based memory allocator for efficient bulk allocations.
+ */
+
 #ifndef ARENA_H
 #define ARENA_H
 

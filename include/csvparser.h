@@ -1,10 +1,8 @@
 /**
- * @file csv_parser.h
- * @brief CSV Parser Library
+ * @file csvparser.h
+ * @brief CSV Parser Library: Provides functions for parsing CSV (Comma-Separated Values) data.
  *
- * This library provides functions for parsing CSV (Comma-Separated Values)
- * data. It allows you to read and manipulate CSV files with ease.
- */
+ **/
 #ifndef __CSV_PARSER_H__
 #define __CSV_PARSER_H__
 

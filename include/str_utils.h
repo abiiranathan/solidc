@@ -1,3 +1,8 @@
+/**
+ * @file str_utils.h
+ * @brief String utility functions for manipulation and processing.
+ */
+
 #ifndef STR_UTILS_H
 #define STR_UTILS_H
 

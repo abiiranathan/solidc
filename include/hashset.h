@@ -1,3 +1,8 @@
+/**
+ * @file hashset.h
+ * @brief Hash set implementation for unique element storage.
+ */
+
 #ifndef __HASHSET_H__
 #define __HASHSET_H__
 

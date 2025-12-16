@@ -18,6 +18,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/**
+ * @file win32_dirent.h
+ * @brief Windows directory entry compatibility for POSIX dirent.h.
+ */
+
 #pragma once
 
 #ifndef __DIRENT_H_9DE6B42C_8D0C_4D31_A8EF_8E4C30E6C46A__

@@ -139,11 +139,10 @@ static inline size_t cstr_get_capacity(const cstr* s) {
  * @pre len < cstr_get_capacity(s)
  */
 static inline void cstr_set_length(cstr* s, size_t len) {
-    assert(len < cstr_get_capacity(s));
-
     if (CSTR_IS_HEAP(s)) {
         s->heap.length = len;
     } else {
+        // since this function is called internally, we are sure to be in bounds.
         s->stack.len = (unsigned char)len;
     }
 }

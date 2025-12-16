@@ -1,3 +1,8 @@
+/**
+ * @file cache.h
+ * @brief Cache management utilities for performance optimization.
+ */
+
 #ifndef CACHE_H
 #define CACHE_H
 

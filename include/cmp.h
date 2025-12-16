@@ -1,5 +1,5 @@
 /**
- * @file solidc_cmp.h
+ * @file cmp.h
  * @brief Floating-point comparison library for precise and robust comparisons.
  *
  * This library provides functions and macros for comparing floating-point numbers
@@ -203,7 +203,7 @@ static inline bool cmp_long_double(long double a, long double b, cmp_config_t co
  * @example Example usage
  * @code
  * #include <stdio.h>
- * #include "solidc_cmp.h"
+ * #include <solidc/cmp.h>
  *
  * int main() {
  *     float a = 1.0f, b = 1.0000001f;

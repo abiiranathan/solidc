@@ -1,3 +1,8 @@
+/**
+ * @file wintypes.h
+ * @brief Windows-specific type definitions and compatibility macros for cross-platform development.
+ */
+
 #ifndef FLAGS_H
 #define FLAGS_H
 

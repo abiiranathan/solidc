@@ -1,3 +1,8 @@
+/**
+ * @file solidc.h
+ * @brief Master header file that includes all SolidC library modules.
+ */
+
 #ifndef SOLIDC_H
 #define SOLIDC_H
 

@@ -1,3 +1,8 @@
+/**
+ * @file aligned_alloc.h
+ * @brief Aligned memory allocation functions for cross-platform support.
+ */
+
 #ifndef ALIGNED_ALLOC_H
 #define ALIGNED_ALLOC_H
 

@@ -1,3 +1,8 @@
+/**
+ * @file slist.h
+ * @brief Singly linked list implementation for efficient insertions and deletions.
+ */
+
 #ifndef __SLISTS__H
 #define __SLISTS__H
 

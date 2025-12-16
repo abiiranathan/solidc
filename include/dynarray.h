@@ -1,3 +1,8 @@
+/**
+ * @file dynarray.h
+ * @brief Dynamic array implementation with automatic resizing.
+ */
+
 #ifndef DYNARRAY_H
 #define DYNARRAY_H
 

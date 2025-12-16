@@ -1,3 +1,8 @@
+/**
+ * @file threadpool.h
+ * @brief Thread pool implementation for concurrent task execution.
+ */
+
 #ifndef __THREADPOOL_H__
 #define __THREADPOOL_H__
 

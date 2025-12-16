@@ -1,3 +1,8 @@
+/**
+ * @file rwlock.h
+ * @brief Read-write lock implementation for concurrent access.
+ */
+
 #ifndef __RWLOCK_H__
 #define __RWLOCK_H__
 

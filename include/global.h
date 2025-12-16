@@ -1,3 +1,8 @@
+/**
+ * @file global.h
+ * @brief Global variable management and DLL export definitions.
+ */
+
 #ifndef SOLIDC_GLOBAL_H
 #define SOLIDC_GLOBAL_H
 

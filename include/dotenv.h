@@ -1,3 +1,8 @@
+/**
+ * @file dotenv.h
+ * @brief Environment variable loading from .env files.
+ */
+
 #ifndef DOTENV_H
 #define DOTENV_H
 

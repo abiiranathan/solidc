@@ -1,3 +1,8 @@
+/**
+ * @file socket.h
+ * @brief Cross-platform socket programming utilities.
+ */
+
 #ifndef SOCKET_H
 #define SOCKET_H
 

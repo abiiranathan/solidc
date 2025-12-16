@@ -1,3 +1,8 @@
+/**
+ * @file hash.h
+ * @brief Collection of fast, non-cryptographic hash functions including MurmurHash, xxHash, and others.
+ */
+
 #ifndef A02E572A_DD85_4D77_AC81_41037EDE290A
 #define A02E572A_DD85_4D77_AC81_41037EDE290A
 

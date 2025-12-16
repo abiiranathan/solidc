@@ -3,7 +3,7 @@
 
 /**
  * @file epoll.h
- * @brief Cross-platform event notification API (epoll/kqueue abstraction)
+ * @brief Cross-platform (Linux epoll and BSD/macOS kqueue) event notification API (epoll/kqueue abstraction)
  *
  * Provides a unified interface for Linux epoll and BSD/macOS kqueue.
  * This is a standalone API imported on-demand for POSIX systems.

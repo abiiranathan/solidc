@@ -1,3 +1,8 @@
+/**
+ * @file macros.h
+ * @brief Collection of utility macros for assertions, memory management, math, and debugging.
+ */
+
 #ifndef __SOLIDC_MACROS__
 #define __SOLIDC_MACROS__
 

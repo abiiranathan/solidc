@@ -1,3 +1,8 @@
+/**
+ * @file xtime.h
+ * @brief Extended time utilities and high-precision timing functions.
+ */
+
 #ifndef XTIME_H
 #define XTIME_H
 

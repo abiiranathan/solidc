@@ -1,3 +1,8 @@
+/**
+ * @file defer.h
+ * @brief Defer statement implementation for automatic resource cleanup.
+ */
+
 #ifndef __DEFER__H
 #define __DEFER__H
 

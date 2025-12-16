@@ -1,3 +1,8 @@
+/**
+ * @file align.h
+ * @brief Memory alignment utilities and macros for cross-platform alignment.
+ */
+
 #if defined(_MSC_VER)
 /* MSVC (Windows) */
 #define ALIGN(x) __declspec(align(x))
