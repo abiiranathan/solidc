@@ -6,39 +6,18 @@
 
 ## ✨ Features
 
-- **Cross-platform**: Works on Linux, Windows (via MinGW), and WebAssembly (via Emscripten).
+- **Cross-platform**: Works on Linux(and FreeBSD), Windows, Mac(OSX and ARM64).
 - **Lightweight & Efficient**: Minimal dependencies and fast execution.
-- **Well-tested**: Every module is tested and follows strict C standards.
-- **Modular**: Choose and link only the modules you need.
-- **Modern C (C23)**: Fully compatible with the latest C standards.
+- **Well-tested**: Every module is tested and follows strict C 11 standards.
+- **Modular**: Modular design for ease of extension and maintenance.
+- **Support for C11**: Compiles on any modern C11 compiler for maximum portability.
 
 ---
 
 ## ⚙️ Build System
 
-Solidc uses a flexible `Makefile` and `CMake` setup with support for:
-
-### 🔧 Configurable Makefile Variables
-
-```make
-# CROSS_COMPILER: Path to the cross-compiler for Windows builds (MinGW)
-CROSS_COMPILER ?= /usr/bin/x86_64-w64-mingw32-cc
-
-# SYSTEM_NAME: Target system for CMake.
-# Allowed values: Linux, Windows, WebAssembly (WASI)
-SYSTEM_NAME ?= Linux
-
-# RELEASE: Build type.
-# Allowed values: Debug, Release
-RELEASE ?= Debug
-
-# TARGET: Target environment.
-# Allowed values:
-#   native  - Build for the host system (e.g., Linux)
-#   cross   - Cross-compile for Windows using MinGW
-#   wasm    - Compile to WebAssembly using Emscripten
-TARGET ?= native
-```
+Solidc uses `Cmake` as the build system. A Makefile only exists to drive the cmake build
+pipeline.
 
 ---
 
@@ -51,43 +30,13 @@ git clone https://github.com/abiiranathan/solidc.git
 cd solidc
 ```
 
-### 2. Build with Make (Recommended)
+### 2. Build with CMake (Driven by the Makefile)
 
 ```bash
-make        # Default build: native Debug
-make release    # Release build
-make cross      # Cross-compile for Windows
-make wasm       # Build for WebAssembly (requires emcc)
-sudo make install
+make            # Default build: native Debug
+make release    # Release build or debug
+make install    # May require root if prefix is /usr/local
 ```
-
-You can customize the build:
-
-```bash
-make TARGET=cross SYSTEM_NAME=Windows CROSS_COMPILER=/usr/bin/x86_64-w64-mingw32-cc
-make TARGET=wasm SYSTEM_NAME=WebAssembly WASM_CC=emcc
-```
-
----
-
-## 🧱 Dependencies
-
-| Platform                                     | Command                                                                              |
-| -------------------------------------------- | ------------------------------------------------------------------------------------ |
-| **Arch Linux**                               | `sudo pacman -S xxhash mimalloc`                                                     |
-| **Manjaro / AUR**                            | `yay -S xxhash mimalloc` <br>or `paru -S xxhash mimalloc`                            |
-| **Manjaro / MingW**                          | `paru -S mingw-w64-mimalloc mingw-w64-xxhash`                                        |
-| **Debian / Ubuntu**                          | `sudo apt update && sudo apt install libxxhash-dev libmimalloc-dev`                  |
-| **Linux (via package manager, alternative)** | `sudo apt install mimalloc` (Ubuntu 24.04+, Debian 13+) <br>or build from source     |
-| **Fedora**                                   | `sudo dnf install xxhash-libs mimalloc mimalloc-devel`                               |
-| **openSUSE**                                 | `sudo zypper install libxxhash-devel mimalloc-devel`                                 |
-| **AlmaLinux / RHEL / Rocky**                 | `sudo dnf install epel-release && sudo dnf install xxhash mimalloc mimalloc-devel`   |
-| **macOS (Homebrew)**                         | `brew install xxhash mimalloc`                                                       |
-| **Windows (vcpkg)**                          | `vcpkg install xxhash mimalloc`                                                      |
-| **Windows (MSYS2)**                          | `pacman -S mingw-w64-x86_64-xxhash mingw-w64-x86_64-mimalloc`                        |
-| **Conan**                                    | `conan install xxhash/0.8.2@ conan install mimalloc/2.1.2@`                          |
-| **Build from source**                        | See [(https://github.com/microsoft/mimalloc)](https://github.com/microsoft/mimalloc) |
-
 
 ---
 

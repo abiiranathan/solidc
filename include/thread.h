@@ -147,6 +147,15 @@ int thread_join(Thread tid, void** retval);
  */
 int thread_detach(Thread tid);
 
+/**
+ * Terminates the calling thread and returns a value to the caller.
+ * @param retval The return value for the thread. On POSIX, this is a void pointer.
+ *               On Windows, this should be cast from a DWORD exit code.
+ * @note On Windows, only the lower 32 bits of the pointer are used as the exit code.
+ * @note This function does not return.
+ */
+void thread_exit(void* retval);
+
 #ifdef _WIN32
 /**
  * Returns the current thread's ID (Windows-specific).

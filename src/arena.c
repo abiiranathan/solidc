@@ -28,13 +28,14 @@ typedef struct ArenaBlock {
 #endif
 } ArenaBlock;
 
-// Arena structure contains pointers to head of linked list and current
-// block. Allocations happen in the current block.
-struct Arena {
+typedef struct Arena {
     ArenaBlock* first_block;    // Head of the block list
     ArenaBlock* current_block;  // Current block for fast allocation
+    char* current_base;         // current_block->memory (cached)
+    size_t current_head;        // current_block->head (cached)
+    size_t current_size;        // current_block->size (cached)
     size_t default_block_size;  // Default size for new blocks
-};
+} Arena;
 
 /**
  * Creates a new arena block using a single allocation for metadata and buffer.
@@ -78,12 +79,35 @@ static void arena_block_destroy_chain(ArenaBlock* block) {
 }
 
 /**
- * Attempts to allocate a new block and chain it to the arena.
+ * Attempts to extend the arena by moving to the next block or allocating a new one.
  * @param arena The arena to extend.
  * @param min_size The minimum size required in the new block.
  * @return true on success, false on allocation failure.
  */
 static bool arena_extend(Arena* arena, size_t min_size) {
+    ArenaBlock* current = arena->current_block;
+
+    // Check if there's a next block we can reuse (from a previous reset)
+    if (current->next != NULL) {
+        // Sync current block's head before moving
+        current->head = arena->current_head;
+
+        // Move to next block and update cached fields
+        arena->current_block = current->next;
+        arena->current_base  = current->next->memory;
+        arena->current_head  = current->next->head;
+        arena->current_size  = current->next->size;
+
+        // Check if the allocation fits in the reused block
+        if (arena->current_size - arena->current_head >= min_size) {
+            return true;
+        }
+        // If not, fall through to allocate a new block
+    }
+
+    // Sync current block's head before allocating new block
+    current->head = arena->current_head;
+
     // Calculate new block size: max of default size and requested size
     size_t new_block_size = arena->default_block_size;
     if (min_size > new_block_size) {
@@ -98,6 +122,11 @@ static bool arena_extend(Arena* arena, size_t min_size) {
     // Chain the new block
     arena->current_block->next = new_block;
     arena->current_block       = new_block;
+
+    // Update cached fields for the new block
+    arena->current_base = new_block->memory;
+    arena->current_head = 0;
+    arena->current_size = new_block->size;
 
     return true;
 }
@@ -123,8 +152,22 @@ Arena* arena_create(size_t arena_size) {
 
     arena->first_block        = first_block;
     arena->current_block      = first_block;
+    arena->current_base       = first_block->memory;
+    arena->current_head       = 0;
+    arena->current_size       = first_block->size;
     arena->default_block_size = arena_size;
     return arena;
+}
+
+Arena* arena_create_from_buffer(void* buffer, size_t buffer_size) {
+    // REMOVED: Creating from buffer is error-prone with block chaining
+    // since we can't allocate new blocks with user-provided memory.
+    // Users should use arena_create() instead.
+    (void)buffer;
+    (void)buffer_size;
+    fprintf(stderr, "arena_create_from_buffer() is not supported with block chaining.\n");
+    fprintf(stderr, "Use arena_create() instead.\n");
+    return NULL;
 }
 
 void arena_destroy(Arena* arena) {
@@ -144,8 +187,11 @@ void arena_reset(Arena* arena) {
         block       = block->next;
     }
 
-    // Reset current block to first block for allocation efficiency
+    // Reset current block to first block and sync cached fields
     arena->current_block = arena->first_block;
+    arena->current_base  = arena->first_block->memory;
+    arena->current_head  = 0;
+    arena->current_size  = arena->first_block->size;
 }
 
 /**
@@ -199,18 +245,17 @@ bool arena_alloc_batch(Arena* arena, const size_t sizes[], size_t count, void* o
         total_aligned += aligned_size;
     }
 
-    // Fast path: try to allocate all from current block
-    ArenaBlock* block     = arena->current_block;
-    const size_t new_head = block->head + total_aligned;
+    // Fast path: try to allocate all from current block using cached fields
+    const size_t new_head = arena->current_head + total_aligned;
 
-    if (new_head <= block->size) {
+    if (new_head <= arena->current_size) {
         // All allocations fit in current block
-        size_t current_offset = block->head;
+        size_t current_offset = arena->current_head;
         for (size_t i = 0; i < count; i++) {
-            out_ptrs[i] = block->memory + current_offset;
+            out_ptrs[i] = arena->current_base + current_offset;
             current_offset += arena_align_up(sizes[i]);
         }
-        block->head = new_head;
+        arena->current_head = new_head;
         return true;
     }
 
@@ -223,26 +268,20 @@ bool arena_alloc_batch(Arena* arena, const size_t sizes[], size_t count, void* o
         }
         out_ptrs[i] = ptr;
     }
+
     return true;
 }
 
 char* arena_strdup(Arena* arena, const char* str) {
-    if (!str) {
-        return NULL;
-    }
-    const size_t str_cap = strlen(str) + 1;
-    char* s              = arena_alloc(arena, str_cap);
+    const size_t len = strlen(str);
+    char* s          = arena_alloc(arena, len + 1);
     if (s) {
-        memcpy(s, str, str_cap);
+        memcpy(s, str, len + 1);
     }
     return s;
 }
 
 char* arena_strdupn(Arena* arena, const char* str, size_t length) {
-    if (!str || length == 0) {
-        return NULL;
-    }
-
     char* s = arena_alloc(arena, length + 1);
     if (s) {
         memcpy(s, str, length);

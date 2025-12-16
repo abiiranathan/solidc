@@ -8,6 +8,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
+
 if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
     set(CMAKE_INSTALL_LIBDIR "lib")
     set(CMAKE_INSTALL_BINDIR "bin")
@@ -28,7 +29,7 @@ endif()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 option(BUILD_TESTS "Build the tests" ON)
-option(BUILD_BENCHMARKS "Build the benchmarks" OFF)
+option(BUILD_BENCHMARKS "Build the benchmarks" ON)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
 # ==============================================================================
@@ -313,6 +314,5 @@ if(BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
-if(BUILD_BENCHMARKS AND NOT WIN32)
-    add_subdirectory(benchmarks)
-endif()
+
+add_subdirectory(benchmarks)

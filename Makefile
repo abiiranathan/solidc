@@ -22,6 +22,7 @@ CMAKE_ARGS += -DCMAKE_C_COMPILER=$(CC)
 CMAKE_ARGS += -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
 CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=$(INSTALL_PREFIX)
 CMAKE_ARGS += -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+CMAKE_ARGS += -DBUILD_BENCHMARKS=ON
 CMAKE_ARGS += $(CMAKE_EXTRA_FLAGS)
 
 # === Phony Targets ===
@@ -58,9 +59,9 @@ format:
 
 bench:
 	$(CC) -D_GNU_SOURCE benchmarks/bench_arena.c src/arena.c src/lock.c \
-		-lpthread -O3 -std=c23 -Wall -Wextra -Wpedantic \
+		-lpthread -O3 -std=c11 -Wall -Wextra -Wpedantic \
 		-Wno-unused-function -march=native -o bench_arena
-	./bench_arena 4096 1000000 8
+	./bench_arena
 	rm -f bench_arena
 
 # === Convenience Targets ===
