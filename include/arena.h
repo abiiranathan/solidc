@@ -63,23 +63,6 @@ void arena_destroy(Arena* arena);
 void arena_reset(Arena* arena);
 
 /**
- * Get the current allocation offset within the arena.
- *
- * @param arena Target arena
- * @return Current allocation offset in bytes
- */
-size_t arena_get_offset(Arena* arena);
-
-/**
- * Restore the arena to a previous allocation offset.
- *
- * @param arena Target arena
- * @param offset Previous offset to restore to
- * @return true on success, false if offset is invalid
- */
-bool arena_restore(Arena* arena, size_t offset);
-
-/**
  * Allocate memory from the arena with automatic alignment.
  *
  * @param arena Target arena

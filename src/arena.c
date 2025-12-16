@@ -148,58 +148,6 @@ void arena_reset(Arena* arena) {
     arena->current_block = arena->first_block;
 }
 
-size_t arena_get_offset(Arena* arena) {
-    // Calculate total bytes used across all blocks up to current
-    size_t total_offset = 0;
-    ArenaBlock* block   = arena->first_block;
-
-    while (block && block != arena->current_block) {
-        total_offset += block->size;
-        block = block->next;
-    }
-
-    if (block == arena->current_block) {
-        total_offset += arena->current_block->head;
-    }
-
-    return total_offset;
-}
-
-bool arena_restore(Arena* arena, size_t offset) {
-    size_t accumulated = 0;
-    ArenaBlock* block  = arena->first_block;
-
-    // Find the block containing this offset
-    while (block) {
-        if (accumulated + block->size > offset) {
-            // Found the target block
-            size_t block_offset = offset - accumulated;
-
-            // Validate offset is not beyond current usage
-            if (block == arena->current_block && block_offset > block->head) {
-                return false;
-            }
-
-            // Reset blocks after the target block
-            ArenaBlock* reset_block = block->next;
-            while (reset_block) {
-                reset_block->head = 0;
-                reset_block       = reset_block->next;
-            }
-
-            // Set the target block state
-            block->head          = block_offset;
-            arena->current_block = block;
-            return true;
-        }
-
-        accumulated += block->size;
-        block = block->next;
-    }
-
-    return false;
-}
-
 /**
  * Attempts to allocate from the current block or extends the arena.
  * @param arena The arena to allocate from.
