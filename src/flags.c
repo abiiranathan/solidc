@@ -1,46 +1,104 @@
+/**
+ * @file flags.c
+ * @brief Command-line flag parsing library implementation
+ *
+ * This library provides a flexible command-line argument parser with support for:
+ * - Multiple data types (bool, integers, floats, strings, etc.)
+ * - Long flags (--flag) and short flags (-f)
+ * - Subcommands with nested parsing
+ * - Custom validators
+ * - Automatic help generation
+ * - Default value display
+ * - Positional arguments
+ *
+ * @example
+ * ```c
+ * FlagParser* fp = flag_parser_new("myapp", "My application");
+ *
+ * int port = 8080;
+ * bool verbose = false;
+ * char* host = "localhost";
+ *
+ * flag_add(fp, TYPE_INT32, "port", 'p', "Server port", &port, false);
+ * flag_add(fp, TYPE_BOOL, "verbose", 'v', "Enable verbose output", &verbose, false);
+ * flag_add(fp, TYPE_STRING, "host", 'h', "Server host", &host, false);
+ *
+ * if (flag_parse(fp, argc, argv) != FLAG_OK) {
+ *     fprintf(stderr, "Error: %s\n", flag_get_error(fp));
+ *     flag_print_usage(fp);
+ *     return 1;
+ * }
+ *
+ * flag_parser_free(fp);
+ * ```
+ */
+
 #include "../include/flags.h"
 #include "../include/str_utils.h"
 
 #define INITIAL_CAPACITY  8
 #define ERR_BUF_SIZE      128
 #define MAX_FLAG_NAME_LEN 128
+#define MAX_DEFAULT_STR   64
 
+/**
+ * @struct Flag
+ * @brief Internal representation of a command-line flag
+ *
+ * Contains all metadata and state for a single flag including its type,
+ * name variants, description, value pointer, validation, and presence tracking.
+ */
 struct Flag {
-    FlagDataType type;
-    char* name;
-    char short_name;
-    char* description;
-    void* value_ptr;
-    bool required;
-    bool is_present;
-    FlagValidator validator;
+    FlagDataType type;       /**< Data type of the flag value */
+    char* name;              /**< Long name (used with --) */
+    char short_name;         /**< Short name (used with -), 0 if none */
+    char* description;       /**< Help text description */
+    void* value_ptr;         /**< Pointer to variable that will hold the parsed value */
+    void* default_ptr;       /**< Pointer to a copy of the default value for display */
+    bool required;           /**< Whether this flag must be provided */
+    bool is_present;         /**< Whether this flag was found during parsing */
+    FlagValidator validator; /**< Optional custom validation function */
 };
 
+/**
+ * @struct FlagParser
+ * @brief Main parser structure managing all flags, subcommands, and state
+ *
+ * Supports hierarchical command structures with subcommands, each having
+ * their own flags and handlers.
+ */
 struct FlagParser {
-    char* name;
-    char* description;
-    char* footer;
+    char* name;        /**< Name of this parser/command */
+    char* description; /**< Description shown in help */
+    char* footer;      /**< Optional footer text for help */
 
-    Flag* flags;
-    size_t flag_count;
-    size_t flag_capacity;
+    Flag* flags;          /**< Dynamic array of registered flags */
+    size_t flag_count;    /**< Number of registered flags */
+    size_t flag_capacity; /**< Allocated capacity for flags array */
 
-    FlagParser** subcommands;
-    size_t cmd_count;
-    size_t cmd_capacity;
-    void (*handler)(void* user_data);
-    void (*pre_invoke)(void* user_data);
+    FlagParser** subcommands; /**< Dynamic array of subcommand parsers */
+    size_t cmd_count;         /**< Number of registered subcommands */
+    size_t cmd_capacity;      /**< Allocated capacity for subcommands array */
 
-    char** positional_args;
-    size_t pos_count;
-    size_t pos_capacity;
+    void (*handler)(void* user_data);    /**< Handler function for this command */
+    void (*pre_invoke)(void* user_data); /**< Pre-invocation setup function */
 
-    char last_error[ERR_BUF_SIZE];
-    FlagParser* active_subcommand;
+    char** positional_args; /**< Array of positional arguments */
+    size_t pos_count;       /**< Number of positional arguments */
+    size_t pos_capacity;    /**< Allocated capacity for positional args */
+
+    char last_error[ERR_BUF_SIZE]; /**< Last error message */
+    FlagParser* active_subcommand; /**< Active subcommand after parsing */
 };
 
 // --- Memory Helpers ---
 
+/**
+ * @brief Safe realloc wrapper that exits on failure
+ * @param ptr Pointer to reallocate
+ * @param size New size in bytes
+ * @return Reallocated pointer
+ */
 static void* xrealloc(void* ptr, size_t size) {
     if (size == 0) {
         free(ptr);
@@ -54,6 +112,11 @@ static void* xrealloc(void* ptr, size_t size) {
     return new_ptr;
 }
 
+/**
+ * @brief Safe strdup wrapper that exits on failure
+ * @param s String to duplicate
+ * @return Duplicated string
+ */
 static char* xstrdup(const char* s) {
     if (!s) return NULL;
     char* new_s = strdup(s);
@@ -64,8 +127,164 @@ static char* xstrdup(const char* s) {
     return new_s;
 }
 
+/**
+ * @brief Allocate and copy default value for a flag
+ * @param type The data type of the flag
+ * @param value_ptr Pointer to the default value
+ * @return Allocated copy of the default value, or NULL on failure
+ */
+static void* copy_default_value(FlagDataType type, void* value_ptr) {
+    if (!value_ptr) return NULL;
+
+    switch (type) {
+        case TYPE_BOOL: {
+            bool* copy = malloc(sizeof(bool));
+            if (copy) *copy = *(bool*)value_ptr;
+            return copy;
+        }
+        case TYPE_CHAR: {
+            char* copy = malloc(sizeof(char));
+            if (copy) *copy = *(char*)value_ptr;
+            return copy;
+        }
+        case TYPE_STRING: {
+            char* str = *(char**)value_ptr;
+            return str ? xstrdup(str) : NULL;
+        }
+        case TYPE_INT8: {
+            int8_t* copy = malloc(sizeof(int8_t));
+            if (copy) *copy = *(int8_t*)value_ptr;
+            return copy;
+        }
+        case TYPE_UINT8: {
+            uint8_t* copy = malloc(sizeof(uint8_t));
+            if (copy) *copy = *(uint8_t*)value_ptr;
+            return copy;
+        }
+        case TYPE_INT16: {
+            int16_t* copy = malloc(sizeof(int16_t));
+            if (copy) *copy = *(int16_t*)value_ptr;
+            return copy;
+        }
+        case TYPE_UINT16: {
+            uint16_t* copy = malloc(sizeof(uint16_t));
+            if (copy) *copy = *(uint16_t*)value_ptr;
+            return copy;
+        }
+        case TYPE_INT32: {
+            int32_t* copy = malloc(sizeof(int32_t));
+            if (copy) *copy = *(int32_t*)value_ptr;
+            return copy;
+        }
+        case TYPE_UINT32: {
+            uint32_t* copy = malloc(sizeof(uint32_t));
+            if (copy) *copy = *(uint32_t*)value_ptr;
+            return copy;
+        }
+        case TYPE_INT64: {
+            int64_t* copy = malloc(sizeof(int64_t));
+            if (copy) *copy = *(int64_t*)value_ptr;
+            return copy;
+        }
+        case TYPE_UINT64: {
+            uint64_t* copy = malloc(sizeof(uint64_t));
+            if (copy) *copy = *(uint64_t*)value_ptr;
+            return copy;
+        }
+        case TYPE_SIZE_T: {
+            size_t* copy = malloc(sizeof(size_t));
+            if (copy) *copy = *(size_t*)value_ptr;
+            return copy;
+        }
+        case TYPE_FLOAT: {
+            float* copy = malloc(sizeof(float));
+            if (copy) *copy = *(float*)value_ptr;
+            return copy;
+        }
+        case TYPE_DOUBLE: {
+            double* copy = malloc(sizeof(double));
+            if (copy) *copy = *(double*)value_ptr;
+            return copy;
+        }
+        default:
+            return NULL;
+    }
+}
+
+/**
+ * @brief Format default value as string for display
+ * @param type The data type of the flag
+ * @param default_ptr Pointer to the default value
+ * @param buf Buffer to write formatted string into
+ * @param buf_size Size of the buffer
+ */
+static void format_default_value(FlagDataType type, void* default_ptr, char* buf, size_t buf_size) {
+    if (!default_ptr || !buf || buf_size == 0) {
+        buf[0] = '\0';
+        return;
+    }
+
+    switch (type) {
+        case TYPE_BOOL:
+            snprintf(buf, buf_size, "%s", *(bool*)default_ptr ? "true" : "false");
+            break;
+        case TYPE_CHAR:
+            snprintf(buf, buf_size, "'%c'", *(char*)default_ptr);
+            break;
+        case TYPE_STRING: {
+            char* str = (char*)default_ptr;
+            snprintf(buf, buf_size, "\"%s\"", str ? str : "");
+            break;
+        }
+        case TYPE_INT8:
+            snprintf(buf, buf_size, "%d", *(int8_t*)default_ptr);
+            break;
+        case TYPE_UINT8:
+            snprintf(buf, buf_size, "%u", *(uint8_t*)default_ptr);
+            break;
+        case TYPE_INT16:
+            snprintf(buf, buf_size, "%d", *(int16_t*)default_ptr);
+            break;
+        case TYPE_UINT16:
+            snprintf(buf, buf_size, "%u", *(uint16_t*)default_ptr);
+            break;
+        case TYPE_INT32:
+            snprintf(buf, buf_size, "%d", *(int32_t*)default_ptr);
+            break;
+        case TYPE_UINT32:
+            snprintf(buf, buf_size, "%u", *(uint32_t*)default_ptr);
+            break;
+        case TYPE_INT64:
+            snprintf(buf, buf_size, "%lld", (long long)*(int64_t*)default_ptr);
+            break;
+        case TYPE_UINT64:
+            snprintf(buf, buf_size, "%llu", (unsigned long long)*(uint64_t*)default_ptr);
+            break;
+        case TYPE_SIZE_T:
+            snprintf(buf, buf_size, "%zu", *(size_t*)default_ptr);
+            break;
+        case TYPE_FLOAT:
+            snprintf(buf, buf_size, "%.6g", *(float*)default_ptr);
+            break;
+        case TYPE_DOUBLE:
+            snprintf(buf, buf_size, "%.6g", *(double*)default_ptr);
+            break;
+        default:
+            buf[0] = '\0';
+            break;
+    }
+}
+
 // --- Lifecycle ---
 
+/**
+ * @brief Create a new flag parser
+ * @param name Name of the program or command
+ * @param description Description shown in help text
+ * @return Newly allocated FlagParser, or NULL on failure
+ *
+ * The returned parser must be freed with flag_parser_free() when done.
+ */
 FlagParser* flag_parser_new(const char* name, const char* description) {
     FlagParser* fp = (FlagParser*)calloc(1, sizeof(FlagParser));
     if (!fp) return NULL;
@@ -74,6 +293,12 @@ FlagParser* flag_parser_new(const char* name, const char* description) {
     return fp;
 }
 
+/**
+ * @brief Free a flag parser and all associated resources
+ * @param fp Parser to free
+ *
+ * Recursively frees all subcommands and their flags. Safe to call with NULL.
+ */
 void flag_parser_free(FlagParser* fp) {
     if (!fp) return;
     free(fp->name);
@@ -82,22 +307,40 @@ void flag_parser_free(FlagParser* fp) {
     for (size_t i = 0; i < fp->flag_count; i++) {
         free(fp->flags[i].name);
         free(fp->flags[i].description);
+        if (fp->flags[i].default_ptr) {
+            free(fp->flags[i].default_ptr);
+        }
     }
+
     free(fp->flags);
     for (size_t i = 0; i < fp->cmd_count; i++) {
         flag_parser_free(fp->subcommands[i]);
     }
+
     free(fp->subcommands);
     free(fp->positional_args);
     free(fp);
 }
 
+/**
+ * @brief Set optional footer text for help output
+ * @param parser Parser to configure
+ * @param footer Footer text (will be copied)
+ */
 void flag_parser_set_footer(FlagParser* parser, const char* footer) {
     if (!parser) return;
     free(parser->footer);
     parser->footer = xstrdup(footer);
 }
 
+/**
+ * @brief Set pre-invocation callback for a parser
+ * @param fp Parser to configure
+ * @param pre_invoke Function to call before command handler
+ *
+ * The pre_invoke callback is called before the command handler, useful
+ * for global setup or initialization.
+ */
 void flag_set_pre_invoke(FlagParser* fp, void (*pre_invoke)(void* user_data)) {
     if (fp) {
         fp->pre_invoke = pre_invoke;
@@ -106,6 +349,27 @@ void flag_set_pre_invoke(FlagParser* fp, void (*pre_invoke)(void* user_data)) {
 
 // --- Registration ---
 
+/**
+ * @brief Register a new flag with the parser
+ * @param fp Parser to add flag to
+ * @param type Data type of the flag value
+ * @param name Long name (used with --)
+ * @param short_name Short name (used with -), or 0 for none
+ * @param desc Description for help text
+ * @param value_ptr Pointer to variable that will receive parsed value
+ * @param required Whether this flag is required
+ * @return Pointer to created Flag for further configuration, or NULL on error
+ *
+ * The value_ptr should point to a variable with the initial default value.
+ * This default will be preserved and displayed in help text.
+ *
+ * @example
+ * ```c
+ * int port = 8080;  // Default value
+ * Flag* f = flag_add(fp, TYPE_INT32, "port", 'p', "Server port", &port, false);
+ * flag_set_validator(f, my_port_validator);
+ * ```
+ */
 Flag* flag_add(FlagParser* fp, FlagDataType type, const char* name, char short_name, const char* desc, void* value_ptr,
                bool required) {
     if (!fp || !name || !value_ptr) return NULL;
@@ -125,9 +389,31 @@ Flag* flag_add(FlagParser* fp, FlagDataType type, const char* name, char short_n
     f->required    = required;
     f->is_present  = false;
     f->validator   = NULL;
+
+    // Copy the default value for display in help
+    f->default_ptr = copy_default_value(type, value_ptr);
+
     return f;
 }
 
+/**
+ * @brief Add a subcommand to the parser
+ * @param fp Parent parser
+ * @param name Name of the subcommand
+ * @param desc Description for help text
+ * @param handler Function to call when this subcommand is invoked
+ * @return Newly created parser for the subcommand, or NULL on error
+ *
+ * Subcommands allow hierarchical command structures like "git commit" or "docker run".
+ * The returned parser can have its own flags registered.
+ *
+ * @example
+ * ```c
+ * FlagParser* fp = flag_parser_new("myapp", "My application");
+ * FlagParser* commit = flag_add_subcommand(fp, "commit", "Commit changes", handle_commit);
+ * flag_add(commit, TYPE_STRING, "message", 'm', "Commit message", &msg, true);
+ * ```
+ */
 FlagParser* flag_add_subcommand(FlagParser* fp, const char* name, const char* desc, void (*handler)(void* data)) {
     if (!fp || !name) return NULL;
     if (fp->cmd_count >= fp->cmd_capacity) {
@@ -143,6 +429,17 @@ FlagParser* flag_add_subcommand(FlagParser* fp, const char* name, const char* de
 }
 
 // --- Subcommand Invocation ---
+
+/**
+ * @brief Invoke the active subcommand with optional pre-invoke callback
+ * @param fp Parser with active subcommand
+ * @param pre_invoke Optional callback to run before handler
+ * @param user_data User data passed to callbacks
+ * @return true if subcommand was invoked, false if no active subcommand
+ *
+ * This is typically used for manual invocation. For automatic invocation
+ * after parsing, use flag_parse_and_invoke() instead.
+ */
 bool flag_invoke_subcommand(FlagParser* fp, void (*pre_invoke)(void* user_data), void* user_data) {
     if (!fp || !fp->active_subcommand) {
         return false;
@@ -163,12 +460,39 @@ bool flag_invoke_subcommand(FlagParser* fp, void (*pre_invoke)(void* user_data),
     return true;
 }
 
+/**
+ * @brief Set a custom validator for a flag
+ * @param flag Flag to add validator to
+ * @param validator Validation function
+ *
+ * The validator is called after parsing if the flag is present.
+ * It should return true if valid, false otherwise, and can set an error message.
+ *
+ * @example
+ * ```c
+ * bool validate_port(void* value, const char** err) {
+ *     int port = *(int*)value;
+ *     if (port < 1 || port > 65535) {
+ *         *err = "Port must be between 1 and 65535";
+ *         return false;
+ *     }
+ *     return true;
+ * }
+ * flag_set_validator(flag, validate_port);
+ * ```
+ */
 void flag_set_validator(Flag* flag, FlagValidator validator) {
     if (flag) flag->validator = validator;
 }
 
 // --- Parsing Internals ---
 
+/**
+ * @brief Set error message on parser
+ * @param fp Parser to set error on
+ * @param fmt Printf-style format string
+ * @param ... Format arguments
+ */
 static void set_error(FlagParser* fp, const char* fmt, ...) {
     if (!fp) return;
     va_list args;
@@ -177,6 +501,12 @@ static void set_error(FlagParser* fp, const char* fmt, ...) {
     va_end(args);
 }
 
+/**
+ * @brief Find a flag by long name
+ * @param fp Parser to search
+ * @param name Long name to find
+ * @return Pointer to flag, or NULL if not found
+ */
 static Flag* find_flag_long(FlagParser* fp, const char* name) {
     if (!fp || !name) return NULL;
     for (size_t i = 0; i < fp->flag_count; i++) {
@@ -185,6 +515,12 @@ static Flag* find_flag_long(FlagParser* fp, const char* name) {
     return NULL;
 }
 
+/**
+ * @brief Find a flag by short name
+ * @param fp Parser to search
+ * @param c Short name character to find
+ * @return Pointer to flag, or NULL if not found
+ */
 static Flag* find_flag_short(FlagParser* fp, char c) {
     if (!fp || !c) return NULL;
     for (size_t i = 0; i < fp->flag_count; i++) {
@@ -193,16 +529,35 @@ static Flag* find_flag_short(FlagParser* fp, char c) {
     return NULL;
 }
 
-// Helper to check range for signed integers
+/**
+ * @brief Check if signed integer is within range
+ * @param val Value to check
+ * @param min Minimum allowed value
+ * @param max Maximum allowed value
+ * @return true if in range
+ */
 static bool check_range_int(long long val, long long min, long long max) {
     return (val >= min && val <= max);
 }
 
-// Helper to check range for unsigned integers
+/**
+ * @brief Check if unsigned integer is within range
+ * @param val Value to check
+ * @param max Maximum allowed value
+ * @return true if in range
+ */
 static bool check_range_uint(unsigned long long val, unsigned long long max) {
     return (val <= max);
 }
 
+/**
+ * @brief Parse a string value into a flag's data type
+ * @param flag Flag to parse value for
+ * @param str String representation of value
+ * @return FLAG_OK on success, error code otherwise
+ *
+ * Handles all supported data types with proper range checking and error detection.
+ */
 static FlagStatus parse_value(Flag* flag, const char* str) {
     if (!str) return FLAG_ERROR_MISSING_VALUE;
     char* endptr = NULL;
@@ -298,6 +653,25 @@ static FlagStatus parse_value(Flag* flag, const char* str) {
 
 // --- Main Parse Logic ---
 
+/**
+ * @brief Parse command-line arguments
+ * @param fp Parser to use
+ * @param argc Argument count (from main)
+ * @param argv Argument vector (from main)
+ * @return FLAG_OK on success, error code otherwise
+ *
+ * Parses argv according to registered flags and subcommands. Supports:
+ * - Long flags: --flag=value or --flag value
+ * - Short flags: -f value or -fvalue
+ * - Boolean flags: --flag (no value needed)
+ * - Flag combinations: -abc (multiple boolean flags)
+ * - End of options: -- (remaining args are positional)
+ * - Automatic --help handling
+ *
+ * After successful parsing, use flag_get_error() to retrieve error messages,
+ * flag_positional_at() to access positional args, and flag_is_present() to
+ * check if optional flags were provided.
+ */
 FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
     if (!fp || argc < 1) return FLAG_ERROR_INVALID_ARGUMENT;
 
@@ -455,6 +829,38 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
     return FLAG_OK;
 }
 
+/**
+ * @brief Parse arguments and automatically invoke the appropriate handler
+ * @param fp Parser to use
+ * @param argc Argument count (from main)
+ * @param argv Argument vector (from main)
+ * @param user_data User data to pass to handlers
+ * @return FLAG_OK on success, error code otherwise
+ *
+ * This is a convenience function that combines parsing with handler invocation.
+ * After successful parsing, it calls:
+ * 1. The pre_invoke callback (if set)
+ * 2. The handler of the deepest active subcommand (or main handler if no subcommand)
+ *
+ * @example
+ * ```c
+ * int main(int argc, char** argv) {
+ *     FlagParser* fp = flag_parser_new("myapp", "My application");
+ *     // ... register flags ...
+ *
+ *     MyAppData data = {0};
+ *     FlagStatus status = flag_parse_and_invoke(fp, argc, argv, &data);
+ *
+ *     if (status != FLAG_OK) {
+ *         fprintf(stderr, "Error: %s\n", flag_get_error(fp));
+ *         return 1;
+ *     }
+ *
+ *     flag_parser_free(fp);
+ *     return 0;
+ * }
+ * ```
+ */
 FlagStatus flag_parse_and_invoke(FlagParser* fp, int argc, char** argv, void* user_data) {
     if (!fp || argc < 1) {
         return FLAG_ERROR_INVALID_ARGUMENT;
@@ -487,6 +893,11 @@ FlagStatus flag_parse_and_invoke(FlagParser* fp, int argc, char** argv, void* us
 
 // --- Usage / Help ---
 
+/**
+ * @brief Convert data type to string representation
+ * @param t Data type
+ * @return String representation for help text
+ */
 static const char* type_to_str(FlagDataType t) {
     switch (t) {
         case TYPE_BOOL:
@@ -522,6 +933,11 @@ static const char* type_to_str(FlagDataType t) {
     }
 }
 
+/**
+ * @brief Print usage information recursively
+ * @param fp Parser to print usage for
+ * @param is_sub Whether this is a subcommand (unused, for future expansion)
+ */
 static void print_usage_rec(FlagParser* fp, bool is_sub) {
     if (!fp) return;
 
@@ -560,7 +976,16 @@ static void print_usage_rec(FlagParser* fp, bool is_sub) {
 
         // Print row
         printf("%-*s  %s", (int)max_width, left, f->description ? f->description : "");
-        if (f->required) printf(" (Required)");
+        if (f->required) {
+            printf(" (Required)");
+        } else if (f->default_ptr) {
+            // Show default value for optional flags
+            char default_str[MAX_DEFAULT_STR];
+            format_default_value(f->type, f->default_ptr, default_str, sizeof(default_str));
+            if (default_str[0] != '\0') {
+                printf(" (default: %s)", default_str);
+            }
+        }
         printf("\n");
     }
 
@@ -575,6 +1000,20 @@ static void print_usage_rec(FlagParser* fp, bool is_sub) {
     if (fp->footer) printf("\n%s\n", fp->footer);
 }
 
+/**
+ * @brief Print usage/help information for the parser
+ * @param fp Parser to print usage for
+ *
+ * Prints formatted help text including:
+ * - Usage line
+ * - Description
+ * - All flags with types, descriptions, and default values
+ * - Required flag markers
+ * - Subcommands (if any)
+ * - Footer text (if set)
+ *
+ * If an active subcommand exists, prints help for that subcommand instead.
+ */
 void flag_print_usage(FlagParser* fp) {
     if (!fp) return;
     if (fp->active_subcommand) {
@@ -587,7 +1026,16 @@ void flag_print_usage(FlagParser* fp) {
     }
 }
 
-// Accessors
+// --- Accessors ---
+
+/**
+ * @brief Get the last error message
+ * @param fp Parser to get error from
+ * @return Error string, or empty string if no error
+ *
+ * Returns the error message from the most recently failed parse operation.
+ * If a subcommand is active, returns that subcommand's error instead.
+ */
 const char* flag_get_error(FlagParser* fp) {
     if (!fp) return "";
 
@@ -601,21 +1049,58 @@ const char* flag_get_error(FlagParser* fp) {
     return root->last_error;
 }
 
+/**
+ * @brief Get count of positional arguments
+ * @param fp Parser to query
+ * @return Number of positional arguments
+ */
 int flag_positional_count(FlagParser* fp) {
     return fp ? (int)fp->pos_count : 0;
 }
 
+/**
+ * @brief Get positional argument at index
+ * @param fp Parser to query
+ * @param i Index of positional argument (0-based)
+ * @return Positional argument string, or NULL if index out of range
+ *
+ * @example
+ * ```c
+ * // For command: myapp file1.txt file2.txt
+ * flag_positional_at(fp, 0); // returns "file1.txt"
+ * flag_positional_at(fp, 1); // returns "file2.txt"
+ * ```
+ */
 const char* flag_positional_at(FlagParser* fp, int i) {
     return (fp && i >= 0 && (size_t)i < fp->pos_count) ? fp->positional_args[i] : NULL;
 }
 
+/**
+ * @brief Check if a flag was present in the parsed arguments
+ * @param fp Parser to query
+ * @param name Long name of the flag
+ * @return true if flag was present, false otherwise
+ *
+ * Useful for distinguishing between a flag not provided vs. provided with default value.
+ *
+ * @example
+ * ```c
+ * if (flag_is_present(fp, "verbose")) {
+ *     printf("Verbose mode explicitly enabled\n");
+ * }
+ * ```
+ */
 bool flag_is_present(FlagParser* fp, const char* name) {
     Flag* f = find_flag_long(fp, name);
     return f ? f->is_present : false;
 }
 
+/**
+ * @brief Convert FlagStatus code to string
+ * @param s Status code
+ * @return Human-readable status string
+ */
 const char* flag_status_str(FlagStatus s) {
-
     switch (s) {
         case FLAG_OK:
             return "OK";
