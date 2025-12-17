@@ -2,9 +2,10 @@
  * @file spinlock.h
  * @brief High-performance reader-writer spinlock implementation
  *
- * This header provides a custom RW-spinlock optimized for short critical sections
- * and high-concurrency scenarios. It significantly outperforms pthread_rwlock_t
- * when lock hold times are very brief (microseconds) due to lower overhead.
+ * This header provides a custom RW-spinlock optimized for short critical
+ * sections and high-concurrency scenarios. It significantly outperforms
+ * pthread_rwlock_t when lock hold times are very brief (microseconds) due to
+ * lower overhead.
  *
  * The spinlock uses a single atomic integer to track state:
  *   - state >= 1: Number of active readers
@@ -16,7 +17,8 @@
  *   - Low to moderate contention scenarios
  *   - Systems where context switching overhead exceeds spin cost
  *
- * For longer critical sections or high contention, use pthread_rwlock_t instead.
+ * For longer critical sections or high contention, use pthread_rwlock_t
+ * instead.
  *
  * @note Thread-safe: All operations are atomic and safe for concurrent use.
  * @note Not reentrant: A thread cannot acquire the same lock recursively.
@@ -27,7 +29,6 @@
 
 #ifdef __cplusplus
 #include <atomic>
-using std::atomic;
 extern "C" {
 #else
 #include <stdatomic.h>
@@ -47,7 +48,11 @@ extern "C" {
  */
 typedef struct {
     /** Lock state: >0 = reader count, 0 = unlocked, -1 = writer locked */
+#ifdef __cplusplus
+    std::atomic<int> state;
+#else
     _Atomic(int) state;
+#endif
 } fast_rwlock_t;
 
 /**
@@ -62,7 +67,8 @@ typedef struct {
  * On x86/x64, uses the PAUSE instruction. On ARM64, uses the YIELD instruction.
  * On other platforms, this is a no-op.
  *
- * @note This is not a scheduling yield - it's a CPU-level hint within the same thread.
+ * @note This is not a scheduling yield - it's a CPU-level hint within the same
+ * thread.
  */
 static inline void cpu_relax(void) {
 #if defined(__x86_64__) || defined(__i386__)
@@ -77,7 +83,8 @@ static inline void cpu_relax(void) {
 /**
  * @brief Initialize a reader-writer spinlock.
  *
- * Must be called before first use of the lock. Sets the lock to the unlocked state.
+ * Must be called before first use of the lock. Sets the lock to the unlocked
+ * state.
  *
  * @param l Pointer to the spinlock to initialize. Must not be NULL.
  *
@@ -91,7 +98,11 @@ static inline void cpu_relax(void) {
  * @endcode
  */
 static inline void fast_rwlock_init(fast_rwlock_t* l) {
+#ifdef __cplusplus
+    new (&l->state) std::atomic<int>(0);
+#else
     atomic_init(&l->state, 0);
+#endif
 }
 
 /**
@@ -121,13 +132,21 @@ static inline void fast_rwlock_init(fast_rwlock_t* l) {
  */
 static inline void fast_rwlock_rdlock(fast_rwlock_t* l) {
     while (true) {
+#ifdef __cplusplus
+        int state = l->state.load(std::memory_order_relaxed);
+#else
         int state = atomic_load_explicit(&l->state, memory_order_relaxed);
+#endif
         if (state < 0) {
             cpu_relax();
             continue;
         }
+#ifdef __cplusplus
+        if (l->state.compare_exchange_weak(state, state + 1, std::memory_order_acquire, std::memory_order_relaxed))
+#else
         if (atomic_compare_exchange_weak_explicit(&l->state, &state, state + 1, memory_order_acquire,
                                                   memory_order_relaxed))
+#endif
             return;
         cpu_relax();
     }
@@ -142,8 +161,10 @@ static inline void fast_rwlock_rdlock(fast_rwlock_t* l) {
  *
  * @param l Pointer to the spinlock. Must not be NULL.
  *
- * @warning Behavior is undefined if called without a matching fast_rwlock_rdlock().
- * @warning Behavior is undefined if called by a thread that doesn't hold the read lock.
+ * @warning Behavior is undefined if called without a matching
+ * fast_rwlock_rdlock().
+ * @warning Behavior is undefined if called by a thread that doesn't hold the
+ * read lock.
  *
  * @note Safe for concurrent use by multiple threads.
  *
@@ -155,17 +176,21 @@ static inline void fast_rwlock_rdlock(fast_rwlock_t* l) {
  * @endcode
  */
 static inline void fast_rwlock_unlock_rd(fast_rwlock_t* l) {
+#ifdef __cplusplus
+    l->state.fetch_sub(1, std::memory_order_release);
+#else
     atomic_fetch_sub_explicit(&l->state, 1, memory_order_release);
+#endif
 }
 
 /**
  * @brief Acquire the lock for writing (exclusive access).
  *
- * Waits until no readers or writers hold the lock, then acquires exclusive access.
- * Blocks all other readers and writers until released.
+ * Waits until no readers or writers hold the lock, then acquires exclusive
+ * access. Blocks all other readers and writers until released.
  *
- * Uses acquire semantics to ensure subsequent reads/writes see all memory operations
- * that happened before the corresponding unlock.
+ * Uses acquire semantics to ensure subsequent reads/writes see all memory
+ * operations that happened before the corresponding unlock.
  *
  * @param l Pointer to the spinlock. Must not be NULL.
  *
@@ -187,7 +212,11 @@ static inline void fast_rwlock_unlock_rd(fast_rwlock_t* l) {
 static inline void fast_rwlock_wrlock(fast_rwlock_t* l) {
     while (true) {
         int expected = 0;
+#ifdef __cplusplus
+        if (l->state.compare_exchange_weak(expected, -1, std::memory_order_acquire, std::memory_order_relaxed))
+#else
         if (atomic_compare_exchange_weak_explicit(&l->state, &expected, -1, memory_order_acquire, memory_order_relaxed))
+#endif
             return;
         cpu_relax();
     }
@@ -202,8 +231,10 @@ static inline void fast_rwlock_wrlock(fast_rwlock_t* l) {
  *
  * @param l Pointer to the spinlock. Must not be NULL.
  *
- * @warning Behavior is undefined if called without a matching fast_rwlock_wrlock().
- * @warning Behavior is undefined if called by a thread that doesn't hold the write lock.
+ * @warning Behavior is undefined if called without a matching
+ * fast_rwlock_wrlock().
+ * @warning Behavior is undefined if called by a thread that doesn't hold the
+ * write lock.
  *
  * @note Safe for concurrent use by multiple threads.
  *
@@ -215,7 +246,11 @@ static inline void fast_rwlock_wrlock(fast_rwlock_t* l) {
  * @endcode
  */
 static inline void fast_rwlock_unlock_wr(fast_rwlock_t* l) {
+#ifdef __cplusplus
+    l->state.store(0, std::memory_order_release);
+#else
     atomic_store_explicit(&l->state, 0, memory_order_release);
+#endif
 }
 
 #ifdef __cplusplus

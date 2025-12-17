@@ -59,16 +59,16 @@ make install    # May require root if prefix is /usr/local
 | `process.h`    | Process management utilities                  |
 | `optional.h`   | Optional type implementation                  |
 | `socket.h`     | Cross-platform TCP socket library             |
-| `vec.h`        | Dynamic array                                 |
+| `dynarray.h`   | Dynamic array                                 |
 | `hash.h`       | Fast, non-cryptographic hash functions        |
 | `strton.h`     | String to number converters                   |
 | `stdstreams.h` | Read/write helpers for stdout/stderr/FILE\*   |
 | `unicode.h`    | UTF-8 string helpers                          |
 | `defer.h`      | Cross-platform defer implementation           |
-| `solidc.h`     | Master header that includes all above modules |
 | `vec.h`        | Fast Vec2 and Vec3 vector ops with SIMD       |
 | `matrix.h`     | Fast Mat3 and Mat4 matrix ops with SIMD       |
 | `flags.h`      | Robust Command-Line parsing library           |
+| `solidc.h`     | Master header that includes all above modules |
 
 This is not an exhaustive list. See [Includes](./include) for a full list.
 ---

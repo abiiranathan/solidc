@@ -14,7 +14,6 @@ set(TEST_MODULES
     str_to_num
     hash
     csvparser
-    array
     unicode
     slist
     list

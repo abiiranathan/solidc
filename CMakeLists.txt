@@ -60,7 +60,6 @@ set_target_properties(xxHash_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set(HEADERS 
     include/aligned_alloc.h
     include/arena.h
-    include/array.h
     include/cmp.h
     include/cstr.h
     include/csvparser.h

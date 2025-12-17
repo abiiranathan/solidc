@@ -9,7 +9,6 @@
 #include "align.h"
 #include "aligned_alloc.h"
 #include "arena.h"
-#include "array.h"
 #include "cache.h"
 #include "cmp.h"
 #include "cstr.h"
