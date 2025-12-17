@@ -137,6 +137,7 @@ add_compile_definitions(_USE_MATH_DEFINES _GNU_SOURCE)
 
 # Create the library
 add_library(solidc STATIC ${SOURCES} $<TARGET_OBJECTS:xxHash_obj>)
+set_target_properties(solidc PROPERTIES EXPORT_NAME solidc)
 add_library(solidc::solidc ALIAS solidc)
 
 target_include_directories(solidc PUBLIC

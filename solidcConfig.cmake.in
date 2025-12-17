@@ -1,3 +1,15 @@
 @PACKAGE_INIT@
 
+include(CMakeFindDependencyMacro)
+
+# Find Threads if on Linux (matching your CMakeLists.txt logic)
+if(UNIX AND NOT APPLE)
+    set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+    set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+    find_dependency(Threads)
+endif()
+
+# Include the targets file
 include("${CMAKE_CURRENT_LIST_DIR}/solidcTargets.cmake")
+
+check_required_components(solidc)
