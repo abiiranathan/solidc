@@ -31,6 +31,18 @@ int main() {
     ASSERT_STR_EQ(author, "Dr. Abiira");
     ASSERT_STR_EQ(name_author, "SOLID C Dr. Abiira");
 
+    UNSETENV("NAME");
+    UNSETENV("AUTHOR");
+    UNSETENV("NAME_AUTHOR");
+
+    name        = GETENV("NAME");
+    author      = GETENV("AUTHOR");
+    name_author = GETENV("NAME_AUTHOR");
+
+    ASSERT_NULL(name);
+    ASSERT_NULL(author);
+    ASSERT_NULL(name_author);
+
     remove(env);
     free(env);
 }

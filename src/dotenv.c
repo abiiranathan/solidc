@@ -1,38 +1,10 @@
 #include "../include/dotenv.h"
+#include "../include/str_utils.h"
 
 #include <ctype.h>   // for isspace
 #include <errno.h>   // for errno
 #include <stdio.h>   // for fprintf, stderr, fopen, fgets, fclose
 #include <string.h>  // for strlen, strchr, memset
-
-/**
- * Removes leading and trailing whitespace from a string in-place.
- * @param str The string to trim. Must be non-NULL.
- * @return Pointer to the trimmed string (may be different from input).
- */
-static char* trim_whitespace(char* str) {
-    if (str == NULL) {
-        return NULL;
-    }
-
-    // Remove leading whitespace
-    while (*str && isspace((unsigned char)*str)) {
-        str++;
-    }
-
-    if (*str == '\0') {
-        return str;
-    }
-
-    // Remove trailing whitespace
-    char* end = str + strlen(str) - 1;
-    while (end > str && isspace((unsigned char)*end)) {
-        end--;
-    }
-    *(end + 1) = '\0';
-
-    return str;
-}
 
 /**
  * Removes surrounding quotes from a string in-place.
@@ -149,14 +121,14 @@ static bool process_env_pair(char* key, char* value) {
     }
 
     // Trim key
-    key = trim_whitespace(key);
+    key = trim_string(key);
     if (*key == '\0') {
         fprintf(stderr, "Error: Empty key\n");
         return false;
     }
 
     // Trim and unquote value
-    value = trim_whitespace(value);
+    value = trim_string(value);
     value = remove_quotes(value);
 
     // Check if interpolation is needed
@@ -183,7 +155,6 @@ static bool process_env_pair(char* key, char* value) {
 
 bool load_dotenv(const char* path) {
     if (path == NULL) {
-        fprintf(stderr, "Error: NULL path provided\n");
         return false;
     }
 
@@ -206,7 +177,7 @@ bool load_dotenv(const char* path) {
             line[len - 1] = '\0';
         }
 
-        char* trimmed = trim_whitespace(line);
+        char* trimmed = trim_string(line);
 
         // Skip empty lines and comments
         if (*trimmed == '\0' || *trimmed == '#') {

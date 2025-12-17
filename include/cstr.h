@@ -192,7 +192,7 @@ PRINTF_FORMAT(1, 2) cstr* cstr_format(const char* format, ...);
  * @param ... Arguments for the format string
  * @return true on success, false on allocation failure or formatting error
  */
-bool cstr_append_fmt(cstr* s, const char* format, ...);
+PRINTF_FORMAT(2, 3) bool cstr_append_fmt(cstr* s, const char* format, ...);
 
 /**
  * @brief Appends a single character to the cstr.
