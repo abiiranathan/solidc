@@ -1,7 +1,5 @@
-#include <solidc/cstr.h>
 #include <solidc/array.h>
-
-DARRAY_DEFINE(IntArray, int);
+#include <solidc/cstr.h>
 
 int main() {
     cstr* s = cstr_new("Hello World");
