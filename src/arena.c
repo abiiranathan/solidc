@@ -87,28 +87,24 @@ static void arena_block_destroy_chain(ArenaBlock* block) {
 static bool arena_extend(Arena* arena, size_t min_size) {
     ArenaBlock* current = arena->current_block;
 
-    // Check if there's a next block we can reuse (from a previous reset)
     if (current->next != NULL) {
-        // Sync current block's head before moving
         current->head = arena->current_head;
 
-        // Move to next block and update cached fields
         arena->current_block = current->next;
         arena->current_base  = current->next->memory;
         arena->current_head  = current->next->head;
         arena->current_size  = current->next->size;
 
-        // Check if the allocation fits in the reused block
         if (arena->current_size - arena->current_head >= min_size) {
             return true;
         }
-        // If not, fall through to allocate a new block
+        // Block didn't fit - but we've already moved current_block!
+        // We need to update 'current' to point to the new current_block
+        current = arena->current_block;
     }
 
-    // Sync current block's head before allocating new block
     current->head = arena->current_head;
 
-    // Calculate new block size: max of default size and requested size
     size_t new_block_size = arena->default_block_size;
     if (min_size > new_block_size) {
         new_block_size = arena_align_up(min_size);
@@ -119,18 +115,17 @@ static bool arena_extend(Arena* arena, size_t min_size) {
         return false;
     }
 
-    // Chain the new block
-    arena->current_block->next = new_block;
-    arena->current_block       = new_block;
+    // Preserve the existing chain by inserting new block
+    new_block->next      = current->next;  // ← FIX: Preserve the rest of the chain
+    current->next        = new_block;
+    arena->current_block = new_block;
 
-    // Update cached fields for the new block
     arena->current_base = new_block->memory;
     arena->current_head = 0;
     arena->current_size = new_block->size;
 
     return true;
 }
-
 Arena* arena_create(size_t arena_size) {
     if (arena_size < ARENA_MIN_SIZE) {
         arena_size = ARENA_MIN_SIZE;
