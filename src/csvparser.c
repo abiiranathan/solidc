@@ -80,7 +80,7 @@ static Row** csv_allocate_rows(Arena* arena, size_t num_rows) {
         return NULL;
     }
 
-    Row** rows = arena_alloc_array(arena, sizeof(Row*), num_rows);
+    Row** rows = ARENA_ALLOC_ARRAY(arena, Row*, num_rows);
     if (!rows) {
         fprintf(stderr, "csv_allocate_rows(): arena out of memory\n");
         return NULL;

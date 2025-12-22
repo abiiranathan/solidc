@@ -164,8 +164,9 @@ void test_arena_alloc_array() {
     Arena* arena = arena_create(sizeof(int) * 10);
     ASSERT(arena);
 
-    int* arr = arena_alloc_array(arena, sizeof(int), 10);
+    int* arr = ARENA_ALLOC_ARRAY(arena, int, 10);
     ASSERT(arr);
+
     print_test_result("Arena Alloc Array", 1);
     arena_destroy(arena);
 }

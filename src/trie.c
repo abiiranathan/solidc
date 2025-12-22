@@ -352,7 +352,7 @@ const char** trie_autocomplete(const trie_t* trie, const char* prefix, size_t ma
     suggestions_collector_t collector;
     collector.limit       = max_suggestions;
     collector.count       = 0;
-    collector.suggestions = (char**)arena_alloc_array(arena, sizeof(char*), max_suggestions);
+    collector.suggestions = (char**)ARENA_ALLOC_ARRAY(arena, char*, max_suggestions);
 
     if (collector.suggestions == NULL) {
         return NULL;

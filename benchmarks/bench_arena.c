@@ -14,9 +14,9 @@
 // --- Configuration ---
 #define WARMUP_ITERATIONS         100
 #define MEASUREMENT_ITERATIONS    2000
-#define ALLOCATIONS_PER_ITERATION 50000
+#define ALLOCATIONS_PER_ITERATION 20000
 #define MIN_ALLOC_SIZE            16
-#define MAX_ALLOC_SIZE            2048
+#define MAX_ALLOC_SIZE            4096
 
 // --- Statistics & timing ---
 
@@ -28,6 +28,43 @@ typedef struct {
     double stddev_ns;
     double throughput;  // Allocations per second
 } BenchmarkStats;
+
+// Cross-platform memory touch using inline assembly
+static inline void touch_memory(volatile void* ptr) {
+#if defined(__GNUC__) || defined(__clang__)
+// GCC/Clang inline assembly (works on Linux, macOS, *BSD)
+#if defined(__x86_64__) || defined(__i386__)
+    // x86/x64: Use a dummy read to force memory access
+    __asm__ volatile("movb (%0), %%al" : : "r"(ptr) : "al", "memory");
+#elif defined(__aarch64__) || defined(__arm__)
+    // ARM64/ARM: Load byte to force memory access
+    __asm__ volatile("ldrb wzr, [%0]" : : "r"(ptr) : "memory");
+#else
+    // Fallback for other architectures
+    __asm__ volatile("" : : "r"(*(const volatile char*)ptr) : "memory");
+#endif
+#elif defined(_MSC_VER)
+// MSVC inline assembly
+#if defined(_M_X64) || defined(_M_IX86)
+    // x86/x64: Use intrinsic instead (MSVC doesn't support inline asm on x64)
+    _ReadWriteBarrier();
+    (void)(*(volatile char*)ptr);
+    _ReadWriteBarrier();
+#elif defined(_M_ARM64) || defined(_M_ARM)
+    // ARM: Use intrinsic
+    __dmb(_ARM64_BARRIER_SY);
+    (void)(*(volatile char*)ptr);
+    __dmb(_ARM64_BARRIER_SY);
+#else
+    // Fallback
+    _ReadWriteBarrier();
+    (void)(*(volatile char*)ptr);
+#endif
+#else
+    // Portable fallback using volatile
+    (void)(*(volatile char*)ptr);
+#endif
+}
 
 static inline uint64_t get_time_ns(void) {
     struct timespec ts;
@@ -85,10 +122,7 @@ static void init_sizes() {
 }
 
 static void benchmark_arena(double* samples, size_t num_samples, bool warmup) {
-    // Create one arena large enough to hold everything to avoid measuring OS `mmap` overhead
-    // repeatedly, focusing on the allocator logic itself.
-    // If you want to measure OS overhead, move create/destroy inside the loop.
-    Arena* arena = arena_create(total_required_size + 4096);
+    Arena* arena = arena_create(0);
 
     for (size_t iter = 0; iter < num_samples; iter++) {
         uint64_t start = get_time_ns();
@@ -98,10 +132,8 @@ static void benchmark_arena(double* samples, size_t num_samples, bool warmup) {
 
         // 2. Allocation Loop
         for (size_t i = 0; i < ALLOCATIONS_PER_ITERATION; i++) {
-            volatile char* ptr = (volatile char*)arena_alloc(arena, sizes[i]);
-
-            // Critical: Touch memory to force page faults and prevent optimization
-            *ptr = 1;
+            void* ptr = arena_alloc(arena, sizes[i]);
+            touch_memory(ptr);
         }
 
         uint64_t end = get_time_ns();
