@@ -12,6 +12,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include "macros.h"
 #include "platform.h"
@@ -56,6 +57,86 @@ typedef struct {
     DIR* dir;
 #endif
 } Directory;
+
+/** File attribute flags bitmask */
+typedef enum FileAttrFlags {
+    FATTR_NONE       = 0,       /**< No attributes set */
+    FATTR_FILE       = 1 << 0,  /**< Regular file */
+    FATTR_DIR        = 1 << 1,  /**< Directory */
+    FATTR_SYMLINK    = 1 << 2,  /**< Symbolic link */
+    FATTR_CHARDEV    = 1 << 3,  /**< Character device */
+    FATTR_BLOCKDEV   = 1 << 4,  /**< Block device */
+    FATTR_FIFO       = 1 << 5,  /**< Named pipe (FIFO) */
+    FATTR_SOCKET     = 1 << 6,  /**< Socket */
+    FATTR_READABLE   = 1 << 7,  /**< File is readable by caller */
+    FATTR_WRITABLE   = 1 << 8,  /**< File is writable by caller */
+    FATTR_EXECUTABLE = 1 << 9,  /**< File is executable by caller */
+    FATTR_HIDDEN     = 1 << 10, /**< Hidden file (starts with '.') */
+} FileAttrFlags;
+
+/** Represents file attributes for directory traversal */
+typedef struct FileAttributes {
+    /** Full path to the file/directory */
+    const char* path;
+
+    /** File/directory name (basename) */
+    const char* name;
+
+    /** Bitmask of FileAttrFlags */
+    uint32_t attrs;
+
+    /** File size in bytes (0 for directories and special files) */
+    size_t size;
+
+    /** Last modification time (Unix timestamp) */
+    time_t mtime;
+} FileAttributes;
+
+/**
+ * Checks if a file has a specific attribute flag.
+ * @param attr File attributes structure.
+ * @param flag The flag to check (from FileAttrFlags).
+ * @return true if the flag is set, false otherwise.
+ */
+static inline bool fattr_has(const FileAttributes* attr, FileAttrFlags flag) {
+    return (attr->attrs & flag) != 0;
+}
+
+/**
+ * Checks if the file is a regular file.
+ * @param attr File attributes structure.
+ * @return true if file is a regular file, false otherwise.
+ */
+static inline bool fattr_is_file(const FileAttributes* attr) {
+    return (attr->attrs & FATTR_FILE) != 0;
+}
+
+/**
+ * Checks if the file is a directory.
+ * @param attr File attributes structure.
+ * @return true if file is a directory, false otherwise.
+ */
+static inline bool fattr_is_dir(const FileAttributes* attr) {
+    return (attr->attrs & FATTR_DIR) != 0;
+}
+
+/**
+ * Checks if the file is a symbolic link.
+ * @param attr File attributes structure.
+ * @return true if file is a symbolic link, false otherwise.
+ */
+static inline bool fattr_is_symlink(const FileAttributes* attr) {
+    return (attr->attrs & FATTR_SYMLINK) != 0;
+}
+
+/**
+ * Checks if the file is an I/O device (character or block device).
+ * @param attr File attributes structure.
+ * @return true if file is a device, false otherwise.
+ */
+static inline bool fattr_is_device(const FileAttributes* attr) {
+    return (attr->attrs & (FATTR_CHARDEV | FATTR_BLOCKDEV)) != 0;
+}
 
 // Open a directory for reading
 WARN_UNUSED_RESULT Directory* dir_open(const char* path);
@@ -121,10 +202,13 @@ typedef enum WalkDirOption {
     DirError,     // An error occured.
 } WalkDirOption;
 
-// Walk the directory path, for each entry call the callback.
-// with path, name and user data pointer.
-// Returns 0 to continue or non-zero to stop the walk.
-typedef WalkDirOption (*WalkDirCallback)(const char* path, const char* name, void* data);
+/**
+ * Callback function type for directory walking.
+ * @param attr File attributes of the current entry.
+ * @param data User-provided data pointer.
+ * @return WalkDirOption to control traversal behavior.
+ */
+typedef WalkDirOption (*WalkDirCallback)(const FileAttributes* attr, void* data);
 
 // Walk the directory path, for each entry call the callback
 // with path, name and user data pointer.

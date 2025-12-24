@@ -3,9 +3,8 @@
 #include <string.h>
 #include "../include/macros.h"
 
-WalkDirOption walk(const char* path, const char* name, void* data) {
-    printf("%s\n", path);
-    (void)name;
+WalkDirOption walk(const FileAttributes* attr, void* data) {
+    printf("%s\n", attr->path);
     (void)data;
     return DirContinue;
 }
