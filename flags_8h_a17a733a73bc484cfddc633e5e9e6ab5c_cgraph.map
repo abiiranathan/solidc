@@ -1,0 +1,6 @@
+<map id="flag_parse" name="flag_parse">
+<area shape="rect" id="Node000001" title="Parse command&#45;line arguments." alt="" coords="5,29,95,55"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="23,31,18,21,21,11,32,5,50,3,72,6,81,15,77,19,69,11,50,8,34,10,25,15,23,20,28,28"/>
+<area shape="rect" id="Node000002" href="$flags_8c.html#a52fdff87b9272922eadc56828880e346" title="Print usage/help information for the parser." alt="" coords="143,29,272,55"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="95,39,129,39,129,45,95,45"/>
+</map>

@@ -1,0 +1,28 @@
+<map id="include/platform.h" name="include/platform.h">
+<area shape="rect" id="Node000001" title="Cross&#45;platform compatibility definitions." alt="" coords="287,5,429,31"/>
+<area shape="rect" id="Node000002" href="$file_8h.html" title="Cross&#45;platform file handling API with synchronous and asynchronous I/O support." alt="" coords="5,79,111,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="297,36,107,81,106,76,296,31"/>
+<area shape="rect" id="Node000003" href="$solidc_8h.html" title="Master header file that includes all SolidC library modules." alt="" coords="243,152,366,177"/>
+<area shape="poly" id="edge11_Node000001_Node000003" title=" " alt="" coords="350,45,336,80,311,153,306,151,332,78,345,43"/>
+<area shape="rect" id="Node000006" href="$filepath_8h.html" title="Cross&#45;platform file path manipulation and directory traversal utilities." alt="" coords="135,79,269,104"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="322,39,229,81,226,76,319,34"/>
+<area shape="rect" id="Node000007" href="$socket_8h.html" title="Cross&#45;platform socket programming utilities." alt="" coords="345,79,472,104"/>
+<area shape="poly" id="edge8_Node000001_Node000007" title=" " alt="" coords="377,41,403,77,398,80,372,44"/>
+<area shape="rect" id="Node000009" href="$stdstreams_8h.html" title="Standard stream handling utilities." alt="" coords="496,79,655,104"/>
+<area shape="poly" id="edge12_Node000001_Node000009" title=" " alt="" coords="407,32,541,76,539,81,405,37"/>
+<area shape="rect" id="Node000011" href="$map_8c_source.html" title=" " alt="" coords="679,79,765,104"/>
+<area shape="poly" id="edge15_Node000001_Node000011" title=" " alt="" coords="433,31,668,76,680,78,679,84,667,81,432,36"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="111,105,265,149,264,154,110,110"/>
+<area shape="rect" id="Node000004" href="$file_8c_source.html" title=" " alt="" coords="13,152,89,177"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="58,118,55,152,50,152,53,118"/>
+<area shape="rect" id="Node000005" href="$filepath_8c_source.html" title=" " alt="" coords="113,152,219,177"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="88,109,150,150,147,154,85,114"/>
+<area shape="poly" id="edge6_Node000006_Node000003" title=" " alt="" coords="231,110,289,150,286,154,228,114"/>
+<area shape="poly" id="edge7_Node000006_Node000005" title=" " alt="" coords="192,117,174,153,169,151,188,115"/>
+<area shape="poly" id="edge9_Node000007_Node000003" title=" " alt="" coords="382,114,323,154,320,150,379,110"/>
+<area shape="rect" id="Node000008" href="$socket_8c_source.html" title=" " alt="" coords="390,152,489,177"/>
+<area shape="poly" id="edge10_Node000007_Node000008" title=" " alt="" coords="422,116,437,151,432,153,417,118"/>
+<area shape="poly" id="edge13_Node000009_Node000003" title=" " alt="" coords="520,110,349,154,348,149,518,105"/>
+<area shape="rect" id="Node000010" href="$stdstreams_8c_source.html" title=" " alt="" coords="513,152,643,177"/>
+<area shape="poly" id="edge14_Node000009_Node000010" title=" " alt="" coords="579,118,580,152,575,152,574,118"/>
+</map>

@@ -1,0 +1,17 @@
+<map id="include/cstr.h" name="include/cstr.h">
+<area shape="rect" id="Node000001" title="C string utilities and safe string operations." alt="" coords="183,5,291,31"/>
+<area shape="rect" id="Node000002" href="$flags_8h.html" title="Command&#45;line flag parsing library." alt="" coords="24,79,140,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="201,39,108,81,106,76,198,34"/>
+<area shape="rect" id="Node000003" href="$solidc_8h.html" title="Master header file that includes all SolidC library modules." alt="" coords="117,152,239,177"/>
+<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="224,44,206,80,192,119,183,152,178,151,187,118,201,78,220,41"/>
+<area shape="rect" id="Node000005" href="$stdstreams_8h.html" title="Standard stream handling utilities." alt="" coords="216,79,375,104"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="257,40,288,77,284,80,253,43"/>
+<area shape="rect" id="Node000007" href="$cstr_8c_source.html" title=" " alt="" coords="399,79,477,104"/>
+<area shape="poly" id="edge8_Node000001_Node000007" title=" " alt="" coords="283,33,406,76,404,81,281,38"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="110,110,164,150,161,154,107,114"/>
+<area shape="rect" id="Node000004" href="$flags_8c.html" title="Command&#45;line flag parsing library implementation." alt="" coords="5,152,92,177"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="73,118,56,153,52,151,68,115"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="266,113,199,154,196,149,263,109"/>
+<area shape="rect" id="Node000006" href="$stdstreams_8c_source.html" title=" " alt="" coords="264,152,393,177"/>
+<area shape="poly" id="edge7_Node000005_Node000006" title=" " alt="" coords="309,115,326,151,321,153,304,118"/>
+</map>

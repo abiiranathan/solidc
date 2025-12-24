@@ -1,0 +1,16 @@
+<map id="include/dotenv.h" name="include/dotenv.h">
+<area shape="rect" id="Node000001" title="Environment variable loading from .env files." alt="" coords="211,5,340,31"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,79,76,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="238,33,90,78,89,73,237,28"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="101,79,183,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="255,33,177,74,175,70,253,28"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="207,79,274,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="272,32,255,67,250,65,267,30"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="356,152,427,177"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="286,30,340,102,373,140,369,144,336,106,281,33"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="349,79,420,104"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="294,28,357,69,354,73,291,33"/>
+<area shape="rect" id="Node000007" href="$env_8h.html" title="Environment variable utilities and safe access functions." alt="" coords="444,79,501,104"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="308,28,432,72,430,78,306,33"/>
+<area shape="poly" id="edge7_Node000007_Node000005" title=" " alt="" coords="461,106,417,145,413,141,458,102"/>
+</map>

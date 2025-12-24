@@ -1,0 +1,30 @@
+<map id="include/linear_alg.h" name="include/linear_alg.h">
+<area shape="rect" id="Node000001" title="Linear algebra operations and utilities." alt="" coords="139,5,289,31"/>
+<area shape="rect" id="Node000002" href="$matrix_8h.html" title="Matrix operations and mathematical utilities." alt="" coords="138,79,215,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="210,32,191,68,187,65,205,30"/>
+<area shape="rect" id="Node000006" href="$vec_8h_source.html" title=" " alt="" coords="257,152,315,177"/>
+<area shape="poly" id="edge17_Node000001_Node000006" title=" " alt="" coords="222,30,277,138,272,141,218,32"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,152,68,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="155,106,73,148,70,143,153,102"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="129,299,211,324"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="171,106,156,132,140,168,131,209,130,230,134,250,142,269,153,286,149,289,137,272,129,251,125,230,125,208,135,166,151,129,166,103"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="143,225,210,251"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="179,104,179,212,174,212,174,104"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="196,102,258,142,255,147,193,106"/>
+<area shape="poly" id="edge8_Node000006_Node000004" title=" " alt="" coords="280,179,224,252,192,290,188,287,220,249,275,176"/>
+<area shape="poly" id="edge6_Node000006_Node000005" title=" " alt="" coords="270,180,208,220,205,215,267,175"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="236,299,304,324"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="287,178,275,285,270,285,282,177"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="420,299,491,324"/>
+<area shape="poly" id="edge9_Node000006_Node000008" title=" " alt="" coords="316,171,366,190,392,205,416,223,437,253,451,284,446,286,433,256,412,227,389,209,363,195,314,176"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="515,299,585,324"/>
+<area shape="poly" id="edge10_Node000006_Node000009" title=" " alt="" coords="316,172,376,192,443,223,490,255,529,287,526,291,487,259,441,228,374,197,314,177"/>
+<area shape="rect" id="Node000010" href="$simd_8h.html" title="Portable Single Instruction Multiple Data (SIMD) Intrinsics Wrapper." alt="" coords="335,225,402,251"/>
+<area shape="poly" id="edge11_Node000006_Node000010" title=" " alt="" coords="301,175,346,214,343,218,298,179"/>
+<area shape="poly" id="edge13_Node000010_Node000004" title=" " alt="" coords="338,253,216,296,215,291,336,248"/>
+<area shape="poly" id="edge12_Node000010_Node000007" title=" " alt="" coords="354,253,299,293,296,288,351,249"/>
+<area shape="poly" id="edge14_Node000010_Node000008" title=" " alt="" coords="384,249,432,288,429,292,381,253"/>
+<area shape="poly" id="edge15_Node000010_Node000009" title=" " alt="" coords="399,248,509,291,507,296,397,253"/>
+<area shape="rect" id="Node000011" href="$align_8h.html" title="Memory alignment utilities and macros for cross&#45;platform alignment." alt="" coords="329,299,395,324"/>
+<area shape="poly" id="edge16_Node000010_Node000011" title=" " alt="" coords="370,251,367,285,362,285,365,251"/>
+</map>

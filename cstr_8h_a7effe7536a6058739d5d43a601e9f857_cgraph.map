@@ -1,0 +1,7 @@
+<map id="cstr_new" name="cstr_new">
+<area shape="rect" id="Node000001" title="Creates a new cstr from a C string." alt="" coords="5,29,85,55"/>
+<area shape="poly" id="edge3_Node000001_Node000001" title=" " alt="" coords="24,30,19,21,22,11,31,5,45,3,63,6,70,14,66,18,60,11,45,8,33,10,26,14,25,20,28,28"/>
+<area shape="rect" id="Node000002" href="$cstr_8c.html#addbb5ac6b50949c8b4ef489563117300" title="Creates a new empty cstr with specified initial capacity." alt="" coords="133,29,208,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="85,39,120,39,120,45,85,45"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="149,30,145,21,147,11,156,5,171,3,188,6,196,14,192,18,185,11,171,8,158,10,151,14,150,20,154,28"/>
+</map>

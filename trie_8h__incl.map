@@ -1,0 +1,20 @@
+<map id="include/trie.h" name="include/trie.h">
+<area shape="rect" id="Node000001" title="Trie data structure implementation for efficient string storage and retrieval." alt="" coords="204,5,311,31"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,152,88,177"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="237,33,157,81,73,145,70,141,155,76,235,29"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="113,152,183,177"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="235,33,205,53,177,80,162,109,154,139,149,138,157,108,173,77,201,49,232,29"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="332,79,399,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="276,28,338,69,335,73,273,33"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="423,79,494,104"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="291,28,414,71,412,77,289,33"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="307,152,378,177"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="267,30,331,139,327,141,262,32"/>
+<area shape="rect" id="Node000007" href="$arena_8h_source.html" title=" " alt="" coords="186,79,257,104"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="254,32,236,68,231,65,249,30"/>
+<area shape="poly" id="edge7_Node000007_Node000002" title=" " alt="" coords="194,106,89,149,87,144,192,102"/>
+<area shape="poly" id="edge9_Node000007_Node000003" title=" " alt="" coords="211,106,172,144,168,140,207,102"/>
+<area shape="poly" id="edge10_Node000007_Node000006" title=" " alt="" coords="242,102,313,143,310,147,239,106"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="208,152,283,177"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="228,103,240,138,235,140,223,105"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="include/rwlock.h" name="include/rwlock.h">
+<area shape="rect" id="Node000001" title="Read&#45;write lock implementation for concurrent access." alt="" coords="5,5,133,31"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="27,79,111,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="72,31,72,65,67,65,67,31"/>
+</map>

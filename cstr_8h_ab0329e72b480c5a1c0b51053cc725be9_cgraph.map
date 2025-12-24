@@ -1,0 +1,11 @@
+<map id="cstr_substr" name="cstr_substr">
+<area shape="rect" id="Node000001" title="Extracts a substring from the cstr." alt="" coords="5,29,99,55"/>
+<area shape="poly" id="edge6_Node000001_Node000001" title=" " alt="" coords="29,30,24,21,27,11,36,5,52,3,70,6,78,14,75,18,68,11,52,8,38,10,31,14,30,20,34,28"/>
+<area shape="rect" id="Node000002" href="$cstr_8c.html#addbb5ac6b50949c8b4ef489563117300" title="Creates a new empty cstr with specified initial capacity." alt="" coords="275,29,349,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="99,32,147,27,227,27,261,31,261,36,227,33,147,33,99,38"/>
+<area shape="rect" id="Node000003" href="$cstr_8c.html#a7effe7536a6058739d5d43a601e9f857" title="Creates a new cstr from a C string." alt="" coords="147,67,227,92"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="99,52,135,62,133,67,98,57"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="290,30,286,21,288,11,297,5,312,3,329,6,337,14,333,18,327,11,312,8,299,10,293,14,291,20,295,28"/>
+<area shape="poly" id="edge4_Node000003_Node000002" title=" " alt="" coords="226,65,261,54,263,59,228,70"/>
+<area shape="poly" id="edge5_Node000003_Node000003" title=" " alt="" coords="165,68,161,58,163,49,172,42,187,40,204,43,212,52,208,55,201,48,187,45,174,47,167,52,166,58,170,65"/>
+</map>

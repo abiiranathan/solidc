@@ -1,0 +1,25 @@
+var searchData=
+[
+  ['data_0',['data',['../structutf8__string.html#a21057df897260e66f9c1305a0f3bae86',1,'utf8_string::data'],['../structslist__node.html#aa3097f512a5be98edf9f8846f630122e',1,'slist_node::data'],['../structdynarray__t.html#ac9150219f49c18dde1a54c86285137bc',1,'dynarray_t::data'],['../structlist__node.html#aaa55c3480c90432991e01545b6ff34b5',1,'list_node::data']]],
+  ['defer_2eh_1',['defer.h',['../defer_8h.html',1,'']]],
+  ['design_20philosophy_3a_2',['Design Philosophy:',['../arena_8h.html#autotoc_md25',1,'']]],
+  ['dir_5fwalk_3',['dir_walk',['../filepath_8h.html#af247d0017f4fc538777d06c9f40443bd',1,'filepath.c']]],
+  ['dir_5fwalk_5fdepth_5ffirst_4',['dir_walk_depth_first',['../filepath_8h.html#af54d8cbf030f00437fdef2047afdafb3',1,'filepath.c']]],
+  ['directory_20walk_5',['🧪 Example: Directory Walk',['../index.html#autotoc_md12',1,'']]],
+  ['dotenv_2eh_6',['dotenv.h',['../dotenv_8h.html',1,'']]],
+  ['driven_20by_20the_20makefile_7',['2. Build with CMake (Driven by the Makefile)',['../index.html#autotoc_md8',1,'']]],
+  ['dynarray_2eh_8',['dynarray.h',['../dynarray_8h.html',1,'']]],
+  ['dynarray_5fclear_9',['dynarray_clear',['../dynarray_8h.html#a912f6498e2b3af02646833d5ce2a852f',1,'dynarray.c']]],
+  ['dynarray_5ffree_10',['dynarray_free',['../dynarray_8h.html#ad2dd2f69d788781768aed0811e1220d3',1,'dynarray.c']]],
+  ['dynarray_5fget_11',['dynarray_get',['../dynarray_8h.html#a6ecd567c332397a7f06f0b5c6cf7a106',1,'dynarray.c']]],
+  ['dynarray_5fgrowth_5fnumerator_12',['DYNARRAY_GROWTH_NUMERATOR',['../dynarray_8h.html#ab01534ca06d18f68171a0ad280e4f193',1,'dynarray.h']]],
+  ['dynarray_5finit_13',['dynarray_init',['../dynarray_8h.html#a859dd5766f78662f2f5f349848a545ed',1,'dynarray.c']]],
+  ['dynarray_5finitial_5fcapacity_14',['DYNARRAY_INITIAL_CAPACITY',['../dynarray_8h.html#a155bee44d1d29d1200dbda0ec53b8c73',1,'dynarray.h']]],
+  ['dynarray_5fpop_15',['dynarray_pop',['../dynarray_8h.html#a4ffd5686da4a5536c94814c70ff7b8cb',1,'dynarray.c']]],
+  ['dynarray_5fpush_16',['dynarray_push',['../dynarray_8h.html#a13d24ddc6043c6239ecaf98385ea09dd',1,'dynarray.c']]],
+  ['dynarray_5freserve_17',['dynarray_reserve',['../dynarray_8h.html#af75fe75401b345fb028d5a3a0e475b1a',1,'dynarray.c']]],
+  ['dynarray_5fset_18',['dynarray_set',['../dynarray_8h.html#a4530867b2aa507fd65ae0d8d337cf4dc',1,'dynarray.c']]],
+  ['dynarray_5fshrink_5fthreshold_19',['DYNARRAY_SHRINK_THRESHOLD',['../dynarray_8h.html#af6bde76bd64f1060c340d379820347c3',1,'dynarray.h']]],
+  ['dynarray_5fshrink_5fto_5ffit_20',['dynarray_shrink_to_fit',['../dynarray_8h.html#a5f288466ef4096563fae63a6d0709367',1,'dynarray.c']]],
+  ['dynarray_5ft_21',['dynarray_t',['../structdynarray__t.html',1,'']]]
+];

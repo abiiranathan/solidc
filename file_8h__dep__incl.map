@@ -1,0 +1,9 @@
+<map id="include/file.h" name="include/file.h">
+<area shape="rect" id="Node000001" title="Cross&#45;platform file handling API with synchronous and asynchronous I/O support." alt="" coords="138,5,243,31"/>
+<area shape="rect" id="Node000002" href="$solidc_8h.html" title="Master header file that includes all SolidC library modules." alt="" coords="5,79,128,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="160,40,88,81,86,76,158,35"/>
+<area shape="rect" id="Node000003" href="$file_8c_source.html" title=" " alt="" coords="153,79,229,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="193,44,193,79,188,79,188,44"/>
+<area shape="rect" id="Node000004" href="$filepath_8c_source.html" title=" " alt="" coords="253,79,358,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="222,35,288,76,285,81,219,40"/>
+</map>

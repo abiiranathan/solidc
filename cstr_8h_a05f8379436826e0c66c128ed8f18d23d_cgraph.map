@@ -1,0 +1,14 @@
+<map id="cstr_replace_all" name="cstr_replace_all">
+<area shape="rect" id="Node000001" title="Replaces all occurrences of a substring with another." alt="" coords="5,80,129,105"/>
+<area shape="poly" id="edge8_Node000001_Node000001" title=" " alt="" coords="42,81,37,72,40,62,50,56,67,53,88,57,97,65,93,69,85,62,67,59,52,61,44,65,42,71,47,79"/>
+<area shape="rect" id="Node000002" href="$cstr_8c.html#ac0035d2d1ada61ea0e7b9bf077885ac0" title="Frees a cstr and all associated memory." alt="" coords="178,29,257,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="105,77,165,57,167,62,107,82"/>
+<area shape="rect" id="Node000003" href="$cstr_8c.html#addbb5ac6b50949c8b4ef489563117300" title="Creates a new empty cstr with specified initial capacity." alt="" coords="305,117,380,143"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="130,98,258,115,292,120,291,125,257,121,129,103"/>
+<area shape="rect" id="Node000004" href="$cstr_8c.html#a7effe7536a6058739d5d43a601e9f857" title="Creates a new cstr from a C string." alt="" coords="177,155,257,180"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="96,103,180,146,177,151,93,108"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="196,30,191,21,194,11,203,5,217,3,235,6,242,14,238,18,232,11,217,8,205,10,198,14,197,20,200,28"/>
+<area shape="poly" id="edge4_Node000003_Node000003" title=" " alt="" coords="321,118,317,109,319,99,328,93,343,91,360,94,368,102,364,106,357,99,343,96,330,98,323,102,322,108,326,116"/>
+<area shape="poly" id="edge6_Node000004_Node000003" title=" " alt="" coords="257,153,292,142,293,147,258,158"/>
+<area shape="poly" id="edge7_Node000004_Node000004" title=" " alt="" coords="196,156,191,146,194,137,203,130,217,128,235,131,242,140,238,143,232,136,217,133,205,135,198,140,197,146,200,153"/>
+</map>
