@@ -45,40 +45,159 @@ static native_handle_t get_native_handle(FILE* stream) {
 }
 
 /**
- * Gets file size using the native handle.
- * @param handle Native file handle.
- * @return File size in bytes, or -1 on error.
+ * Cross-platform file information retrieval.
+ * On Unix: uses lstat to detect symlinks without following them.
+ * On Windows: uses GetFileAttributesEx for basic info.
  */
-static int64_t get_size_from_handle(native_handle_t handle) {
-    if (handle == INVALID_NATIVE_HANDLE) {
-        errno = EBADF;
-        return -1;
-    }
-
 #ifdef _WIN32
-    LARGE_INTEGER size;
-    if (!GetFileSizeEx(handle, &size)) {
-        errno = EIO;
-        return -1;
-    }
-    return (int64_t)size.QuadPart;
-#else
-    struct stat st;
-    if (fstat(handle, &st) != 0) {
-        return -1;  // errno already set by fstat
-    }
-    return (int64_t)st.st_size;
-#endif
+
+/**
+ * Converts Windows FILETIME to Unix timestamp.
+ * @param ft Windows FILETIME structure.
+ * @return Unix timestamp (seconds since epoch).
+ */
+static time_t filetime_to_unix(const FILETIME* ft) {
+    ULARGE_INTEGER ull;
+    ull.LowPart  = ft->dwLowDateTime;
+    ull.HighPart = ft->dwHighDateTime;
+    // Convert from 100-nanosecond intervals since 1601 to seconds since 1970
+    return (time_t)((ull.QuadPart / 10000000ULL) - 11644473600ULL);
 }
 
 /**
- * Validates file size for safety checks.
- * @param size File size to validate.
- * @return true if size is valid and safe, false otherwise.
+ * Populates FileAttributes structure from a file path (Windows implementation).
+ * @param path Full path to the file.
+ * @param name Basename of the file.
+ * @param attr Output FileAttributes structure to populate.
+ * @return 0 on success, -1 on error (errno is set).
  */
-static bool is_valid_file_size(int64_t size) {
-    return size >= 0 && (uint64_t)size <= MAX_READALL_SIZE;
+int populate_file_attrs(const char* path, FileAttributes* attr) {
+    WIN32_FILE_ATTRIBUTE_DATA file_info;
+    if (!GetFileAttributesExA(path, GetFileExInfoStandard, &file_info)) {
+        errno = ENOENT;
+        return -1;
+    }
+
+    // Initialize structure
+    *attr = (FileAttributes){
+        .attrs = FATTR_NONE,
+        .size  = 0,
+        .mtime = filetime_to_unix(&file_info.ftLastWriteTime),
+    };
+
+    // Calculate file size
+    ULARGE_INTEGER file_size;
+    file_size.LowPart  = file_info.nFileSizeLow;
+    file_size.HighPart = file_info.nFileSizeHigh;
+    attr->size         = file_size.QuadPart;
+
+    // Determine file type
+    if (file_info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+        attr->attrs |= FATTR_DIR;
+        attr->size = 0;  // Directories have no meaningful size on Windows
+    } else {
+        attr->attrs |= FATTR_FILE;
+    }
+
+    // Check for reparse points (symlinks, junctions, etc.)
+    if (file_info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+        attr->attrs |= FATTR_SYMLINK;
+    }
+
+    // Check for hidden files
+    if (file_info.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) {
+        attr->attrs |= FATTR_HIDDEN;
+    }
+
+    // On Windows, executability is determined by file extension
+    const char* ext = strrchr(path, '.');
+    if (ext && (strcmp(ext, ".exe") == 0 || strcmp(ext, ".bat") == 0 || strcmp(ext, ".cmd") == 0 ||
+                strcmp(ext, ".com") == 0)) {
+        attr->attrs |= FATTR_EXECUTABLE;
+    }
+
+    return 0;
 }
+
+#else  // Unix/Linux/macOS
+
+/**
+ * Populates FileAttributes structure from a file path (POSIX implementation).
+ * @param path Full path to the file.
+ * @param name Basename of the file.
+ * @param attr Output FileAttributes structure to populate.
+ * @return 0 on success, -1 on error (errno is set).
+ */
+int populate_file_attrs(const char* path, FileAttributes* attr) {
+    if (!attr) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    struct stat st;
+    if (lstat(path, &st) != 0) {
+        return -1;  // errno is set by lstat
+    }
+
+    // Initialize structure
+    *attr = (FileAttributes){
+        .attrs = FATTR_NONE,
+        .size  = (uint64_t)st.st_size,
+        .mtime = st.st_mtime,
+    };
+
+    // Determine file type
+    if (S_ISREG(st.st_mode)) {
+        attr->attrs |= FATTR_FILE;
+    } else if (S_ISDIR(st.st_mode)) {
+        attr->attrs |= FATTR_DIR;
+        attr->size = 0;  // Directory size is not meaningful
+    } else if (S_ISLNK(st.st_mode)) {
+        attr->attrs |= FATTR_SYMLINK;
+    }
+
+#ifdef S_ISCHR
+    if (S_ISCHR(st.st_mode)) {
+        attr->attrs |= FATTR_CHARDEV;
+    }
+#endif
+
+#ifdef S_ISBLK
+    if (S_ISBLK(st.st_mode)) {
+        attr->attrs |= FATTR_BLOCKDEV;
+    }
+#endif
+
+#ifdef S_ISFIFO
+    if (S_ISFIFO(st.st_mode)) {
+        attr->attrs |= FATTR_FIFO;
+    }
+#endif
+
+#ifdef S_ISSOCK
+    if (S_ISSOCK(st.st_mode)) {
+        attr->attrs |= FATTR_SOCKET;
+    }
+#endif
+
+    // Check if hidden (starts with '.' on Unix)
+    const char* name = path;
+
+    if (path) {
+        const char* slash = strrchr(path, '/');
+        if (slash && slash[1] != '\0') {
+            name = slash + 1;
+        }
+    }
+
+    if (name[0] == '.') {
+        attr->attrs |= FATTR_HIDDEN;
+    }
+
+    return 0;
+}
+
+#endif  // _WIN32
 
 file_result_t file_open(file_t* file, const char* filename, const char* mode) {
     if (!filename || !mode) {
@@ -105,6 +224,14 @@ file_result_t file_open(file_t* file, const char* filename, const char* mode) {
         return FILE_ERROR_OPEN_FAILED;
     }
 
+    // Populate file attributes.
+    if (populate_file_attrs(filename, &file->attr) != 0) {
+        fclose(file->stream);
+        file->stream = NULL;
+        errno        = EBADF;
+        return FILE_ERROR_OPEN_FAILED;
+    }
+
     return FILE_SUCCESS;
 }
 
@@ -114,36 +241,6 @@ void file_close(file_t* file) {
         file->stream = NULL;
     }
     file->native_handle = INVALID_NATIVE_HANDLE;
-}
-
-int64_t file_get_size(const file_t* file) {
-    return get_size_from_handle(file->native_handle);
-}
-
-int64_t get_file_size(const char* filename) {
-    if (!filename) {
-        errno = EINVAL;
-        return -1;
-    }
-
-#ifdef _WIN32
-    HANDLE handle = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
-                                FILE_ATTRIBUTE_NORMAL, NULL);
-    if (handle == INVALID_HANDLE_VALUE) {
-        errno = ENOENT;  // Simplified error mapping
-        return -1;
-    }
-
-    int64_t size = get_size_from_handle(handle);
-    CloseHandle(handle);
-    return size;
-#else
-    struct stat st;
-    if (stat(filename, &st) != 0) {
-        return -1;  // errno already set by stat
-    }
-    return (int64_t)st.st_size;
-#endif
 }
 
 file_result_t file_truncate(file_t* file, int64_t length) {
@@ -272,12 +369,7 @@ ssize_t file_pwrite(file_t* file, const void* buffer, size_t size, int64_t offse
 }
 
 void* file_readall(const file_t* file, size_t* size_out) {
-    int64_t size = file_get_size(file);
-    if (!is_valid_file_size(size)) {
-        errno = (size < 0) ? EIO : EFBIG;
-        return NULL;
-    }
-
+    size_t size = file->attr.size;
     if (size == 0) {
         if (size_out) *size_out = 0;
         // Return a valid pointer for zero-sized files
@@ -313,7 +405,6 @@ void* file_readall(const file_t* file, size_t* size_out) {
     if (size_out) {
         *size_out = bytes_read;
     }
-
     return buffer;
 }
 

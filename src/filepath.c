@@ -113,180 +113,6 @@ static void random_string(char* str, size_t len) {
     lock_release(&rand_lock);
 }
 
-/**
- * Cross-platform file information retrieval.
- * On Unix: uses lstat to detect symlinks without following them.
- * On Windows: uses GetFileAttributesEx for basic info.
- */
-#ifdef _WIN32
-
-/**
- * Converts Windows FILETIME to Unix timestamp.
- * @param ft Windows FILETIME structure.
- * @return Unix timestamp (seconds since epoch).
- */
-static time_t filetime_to_unix(const FILETIME* ft) {
-    ULARGE_INTEGER ull;
-    ull.LowPart  = ft->dwLowDateTime;
-    ull.HighPart = ft->dwHighDateTime;
-    // Convert from 100-nanosecond intervals since 1601 to seconds since 1970
-    return (time_t)((ull.QuadPart / 10000000ULL) - 11644473600ULL);
-}
-
-/**
- * Populates FileAttributes structure from a file path (Windows implementation).
- * @param path Full path to the file.
- * @param name Basename of the file.
- * @param attr Output FileAttributes structure to populate.
- * @return 0 on success, -1 on error (errno is set).
- */
-static int populate_file_attrs(const char* path, const char* name, FileAttributes* attr) {
-    if (!path || !name || !attr) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    WIN32_FILE_ATTRIBUTE_DATA file_info;
-    if (!GetFileAttributesExA(path, GetFileExInfoStandard, &file_info)) {
-        errno = ENOENT;
-        return -1;
-    }
-
-    // Initialize structure
-    *attr = (FileAttributes){
-        .path  = path,
-        .name  = name,
-        .attrs = FATTR_NONE,
-        .size  = 0,
-        .mtime = filetime_to_unix(&file_info.ftLastWriteTime),
-    };
-
-    // Calculate file size
-    ULARGE_INTEGER file_size;
-    file_size.LowPart  = file_info.nFileSizeLow;
-    file_size.HighPart = file_info.nFileSizeHigh;
-    attr->size         = file_size.QuadPart;
-
-    // Determine file type
-    if (file_info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-        attr->attrs |= FATTR_DIR;
-        attr->size = 0;  // Directories have no meaningful size on Windows
-    } else {
-        attr->attrs |= FATTR_FILE;
-    }
-
-    // Check for reparse points (symlinks, junctions, etc.)
-    if (file_info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
-        attr->attrs |= FATTR_SYMLINK;
-    }
-
-    // Check for hidden files
-    if (file_info.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) {
-        attr->attrs |= FATTR_HIDDEN;
-    }
-
-    // Check accessibility using _access
-    if (_access(path, R_OK) == 0) {
-        attr->attrs |= FATTR_READABLE;
-    }
-    if (_access(path, W_OK) == 0) {
-        attr->attrs |= FATTR_WRITABLE;
-    }
-
-    // On Windows, executability is determined by file extension
-    const char* ext = strrchr(name, '.');
-    if (ext && (strcmp(ext, ".exe") == 0 || strcmp(ext, ".bat") == 0 || strcmp(ext, ".cmd") == 0 ||
-                strcmp(ext, ".com") == 0)) {
-        attr->attrs |= FATTR_EXECUTABLE;
-    }
-
-    return 0;
-}
-
-#else  // Unix/Linux/macOS
-
-/**
- * Populates FileAttributes structure from a file path (POSIX implementation).
- * @param path Full path to the file.
- * @param name Basename of the file.
- * @param attr Output FileAttributes structure to populate.
- * @return 0 on success, -1 on error (errno is set).
- */
-static int populate_file_attrs(const char* path, const char* name, FileAttributes* attr) {
-    if (!path || !name || !attr) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    struct stat st;
-    if (lstat(path, &st) != 0) {
-        return -1;  // errno is set by lstat
-    }
-
-    // Initialize structure
-    *attr = (FileAttributes){
-        .path  = path,
-        .name  = name,
-        .attrs = FATTR_NONE,
-        .size  = (uint64_t)st.st_size,
-        .mtime = st.st_mtime,
-    };
-
-    // Determine file type
-    if (S_ISREG(st.st_mode)) {
-        attr->attrs |= FATTR_FILE;
-    } else if (S_ISDIR(st.st_mode)) {
-        attr->attrs |= FATTR_DIR;
-        attr->size = 0;  // Directory size is not meaningful
-    } else if (S_ISLNK(st.st_mode)) {
-        attr->attrs |= FATTR_SYMLINK;
-    }
-
-#ifdef S_ISCHR
-    if (S_ISCHR(st.st_mode)) {
-        attr->attrs |= FATTR_CHARDEV;
-    }
-#endif
-
-#ifdef S_ISBLK
-    if (S_ISBLK(st.st_mode)) {
-        attr->attrs |= FATTR_BLOCKDEV;
-    }
-#endif
-
-#ifdef S_ISFIFO
-    if (S_ISFIFO(st.st_mode)) {
-        attr->attrs |= FATTR_FIFO;
-    }
-#endif
-
-#ifdef S_ISSOCK
-    if (S_ISSOCK(st.st_mode)) {
-        attr->attrs |= FATTR_SOCKET;
-    }
-#endif
-
-    // Check accessibility (uses effective user ID)
-    if (access(path, R_OK) == 0) {
-        attr->attrs |= FATTR_READABLE;
-    }
-    if (access(path, W_OK) == 0) {
-        attr->attrs |= FATTR_WRITABLE;
-    }
-    if (access(path, X_OK) == 0) {
-        attr->attrs |= FATTR_EXECUTABLE;
-    }
-
-    // Check if hidden (starts with '.' on Unix)
-    if (name[0] == '.') {
-        attr->attrs |= FATTR_HIDDEN;
-    }
-
-    return 0;
-}
-
-#endif  // _WIN32
-
 // Open a directory
 Directory* dir_open(const char* path) {
     if (!path || *path == '\0') {
@@ -367,6 +193,7 @@ char* dir_next(Directory* dir) {
         errno = EINVAL;
         return NULL;
     }
+
 #ifdef _WIN32
     if (dir->handle == INVALID_HANDLE_VALUE) {
         errno = EBADF;
@@ -375,8 +202,8 @@ char* dir_next(Directory* dir) {
     if (FindNextFileW(dir->handle, &dir->find_data)) {
         // Convert wide-char filename to UTF-8
         char filename[MAX_PATH];
-        WideCharToMultiByte(CP_UTF8, 0, dir->find_data.cFileName, -1, filename, MAX_PATH, NULL, NULL);
-        return dir->path;  // Note: This is a bug in the original code; should return filename
+        WideCharToMultiByte(CP_UTF8, 0, dir->find_data.cFileName, -1, dir->name_buf, MAX_PATH, NULL, NULL);
+        return dir->name_buf;
     }
 #else
     struct dirent* entry = readdir(dir->dir);
@@ -386,6 +213,66 @@ char* dir_next(Directory* dir) {
 #endif
     return NULL;
 }
+
+#ifdef _WIN32
+static void map_win32_attrs(const WIN32_FIND_DATAW* fd, FileAttributes* attr) {
+    attr->attrs = FATTR_NONE;
+    if (fd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+        attr->attrs |= FATTR_DIR;
+    else
+        attr->attrs |= FATTR_FILE;
+    if (fd->dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) attr->attrs |= FATTR_SYMLINK;
+    if (fd->dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) attr->attrs |= FATTR_HIDDEN;
+    if (fd->cFileName[0] == '.') attr->attrs |= FATTR_HIDDEN;
+
+    attr->size = ((size_t)fd->nFileSizeHigh << 32) | fd->nFileSizeLow;
+
+    // Convert Windows FileTime to Unix mtime (simplified)
+    ULARGE_INTEGER ull;
+    ull.LowPart  = fd->ftLastWriteTime.dwLowDateTime;
+    ull.HighPart = fd->ftLastWriteTime.dwHighDateTime;
+    attr->mtime  = (time_t)((ull.QuadPart - 116444736000000000ULL) / 10000000ULL);
+}
+#else
+static int map_dirent_attrs(const struct dirent* entry, const char* path, FileAttributes* attr) {
+    struct stat st;
+    if (lstat(path, &st) != 0) return -1;
+
+    attr->size  = (size_t)st.st_size;
+    attr->mtime = st.st_mtime;
+    attr->attrs = FATTR_NONE;
+    if (entry->d_name[0] == '.') attr->attrs |= FATTR_HIDDEN;
+
+    switch (entry->d_type) {
+        case DT_REG:
+            attr->attrs |= FATTR_FILE;
+            break;
+        case DT_DIR:
+            attr->attrs |= FATTR_DIR;
+            break;
+        case DT_LNK:
+            attr->attrs |= FATTR_SYMLINK;
+            break;
+        case DT_CHR:
+            attr->attrs |= FATTR_CHARDEV;
+            break;
+        case DT_BLK:
+            attr->attrs |= FATTR_BLOCKDEV;
+            break;
+        case DT_FIFO:
+            attr->attrs |= FATTR_FIFO;
+            break;
+        case DT_SOCK:
+            attr->attrs |= FATTR_SOCKET;
+            break;
+        default:
+            attr->attrs = FATTR_NONE;
+            break;  // Needs fallback (stat)
+    }
+
+    return 0;
+}
+#endif
 
 static int delete_single_directory(const char* path) {
 #ifdef _WIN32
@@ -437,17 +324,18 @@ int dir_create(const char* path) {
  * @param data User-provided data (unused).
  * @return DirContinue on success, DirError on failure (errno is set).
  */
-static WalkDirOption dir_remove_callback(const FileAttributes* attr, void* data) {
+static WalkDirOption dir_remove_callback(const FileAttributes* attr, const char* path, const char* name, void* data) {
     (void)data;
+    (void)name;
 
-    if (!attr || !attr->path) {
+    if (!attr || !path) {
         errno = EINVAL;
         return DirError;
     }
 
 #ifdef _WIN32
     if (fattr_is_dir(attr)) {
-        if (!RemoveDirectoryA(attr->path)) {
+        if (!RemoveDirectoryA(path)) {
             DWORD err = GetLastError();
             errno     = (err == ERROR_DIR_NOT_EMPTY)                                   ? ENOTEMPTY
                         : (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
@@ -455,7 +343,7 @@ static WalkDirOption dir_remove_callback(const FileAttributes* attr, void* data)
             return DirError;
         }
     } else {
-        if (!DeleteFileA(attr->path)) {
+        if (!DeleteFileA(path)) {
             DWORD err = GetLastError();
             errno     = (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
                         : (err == ERROR_ACCESS_DENIED)                               ? EACCES
@@ -465,11 +353,11 @@ static WalkDirOption dir_remove_callback(const FileAttributes* attr, void* data)
     }
 #else
     if (fattr_is_dir(attr)) {
-        if (rmdir(attr->path) != 0) {
+        if (rmdir(path) != 0) {
             return DirError;  // errno already set by rmdir
         }
     } else {
-        if (unlink(attr->path) != 0) {
+        if (unlink(path) != 0) {
             return DirError;  // errno already set by unlink
         }
     }
@@ -503,67 +391,65 @@ int dir_walk_depth_first(const char* path, WalkDirCallback callback, void* data)
     }
 
     Directory* dir = dir_open(path);
-    if (!dir) {
-        return -1;  // errno set by dir_open
-    }
+    if (!dir) return -1;
 
-    char* name                  = NULL;
-    char fullpath[FILENAME_MAX] = {0};
-    int status                  = 0;
+    char fullpath[FILENAME_MAX];
+    int status = 0;
 
-    while ((name = dir_next(dir)) != NULL) {
-        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
-            continue;
-        }
+#ifdef _WIN32
+    do {
+        const wchar_t* wname = dir->find_data.cFileName;
+        if (wcscmp(wname, L".") == 0 || wcscmp(wname, L"..") == 0) continue;
 
-        memset(fullpath, 0, sizeof(fullpath));
-        if (!filepath_join_buf(path, name, fullpath, sizeof(fullpath))) {
-            dir_close(dir);
-            errno = ENAMETOOLONG;
-            return -1;
-        }
+        char name[MAX_PATH];
+        WideCharToMultiByte(CP_UTF8, 0, wname, -1, name, MAX_PATH, NULL, NULL);
+        filepath_join_buf(path, name, fullpath, sizeof(fullpath));
 
-        // Populate file attributes
         FileAttributes attr;
-        if (populate_file_attrs(fullpath, name, &attr) != 0) {
-            // If we can't stat the file, skip it (e.g., broken symlink, permission denied)
-            continue;
-        }
+        map_win32_attrs(&dir->find_data, &attr);
 
         if (fattr_is_dir(&attr)) {
-            // First, recurse into subdirectory
             if (dir_walk_depth_first(fullpath, callback, data) != 0) {
                 status = -1;
                 break;
             }
+        }
 
-            // Then call callback on the directory itself (now processed)
-            WalkDirOption ret = callback(&attr, data);
+        WalkDirOption opt = callback(&attr, fullpath, name, data);
+        if (opt == DirStop) break;
+        if (opt == DirError) {
+            status = -1;
+            break;
+        }
+    } while (FindNextFileW(dir->handle, &dir->find_data));
+#else
+    struct dirent* entry;
+    while ((entry = readdir(dir->dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
 
-            if (ret == DirStop) {
-                status = 0;
-                break;
-            } else if (ret == DirError) {
+        filepath_join_buf(path, entry->d_name, fullpath, sizeof(fullpath));
+        FileAttributes attr;
+        if (map_dirent_attrs(entry, fullpath, &attr) != 0) continue;
+
+        if (attr.attrs == FATTR_NONE) {
+            populate_file_attrs(fullpath, &attr);
+        }
+
+        if (fattr_is_dir(&attr)) {
+            if (dir_walk_depth_first(fullpath, callback, data) != 0) {
                 status = -1;
                 break;
-            } else if (ret == DirSkip) {
-                continue;
-            }
-        } else {
-            // Process non-directory entries (files, symlinks, devices, etc.)
-            WalkDirOption ret = callback(&attr, data);
-
-            if (ret == DirStop) {
-                status = 0;
-                break;
-            } else if (ret == DirError) {
-                status = -1;
-                break;
-            } else if (ret == DirSkip) {
-                continue;
             }
         }
+
+        WalkDirOption opt = callback(&attr, fullpath, entry->d_name, data);
+        if (opt == DirStop) break;
+        if (opt == DirError) {
+            status = -1;
+            break;
+        }
     }
+#endif
 
     dir_close(dir);
     return status;
@@ -756,59 +642,91 @@ int dir_walk(const char* path, WalkDirCallback callback, void* data) {
     }
 
     Directory* dir = dir_open(path);
-    if (!dir) {
-        return -1;
-    }
+    if (!dir) return -1;
 
-    char* name                  = NULL;
-    WalkDirOption ret           = DirContinue;
-    int success                 = 0;
-    char fullpath[FILENAME_MAX] = {0};
+    char fullpath[FILENAME_MAX];
+    int status = 0;
 
-    while ((name = dir_next(dir)) != NULL) {
-        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
-            continue;
+#ifdef _WIN32
+    // Windows iteration
+    do {
+        const wchar_t* wname = dir->find_data.cFileName;
+        if (wcscmp(wname, L".") == 0 || wcscmp(wname, L"..") == 0) continue;
+
+        char name[MAX_PATH];
+        WideCharToMultiByte(CP_UTF8, 0, wname, -1, name, MAX_PATH, NULL, NULL);
+
+        if (!filepath_join_buf(path, name, fullpath, sizeof(fullpath))) {
+            status = -1;
+            break;
         }
-        memset(fullpath, 0, sizeof(fullpath));
-        if (!filepath_join_buf(path, name, fullpath, FILENAME_MAX)) {
-            dir_close(dir);
-            errno = ENAMETOOLONG;
-            return -1;
-        }
 
-        // Populate file attributes
         FileAttributes attr;
-        if (populate_file_attrs(fullpath, name, &attr) != 0) {
-            // If we can't stat the file, skip it (e.g., broken symlink, permission denied)
-            continue;
+        map_win32_attrs(&dir->find_data, &attr);
+
+        WalkDirOption opt = callback(&attr, fullpath, name, data);
+        if (opt == DirStop) break;
+        if (opt == DirError) {
+            status = -1;
+            break;
+        }
+        if (opt == DirSkip) continue;
+
+        if (fattr_is_dir(&attr)) {
+            if (dir_walk(fullpath, callback, data) != 0) {
+                status = -1;
+                break;
+            }
+        }
+    } while (FindNextFileW(dir->handle, &dir->find_data));
+#else
+    // POSIX iteration
+    struct dirent* entry;
+    while ((entry = readdir(dir->dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
+
+        if (!filepath_join_buf(path, entry->d_name, fullpath, sizeof(fullpath))) {
+            status = -1;
+            break;
         }
 
-        // Invoke callback with file attributes
-        ret = callback(&attr, data);
-
-        if (ret == DirStop) {
-            success = 0;
-            break;
-        } else if (ret == DirError) {
-            success = -1;
-            break;
-        } else if (ret == DirSkip) {
+        FileAttributes attr;
+        if (map_dirent_attrs(entry, fullpath, &attr) != 0) {
             continue;
-        } else if (ret == DirContinue && fattr_is_dir(&attr)) {
-            // Recurse into subdirectory
+        };
+
+        // Fallback for filesystems that don't support d_type (DT_UNKNOWN)
+        if (attr.attrs == FATTR_NONE) {
+            if (populate_file_attrs(fullpath, &attr) != 0) continue;
+        }
+
+        WalkDirOption opt = callback(&attr, fullpath, entry->d_name, data);
+        if (opt == DirStop) break;
+        if (opt == DirError) {
+            status = -1;
+            break;
+        }
+        if (opt == DirSkip) continue;
+
+        if (fattr_is_dir(&attr)) {
             if (dir_walk(fullpath, callback, data) != 0) {
-                success = -1;
+                status = -1;
                 break;
             }
         }
     }
+#endif
 
     dir_close(dir);
-    return success;
+    return status;
 }
 
 // Callback for directory size calculation
-static WalkDirOption dir_size_callback(const FileAttributes* attr, void* data) {
+static inline WalkDirOption dir_size_callback(const FileAttributes* attr, const char* path, const char* name,
+                                              void* data) {
+    (void)path;
+    (void)name;
+
     if (!attr || !data) {
         return DirStop;
     }
@@ -1175,11 +1093,12 @@ char* filepath_expanduser(const char* path) {
         return NULL;
     }
 
-#ifdef _WIN32
-    snprintf(expanded, len, "%s%s%s", home, path[1] == '\\' ? "\\" : "/", path + 1);
-#else
-    snprintf(expanded, len, "%s/%s", home, path + 1);
-#endif
+    const char* suffix = path + 1;
+    // Skip leading separator after ~
+    if (*suffix == '/' || *suffix == '\\') {
+        suffix++;
+    }
+    snprintf(expanded, len, "%s%c%s", home, PATH_SEP, suffix);
     return expanded;
 }
 

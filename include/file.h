@@ -56,6 +56,86 @@ enum { INVALID_NATIVE_HANDLE = (-1) };
 extern "C" {
 #endif
 
+/** File attribute flags bitmask */
+typedef enum FileAttrFlags {
+    FATTR_NONE     = 0,      /**< No attributes set */
+    FATTR_FILE     = 1 << 0, /**< Regular file */
+    FATTR_DIR      = 1 << 1, /**< Directory */
+    FATTR_SYMLINK  = 1 << 2, /**< Symbolic link */
+    FATTR_CHARDEV  = 1 << 3, /**< Character device */
+    FATTR_BLOCKDEV = 1 << 4, /**< Block device */
+    FATTR_FIFO     = 1 << 5, /**< Named pipe (FIFO) */
+    FATTR_SOCKET   = 1 << 6, /**< Socket */
+    FATTR_HIDDEN   = 1 << 7, /**< Hidden file (starts with '.') */
+} FileAttrFlags;
+
+/** Represents file attributes for directory traversal */
+typedef struct FileAttributes {
+    /** Bitmask of FileAttrFlags */
+    uint32_t attrs;
+
+    /** File size in bytes (0 for directories and special files) */
+    size_t size;
+
+    /** Last modification time (Unix timestamp) */
+    time_t mtime;
+} FileAttributes;
+
+/**
+ * Checks if a file has a specific attribute flag.
+ * @param attr File attributes structure.
+ * @param flag The flag to check (from FileAttrFlags).
+ * @return true if the flag is set, false otherwise.
+ */
+static inline bool fattr_has(const FileAttributes* attr, FileAttrFlags flag) {
+    return (attr->attrs & flag) != 0;
+}
+
+/**
+ * Checks if the file is a regular file.
+ * @param attr File attributes structure.
+ * @return true if file is a regular file, false otherwise.
+ */
+static inline bool fattr_is_file(const FileAttributes* attr) {
+    return (attr->attrs & FATTR_FILE) != 0;
+}
+
+/**
+ * Checks if the file is a directory.
+ * @param attr File attributes structure.
+ * @return true if file is a directory, false otherwise.
+ */
+static inline bool fattr_is_dir(const FileAttributes* attr) {
+    return (attr->attrs & FATTR_DIR) != 0;
+}
+
+/**
+ * Checks if the file is a symbolic link.
+ * @param attr File attributes structure.
+ * @return true if file is a symbolic link, false otherwise.
+ */
+static inline bool fattr_is_symlink(const FileAttributes* attr) {
+    return (attr->attrs & FATTR_SYMLINK) != 0;
+}
+
+/**
+ * Checks if the file is an I/O device (character or block device).
+ * @param attr File attributes structure.
+ * @return true if file is a device, false otherwise.
+ */
+static inline bool fattr_is_device(const FileAttributes* attr) {
+    return (attr->attrs & (FATTR_CHARDEV | FATTR_BLOCKDEV)) != 0;
+}
+
+/**
+ * Populates FileAttributes structure from a file path (POSIX implementation).
+ * @param path Full path to the file.
+ * @param name Basename of the file.
+ * @param attr Output FileAttributes structure to populate.
+ * @return 0 on success, -1 on error (errno is set).
+ */
+int populate_file_attrs(const char* path, FileAttributes* attr);
+
 /**
  * Cross-platform file structure.
  * Encapsulates both high-level (FILE*) and low-level (native handle) operations.
@@ -63,6 +143,7 @@ extern "C" {
  */
 typedef struct {
     FILE* stream;                  /**< Standard C file stream for buffered I/O. */
+    FileAttributes attr;           // File attributes
     native_handle_t native_handle; /**< Platform-native file handle for direct operations. */
 } file_t;
 
@@ -95,23 +176,6 @@ file_result_t file_open(file_t* file, const char* filename, const char* mode);
  * @param file Pointer to the file_t structure.
  */
 void file_close(file_t* file);
-
-/**
- * Gets the current size of the open file.
- * Queries the OS directly for the most up-to-date size information.
- *
- * @param file Pointer to the opened file_t structure.
- * @return File size in bytes on success, -1 on error (errno is set).
- */
-int64_t file_get_size(const file_t* file);
-
-/**
- * Gets the size of a file by path without opening it.
- *
- * @param filename Path to the file.
- * @return File size in bytes on success, -1 on error (errno is set).
- */
-int64_t get_file_size(const char* filename);
 
 /**
  * Truncates or extends the file to the specified length.

@@ -1,6 +1,13 @@
 /**
  * @file filepath.h
  * @brief Cross-platform file path manipulation and directory traversal utilities.
+ *
+ * This module provides a unified API for file system operations across Windows
+ * and POSIX platforms. All functions handle path separators appropriately for
+ * the target platform.
+ *
+ * Thread Safety: Individual functions document their thread-safety guarantees.
+ * Most functions are thread-safe unless otherwise noted.
  */
 
 #ifndef DA20B33A_06DF_4AB0_8B0A_B8874A623312
@@ -14,6 +21,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "file.h"
 #include "macros.h"
 #include "platform.h"
 
@@ -34,7 +42,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+/** Platform-specific directory separator character. */
 #define PATH_SEP     '/'
+
+/** Platform-specific directory separator string. */
 #define PATH_SEP_STR "/"
 
 #ifndef MAX_PATH
@@ -46,245 +57,418 @@
 extern "C" {
 #endif
 
-//  ===== Directory related function declarations =====
-// Directory handle
+/**
+ * Opaque directory handle for iterating directory contents.
+ *
+ * @note Not safe for concurrent use. Each thread should use its own handle.
+ * @note Must be closed with dir_close() to prevent resource leaks.
+ */
 typedef struct {
-    char* path;  // directory path
+    char* path; /**< Directory path being traversed. */
 #ifdef _WIN32
-    HANDLE handle;
-    WIN32_FIND_DATAW find_data;  // found in windows.h
+    HANDLE handle;              /**< Windows directory search handle. */
+    WIN32_FIND_DATAW find_data; /**< Current directory entry data. */
+    char name_buf[MAX_PATH];    /**< Thread-safe name buffer. */
 #else
-    DIR* dir;
+    DIR* dir; /**< POSIX directory stream. */
 #endif
 } Directory;
 
-/** File attribute flags bitmask */
-typedef enum FileAttrFlags {
-    FATTR_NONE       = 0,       /**< No attributes set */
-    FATTR_FILE       = 1 << 0,  /**< Regular file */
-    FATTR_DIR        = 1 << 1,  /**< Directory */
-    FATTR_SYMLINK    = 1 << 2,  /**< Symbolic link */
-    FATTR_CHARDEV    = 1 << 3,  /**< Character device */
-    FATTR_BLOCKDEV   = 1 << 4,  /**< Block device */
-    FATTR_FIFO       = 1 << 5,  /**< Named pipe (FIFO) */
-    FATTR_SOCKET     = 1 << 6,  /**< Socket */
-    FATTR_READABLE   = 1 << 7,  /**< File is readable by caller */
-    FATTR_WRITABLE   = 1 << 8,  /**< File is writable by caller */
-    FATTR_EXECUTABLE = 1 << 9,  /**< File is executable by caller */
-    FATTR_HIDDEN     = 1 << 10, /**< Hidden file (starts with '.') */
-} FileAttrFlags;
-
-/** Represents file attributes for directory traversal */
-typedef struct FileAttributes {
-    /** Full path to the file/directory */
-    const char* path;
-
-    /** File/directory name (basename) */
-    const char* name;
-
-    /** Bitmask of FileAttrFlags */
-    uint32_t attrs;
-
-    /** File size in bytes (0 for directories and special files) */
-    size_t size;
-
-    /** Last modification time (Unix timestamp) */
-    time_t mtime;
-} FileAttributes;
-
 /**
- * Checks if a file has a specific attribute flag.
- * @param attr File attributes structure.
- * @param flag The flag to check (from FileAttrFlags).
- * @return true if the flag is set, false otherwise.
+ * Opens a directory for reading.
+ *
+ * @param path Path to the directory to open. Must not be NULL or empty.
+ * @return Directory handle on success, NULL on failure (sets errno).
+ * @note Caller must call dir_close() to release resources.
+ * @note Thread-safe: Each call returns an independent handle.
  */
-static inline bool fattr_has(const FileAttributes* attr, FileAttrFlags flag) {
-    return (attr->attrs & flag) != 0;
-}
-
-/**
- * Checks if the file is a regular file.
- * @param attr File attributes structure.
- * @return true if file is a regular file, false otherwise.
- */
-static inline bool fattr_is_file(const FileAttributes* attr) {
-    return (attr->attrs & FATTR_FILE) != 0;
-}
-
-/**
- * Checks if the file is a directory.
- * @param attr File attributes structure.
- * @return true if file is a directory, false otherwise.
- */
-static inline bool fattr_is_dir(const FileAttributes* attr) {
-    return (attr->attrs & FATTR_DIR) != 0;
-}
-
-/**
- * Checks if the file is a symbolic link.
- * @param attr File attributes structure.
- * @return true if file is a symbolic link, false otherwise.
- */
-static inline bool fattr_is_symlink(const FileAttributes* attr) {
-    return (attr->attrs & FATTR_SYMLINK) != 0;
-}
-
-/**
- * Checks if the file is an I/O device (character or block device).
- * @param attr File attributes structure.
- * @return true if file is a device, false otherwise.
- */
-static inline bool fattr_is_device(const FileAttributes* attr) {
-    return (attr->attrs & (FATTR_CHARDEV | FATTR_BLOCKDEV)) != 0;
-}
-
-// Open a directory for reading
 WARN_UNUSED_RESULT Directory* dir_open(const char* path);
 
-// Close a directory
+/**
+ * Closes a directory handle and releases all associated resources.
+ *
+ * @param dir Directory handle to close. Safe to pass NULL.
+ * @note Thread-safe with respect to other directories.
+ */
 void dir_close(Directory* dir);
 
-// Read the next entry in the directory.
+/**
+ * Reads the next entry in the directory.
+ *
+ * @param dir Directory handle returned by dir_open(). Must not be NULL.
+ * @return Pointer to entry name, or NULL when no more entries or on error.
+ * @note The returned pointer is valid only until the next call to dir_next()
+ *       or dir_close() on the same handle.
+ * @note Special entries "." and ".." are included in iteration.
+ * @note Not thread-safe: Do not call on the same handle from multiple threads.
+ */
 WARN_UNUSED_RESULT char* dir_next(Directory* dir);
 
-// Create a directory. Returns 0 if successful, -1 otherwise
+/**
+ * Creates a new directory with default permissions.
+ *
+ * @param path Path of the directory to create. Must not be NULL.
+ * @return 0 on success (or if directory already exists), -1 on error (sets errno).
+ * @note On POSIX, creates with mode 0755. On Windows, uses default ACLs.
+ * @note Does not create parent directories (use filepath_makedirs() for that).
+ * @note Thread-safe.
+ */
 int dir_create(const char* path);
 
-// Remove a directory. Returns 0 if successful, -1 otherwise
+/**
+ * Removes a directory.
+ *
+ * @param path Path to the directory to remove. Must not be NULL.
+ * @param recursive If true, recursively removes all contents. If false, fails on non-empty directories.
+ * @return 0 on success, -1 on error (sets errno).
+ * @note Recursive removal uses depth-first post-order traversal.
+ * @note Not safe for concurrent modification of the same directory tree.
+ */
 int dir_remove(const char* path, bool recursive);
 
-// Rename a directory. Returns 0 if successful, -1 otherwise
+/**
+ * Renames or moves a directory.
+ *
+ * @param oldpath Current path of the directory. Must not be NULL.
+ * @param newpath New path for the directory. Must not be NULL.
+ * @return 0 on success, -1 on error (sets errno).
+ * @note Behavior is platform-specific when newpath exists.
+ * @note May fail if oldpath and newpath are on different filesystems.
+ * @note Thread-safe.
+ */
 int dir_rename(const char* oldpath, const char* newpath);
 
-// Change the current working directory
+/**
+ * Changes the current working directory of the process.
+ *
+ * @param path Path to the new working directory. Must not be NULL.
+ * @return 0 on success, -1 on error (sets errno).
+ * @note Affects the entire process, not thread-local.
+ * @note Not safe for concurrent use in multi-threaded programs.
+ */
 int dir_chdir(const char* path);
 
-// List files in a directory, returns a pointer to a list of file names or
-// NULL on error The caller is responsible for freeing the memory. The number
-// of files is stored in the count parameter. Note: This algorithm walks the
-// directory tree recursively and may be slow for large directories.
+/**
+ * Lists all entries in a directory.
+ *
+ * @param path Path to the directory. Must not be NULL.
+ * @param count Pointer to store the number of entries. Must not be NULL.
+ * @return Array of dynamically allocated entry names, or NULL on error (sets errno).
+ * @note Caller must free each entry string and the array itself.
+ * @note Includes "." and ".." entries.
+ * @note Thread-safe.
+ */
 WARN_UNUSED_RESULT char** dir_list(const char* path, size_t* count);
 
-// List all contents of the directory and passes the name of file/dir in a
-// callback. Skips over "." and ".." to avoid infinite loops.
+/**
+ * Iterates directory entries with a callback function.
+ *
+ * @param path Path to the directory. Must not be NULL.
+ * @param callback Function called for each entry (excluding "." and ".."). Must not be NULL.
+ * @note Callback receives the entry name. The pointer is valid only during the callback.
+ * @note Thread-safe if callback is thread-safe.
+ */
 void dir_list_with_callback(const char* path, void (*callback)(const char* name));
 
-// Returns true if the path is a directory
+/**
+ * Checks if a path refers to a directory.
+ *
+ * @param path Path to check. Must not be NULL.
+ * @return true if path exists and is a directory, false otherwise.
+ * @note Follows symbolic links.
+ * @note Thread-safe.
+ */
 bool is_dir(const char* path);
 
-// Returns true if a path is a regular file.
+/**
+ * Checks if a path refers to a regular file.
+ *
+ * @param path Path to check. Must not be NULL.
+ * @return true if path exists and is a regular file, false otherwise.
+ * @note Follows symbolic links.
+ * @note Thread-safe.
+ */
 bool is_file(const char* path);
 
-// Returns true if path is a symbolic link.
-// This function does nothing on Windows.
+/**
+ * Checks if a path is a symbolic link.
+ *
+ * @param path Path to check. Must not be NULL.
+ * @return true if path is a symbolic link (POSIX only), false otherwise or on Windows.
+ * @note Does not follow symbolic links (uses lstat on POSIX).
+ * @note Always returns false on Windows.
+ * @note Thread-safe.
+ */
 bool is_symlink(const char* path);
 
-// Create a directory recursively
+/**
+ * Creates a directory and all necessary parent directories.
+ *
+ * @param path Path to create. Must not be NULL.
+ * @return true on success (or if path already exists), false on error.
+ * @note Similar to mkdir -p on Unix.
+ * @note Thread-safe, but race conditions may occur with concurrent creation.
+ */
 bool filepath_makedirs(const char* path);
 
-// Get path to platform's TEMP directory.
-// On Windows, the TEMP environment variable tried first,
-// then TMP, and finally C:\Windows\Temp
-// On Unix, /tmp is returned.
-// The caller is responsible for freeing the memory
+/**
+ * Returns the path to the system's temporary directory.
+ *
+ * @return Dynamically allocated path string, or NULL on error.
+ * @note On Windows, checks TEMP, then TMP environment variables, falls back to C:\Windows\Temp.
+ * @note On POSIX, checks TMPDIR environment variable, falls back to /tmp.
+ * @note Caller must free the returned string.
+ * @note Thread-safe.
+ */
 WARN_UNUSED_RESULT char* get_tempdir(void);
 
-// Create a temporary file.
+/**
+ * Creates a temporary file with a unique name.
+ *
+ * @return Dynamically allocated path to the created file, or NULL on error (sets errno).
+ * @note File is created with restrictive permissions (0600 on POSIX).
+ * @note Caller is responsible for deleting the file and freeing the path.
+ * @note Thread-safe.
+ */
 WARN_UNUSED_RESULT char* make_tempfile(void);
 
-// Create a temporary directory.
+/**
+ * Creates a temporary directory with a unique name.
+ *
+ * @return Dynamically allocated path to the created directory, or NULL on error (sets errno).
+ * @note Directory is created with default permissions.
+ * @note Caller is responsible for removing the directory and freeing the path.
+ * @note Thread-safe.
+ */
 WARN_UNUSED_RESULT char* make_tempdir(void);
 
+/**
+ * Control options for directory traversal callbacks.
+ */
 typedef enum WalkDirOption {
-    DirContinue,  // Continue walking the directory recursively
-    DirStop,      // Stop traversal and return from dir_walk
-    DirSkip,      // Skip the current entry and continue traversal.
-    DirError,     // An error occured.
+    DirContinue, /**< Continue walking the directory recursively. */
+    DirStop,     /**< Stop traversal immediately and return from dir_walk. */
+    DirSkip,     /**< Skip the current entry and its children (if directory). */
+    DirError,    /**< An error occurred; stop traversal and return error. */
 } WalkDirOption;
 
 /**
  * Callback function type for directory walking.
- * @param attr File attributes of the current entry.
- * @param data User-provided data pointer.
+ *
+ * @param attr File attributes of the current entry. Never NULL.
+ * @param path Full path to the entry. Valid only during callback invocation.
+ * @param name Basename of the entry. Valid only during callback invocation.
+ * @param data User-provided context pointer passed to dir_walk.
  * @return WalkDirOption to control traversal behavior.
+ * @note Callback must not call dir_walk on the same path to avoid infinite recursion.
  */
-typedef WalkDirOption (*WalkDirCallback)(const FileAttributes* attr, void* data);
+typedef WalkDirOption (*WalkDirCallback)(const FileAttributes* attr, const char* path, const char* name, void* data);
 
-// Walk the directory path, for each entry call the callback
-// with path, name and user data pointer.
-// Return from the callback 0 to continue or non-zero to stop the walk.
-// Returns 0 if successful, -1 otherwise
+/**
+ * Walks a directory tree in breadth-first order.
+ *
+ * @param path Root directory to walk. Must not be NULL.
+ * @param callback Function called for each entry. Must not be NULL.
+ * @param data User context pointer passed to callback. May be NULL.
+ * @return 0 on success, -1 on error (sets errno).
+ * @note Entries "." and ".." are automatically skipped.
+ * @note Callback is invoked before recursing into subdirectories.
+ * @note Not safe for concurrent modification of the traversed tree.
+ */
 int dir_walk(const char* path, WalkDirCallback callback, void* data);
 
-/*
- * Depth-first *post-order* walk.
- * Callback is called AFTER a directory's children are processed.
- * Suitable for recursive deletion.
- * Returns 0 if successful, -1 otherwise
+/**
+ * Walks a directory tree in depth-first post-order.
+ *
+ * @param path Root directory to walk. Must not be NULL.
+ * @param callback Function called for each entry. Must not be NULL.
+ * @param data User context pointer passed to callback. May be NULL.
+ * @return 0 on success, -1 on error (sets errno).
+ * @note Callback is invoked AFTER recursing into subdirectories.
+ * @note Suitable for operations like recursive deletion.
+ * @note Not safe for concurrent modification of the traversed tree.
  */
 int dir_walk_depth_first(const char* path, WalkDirCallback callback, void* data);
 
-// Find the size of the directory.
-// This is slow on large directories since it walks the directory.
+/**
+ * Calculates the total size of all files in a directory tree.
+ *
+ * @param path Root directory to measure. Must not be NULL.
+ * @return Total size in bytes on success, -1 on error (sets errno).
+ * @note Walks the entire tree recursively; may be slow for large directories.
+ * @note Only counts regular files, not directory metadata.
+ * @note Thread-safe, but result may be stale in actively modified directories.
+ */
 ssize_t dir_size(const char* path);
 
+/**
+ * Checks if a path exists in the filesystem.
+ *
+ * @param path Path to check. Must not be NULL.
+ * @return true if path exists (file, directory, or other), false otherwise.
+ * @note Follows symbolic links.
+ * @note Thread-safe.
+ */
 bool path_exists(const char* path);
 
-// Returns the path to the current working directory.
+/**
+ * Returns the current working directory path.
+ *
+ * @return Dynamically allocated path string, or NULL on error (sets errno).
+ * @note Caller must free the returned string.
+ * @note Thread-safe.
+ */
 WARN_UNUSED_RESULT char* get_cwd(void);
 
 /**
-get the file's basename.
-Example:
-char basename[FILENAME_MAX];
-filepath_basename(path, basename, FILENAME_MAX);
-*/
+ * Extracts the basename (filename with extension) from a path.
+ *
+ * @param path Full path to parse. Must not be NULL.
+ * @param basename Buffer to store the result. Must not be NULL.
+ * @param size Size of the basename buffer.
+ * @note Handles both forward and backslashes as separators.
+ * @note If path ends with a separator, returns empty string.
+ * @note Thread-safe.
+ */
 void filepath_basename(const char* path, char* basename, size_t size);
 
-// Get the directory name of a path
+/**
+ * Extracts the directory portion of a path.
+ *
+ * @param path Full path to parse. Must not be NULL.
+ * @param dirname Buffer to store the result. Must not be NULL.
+ * @param size Size of the dirname buffer.
+ * @note Returns empty string if path has no directory component.
+ * @note Does not include trailing separator.
+ * @note Thread-safe.
+ */
 void filepath_dirname(const char* path, char* dirname, size_t size);
 
-// Get the file extension
+/**
+ * Extracts the file extension including the leading dot.
+ *
+ * @param path Full path to parse. Must not be NULL.
+ * @param ext Buffer to store the result. Must not be NULL.
+ * @param size Size of the ext buffer.
+ * @note Returns empty string if no extension exists.
+ * @note Extension includes the dot (e.g., ".txt").
+ * @note Thread-safe.
+ */
 void filepath_extension(const char* path, char* ext, size_t size);
 
-// Get the file name(basename) without the extension
+/**
+ * Extracts the filename without extension.
+ *
+ * @param path Full path to parse. Must not be NULL.
+ * @param name Buffer to store the result. Must not be NULL.
+ * @param size Size of the name buffer.
+ * @note Returns the basename with the extension removed.
+ * @note Thread-safe.
+ */
 void filepath_nameonly(const char* path, char* name, size_t size);
 
-// Get the absolute path of a file Returns a pointer to the absolute path
-// or NULL on error.
-// The caller is responsible for freeing the memory.
+/**
+ * Converts a path to an absolute path.
+ *
+ * @param path Path to convert (may be relative or absolute). Must not be NULL.
+ * @return Dynamically allocated absolute path, or NULL on error (sets errno).
+ * @note Resolves ".", "..", and symbolic links (on POSIX).
+ * @note Caller must free the returned string.
+ * @note Thread-safe.
+ */
 WARN_UNUSED_RESULT char* filepath_absolute(const char* path);
 
-// Delete or unlink file or directory. Returns 0 if successful, -1 otherwise.
+/**
+ * Deletes a file or empty directory.
+ *
+ * @param path Path to remove. Must not be NULL.
+ * @return 0 on success, -1 on error (sets errno).
+ * @note Fails on non-empty directories (use dir_remove with recursive=true).
+ * @note Thread-safe.
+ */
 int filepath_remove(const char* path);
 
-// Rename file or directory.
+/**
+ * Renames or moves a file or directory.
+ *
+ * @param oldpath Current path. Must not be NULL.
+ * @param newpath New path. Must not be NULL.
+ * @return 0 on success, -1 on error (sets errno).
+ * @note May fail if paths are on different filesystems.
+ * @note Behavior when newpath exists is platform-specific.
+ * @note Thread-safe.
+ */
 int filepath_rename(const char* oldpath, const char* newpath);
 
-// Returns a pointer to the user's home directory.
-// or NULL if the home directory could not be found.
+/**
+ * Returns the user's home directory path.
+ *
+ * @return Pointer to home directory string, or NULL if not found.
+ * @note On Windows, returns USERPROFILE environment variable.
+ * @note On POSIX, returns HOME environment variable.
+ * @note The returned pointer must NOT be freed (points to environment).
+ * @note Thread-safe if environment is not being modified.
+ */
 const char* user_home_dir(void);
 
-// Expand user home directory.
+/**
+ * Expands tilde (~) in a path to the user's home directory.
+ *
+ * @param path Path potentially starting with ~. Must not be NULL.
+ * @return Dynamically allocated expanded path, or NULL on error.
+ * @note Only expands leading ~, not embedded tildes.
+ * @note Returns copy of path unchanged if it doesn't start with ~.
+ * @note Caller must free the returned string.
+ * @note Thread-safe.
+ */
 WARN_UNUSED_RESULT char* filepath_expanduser(const char* path);
 
-// Expand user home directory and store in expanded buffer.
-// Returns true if successful, false otherwise.
+/**
+ * Expands tilde (~) in a path to the user's home directory into a buffer.
+ *
+ * @param path Path potentially starting with ~. Must not be NULL.
+ * @param expanded Buffer to store the expanded path. Must not be NULL.
+ * @param len Size of the expanded buffer.
+ * @return true on success, false if buffer too small or home directory not found.
+ * @note Thread-safe.
+ */
 bool filepath_expanduser_buf(const char* path, char* expanded, size_t len);
 
-// Join path1 and path2 using standard os specific separator.
-// Returns a pointer to the joined path or NULL on error.
+/**
+ * Joins two path components with the platform-specific separator.
+ *
+ * @param path1 First path component. Must not be NULL.
+ * @param path2 Second path component. Must not be NULL.
+ * @return Dynamically allocated joined path, or NULL on error (sets errno).
+ * @note Uses backslash on Windows, forward slash on POSIX.
+ * @note Caller must free the returned string.
+ * @note Thread-safe.
+ */
 WARN_UNUSED_RESULT char* filepath_join(const char* path1, const char* path2);
 
-// Join path1 and path2 using standard os specific separator and store in
-// abspath buffer. Returns true if successful, false otherwise.
+/**
+ * Joins two path components into a provided buffer.
+ *
+ * @param path1 First path component. Must not be NULL.
+ * @param path2 Second path component. Must not be NULL.
+ * @param abspath Buffer to store the result. Must not be NULL.
+ * @param len Size of the abspath buffer.
+ * @return true on success, false if buffer too small.
+ * @note Thread-safe.
+ */
 bool filepath_join_buf(const char* path1, const char* path2, char* abspath, size_t len);
 
-// Split a file path into directory and basename.
-// The dir and name parameters must be pre-allocated buffers or
-// pointers to pre-allocated buffers.
-// dir_size and name_size are the size of the dir and name
-// buffers.
+/**
+ * Splits a file path into directory and basename components.
+ *
+ * @param path Path to split. Must not be NULL.
+ * @param dir Buffer to store the directory portion. Must not be NULL.
+ * @param name Buffer to store the basename. Must not be NULL.
+ * @param dir_size Size of the dir buffer.
+ * @param name_size Size of the name buffer.
+ * @note If path has no directory, dir is set to empty string.
+ * @note Thread-safe.
+ */
 void filepath_split(const char* path, char* dir, char* name, size_t dir_size, size_t name_size);
 
 #ifdef __cplusplus

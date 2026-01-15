@@ -49,15 +49,15 @@
  * name variants, description, value pointer, validation, and presence tracking.
  */
 struct Flag {
-    FlagDataType type;       /**< Data type of the flag value */
-    char* name;              /**< Long name (used with --) */
-    char short_name;         /**< Short name (used with -), 0 if none */
-    char* description;       /**< Help text description */
-    void* value_ptr;         /**< Pointer to variable that will hold the parsed value */
-    void* default_ptr;       /**< Pointer to a copy of the default value for display */
-    bool required;           /**< Whether this flag must be provided */
-    bool is_present;         /**< Whether this flag was found during parsing */
-    FlagValidator validator; /**< Optional custom validation function */
+    FlagDataType  type;        /**< Data type of the flag value */
+    char*         name;        /**< Long name (used with --) */
+    char          short_name;  /**< Short name (used with -), 0 if none */
+    char*         description; /**< Help text description */
+    void*         value_ptr;   /**< Pointer to variable that will hold the parsed value */
+    void*         default_ptr; /**< Pointer to a copy of the default value for display */
+    bool          required;    /**< Whether this flag must be provided */
+    bool          is_present;  /**< Whether this flag was found during parsing */
+    FlagValidator validator;   /**< Optional custom validation function */
 };
 
 /**
@@ -72,13 +72,13 @@ struct FlagParser {
     char* description; /**< Description shown in help */
     char* footer;      /**< Optional footer text for help */
 
-    Flag* flags;          /**< Dynamic array of registered flags */
+    Flag*  flags;         /**< Dynamic array of registered flags */
     size_t flag_count;    /**< Number of registered flags */
     size_t flag_capacity; /**< Allocated capacity for flags array */
 
-    FlagParser** subcommands; /**< Dynamic array of subcommand parsers */
-    size_t cmd_count;         /**< Number of registered subcommands */
-    size_t cmd_capacity;      /**< Allocated capacity for subcommands array */
+    FlagParser** subcommands;  /**< Dynamic array of subcommand parsers */
+    size_t       cmd_count;    /**< Number of registered subcommands */
+    size_t       cmd_capacity; /**< Allocated capacity for subcommands array */
 
     void (*handler)(void* user_data);    /**< Handler function for this command */
     void (*pre_invoke)(void* user_data); /**< Pre-invocation setup function */
@@ -87,8 +87,8 @@ struct FlagParser {
     size_t pos_count;       /**< Number of positional arguments */
     size_t pos_capacity;    /**< Allocated capacity for positional args */
 
-    char last_error[ERR_BUF_SIZE]; /**< Last error message */
-    FlagParser* active_subcommand; /**< Active subcommand after parsing */
+    char        last_error[ERR_BUF_SIZE]; /**< Last error message */
+    FlagParser* active_subcommand;        /**< Active subcommand after parsing */
 };
 
 // --- Memory Helpers ---
@@ -675,7 +675,7 @@ static FlagStatus parse_value(Flag* flag, const char* str) {
 FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
     if (!fp || argc < 1) return FLAG_ERROR_INVALID_ARGUMENT;
 
-    int i            = 1;
+    int  i           = 1;
     bool end_of_opts = false;
 
     while (i < argc) {
@@ -720,8 +720,8 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
                 exit(0);
             }
 
-            char* eq = strchr(name_start, '=');
-            char name_buf[MAX_FLAG_NAME_LEN];
+            char*       eq = strchr(name_start, '=');
+            char        name_buf[MAX_FLAG_NAME_LEN];
             const char* val_str     = NULL;
             const char* lookup_name = name_start;
 
@@ -769,7 +769,7 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
         if (arg[0] == '-') {
             size_t len = strlen(arg);
             for (size_t k = 1; k < len; k++) {
-                char c  = arg[k];
+                char  c = arg[k];
                 Flag* f = find_flag_short(fp, c);
                 if (!f) {
                     set_error(fp, "Unknown short flag: -%c", c);
@@ -962,7 +962,7 @@ static void print_usage_rec(FlagParser* fp, bool is_sub) {
 
         // Build the left column: "  -s, --long=TYPE"
         char left[128];
-        int pos = 0;
+        int  pos = 0;
         pos += snprintf(left + pos, (size_t)(128 - pos), "  ");
         if (f->short_name)
             pos += snprintf(left + pos, (size_t)(128 - pos), "-%c, ", f->short_name);
@@ -1047,6 +1047,15 @@ const char* flag_get_error(FlagParser* fp) {
             root = root->active_subcommand;
     }
     return root->last_error;
+}
+
+/** Get the pointer to the active subcommand. Pass in the root Parser as the only argument */
+FlagParser* flag_active_subcommand(FlagParser* parser) {
+    FlagParser* target = parser;
+    while (target && target->active_subcommand) {
+        target = target->active_subcommand;
+    }
+    return target;
 }
 
 /**

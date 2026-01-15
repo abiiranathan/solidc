@@ -58,7 +58,7 @@ typedef enum {
     TYPE_DOUBLE
 } FlagDataType;
 
-typedef struct Flag Flag;
+typedef struct Flag       Flag;
 typedef struct FlagParser FlagParser;
 
 /**
@@ -202,6 +202,9 @@ FlagStatus flag_parse_and_invoke(FlagParser* parser, int argc, char** argv, void
 
 /** Get readable string for the last error. */
 const char* flag_get_error(FlagParser* parser);
+
+/** Get the pointer to the active subcommand. Pass in the root Parser as the only argument */
+FlagParser* flag_active_subcommand(FlagParser* parser);
 
 /** Get number of positional arguments (args that aren't flags). */
 int flag_positional_count(FlagParser* parser);

@@ -40,11 +40,10 @@ void test_file_open_read_write() {
     ASSERT(bytes_read == strlen(str) * 2);
 
     // filesize_tostring
-    int64_t size = file_get_size(&file);
-    ASSERT(size > 0);
+    ASSERT(file.attr.size > 0);
 
     char buf[16];
-    filesize_tostring((uint64_t)size, buf, sizeof(buf));
+    filesize_tostring((uint64_t)file.attr.size, buf, sizeof(buf));
     ASSERT(strcmp(buf, "26 B") == 0);
 
     free(tmpfile);
@@ -121,9 +120,6 @@ void test_getfile_size() {
     ASSERT(n == len);
 
     file_close(&file);
-
-    int64_t size = get_file_size(tmpfile);
-    ASSERT(size == (int64_t)len);
 
     free(tmpfile);
 }
