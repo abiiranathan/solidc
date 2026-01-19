@@ -101,6 +101,7 @@ set(HEADERS
     include/env.h
     include/platform.h
     include/str_utils.h
+    include/prettytable.h
 )
 
 # Source files
@@ -129,6 +130,7 @@ set(SOURCES
     src/xtime.c
     src/trie.c
     src/flags.c
+    src/prettytable.c
 )
 
 

@@ -30,12 +30,13 @@
 
 /** Error codes returned by xtime functions */
 typedef enum {
-    XTIME_OK = 0,                // Operation succeeded
-    XTIME_ERR_INVALID_ARG,       // Invalid argument (null pointer, invalid format)
-    XTIME_ERR_PARSE_FAILED,      // Failed to parse time string
-    XTIME_ERR_BUFFER_TOO_SMALL,  // Output buffer too small
-    XTIME_ERR_INVALID_TIME,      // Time value is invalid or out of range
-    XTIME_ERR_SYSTEM             // System call failed (check errno)
+    XTIME_OK = 0,                 // Operation succeeded
+    XTIME_ERR_INVALID_ARG,        // Invalid argument (null pointer, invalid format)
+    XTIME_ERR_PARSE_FAILED,       // Failed to parse time string
+    XTIME_ERR_DATE_OUT_OF_RANGE,  // Failed to parse time string
+    XTIME_ERR_BUFFER_TOO_SMALL,   // Output buffer too small
+    XTIME_ERR_INVALID_TIME,       // Time value is invalid or out of range
+    XTIME_ERR_SYSTEM              // System call failed (check errno)
 } xtime_error_t;
 
 /** Time structure with nanosecond precision */

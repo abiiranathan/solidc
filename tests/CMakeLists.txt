@@ -27,6 +27,7 @@ set(TEST_MODULES
     trie
     flags
     linear_alg
+    prettytable
 )
 
 

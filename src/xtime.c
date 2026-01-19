@@ -1,4 +1,5 @@
 #include "../include/xtime.h"
+
 #include <ctype.h>   // for isdigit
 #include <errno.h>   // for errno
 #include <stdio.h>   // for snprintf
@@ -43,15 +44,13 @@ static char* strptime(const char* buf, const char* fmt, struct tm* tm) {
 
     const char* s = buf;
     const char* f = fmt;
-    bool is_pm    = false;
+    bool is_pm = false;
     bool has_ampm = false;
 
     while (*f != '\0') {
         // Skip whitespace in both format and input
-        while (*f == ' ' || *f == '\t')
-            f++;
-        while (*s == ' ' || *s == '\t')
-            s++;
+        while (*f == ' ' || *f == '\t') f++;
+        while (*s == ' ' || *s == '\t') s++;
 
         if (*f != '%') {
             // Literal character match
@@ -71,7 +70,7 @@ static char* strptime(const char* buf, const char* fmt, struct tm* tm) {
                 if (!isdigit(s[0]) || !isdigit(s[1]) || !isdigit(s[2]) || !isdigit(s[3])) {
                     return NULL;
                 }
-                int year    = (s[0] - '0') * 1000 + (s[1] - '0') * 100 + (s[2] - '0') * 10 + (s[3] - '0');
+                int year = (s[0] - '0') * 1000 + (s[1] - '0') * 100 + (s[2] - '0') * 10 + (s[3] - '0');
                 tm->tm_year = year - 1900;
                 s += 4;
                 break;
@@ -205,14 +204,14 @@ static char* strptime(const char* buf, const char* fmt, struct tm* tm) {
 
             case 'p': {  // AM/PM
                 if ((s[0] == 'A' || s[0] == 'a') && (s[1] == 'M' || s[1] == 'm')) {
-                    is_pm    = false;
+                    is_pm = false;
                     has_ampm = true;
                     // If hour already set (from %I), apply adjustment now
                     if (tm->tm_hour == 12) {
                         tm->tm_hour = 0;
                     }
                 } else if ((s[0] == 'P' || s[0] == 'p') && (s[1] == 'M' || s[1] == 'm')) {
-                    is_pm    = true;
+                    is_pm = true;
                     has_ampm = true;
                     // If hour already set (from %I), apply adjustment now
                     if (tm->tm_hour < 12) {
@@ -227,14 +226,24 @@ static char* strptime(const char* buf, const char* fmt, struct tm* tm) {
 
             case 'b':    // Abbreviated month name
             case 'B': {  // Full month name
-                static const char* months[]      = {"january", "february", "march",     "april",   "may",      "june",
-                                                    "july",    "august",   "september", "october", "november", "december"};
-                static const char* abbr_months[] = {"jan", "feb", "mar", "apr", "may", "jun",
-                                                    "jul", "aug", "sep", "oct", "nov", "dec"};
+                static const char* months[] = {"january",
+                                               "february",
+                                               "march",
+                                               "april",
+                                               "may",
+                                               "june",
+                                               "july",
+                                               "august",
+                                               "september",
+                                               "october",
+                                               "november",
+                                               "december"};
+                static const char* abbr_months[] = {
+                  "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"};
 
                 bool found = false;
                 for (int i = 0; i < 12; i++) {
-                    size_t len      = (*f == 'b') ? 3 : strlen(months[i]);
+                    size_t len = (*f == 'b') ? 3 : strlen(months[i]);
                     const char* cmp = (*f == 'b') ? abbr_months[i] : months[i];
 
                     if (_strnicmp(s, cmp, len) == 0) {
@@ -252,13 +261,13 @@ static char* strptime(const char* buf, const char* fmt, struct tm* tm) {
 
             case 'a':    // Abbreviated weekday name
             case 'A': {  // Full weekday name
-                static const char* weekdays[]      = {"sunday",   "monday", "tuesday", "wednesday",
-                                                      "thursday", "friday", "saturday"};
+                static const char* weekdays[] = {
+                  "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"};
                 static const char* abbr_weekdays[] = {"sun", "mon", "tue", "wed", "thu", "fri", "sat"};
 
                 bool found = false;
                 for (int i = 0; i < 7; i++) {
-                    size_t len      = (*f == 'a') ? 3 : strlen(weekdays[i]);
+                    size_t len = (*f == 'a') ? 3 : strlen(weekdays[i]);
                     const char* cmp = (*f == 'a') ? abbr_weekdays[i] : weekdays[i];
 
                     if (_strnicmp(s, cmp, len) == 0) {
@@ -365,7 +374,7 @@ static char* strptime(const char* buf, const char* fmt, struct tm* tm) {
 #endif
 
 /** Nanoseconds per second */
-static const int64_t NANOS_PER_SEC   = 1000000000LL;
+static const int64_t NANOS_PER_SEC = 1000000000LL;
 static const int64_t NANOS_PER_MICRO = 1000LL;
 static const int64_t NANOS_PER_MILLI = 1000000LL;
 
@@ -423,9 +432,9 @@ static int16_t get_local_tz_offset(time_t timestamp) {
 
     // Calculate difference in minutes
     // Account for day boundary crossings
-    int day_diff  = local_tm.tm_mday - utc_tm.tm_mday;
+    int day_diff = local_tm.tm_mday - utc_tm.tm_mday;
     int hour_diff = local_tm.tm_hour - utc_tm.tm_hour;
-    int min_diff  = local_tm.tm_min - utc_tm.tm_min;
+    int min_diff = local_tm.tm_min - utc_tm.tm_min;
 
     // Adjust for day boundaries
     if (day_diff > 1) {
@@ -456,15 +465,15 @@ xtime_error_t xtime_now(xtime_t* t) {
 
     // Convert FILETIME (100-nanosecond intervals since 1601-01-01) to Unix time
     ULARGE_INTEGER uli;
-    uli.LowPart  = ft.dwLowDateTime;
+    uli.LowPart = ft.dwLowDateTime;
     uli.HighPart = ft.dwHighDateTime;
 
     // Windows epoch is 1601-01-01, Unix epoch is 1970-01-01
     // Difference: 116444736000000000 * 100ns = 11644473600 seconds
     const int64_t WINDOWS_TO_UNIX_EPOCH = 11644473600LL;
-    int64_t total_100ns                 = (int64_t)(uli.QuadPart);
+    int64_t total_100ns = (int64_t)(uli.QuadPart);
 
-    t->seconds     = (total_100ns / 10000000LL) - WINDOWS_TO_UNIX_EPOCH;
+    t->seconds = (total_100ns / 10000000LL) - WINDOWS_TO_UNIX_EPOCH;
     t->nanoseconds = (uint32_t)((total_100ns % 10000000LL) * 100);
 
 #elif defined(__APPLE__)
@@ -476,10 +485,10 @@ xtime_error_t xtime_now(xtime_t* t) {
         if (gettimeofday(&tv, NULL) != 0) {
             return XTIME_ERR_SYSTEM;
         }
-        t->seconds     = (int64_t)tv.tv_sec;
+        t->seconds = (int64_t)tv.tv_sec;
         t->nanoseconds = (uint32_t)(tv.tv_usec * 1000);
     } else {
-        t->seconds     = (int64_t)ts.tv_sec;
+        t->seconds = (int64_t)ts.tv_sec;
         t->nanoseconds = (uint32_t)ts.tv_nsec;
     }
 #else
@@ -489,13 +498,13 @@ xtime_error_t xtime_now(xtime_t* t) {
         return XTIME_ERR_SYSTEM;
     }
 
-    t->seconds     = (int64_t)ts.tv_sec;
+    t->seconds = (int64_t)ts.tv_sec;
     t->nanoseconds = (uint32_t)ts.tv_nsec;
 #endif
 
     // Capture local timezone offset
     t->tz_offset = get_local_tz_offset((time_t)t->seconds);
-    t->has_tz    = true;
+    t->has_tz = true;
 
     return XTIME_OK;
 }
@@ -504,7 +513,7 @@ xtime_error_t xtime_utc_now(xtime_t* t) {
     xtime_error_t err = xtime_now(t);
     if (err == XTIME_OK) {
         t->tz_offset = 0;
-        t->has_tz    = false;
+        t->has_tz = false;
     }
     return err;
 }
@@ -588,12 +597,18 @@ xtime_error_t xtime_parse(const char* str, const char* format, xtime_t* t) {
 
     // 2. Convert struct tm to Unix timestamp (UTC-based)
     // Manual calculation to avoid mktime/timegm portability issues
-    int year   = tm_result.tm_year + 1900;
-    int month  = tm_result.tm_mon;
-    int day    = tm_result.tm_mday;
-    int hour   = tm_result.tm_hour;
+    int year = tm_result.tm_year + 1900;
+    int month = tm_result.tm_mon;
+    int day = tm_result.tm_mday;
+    int hour = tm_result.tm_hour;
     int minute = tm_result.tm_min;
     int second = tm_result.tm_sec;
+
+    // Validate that the day is within valid range for the given month
+    int max_day = days_in_month(year, month);
+    if (day < 1 || day > max_day) {
+        return XTIME_ERR_DATE_OUT_OF_RANGE;
+    }
 
     // Calculate days since Unix epoch (1970-01-01)
     int64_t days = 0;
@@ -619,7 +634,7 @@ xtime_error_t xtime_parse(const char* str, const char* format, xtime_t* t) {
         remaining++;  // Skip the dot
 
         int64_t multiplier = 100000000;  // Start at 100ms
-        uint32_t nanos     = 0;
+        uint32_t nanos = 0;
 
         // Read up to 9 digits (nanosecond precision)
         while (isdigit(*remaining)) {
@@ -634,14 +649,13 @@ xtime_error_t xtime_parse(const char* str, const char* format, xtime_t* t) {
 
     // 4. Handle Timezone
     // Skip any leftover whitespace
-    while (*remaining == ' ')
-        remaining++;
+    while (*remaining == ' ') remaining++;
 
     if (*remaining != '\0') {
         int16_t tz_offset = 0;
         if (parse_tz_offset(remaining, &tz_offset)) {
             t->tz_offset = tz_offset;
-            t->has_tz    = true;
+            t->has_tz = true;
         }
     }
 
@@ -684,10 +698,10 @@ xtime_error_t xtime_format(const xtime_t* t, const char* format, char* buf, size
 
     // Append timezone if format contains %z and we have timezone info
     if (t->has_tz && strstr(format, "%z") != NULL) {
-        size_t len  = strlen(buf);
-        int hours   = abs(t->tz_offset) / 60;
+        size_t len = strlen(buf);
+        int hours = abs(t->tz_offset) / 60;
         int minutes = abs(t->tz_offset) % 60;
-        char sign   = t->tz_offset >= 0 ? '+' : '-';
+        char sign = t->tz_offset >= 0 ? '+' : '-';
 
         int written = snprintf(buf + len, buflen - len, "%c%02d:%02d", sign, hours, minutes);
         if (written < 0 || len + (size_t)written >= buflen) {
@@ -746,8 +760,15 @@ xtime_error_t xtime_to_json(const xtime_t* t, char* buf, size_t buflen) {
     }
 
     // 1. Format Date and Time: YYYY-MM-DDTHH:MM:SS
-    int written = snprintf(buf, buflen, "%04d-%02d-%02dT%02d:%02d:%02d", tm_val.tm_year + 1900, tm_val.tm_mon + 1,
-                           tm_val.tm_mday, tm_val.tm_hour, tm_val.tm_min, tm_val.tm_sec);
+    int written = snprintf(buf,
+                           buflen,
+                           "%04d-%02d-%02dT%02d:%02d:%02d",
+                           tm_val.tm_year + 1900,
+                           tm_val.tm_mon + 1,
+                           tm_val.tm_mday,
+                           tm_val.tm_hour,
+                           tm_val.tm_min,
+                           tm_val.tm_sec);
 
     if (written < 0 || (size_t)written >= buflen) {
         return XTIME_ERR_BUFFER_TOO_SMALL;
@@ -769,11 +790,11 @@ xtime_error_t xtime_to_json(const xtime_t* t, char* buf, size_t buflen) {
         // UTC
         if (current_len + 1 >= buflen) return XTIME_ERR_BUFFER_TOO_SMALL;
         buf[current_len++] = 'Z';
-        buf[current_len]   = '\0';
+        buf[current_len] = '\0';
     } else {
         // Offset
-        int hrs   = abs(t->tz_offset) / 60;
-        int mins  = abs(t->tz_offset) % 60;
+        int hrs = abs(t->tz_offset) / 60;
+        int mins = abs(t->tz_offset) % 60;
         char sign = (t->tz_offset >= 0) ? '+' : '-';
 
         written = snprintf(buf + current_len, buflen - current_len, "%c%02d:%02d", sign, hrs, mins);
@@ -798,10 +819,10 @@ xtime_error_t xtime_from_unix(int64_t timestamp, xtime_t* t) {
         return XTIME_ERR_INVALID_ARG;
     }
 
-    t->seconds     = timestamp;
+    t->seconds = timestamp;
     t->nanoseconds = 0;
-    t->tz_offset   = 0;
-    t->has_tz      = false;
+    t->tz_offset = 0;
+    t->has_tz = false;
 
     return XTIME_OK;
 }
@@ -843,7 +864,7 @@ xtime_error_t xtime_diff(const xtime_t* t1, const xtime_t* t2, double* diff) {
         return XTIME_ERR_INVALID_ARG;
     }
 
-    int64_t sec_diff  = t1->seconds - t2->seconds;
+    int64_t sec_diff = t1->seconds - t2->seconds;
     int64_t nano_diff = (int64_t)t1->nanoseconds - (int64_t)t2->nanoseconds;
 
     *diff = (double)sec_diff + ((double)nano_diff / (double)NANOS_PER_SEC);
@@ -859,6 +880,8 @@ const char* xtime_strerror(xtime_error_t err) {
             return "Invalid argument";
         case XTIME_ERR_PARSE_FAILED:
             return "Failed to parse time string";
+        case XTIME_ERR_DATE_OUT_OF_RANGE:
+            return "Date of out of range for month";
         case XTIME_ERR_BUFFER_TOO_SMALL:
             return "Output buffer too small";
         case XTIME_ERR_INVALID_TIME:
@@ -956,8 +979,8 @@ xtime_error_t xtime_add_months(xtime_t* t, int months) {
 
     // Add months
     int total_months = tm_val.tm_mon + months;
-    int year_adjust  = total_months / 12;
-    int new_month    = total_months % 12;
+    int year_adjust = total_months / 12;
+    int new_month = total_months % 12;
 
     // Handle negative months
     if (new_month < 0) {
@@ -1013,9 +1036,9 @@ xtime_error_t xtime_add_years(xtime_t* t, int years) {
         return XTIME_ERR_INVALID_TIME;
     }
 
-    int new_year  = tm_val.tm_year + 1900 + years;
+    int new_year = tm_val.tm_year + 1900 + years;
     int new_month = tm_val.tm_mon;
-    int new_day   = tm_val.tm_mday;
+    int new_day = tm_val.tm_mday;
 
     // Handle Feb 29 in non-leap years
     if (new_month == 1 && new_day == 29) {
@@ -1051,7 +1074,7 @@ xtime_error_t xtime_diff_nanos(const xtime_t* t1, const xtime_t* t2, int64_t* na
         return XTIME_ERR_INVALID_ARG;
     }
 
-    int64_t sec_diff  = t1->seconds - t2->seconds;
+    int64_t sec_diff = t1->seconds - t2->seconds;
     int64_t nano_diff = (int64_t)t1->nanoseconds - (int64_t)t2->nanoseconds;
 
     *nanos = (sec_diff * NANOS_PER_SEC) + nano_diff;
@@ -1163,7 +1186,7 @@ xtime_error_t xtime_truncate_to_minute(xtime_t* t) {
 
     // Truncate to the start of the current minute
     // Remove seconds and nanoseconds
-    t->seconds     = (t->seconds / 60) * 60;
+    t->seconds = (t->seconds / 60) * 60;
     t->nanoseconds = 0;
 
     return XTIME_OK;
@@ -1176,7 +1199,7 @@ xtime_error_t xtime_truncate_to_hour(xtime_t* t) {
 
     // Truncate to the start of the current hour
     // Remove minutes, seconds, and nanoseconds
-    t->seconds     = (t->seconds / 3600) * 3600;
+    t->seconds = (t->seconds / 3600) * 3600;
     t->nanoseconds = 0;
 
     return XTIME_OK;
@@ -1189,7 +1212,7 @@ xtime_error_t xtime_truncate_to_day(xtime_t* t) {
 
     // Truncate to the start of the current day (00:00:00 UTC)
     // Remove hours, minutes, seconds, and nanoseconds
-    t->seconds     = (t->seconds / 86400) * 86400;
+    t->seconds = (t->seconds / 86400) * 86400;
     t->nanoseconds = 0;
 
     return XTIME_OK;
@@ -1351,7 +1374,7 @@ xtime_error_t xtime_end_of_year(const xtime_t* t, xtime_t* result) {
     }
 
     // Calculate if leap year
-    int year               = tm_val.tm_year + 1900;
+    int year = tm_val.tm_year + 1900;
     int total_days_in_year = is_leap_year(year) ? 366 : 365;
 
     // Calculate days to add to get to Dec 31

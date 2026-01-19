@@ -49,15 +49,15 @@
  * name variants, description, value pointer, validation, and presence tracking.
  */
 struct Flag {
-    FlagDataType  type;        /**< Data type of the flag value */
-    char*         name;        /**< Long name (used with --) */
-    char          short_name;  /**< Short name (used with -), 0 if none */
-    char*         description; /**< Help text description */
-    void*         value_ptr;   /**< Pointer to variable that will hold the parsed value */
-    void*         default_ptr; /**< Pointer to a copy of the default value for display */
-    bool          required;    /**< Whether this flag must be provided */
-    bool          is_present;  /**< Whether this flag was found during parsing */
-    FlagValidator validator;   /**< Optional custom validation function */
+    FlagDataType type;       /**< Data type of the flag value */
+    char* name;              /**< Long name (used with --) */
+    char short_name;         /**< Short name (used with -), 0 if none */
+    char* description;       /**< Help text description */
+    void* value_ptr;         /**< Pointer to variable that will hold the parsed value */
+    void* default_ptr;       /**< Pointer to a copy of the default value for display */
+    bool required;           /**< Whether this flag must be provided */
+    bool is_present;         /**< Whether this flag was found during parsing */
+    FlagValidator validator; /**< Optional custom validation function */
 };
 
 /**
@@ -72,13 +72,13 @@ struct FlagParser {
     char* description; /**< Description shown in help */
     char* footer;      /**< Optional footer text for help */
 
-    Flag*  flags;         /**< Dynamic array of registered flags */
+    Flag* flags;          /**< Dynamic array of registered flags */
     size_t flag_count;    /**< Number of registered flags */
     size_t flag_capacity; /**< Allocated capacity for flags array */
 
-    FlagParser** subcommands;  /**< Dynamic array of subcommand parsers */
-    size_t       cmd_count;    /**< Number of registered subcommands */
-    size_t       cmd_capacity; /**< Allocated capacity for subcommands array */
+    FlagParser** subcommands; /**< Dynamic array of subcommand parsers */
+    size_t cmd_count;         /**< Number of registered subcommands */
+    size_t cmd_capacity;      /**< Allocated capacity for subcommands array */
 
     void (*handler)(void* user_data);    /**< Handler function for this command */
     void (*pre_invoke)(void* user_data); /**< Pre-invocation setup function */
@@ -87,8 +87,8 @@ struct FlagParser {
     size_t pos_count;       /**< Number of positional arguments */
     size_t pos_capacity;    /**< Allocated capacity for positional args */
 
-    char        last_error[ERR_BUF_SIZE]; /**< Last error message */
-    FlagParser* active_subcommand;        /**< Active subcommand after parsing */
+    char last_error[ERR_BUF_SIZE]; /**< Last error message */
+    FlagParser* active_subcommand; /**< Active subcommand after parsing */
 };
 
 // --- Memory Helpers ---
@@ -281,14 +281,20 @@ static void format_default_value(FlagDataType type, void* default_ptr, char* buf
  * @brief Create a new flag parser
  * @param name Name of the program or command
  * @param description Description shown in help text
- * @return Newly allocated FlagParser, or NULL on failure
+ * @return Always returns a valid pointer to the  allocated FlagParser, or exits with status 1 on failure
  *
  * The returned parser must be freed with flag_parser_free() when done.
  */
 FlagParser* flag_parser_new(const char* name, const char* description) {
     FlagParser* fp = (FlagParser*)calloc(1, sizeof(FlagParser));
-    if (!fp) return NULL;
-    fp->name        = xstrdup(name);
+
+    // Safe to crash if we can't allocate in a CLI.
+    if (!fp) {
+        perror("calloc");
+        exit(1);
+    }
+
+    fp->name = xstrdup(name);
     fp->description = xstrdup(description);
     return fp;
 }
@@ -375,24 +381,23 @@ Flag* flag_add(FlagParser* fp, FlagDataType type, const char* name, char short_n
     if (!fp || !name || !value_ptr) return NULL;
 
     if (fp->flag_count >= fp->flag_capacity) {
-        size_t new_cap    = (fp->flag_capacity == 0) ? INITIAL_CAPACITY : fp->flag_capacity * 2;
-        fp->flags         = (Flag*)xrealloc(fp->flags, new_cap * sizeof(Flag));
+        size_t new_cap = (fp->flag_capacity == 0) ? INITIAL_CAPACITY : fp->flag_capacity * 2;
+        fp->flags = (Flag*)xrealloc(fp->flags, new_cap * sizeof(Flag));
         fp->flag_capacity = new_cap;
     }
 
-    Flag* f        = &fp->flags[fp->flag_count++];
-    f->type        = type;
-    f->name        = xstrdup(name);
-    f->short_name  = short_name;
+    Flag* f = &fp->flags[fp->flag_count++];
+    f->type = type;
+    f->name = xstrdup(name);
+    f->short_name = short_name;
     f->description = xstrdup(desc);
-    f->value_ptr   = value_ptr;
-    f->required    = required;
-    f->is_present  = false;
-    f->validator   = NULL;
+    f->value_ptr = value_ptr;
+    f->required = required;
+    f->is_present = false;
+    f->validator = NULL;
 
     // Copy the default value for display in help
     f->default_ptr = copy_default_value(type, value_ptr);
-
     return f;
 }
 
@@ -417,13 +422,14 @@ Flag* flag_add(FlagParser* fp, FlagDataType type, const char* name, char short_n
 FlagParser* flag_add_subcommand(FlagParser* fp, const char* name, const char* desc, void (*handler)(void* data)) {
     if (!fp || !name) return NULL;
     if (fp->cmd_count >= fp->cmd_capacity) {
-        size_t new_cap   = (fp->cmd_capacity == 0) ? INITIAL_CAPACITY : fp->cmd_capacity * 2;
-        fp->subcommands  = (FlagParser**)xrealloc(fp->subcommands, new_cap * sizeof(FlagParser*));
+        size_t new_cap = (fp->cmd_capacity == 0) ? INITIAL_CAPACITY : fp->cmd_capacity * 2;
+        fp->subcommands = (FlagParser**)xrealloc(fp->subcommands, new_cap * sizeof(FlagParser*));
         fp->cmd_capacity = new_cap;
     }
-    FlagParser* sub                  = flag_parser_new(name, desc);
-    sub->handler                     = handler;
-    sub->pre_invoke                  = NULL;
+
+    FlagParser* sub = flag_parser_new(name, desc);
+    sub->handler = handler;
+    sub->pre_invoke = NULL;
     fp->subcommands[fp->cmd_count++] = sub;
     return sub;
 }
@@ -561,7 +567,7 @@ static bool check_range_uint(unsigned long long val, unsigned long long max) {
 static FlagStatus parse_value(Flag* flag, const char* str) {
     if (!str) return FLAG_ERROR_MISSING_VALUE;
     char* endptr = NULL;
-    errno        = 0;
+    errno = 0;
 
     switch (flag->type) {
         case TYPE_BOOL: {
@@ -675,7 +681,7 @@ static FlagStatus parse_value(Flag* flag, const char* str) {
 FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
     if (!fp || argc < 1) return FLAG_ERROR_INVALID_ARGUMENT;
 
-    int  i           = 1;
+    int i = 1;
     bool end_of_opts = false;
 
     while (i < argc) {
@@ -703,9 +709,9 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
 
             // Add positional
             if (fp->pos_count >= fp->pos_capacity) {
-                size_t new_cap      = (fp->pos_capacity == 0) ? INITIAL_CAPACITY : fp->pos_capacity * 2;
+                size_t new_cap = (fp->pos_capacity == 0) ? INITIAL_CAPACITY : fp->pos_capacity * 2;
                 fp->positional_args = (char**)xrealloc(fp->positional_args, new_cap * sizeof(char*));
-                fp->pos_capacity    = new_cap;
+                fp->pos_capacity = new_cap;
             }
             fp->positional_args[fp->pos_count++] = arg;
             i++;
@@ -720,9 +726,9 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
                 exit(0);
             }
 
-            char*       eq = strchr(name_start, '=');
-            char        name_buf[MAX_FLAG_NAME_LEN];
-            const char* val_str     = NULL;
+            char* eq = strchr(name_start, '=');
+            char name_buf[MAX_FLAG_NAME_LEN];
+            const char* val_str = NULL;
             const char* lookup_name = name_start;
 
             if (eq) {
@@ -730,8 +736,8 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
                 if (len >= MAX_FLAG_NAME_LEN) len = MAX_FLAG_NAME_LEN - 1;
                 strncpy(name_buf, name_start, len);
                 name_buf[len] = '\0';
-                lookup_name   = name_buf;
-                val_str       = eq + 1;
+                lookup_name = name_buf;
+                val_str = eq + 1;
             }
 
             Flag* f = find_flag_long(fp, lookup_name);
@@ -769,7 +775,7 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
         if (arg[0] == '-') {
             size_t len = strlen(arg);
             for (size_t k = 1; k < len; k++) {
-                char  c = arg[k];
+                char c = arg[k];
                 Flag* f = find_flag_short(fp, c);
                 if (!f) {
                     set_error(fp, "Unknown short flag: -%c", c);
@@ -792,7 +798,7 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
                         break;  // consumed rest
                     } else {
                         if (i + 1 < argc && argv[i + 1][0] != '-') {
-                            val_str      = argv[++i];
+                            val_str = argv[++i];
                             FlagStatus s = parse_value(f, val_str);
                             if (s != FLAG_OK) {
                                 set_error(fp, "Invalid value for -%c (Type mismatch or overflow)", c);
@@ -817,7 +823,13 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
             set_error(fp, "Missing required flag: --%s", f->name);
             return FLAG_ERROR_REQUIRED_MISSING;
         }
+
         if (f->is_present && f->validator) {
+            if (f->value_ptr == NULL) {
+                set_error(fp, "Validation failed for --%s: %s", f->name, "value is NULL");
+                return FLAG_ERROR_VALIDATION;
+            }
+
             const char* err = NULL;
             if (!f->validator(f->value_ptr, &err)) {
                 set_error(fp, "Validation failed for --%s: %s", f->name, err ? err : "invalid");
@@ -934,96 +946,137 @@ static const char* type_to_str(FlagDataType t) {
 }
 
 /**
- * @brief Print usage information recursively
- * @param fp Parser to print usage for
- * @param is_sub Whether this is a subcommand (unused, for future expansion)
+ * @brief Calculate max width for flag column alignment
  */
-static void print_usage_rec(FlagParser* fp, bool is_sub) {
-    if (!fp) return;
-
-    printf("Usage: %s%s [flags] %s\n", fp->name, is_sub ? " <subcmd>" : "", fp->cmd_count > 0 ? "<command>" : "[args]");
-
-    if (fp->description) printf("\n%s\n", fp->description);
-
-    // Calculate alignment
+static size_t calculate_flag_width(FlagParser* fp) {
     size_t max_width = 0;
     for (size_t i = 0; i < fp->flag_count; i++) {
-        size_t w = 6;                        // "  -x, "
-        w += strlen(fp->flags[i].name) + 2;  // --name
+        // Calculation: "  -s, --long-name=TYPE"
+        size_t w = 6;                        // indent(2) + "-x, " (4)
+        w += strlen(fp->flags[i].name) + 2;  // "--" + name
+
         if (fp->flags[i].type != TYPE_BOOL) {
-            w += strlen(type_to_str(fp->flags[i].type)) + 1;  // =TYPE
+            w += 1 + strlen(type_to_str(fp->flags[i].type));  // "=" + TYPE
         }
+
         if (w > max_width) max_width = w;
     }
+    return max_width;
+}
 
-    if (fp->flag_count > 0) printf("\nFlags:\n");
-    for (size_t i = 0; i < fp->flag_count; i++) {
-        Flag* f = &fp->flags[i];
+/**
+ * @brief Calculate max width for subcommand name alignment
+ */
+static size_t calculate_cmd_width(FlagParser* fp) {
+    size_t max_width = 0;
+    for (size_t i = 0; i < fp->cmd_count; i++) {
+        size_t w = strlen(fp->subcommands[i]->name) + 4;  // indent(2) + name + padding(2)
+        if (w > max_width) max_width = w;
+    }
+    return max_width;
+}
 
-        // Build the left column: "  -s, --long=TYPE"
-        char left[128];
-        int  pos = 0;
-        pos += snprintf(left + pos, (size_t)(128 - pos), "  ");
-        if (f->short_name)
-            pos += snprintf(left + pos, (size_t)(128 - pos), "-%c, ", f->short_name);
-        else
-            pos += snprintf(left + pos, (size_t)(128 - pos), "    ");
+/**
+ * @brief Print a single flag row
+ */
+static void print_flag_row(Flag* f, size_t max_width) {
+    char left[256];
+    int pos = 0;
 
-        pos += snprintf(left + pos, (size_t)(128 - pos), "--%s", f->name);
-        if (f->type != TYPE_BOOL) {
-            pos += snprintf(left + pos, (size_t)(128 - pos), "=%s", type_to_str(f->type));
-        }
-
-        // Print row
-        printf("%-*s  %s", (int)max_width, left, f->description ? f->description : "");
-        if (f->required) {
-            printf(" (Required)");
-        } else if (f->default_ptr) {
-            // Show default value for optional flags
-            char default_str[MAX_DEFAULT_STR];
-            format_default_value(f->type, f->default_ptr, default_str, sizeof(default_str));
-            if (default_str[0] != '\0') {
-                printf(" (default: %s)", default_str);
-            }
-        }
-        printf("\n");
+    //  Short name column
+    if (f->short_name) {
+        pos += snprintf(left + pos, sizeof(left) - (size_t)pos, "  -%c, ", f->short_name);
+    } else {
+        pos += snprintf(left + pos, sizeof(left) - (size_t)pos, "      ");
     }
 
+    // Long name column
+    pos += snprintf(left + pos, sizeof(left) - (size_t)pos, "--%s", f->name);
+
+    // Type column
+    if (f->type != TYPE_BOOL) {
+        pos += snprintf(left + pos, sizeof(left) - (size_t)pos, "=%s", type_to_str(f->type));
+    }
+
+    // Print Left Column aligned, then Description
+    printf("%-*s  %s", (int)max_width, left, f->description ? f->description : "");
+
+    // 4. Metadata (Required / Default)
+    if (f->required) {
+        printf(" (Required)");
+    } else if (f->default_ptr) {
+        char default_str[MAX_DEFAULT_STR];
+        format_default_value(f->type, f->default_ptr, default_str, sizeof(default_str));
+        if (default_str[0] != '\0') {
+            printf(" (default: %s)", default_str);
+        }
+    }
+    printf("\n");
+}
+
+
+/**
+ * @brief Internal function to print help for a specific parser node (non-recursive)
+ */
+static void print_help_internal(FlagParser* fp) {
+    if (!fp) return;
+
+    // --- 1. Header & Description ---
+    printf("\n%s\n", fp->description ? fp->description : fp->name);
+
+    printf("\nUsage:\n  %s", fp->name);
+    if (fp->flag_count > 0) printf(" [flags]");
+    if (fp->cmd_count > 0) printf(" [command]");
+    printf("\n");
+
+    // Flags (Current level only) ---
+    if (fp->flag_count > 0) {
+        printf("\nFlags:\n");
+        size_t width = calculate_flag_width(fp);
+        if (width < 20) width = 20;
+
+        for (size_t i = 0; i < fp->flag_count; i++) {
+            print_flag_row(&fp->flags[i], width);
+        }
+    }
+
+    // Subcommands (Immediate children only) ---
     if (fp->cmd_count > 0) {
-        printf("\nCommands:\n");
+        printf("\nAvailable Commands:\n");
+        size_t width = calculate_cmd_width(fp);
+        if (width < 20) width = 20;  // Minimum width
+
         for (size_t i = 0; i < fp->cmd_count; i++) {
-            printf("  %-*s  %s\n", (int)max_width, fp->subcommands[i]->name,
-                   fp->subcommands[i]->description ? fp->subcommands[i]->description : "");
+            FlagParser* sub = fp->subcommands[i];
+            printf("  %-*s%s\n", (int)(width - 2), sub->name, sub->description ? sub->description : "");
         }
     }
 
-    if (fp->footer) printf("\n%s\n", fp->footer);
+    // --- 4. Footer ---
+    if (fp->footer) {
+        printf("\n%s\n", fp->footer);
+    } else if (fp->cmd_count > 0) {
+        printf("\nUse \"%s [command] --help\" for more information about a command.\n", fp->name);
+    }
 }
 
 /**
  * @brief Print usage/help information for the parser
- * @param fp Parser to print usage for
  *
- * Prints formatted help text including:
- * - Usage line
- * - Description
- * - All flags with types, descriptions, and default values
- * - Required flag markers
- * - Subcommands (if any)
- * - Footer text (if set)
- *
- * If an active subcommand exists, prints help for that subcommand instead.
+ * Automatically detects the active context. If a subcommand was selected
+ * (parsed) or manually set active, help is shown for that subcommand.
+ * Otherwise, help is shown for the root.
  */
 void flag_print_usage(FlagParser* fp) {
     if (!fp) return;
-    if (fp->active_subcommand) {
-        FlagParser* leaf = fp->active_subcommand;
-        while (leaf->active_subcommand)
-            leaf = leaf->active_subcommand;
-        print_usage_rec(leaf, false);
-    } else {
-        print_usage_rec(fp, false);
+
+    // Traverse to the deepest active subcommand to show context-sensitive help
+    FlagParser* leaf = fp;
+    while (leaf->active_subcommand) {
+        leaf = leaf->active_subcommand;
     }
+
+    print_help_internal(leaf);
 }
 
 // --- Accessors ---
@@ -1130,4 +1183,592 @@ const char* flag_status_str(FlagStatus s) {
         default:
             return "Error";
     }
+}
+
+
+// ================ Shell completion =====================================
+#include <ctype.h>
+
+// --- Completion Generation Internals ---
+
+// Static context to hold completion configuration
+// This is necessary because the handler signature is fixed (void* user_data)
+// and we need access to the root parser and specific flags during the callback.
+static struct {
+    FlagParser* root;
+    char* shell;
+    char* output;
+} _comp_ctx = {0};
+
+/**
+ * @brief Helper to write safe shell strings with proper escaping
+ * @param f File to write to
+ * @param str String to escape and write
+ * @param quote_style 0=no quotes, 1=single quotes, 2=double quotes
+ */
+static void write_safe_str(FILE* f, const char* str, int quote_style) {
+    if (!str || !f) return;
+
+    if (quote_style == 1) fputc('\'', f);
+    if (quote_style == 2) fputc('"', f);
+
+    for (const char* p = str; *p; p++) {
+        if (quote_style == 1 && *p == '\'') {
+            // Escape single quote in single-quoted string: close, escaped quote, reopen
+            fprintf(f, "'\\''");
+        } else if (quote_style == 2 && (*p == '"' || *p == '\\' || *p == '$' || *p == '`')) {
+            // Escape special chars in double-quoted string
+            fputc('\\', f);
+            fputc(*p, f);
+        } else if (quote_style == 0 && (*p == ' ' || *p == '\t' || *p == '\n' || *p == '|' || *p == '&' || *p == ';' ||
+                                        *p == '<' || *p == '>' || *p == '(' || *p == ')' || *p == '$' || *p == '`' ||
+                                        *p == '\\' || *p == '"' || *p == '\'' || *p == '*' || *p == '?')) {
+            // Escape special shell chars when not quoted
+            fputc('\\', f);
+            fputc(*p, f);
+        } else {
+            fputc(*p, f);
+        }
+    }
+
+    if (quote_style == 1) fputc('\'', f);
+    if (quote_style == 2) fputc('"', f);
+}
+
+/**
+ * @brief Write a valid shell identifier by sanitizing the input
+ */
+static void write_shell_identifier(FILE* f, const char* str) {
+    if (!str || !f) return;
+
+    // First char must be letter or underscore
+    if (!isalpha(*str) && *str != '_') {
+        fputc('_', f);
+    }
+
+    for (const char* p = str; *p; p++) {
+        if (isalnum(*p) || *p == '_') {
+            fputc(*p, f);
+        } else {
+            fputc('_', f);
+        }
+    }
+}
+
+/**
+ * @brief Recursively flatten all nested subcommands for Bash case statement
+ *
+ * Bash completion is flatter than Zsh. We map the last active subcommand name
+ * to its flags. Note: This handles name collisions by using full paths.
+ */
+static void write_bash_subcommand_cases(FILE* f, FlagParser* p, const char* prefix) {
+    if (!p) return;
+
+    // Build the full command path for this level
+    char full_name[512];
+    if (prefix && *prefix) {
+        snprintf(full_name, sizeof(full_name), "%s_%s", prefix, p->name);
+    } else {
+        snprintf(full_name, sizeof(full_name), "%s", p->name);
+    }
+
+    // Write case for this command (skip root as it's handled separately)
+    if (p != _comp_ctx.root && (p->flag_count > 0 || p->cmd_count > 0)) {
+        fprintf(f, "        ");
+        write_safe_str(f, p->name, 0);
+        fprintf(f, ")\n");
+
+        // Handle flags that need arguments
+        if (p->flag_count > 0) {
+            fprintf(f, "            case \"$prev\" in\n");
+            for (size_t i = 0; i < p->flag_count; i++) {
+                Flag* flag = &p->flags[i];
+                if (flag->type != TYPE_BOOL) {
+                    fprintf(f, "                --");
+                    write_safe_str(f, flag->name, 0);
+                    if (flag->short_name && isprint(flag->short_name)) {
+                        fprintf(f, "|-");
+                        fputc(flag->short_name, f);
+                    }
+                    fprintf(f, ")\n");
+
+                    // Type-specific completion hints
+                    switch (flag->type) {
+                        case TYPE_STRING:
+                            fprintf(f, "                    # File/directory completion\n");
+                            fprintf(f, "                    COMPREPLY=( $(compgen -f -- \"$cur\") )\n");
+                            break;
+                        default:
+                            fprintf(f, "                    # Value expected\n");
+                            fprintf(f, "                    return 0\n");
+                            break;
+                    }
+
+                    fprintf(f, "                    return 0\n");
+                    fprintf(f, "                    ;;\n");
+                }
+            }
+            fprintf(f, "            esac\n\n");
+        }
+
+        // Complete with this command's flags and immediate subcommands
+        fprintf(f, "            local flags=\"");
+        for (size_t i = 0; i < p->flag_count; i++) {
+            fprintf(f, "--");
+            write_safe_str(f, p->flags[i].name, 0);
+            fprintf(f, " ");
+        }
+        fprintf(f, "\"\n");
+
+        if (p->cmd_count > 0) {
+            fprintf(f, "            local subcommands=\"");
+            for (size_t i = 0; i < p->cmd_count; i++) {
+                write_safe_str(f, p->subcommands[i]->name, 0);
+                fprintf(f, " ");
+            }
+            fprintf(f, "\"\n");
+            fprintf(f, "            COMPREPLY=( $(compgen -W \"$flags $subcommands\" -- \"$cur\") )\n");
+        } else {
+            fprintf(f, "            COMPREPLY=( $(compgen -W \"$flags\" -- \"$cur\") )\n");
+        }
+
+        fprintf(f, "            return 0\n");
+        fprintf(f, "            ;;\n");
+    }
+
+    // Recurse into children with updated prefix
+    for (size_t i = 0; i < p->cmd_count; i++) {
+        write_bash_subcommand_cases(f, p->subcommands[i], full_name);
+    }
+}
+
+/**
+ * @brief Collect all subcommand names recursively for the global context check
+ */
+static void write_bash_all_subcommands_list(FILE* f, FlagParser* p) {
+    if (!p) return;
+    for (size_t i = 0; i < p->cmd_count; i++) {
+        write_safe_str(f, p->subcommands[i]->name, 0);
+        fprintf(f, " ");
+        write_bash_all_subcommands_list(f, p->subcommands[i]);
+    }
+}
+
+/**
+ * @brief Generate Bash completion script
+ */
+static void gen_bash_completion(FlagParser* fp, FILE* f) {
+    if (!fp || !f) return;
+
+    char* bin_name = fp->name;
+
+    fprintf(f, "#!/usr/bin/env bash\n");
+    fprintf(f, "# Bash completion for %s\n", bin_name ? bin_name : "program");
+    fprintf(f, "# Generated by flags.c completion generator\n\n");
+
+    fprintf(f, "_");
+    write_shell_identifier(f, bin_name);
+    fprintf(f, "_completion() {\n");
+    fprintf(f, "    local cur prev words cword\n");
+    fprintf(f, "    _init_completion || return\n\n");
+
+    fprintf(f, "    local global_flags=\"");
+    if (fp->flag_count > 0) {
+        for (size_t i = 0; i < fp->flag_count; i++) {
+            fprintf(f, "--");
+            write_safe_str(f, fp->flags[i].name, 0);
+            fprintf(f, " ");
+        }
+    }
+    fprintf(f, "--help\"\n");
+
+    // Collect ALL subcommands (recursive) for context detection
+    fprintf(f, "    local subcommands=\"");
+    write_bash_all_subcommands_list(f, fp);
+    fprintf(f, "\"\n\n");
+
+    // Handle Global Flags Arguments
+    fprintf(f, "    # Handle flags that require arguments\n");
+    fprintf(f, "    case \"$prev\" in\n");
+    for (size_t i = 0; i < fp->flag_count; i++) {
+        Flag* flag = &fp->flags[i];
+        if (flag->type != TYPE_BOOL) {
+            fprintf(f, "        --");
+            write_safe_str(f, flag->name, 0);
+            if (flag->short_name && isprint(flag->short_name)) {
+                fprintf(f, "|-");
+                fputc(flag->short_name, f);
+            }
+            fprintf(f, ")\n");
+
+            // Type-specific hints
+            if (flag->type == TYPE_STRING) {
+                fprintf(f, "            COMPREPLY=( $(compgen -f -- \"$cur\") )\n");
+            }
+
+            fprintf(f, "            return 0\n");
+            fprintf(f, "            ;;\n");
+        }
+    }
+    fprintf(f, "    esac\n\n");
+
+    // Context detection - find the active subcommand
+    fprintf(f, "    # Detect active subcommand context\n");
+    fprintf(f, "    local cmd_context=\"\"\n");
+    fprintf(f, "    local i\n");
+    fprintf(f, "    for ((i=1; i < cword; i++)); do\n");
+    fprintf(f, "        local word=\"${words[i]}\"\n");
+    fprintf(f, "        # Skip flags\n");
+    fprintf(f, "        if [[ \"$word\" != -* ]]; then\n");
+    fprintf(f, "            # Check if it's a known subcommand\n");
+    fprintf(f, "            for cmd in $subcommands; do\n");
+    fprintf(f, "                if [[ \"$word\" == \"$cmd\" ]]; then\n");
+    fprintf(f, "                    cmd_context=\"$cmd\"\n");
+    fprintf(f, "                    break 2\n");
+    fprintf(f, "                fi\n");
+    fprintf(f, "            done\n");
+    fprintf(f, "        fi\n");
+    fprintf(f, "    done\n\n");
+
+    // If no subcommand active, show globals + top-level subs
+    fprintf(f, "    if [[ -z \"$cmd_context\" ]]; then\n");
+    if (fp->cmd_count > 0) {
+        fprintf(f, "        local top_level_subs=\"");
+        for (size_t i = 0; i < fp->cmd_count; i++) {
+            write_safe_str(f, fp->subcommands[i]->name, 0);
+            fprintf(f, " ");
+        }
+        fprintf(f, "\"\n");
+        fprintf(f, "        COMPREPLY=( $(compgen -W \"$top_level_subs $global_flags\" -- \"$cur\") )\n");
+    } else {
+        fprintf(f, "        COMPREPLY=( $(compgen -W \"$global_flags\" -- \"$cur\") )\n");
+    }
+    fprintf(f, "        return 0\n");
+    fprintf(f, "    fi\n\n");
+
+    // Subcommand-specific completions
+    if (fp->cmd_count > 0) {
+        fprintf(f, "    # Handle subcommand-specific completions\n");
+        fprintf(f, "    case \"$cmd_context\" in\n");
+        write_bash_subcommand_cases(f, fp, NULL);
+        fprintf(f, "        *)\n");
+        fprintf(f, "            COMPREPLY=( $(compgen -W \"$global_flags\" -- \"$cur\") )\n");
+        fprintf(f, "            ;;\n");
+        fprintf(f, "    esac\n\n");
+    }
+
+    fprintf(f, "    return 0\n");
+    fprintf(f, "}\n\n");
+
+    fprintf(f, "complete -F _");
+    write_shell_identifier(f, bin_name);
+    fprintf(f, "_completion ");
+    write_safe_str(f, bin_name, 0);
+    fprintf(f, "\n");
+}
+
+// --- Zsh Generation ---
+
+/**
+ * @brief Write Zsh argument specifications for a parser
+ */
+static void write_zsh_args(FILE* f, FlagParser* p, int indent) {
+    if (!p || !f) return;
+
+    for (size_t i = 0; i < p->flag_count; i++) {
+        Flag* flag = &p->flags[i];
+
+        // Build description with escaping for Zsh
+        char desc[512] = {0};
+        if (flag->description) {
+            size_t k = 0;
+            for (const char* c = flag->description; *c && k < 500; c++) {
+                // Escape special Zsh characters in descriptions
+                if (*c == '[' || *c == ']' || *c == '\'' || *c == '\\' || *c == ':') {
+                    desc[k++] = '\\';
+                }
+                desc[k++] = *c;
+            }
+            desc[k] = '\0';
+        }
+
+        // Print with proper indentation
+        for (int j = 0; j < indent; j++)
+            fprintf(f, "    ");
+
+        // Determine if flag needs an argument
+        if (flag->type == TYPE_BOOL) {
+            fprintf(f, "'--");
+            write_safe_str(f, flag->name, 0);
+            fprintf(f, "[%s]'", desc);
+        } else {
+            // Flags with arguments
+            const char* arg_type = "value";
+            switch (flag->type) {
+                case TYPE_STRING:
+                    arg_type = "file:_files";
+                    break;
+                case TYPE_INT8:
+                case TYPE_INT16:
+                case TYPE_INT32:
+                case TYPE_INT64:
+                    arg_type = "integer";
+                    break;
+                case TYPE_UINT8:
+                case TYPE_UINT16:
+                case TYPE_UINT32:
+                case TYPE_UINT64:
+                case TYPE_SIZE_T:
+                    arg_type = "unsigned integer";
+                    break;
+                case TYPE_FLOAT:
+                case TYPE_DOUBLE:
+                    arg_type = "number";
+                    break;
+                default:
+                    arg_type = "value";
+                    break;
+            }
+
+            fprintf(f, "'--");
+            write_safe_str(f, flag->name, 0);
+            fprintf(f, "[%s]:", desc);
+
+            if (flag->type == TYPE_STRING) {
+                fprintf(f, ":_files'");
+            } else {
+                fprintf(f, ":%s:'", arg_type);
+            }
+        }
+
+        fprintf(f, " \\\n");
+    }
+}
+
+/**
+ * @brief Recursively write Zsh subcommand cases
+ */
+static void write_zsh_subcommand_cases(FILE* f, FlagParser* p, int depth) {
+    if (!p || p->cmd_count == 0) return;
+
+    for (size_t i = 0; i < p->cmd_count; i++) {
+        FlagParser* sub = p->subcommands[i];
+
+        for (int j = 0; j < depth; j++)
+            fprintf(f, "    ");
+        write_safe_str(f, sub->name, 0);
+        fprintf(f, ")\n");
+
+        for (int j = 0; j < depth; j++)
+            fprintf(f, "    ");
+        fprintf(f, "    _arguments -C \\\n");
+
+        // Write flags for this subcommand
+        write_zsh_args(f, sub, depth + 2);
+
+        // Add nested subcommands if any
+        if (sub->cmd_count > 0) {
+            for (int j = 0; j < depth + 2; j++)
+                fprintf(f, "    ");
+            fprintf(f, "'1:command:((");
+            for (size_t k = 0; k < sub->cmd_count; k++) {
+                if (k > 0) fprintf(f, " ");
+                write_safe_str(f, sub->subcommands[k]->name, 0);
+                fprintf(f, "\\:");
+                if (sub->subcommands[k]->description) {
+                    write_safe_str(f, sub->subcommands[k]->description, 0);
+                }
+            }
+            fprintf(f, "))' \\\n");
+
+            for (int j = 0; j < depth + 2; j++)
+                fprintf(f, "    ");
+            fprintf(f, "'*::arg:->args' \\\n");
+        }
+
+        for (int j = 0; j < depth; j++)
+            fprintf(f, "    ");
+        fprintf(f, "        && ret=0\n");
+
+        // Handle nested state
+        if (sub->cmd_count > 0) {
+            for (int j = 0; j < depth; j++)
+                fprintf(f, "    ");
+            fprintf(f, "    case $state in\n");
+            for (int j = 0; j < depth; j++)
+                fprintf(f, "    ");
+            fprintf(f, "        args)\n");
+            for (int j = 0; j < depth; j++)
+                fprintf(f, "    ");
+            fprintf(f, "            case $line[1] in\n");
+
+            write_zsh_subcommand_cases(f, sub, depth + 4);
+
+            for (int j = 0; j < depth; j++)
+                fprintf(f, "    ");
+            fprintf(f, "            esac\n");
+            for (int j = 0; j < depth; j++)
+                fprintf(f, "    ");
+            fprintf(f, "            ;;\n");
+            for (int j = 0; j < depth; j++)
+                fprintf(f, "    ");
+            fprintf(f, "    esac\n");
+        }
+
+        for (int j = 0; j < depth; j++)
+            fprintf(f, "    ");
+        fprintf(f, "    ;;\n");
+    }
+}
+
+/**
+ * @brief Generate Zsh completion script
+ */
+static void gen_zsh_completion(FlagParser* fp, FILE* f) {
+    if (!fp || !f) return;
+
+    char* bin_name = fp->name;
+
+    fprintf(f, "#compdef ");
+    write_safe_str(f, bin_name, 0);
+    fprintf(f, "\n");
+    fprintf(f, "# Generated by flags.c completion generator\n\n");
+
+    fprintf(f, "_");
+    write_shell_identifier(f, bin_name);
+    fprintf(f, "() {\n");
+    fprintf(f, "    local context state line\n");
+    fprintf(f, "    typeset -A opt_args\n");
+    fprintf(f, "    local ret=1\n\n");
+
+    // Main Arguments
+    fprintf(f, "    _arguments -C \\\n");
+
+    // Global flags
+    write_zsh_args(f, fp, 2);
+
+    // Help flag
+    fprintf(f, "        '--help[Show help information]' \\\n");
+
+    // Subcommands
+    if (fp->cmd_count > 0) {
+        fprintf(f, "        '1:command:((");
+        for (size_t i = 0; i < fp->cmd_count; i++) {
+            if (i > 0) fprintf(f, " ");
+            write_safe_str(f, fp->subcommands[i]->name, 0);
+            fprintf(f, "\\:");
+            if (fp->subcommands[i]->description) {
+                write_safe_str(f, fp->subcommands[i]->description, 0);
+            }
+        }
+        fprintf(f, "))' \\\n");
+        fprintf(f, "        '*::arg:->args' \\\n");
+    }
+
+    fprintf(f, "        && ret=0\n\n");
+
+    // State Machine for subcommands
+    if (fp->cmd_count > 0) {
+        fprintf(f, "    case $state in\n");
+        fprintf(f, "        args)\n");
+        fprintf(f, "            case $line[1] in\n");
+
+        write_zsh_subcommand_cases(f, fp, 4);
+
+        fprintf(f, "            esac\n");
+        fprintf(f, "            ;;\n");
+        fprintf(f, "    esac\n\n");
+    }
+
+    fprintf(f, "    return ret\n");
+    fprintf(f, "}\n\n");
+
+    // Call the completion function directly without arguments
+    fprintf(f, "compdef _");
+    write_shell_identifier(f, bin_name);
+    fprintf(f, " ");
+    write_safe_str(f, bin_name, 0);
+    fprintf(f, "\n");
+}
+
+/**
+ * @brief Handler for the completion subcommand
+ */
+static void completion_handler(void* user_data) {
+    (void)user_data;  // Unused, we use _comp_ctx
+
+    if (!_comp_ctx.shell || !*_comp_ctx.shell) {
+        fprintf(stderr, "Error: --shell is required (bash or zsh)\n");
+        exit(1);
+    }
+
+    if (!_comp_ctx.root) {
+        fprintf(stderr, "Error: Internal error - no root parser available\n");
+        exit(1);
+    }
+
+    FILE* out = stdout;
+    if (_comp_ctx.output && *_comp_ctx.output) {
+        out = fopen(_comp_ctx.output, "w");
+        if (!out) {
+            fprintf(stderr, "Error: Cannot open output file '%s': %s\n", _comp_ctx.output, strerror(errno));
+            exit(1);
+        }
+    }
+
+    // Normalize shell name (case-insensitive)
+    char shell_lower[32];
+    size_t i;
+    for (i = 0; i < sizeof(shell_lower) - 1 && _comp_ctx.shell[i]; i++) {
+        shell_lower[i] = (char)tolower(_comp_ctx.shell[i]);
+    }
+    shell_lower[i] = '\0';
+
+    if (strcmp(shell_lower, "bash") == 0) {
+        gen_bash_completion(_comp_ctx.root, out);
+    } else if (strcmp(shell_lower, "zsh") == 0) {
+        gen_zsh_completion(_comp_ctx.root, out);
+    } else {
+        fprintf(stderr, "Error: Unsupported shell '%s'. Supported: bash, zsh\n", _comp_ctx.shell);
+        if (_comp_ctx.output) fclose(out);
+        exit(1);
+    }
+
+    if (_comp_ctx.output && out != stdout) {
+        if (fclose(out) != 0) {
+            fprintf(stderr, "Warning: Error closing output file: %s\n", strerror(errno));
+        }
+        printf("Completion script written to: %s\n", _comp_ctx.output);
+    }
+
+    exit(0);  // Exit after generating completion
+}
+
+/**
+ * @brief Add completion generation subcommand to a parser
+ * @param fp Root parser to add completion command to
+ *
+ * This adds a "completion" subcommand with --shell and --output flags.
+ * Usage: program completion --shell bash --output /path/to/completion.sh
+ */
+void flag_add_completion_cmd(FlagParser* fp) {
+    if (!fp) return;
+
+    // Store root parser for traversal during generation
+    _comp_ctx.root = fp;
+
+    // Ensure null initialization (defense in depth)
+    _comp_ctx.shell = NULL;
+    _comp_ctx.output = NULL;
+
+    FlagParser* cmd = flag_add_subcommand(fp, "completion", "Generate shell completion scripts", completion_handler);
+
+    if (!cmd) {
+        fprintf(stderr, "Warning: Failed to add completion subcommand\n");
+        return;
+    }
+
+    // Add flags - use static context addresses
+    flag_add(cmd, TYPE_STRING, "shell", 's', "Target shell (bash or zsh)", &_comp_ctx.shell, true);
+    flag_add(cmd, TYPE_STRING, "output", 'o', "Output file path (default: stdout)", &_comp_ctx.output, false);
 }

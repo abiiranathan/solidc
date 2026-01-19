@@ -58,7 +58,7 @@ typedef enum {
     TYPE_DOUBLE
 } FlagDataType;
 
-typedef struct Flag       Flag;
+typedef struct Flag Flag;
 typedef struct FlagParser FlagParser;
 
 /**
@@ -77,6 +77,27 @@ void flag_parser_free(FlagParser* parser);
 
 /** Set footer text displayed at bottom of help. */
 void flag_parser_set_footer(FlagParser* parser, const char* footer);
+
+/**
+ * @brief Add automatic completion generation subcommand
+ * @param fp Parser to add completion subcommand to
+ *
+ * Adds a built-in "completion" subcommand that generates shell completion scripts.
+ * This should be called after creating the parser but before parsing arguments.
+ *
+ * The completion subcommand supports:
+ * - --shell, -s: Shell type (bash or zsh) [required]
+ * - --output, -o: Output file (optional, defaults to stdout)
+ *
+ * @example
+ * ```c
+ * FlagParser* fp = flag_parser_new("myapp", "My application");
+ * flag_add_completion_cmd(fp);
+ * // ... add your flags and subcommands ...
+ * flag_parse(fp, argc, argv);
+ * ```
+ */
+void flag_add_completion_cmd(FlagParser* fp);
 
 /**
  * Invoke the active subcommand with optional pre-invocation setup.
