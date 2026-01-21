@@ -201,8 +201,7 @@ char* dir_next(Directory* dir) {
         return NULL;
     }
     if (FindNextFileW(dir->handle, &dir->find_data)) {
-        // Convert wide-char filename to UTF-8
-        char filename[MAX_PATH];
+        // Convert wide-char filename to UTF-8 directly into the struct buffer
         WideCharToMultiByte(CP_UTF8, 0, dir->find_data.cFileName, -1, dir->name_buf, MAX_PATH, NULL, NULL);
         return dir->name_buf;
     }
@@ -234,6 +233,7 @@ static void map_win32_attrs(const WIN32_FIND_DATAW* fd, FileAttributes* attr) {
     attr->mtime = (time_t)((ull.QuadPart - 116444736000000000ULL) / 10000000ULL);
 }
 #else
+
 static int map_dirent_attrs(const struct dirent* entry, const char* path, FileAttributes* attr) {
     struct stat st;
     if (lstat(path, &st) != 0) return -1;
@@ -241,37 +241,47 @@ static int map_dirent_attrs(const struct dirent* entry, const char* path, FileAt
     attr->size = (size_t)st.st_size;
     attr->mtime = st.st_mtime;
     attr->attrs = FATTR_NONE;
-    if (entry->d_name[0] == '.') attr->attrs |= FATTR_HIDDEN;
 
-    switch (entry->d_type) {
-        case DT_REG:
-            attr->attrs |= FATTR_FILE;
-            break;
-        case DT_DIR:
-            attr->attrs |= FATTR_DIR;
-            break;
-        case DT_LNK:
-            attr->attrs |= FATTR_SYMLINK;
-            break;
-        case DT_CHR:
-            attr->attrs |= FATTR_CHARDEV;
-            break;
-        case DT_BLK:
-            attr->attrs |= FATTR_BLOCKDEV;
-            break;
-        case DT_FIFO:
-            attr->attrs |= FATTR_FIFO;
-            break;
-        case DT_SOCK:
-            attr->attrs |= FATTR_SOCKET;
-            break;
-        default:
-            attr->attrs = FATTR_NONE;
-            break;  // Needs fallback (stat)
+    // Check for hidden file based on name
+    if (entry->d_name[0] == '.') {
+        attr->attrs |= FATTR_HIDDEN;
     }
 
+    // Use standard POSIX macros on st_mode instead of non-standard DT_ constants
+    if (S_ISREG(st.st_mode)) {
+        attr->attrs |= FATTR_FILE;
+        // Optional: Check executable bits here if needed
+        if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
+            attr->attrs |= FATTR_EXECUTABLE;
+        }
+    } else if (S_ISDIR(st.st_mode)) {
+        attr->attrs |= FATTR_DIR;
+    } else if (S_ISLNK(st.st_mode)) {
+        attr->attrs |= FATTR_SYMLINK;
+    }
+#ifdef S_ISCHR
+    else if (S_ISCHR(st.st_mode)) {
+        attr->attrs |= FATTR_CHARDEV;
+    }
+#endif
+#ifdef S_ISBLK
+    else if (S_ISBLK(st.st_mode)) {
+        attr->attrs |= FATTR_BLOCKDEV;
+    }
+#endif
+#ifdef S_ISFIFO
+    else if (S_ISFIFO(st.st_mode)) {
+        attr->attrs |= FATTR_FIFO;
+    }
+#endif
+#ifdef S_ISSOCK
+    else if (S_ISSOCK(st.st_mode)) {
+        attr->attrs |= FATTR_SOCKET;
+    }
+#endif
     return 0;
 }
+
 #endif
 
 static int delete_single_directory(const char* path) {
