@@ -157,7 +157,14 @@ if(WIN32)
     target_compile_definitions(solidc PUBLIC _WIN32_WINNT=0x0602)  # Windows 8+
 endif()
 
-add_compile_definitions(_POSIX_C_SOURCE=200809L)
+if(APPLE)
+    target_compile_definitions(solidc PRIVATE
+        _POSIX_C_SOURCE=200809L
+        _DARWIN_C_SOURCE
+    )
+else()
+    target_compile_definitions(solidc PRIVATE _GNU_SOURCE)
+endif()
 
 if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
     # Add the Windows-specific dirent implementation source
