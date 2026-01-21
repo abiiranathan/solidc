@@ -7,6 +7,14 @@
 #else
 #include <sys/mman.h>
 #include <unistd.h>
+
+// MAP_ANONYMOUS may not be available on Mac OS
+#ifndef MAP_ANONYMOUS
+#ifdef MAP_ANON
+#define MAP_ANONYMOUS MAP_ANON
+#endif
+#endif
+
 #endif
 
 Arena* arena_create(size_t reserve_size) {
