@@ -38,11 +38,12 @@
 #ifndef SIMD_H
 #define SIMD_H
 
+#include "align.h"
+
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
-#include "align.h"
 
 /* =========================================================
    Architecture Detection
@@ -253,7 +254,7 @@ static inline simd_vec_t simd_div(simd_vec_t a, simd_vec_t b) {
      * 3. Multiply
      */
     simd_vec_t recip = vrecpeq_f32(b);
-    recip            = vmulq_f32(vrecpsq_f32(b, recip), recip);
+    recip = vmulq_f32(vrecpsq_f32(b, recip), recip);
     return vmulq_f32(a, recip);
 #else
     return (simd_vec_t){{a.f[0] / b.f[0], a.f[1] / b.f[1], a.f[2] / b.f[2], a.f[3] / b.f[3]}};
@@ -315,8 +316,10 @@ static inline simd_vec_t simd_min(simd_vec_t a, simd_vec_t b) {
 #elif defined(SIMD_ARCH_ARM)
     return vminq_f32(a, b);
 #else
-    return (simd_vec_t){{a.f[0] < b.f[0] ? a.f[0] : b.f[0], a.f[1] < b.f[1] ? a.f[1] : b.f[1],
-                         a.f[2] < b.f[2] ? a.f[2] : b.f[2], a.f[3] < b.f[3] ? a.f[3] : b.f[3]}};
+    return (simd_vec_t){{a.f[0] < b.f[0] ? a.f[0] : b.f[0],
+                         a.f[1] < b.f[1] ? a.f[1] : b.f[1],
+                         a.f[2] < b.f[2] ? a.f[2] : b.f[2],
+                         a.f[3] < b.f[3] ? a.f[3] : b.f[3]}};
 #endif
 }
 
@@ -327,8 +330,10 @@ static inline simd_vec_t simd_max(simd_vec_t a, simd_vec_t b) {
 #elif defined(SIMD_ARCH_ARM)
     return vmaxq_f32(a, b);
 #else
-    return (simd_vec_t){{a.f[0] > b.f[0] ? a.f[0] : b.f[0], a.f[1] > b.f[1] ? a.f[1] : b.f[1],
-                         a.f[2] > b.f[2] ? a.f[2] : b.f[2], a.f[3] > b.f[3] ? a.f[3] : b.f[3]}};
+    return (simd_vec_t){{a.f[0] > b.f[0] ? a.f[0] : b.f[0],
+                         a.f[1] > b.f[1] ? a.f[1] : b.f[1],
+                         a.f[2] > b.f[2] ? a.f[2] : b.f[2],
+                         a.f[3] > b.f[3] ? a.f[3] : b.f[3]}};
 #endif
 }
 
@@ -347,8 +352,7 @@ static inline simd_vec_t simd_sqrt(simd_vec_t v) {
     simd_vec_t result;
     float temp[4];
     vst1q_f32(temp, v);
-    for (int i = 0; i < 4; ++i)
-        temp[i] = sqrtf(temp[i]);
+    for (int i = 0; i < 4; ++i) temp[i] = sqrtf(temp[i]);
     return vld1q_f32(temp);
 #else
     return (simd_vec_t){{sqrtf(v.f[0]), sqrtf(v.f[1]), sqrtf(v.f[2]), sqrtf(v.f[3])}};
@@ -395,8 +399,7 @@ static inline simd_vec_t simd_floor(simd_vec_t v) {
     /* SSE2 Fallback: conversion via scalar math */
     float temp[4];
     _mm_storeu_ps(temp, v);
-    for (int i = 0; i < 4; ++i)
-        temp[i] = floorf(temp[i]);
+    for (int i = 0; i < 4; ++i) temp[i] = floorf(temp[i]);
     return _mm_loadu_ps(temp);
 #endif
 #elif defined(SIMD_ARCH_ARM64)
@@ -404,8 +407,7 @@ static inline simd_vec_t simd_floor(simd_vec_t v) {
 #elif defined(SIMD_ARCH_ARM32)
     float temp[4];
     vst1q_f32(temp, v);
-    for (int i = 0; i < 4; ++i)
-        temp[i] = floorf(temp[i]);
+    for (int i = 0; i < 4; ++i) temp[i] = floorf(temp[i]);
     return vld1q_f32(temp);
 #else
     return (simd_vec_t){{floorf(v.f[0]), floorf(v.f[1]), floorf(v.f[2]), floorf(v.f[3])}};
@@ -420,8 +422,7 @@ static inline simd_vec_t simd_ceil(simd_vec_t v) {
 #else
     float temp[4];
     _mm_storeu_ps(temp, v);
-    for (int i = 0; i < 4; ++i)
-        temp[i] = ceilf(temp[i]);
+    for (int i = 0; i < 4; ++i) temp[i] = ceilf(temp[i]);
     return _mm_loadu_ps(temp);
 #endif
 #elif defined(SIMD_ARCH_ARM64)
@@ -429,8 +430,7 @@ static inline simd_vec_t simd_ceil(simd_vec_t v) {
 #elif defined(SIMD_ARCH_ARM32)
     float temp[4];
     vst1q_f32(temp, v);
-    for (int i = 0; i < 4; ++i)
-        temp[i] = ceilf(temp[i]);
+    for (int i = 0; i < 4; ++i) temp[i] = ceilf(temp[i]);
     return vld1q_f32(temp);
 #else
     return (simd_vec_t){{ceilf(v.f[0]), ceilf(v.f[1]), ceilf(v.f[2]), ceilf(v.f[3])}};
@@ -445,8 +445,7 @@ static inline simd_vec_t simd_round(simd_vec_t v) {
 #else
     float temp[4];
     _mm_storeu_ps(temp, v);
-    for (int i = 0; i < 4; ++i)
-        temp[i] = roundf(temp[i]);
+    for (int i = 0; i < 4; ++i) temp[i] = roundf(temp[i]);
     return _mm_loadu_ps(temp);
 #endif
 #elif defined(SIMD_ARCH_ARM64)
@@ -454,8 +453,7 @@ static inline simd_vec_t simd_round(simd_vec_t v) {
 #elif defined(SIMD_ARCH_ARM32)
     float temp[4];
     vst1q_f32(temp, v);
-    for (int i = 0; i < 4; ++i)
-        temp[i] = roundf(temp[i]);
+    for (int i = 0; i < 4; ++i) temp[i] = roundf(temp[i]);
     return vld1q_f32(temp);
 #else
     return (simd_vec_t){{roundf(v.f[0]), roundf(v.f[1]), roundf(v.f[2]), roundf(v.f[3])}};
@@ -725,15 +723,15 @@ static inline float simd_hadd(simd_vec_t v) {
      */
     __m128 shuf = _mm_shuffle_ps(v, v, _MM_SHUFFLE(2, 3, 0, 1));
     __m128 sums = _mm_add_ps(v, shuf);
-    shuf        = _mm_movehl_ps(shuf, sums);
-    sums        = _mm_add_ps(sums, shuf);
+    shuf = _mm_movehl_ps(shuf, sums);
+    sums = _mm_add_ps(sums, shuf);
     return _mm_cvtss_f32(sums);
 #elif defined(SIMD_ARCH_ARM64)
     return vaddvq_f32(v); /* AArch64 hardware instruction */
 #elif defined(SIMD_ARCH_ARM32)
     /* Pairwise add: [x+y, z+w] -> [x+y+z+w] */
     float32x2_t r = vadd_f32(vget_high_f32(v), vget_low_f32(v));
-    r             = vpadd_f32(r, r);
+    r = vpadd_f32(r, r);
     return vget_lane_f32(r, 0);
 #else
     return v.f[0] + v.f[1] + v.f[2] + v.f[3];
@@ -745,14 +743,14 @@ static inline float simd_hmin(simd_vec_t v) {
 #if defined(SIMD_ARCH_X86)
     __m128 shuf = _mm_shuffle_ps(v, v, _MM_SHUFFLE(2, 3, 0, 1));
     __m128 mins = _mm_min_ps(v, shuf);
-    shuf        = _mm_movehl_ps(shuf, mins);
-    mins        = _mm_min_ps(mins, shuf);
+    shuf = _mm_movehl_ps(shuf, mins);
+    mins = _mm_min_ps(mins, shuf);
     return _mm_cvtss_f32(mins);
 #elif defined(SIMD_ARCH_ARM64)
     return vminvq_f32(v);
 #elif defined(SIMD_ARCH_ARM32)
     float32x2_t r = vmin_f32(vget_high_f32(v), vget_low_f32(v));
-    r             = vpmin_f32(r, r);
+    r = vpmin_f32(r, r);
     return vget_lane_f32(r, 0);
 #else
     float min = v.f[0];
@@ -768,14 +766,14 @@ static inline float simd_hmax(simd_vec_t v) {
 #if defined(SIMD_ARCH_X86)
     __m128 shuf = _mm_shuffle_ps(v, v, _MM_SHUFFLE(2, 3, 0, 1));
     __m128 maxs = _mm_max_ps(v, shuf);
-    shuf        = _mm_movehl_ps(shuf, maxs);
-    maxs        = _mm_max_ps(maxs, shuf);
+    shuf = _mm_movehl_ps(shuf, maxs);
+    maxs = _mm_max_ps(maxs, shuf);
     return _mm_cvtss_f32(maxs);
 #elif defined(SIMD_ARCH_ARM64)
     return vmaxvq_f32(v);
 #elif defined(SIMD_ARCH_ARM32)
     float32x2_t r = vmax_f32(vget_high_f32(v), vget_low_f32(v));
-    r             = vpmax_f32(r, r);
+    r = vpmax_f32(r, r);
     return vget_lane_f32(r, 0);
 #else
     float max = v.f[0];
@@ -808,18 +806,18 @@ static inline float simd_dot3(simd_vec_t a, simd_vec_t b) {
      * Previous version incorrectly used _mm_and_ps with 1.0f, which corrupts bits.
      */
     __m128 mask = _mm_set_ps(0.0f, 1.0f, 1.0f, 1.0f);  // x=1, y=1, z=1, w=0
-    mul         = _mm_mul_ps(mul, mask);               // Multiply, don't AND
+    mul = _mm_mul_ps(mul, mask);                       // Multiply, don't AND
 
     return simd_hadd(mul);
 #endif
 #elif defined(SIMD_ARCH_ARM)
     simd_vec_t mul = vmulq_f32(a, b);
-    mul            = vsetq_lane_f32(0.0f, mul, 3);  // Set W lane to 0
+    mul = vsetq_lane_f32(0.0f, mul, 3);  // Set W lane to 0
 #if defined(SIMD_ARCH_ARM64)
     return vaddvq_f32(mul);
 #else
     float32x2_t r = vadd_f32(vget_high_f32(mul), vget_low_f32(mul));
-    r             = vpadd_f32(r, r);
+    r = vpadd_f32(r, r);
     return vget_lane_f32(r, 0);
 #endif
 #else
@@ -845,7 +843,7 @@ static inline float simd_dot4(simd_vec_t a, simd_vec_t b) {
     return vaddvq_f32(mul);
 #else
     float32x2_t r = vadd_f32(vget_high_f32(mul), vget_low_f32(mul));
-    r             = vpadd_f32(r, r);
+    r = vpadd_f32(r, r);
     return vget_lane_f32(r, 0);
 #endif
 #else
@@ -901,8 +899,8 @@ static inline simd_vec_t simd_cross(simd_vec_t a, simd_vec_t b) {
 
     return vld1q_f32(result);
 #else
-    return (simd_vec_t){{a.f[1] * b.f[2] - a.f[2] * b.f[1], a.f[2] * b.f[0] - a.f[0] * b.f[2],
-                         a.f[0] * b.f[1] - a.f[1] * b.f[0], 0.0f}};
+    return (simd_vec_t){
+      {a.f[1] * b.f[2] - a.f[2] * b.f[1], a.f[2] * b.f[0] - a.f[0] * b.f[2], a.f[0] * b.f[1] - a.f[1] * b.f[0], 0.0f}};
 #endif
 }
 
@@ -934,8 +932,8 @@ static inline float simd_length4(simd_vec_t v) {
 static inline simd_vec_t simd_normalize3(simd_vec_t v) {
     float len_sq = simd_dot3(v, v);
     if (len_sq > 0.0f) {
-        float inv_len     = 1.0f / sqrtf(len_sq);
-        simd_vec_t scale  = simd_set1(inv_len);
+        float inv_len = 1.0f / sqrtf(len_sq);
+        simd_vec_t scale = simd_set1(inv_len);
         simd_vec_t result = simd_mul(v, scale);
 
         /* Restore original W component */
@@ -967,9 +965,9 @@ static inline simd_vec_t simd_normalize4(simd_vec_t v) {
  * @return Unit vector (approximate).
  */
 static inline simd_vec_t simd_normalize3_fast(simd_vec_t v) {
-    simd_vec_t len_sq  = simd_set1(simd_dot3(v, v));
+    simd_vec_t len_sq = simd_set1(simd_dot3(v, v));
     simd_vec_t inv_len = simd_rsqrt(len_sq);
-    simd_vec_t result  = simd_mul(v, inv_len);
+    simd_vec_t result = simd_mul(v, inv_len);
 
     /* Restore W */
 #if defined(SIMD_ARCH_X86)
@@ -998,23 +996,23 @@ static inline bool simd_equals_eps(simd_vec_t a, simd_vec_t b, float epsilon) {
 #if defined(SIMD_ARCH_X86)
     /* Abs(sub) < epsilon */
     static const __m128 sign_mask = {-0.0f, -0.0f, -0.0f, -0.0f};
-    __m128 abs_diff               = _mm_andnot_ps(sign_mask, sub);
-    __m128 eps_vec                = _mm_set1_ps(epsilon);
-    __m128 cmp                    = _mm_cmplt_ps(abs_diff, eps_vec);
+    __m128 abs_diff = _mm_andnot_ps(sign_mask, sub);
+    __m128 eps_vec = _mm_set1_ps(epsilon);
+    __m128 cmp = _mm_cmplt_ps(abs_diff, eps_vec);
 
     /* _mm_movemask_ps returns an int where bits 0-3 correspond to vector lanes */
     return _mm_movemask_ps(cmp) == 0xF;
 #elif defined(SIMD_ARCH_ARM)
     simd_vec_t abs_diff = vabsq_f32(sub);
-    simd_vec_t eps_vec  = vdupq_n_f32(epsilon);
-    uint32x4_t cmp      = vcltq_f32(abs_diff, eps_vec);
+    simd_vec_t eps_vec = vdupq_n_f32(epsilon);
+    uint32x4_t cmp = vcltq_f32(abs_diff, eps_vec);
 
     /* Check if all bits are set in the comparison result */
     uint32x2_t min = vmin_u32(vget_low_u32(cmp), vget_high_u32(cmp));
     return vget_lane_u32(min, 0) == 0xFFFFFFFF && vget_lane_u32(min, 1) == 0xFFFFFFFF;
 #else
     return fabsf(a.f[0] - b.f[0]) < epsilon && fabsf(a.f[1] - b.f[1]) < epsilon && fabsf(a.f[2] - b.f[2]) < epsilon &&
-           fabsf(a.f[3] - b.f[3]) < epsilon;
+        fabsf(a.f[3] - b.f[3]) < epsilon;
 #endif
 }
 
@@ -1102,7 +1100,7 @@ static inline bool simd_check_all(simd_vec_t mask) {
     return _mm_movemask_ps(mask) == 0xF;
 #elif defined(SIMD_ARCH_ARM)
     // Check if minimum of all lanes is NOT 0
-    uint32x4_t u   = vreinterpretq_u32_f32(mask);
+    uint32x4_t u = vreinterpretq_u32_f32(mask);
     uint32x2_t min = vmin_u32(vget_low_u32(u), vget_high_u32(u));
     return (vget_lane_u32(min, 0) & vget_lane_u32(min, 1)) == 0xFFFFFFFF;
 #else
@@ -1119,10 +1117,10 @@ static inline bool simd_check_all(simd_vec_t mask) {
     do {                                                                                                               \
         float32x4x2_t t0 = vtrnq_f32(r0, r1);                                                                          \
         float32x4x2_t t1 = vtrnq_f32(r2, r3);                                                                          \
-        r0               = vcombine_f32(vget_low_f32(t0.val[0]), vget_low_f32(t1.val[0]));                             \
-        r1               = vcombine_f32(vget_low_f32(t0.val[1]), vget_low_f32(t1.val[1]));                             \
-        r2               = vcombine_f32(vget_high_f32(t0.val[0]), vget_high_f32(t1.val[0]));                           \
-        r3               = vcombine_f32(vget_high_f32(t0.val[1]), vget_high_f32(t1.val[1]));                           \
+        r0 = vcombine_f32(vget_low_f32(t0.val[0]), vget_low_f32(t1.val[0]));                                           \
+        r1 = vcombine_f32(vget_low_f32(t0.val[1]), vget_low_f32(t1.val[1]));                                           \
+        r2 = vcombine_f32(vget_high_f32(t0.val[0]), vget_high_f32(t1.val[0]));                                         \
+        r3 = vcombine_f32(vget_high_f32(t0.val[1]), vget_high_f32(t1.val[1]));                                         \
     } while (0)
 #else
 #define simd_transpose4(r0, r1, r2, r3)                                                                                \

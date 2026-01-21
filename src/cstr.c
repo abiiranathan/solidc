@@ -1,4 +1,5 @@
 #include "../include/cstr.h"
+
 #include "../include/aligned_alloc.h"
 #include "../include/ckdint.h"
 
@@ -16,15 +17,15 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 // Small String Optimization (SSO) constants
-#define SSO_MAX_SIZE    (sizeof(size_t) + sizeof(size_t) + sizeof(char*) - 1)
-#define SSO_HEAP_FLAG   0x80
+#define SSO_MAX_SIZE (sizeof(size_t) + sizeof(size_t) + sizeof(char*) - 1)
+#define SSO_HEAP_FLAG 0x80
 #define SSO_LENGTH_MASK 0x7F
-#define HEAP_FLAG_BIT   (1ULL << 63)
+#define HEAP_FLAG_BIT (1ULL << 63)
 
 // Security and performance constants
-#define CSTR_GROWTH_FACTOR     2
+#define CSTR_GROWTH_FACTOR 2
 #define CSTR_MIN_HEAP_CAPACITY 16
-#define CSTR_MAX_SIZE          (SIZE_MAX / 2)  // Prevent overflow attacks
+#define CSTR_MAX_SIZE (SIZE_MAX / 2)  // Prevent overflow attacks
 
 // Optimized string alignment for heap data.
 #if defined(__x86_64__) && defined(__AVX2__)
@@ -38,7 +39,7 @@
 // Macros for capacity manipulation
 #define CSTR_SET_HEAP_CAPACITY(cap) ((cap) | HEAP_FLAG_BIT)
 #define CSTR_GET_HEAP_CAPACITY(cap) ((cap) & ~HEAP_FLAG_BIT)
-#define CSTR_IS_HEAP(s)             ((s->heap.capacity & HEAP_FLAG_BIT) != 0)
+#define CSTR_IS_HEAP(s) ((s->heap.capacity & HEAP_FLAG_BIT) != 0)
 
 /**
  * @brief A dynamically resizable C-string with Small String Optimization (SSO).
@@ -160,11 +161,11 @@ static inline void cstr_set_length(cstr* s, size_t len) {
 static size_t calculate_growth_capacity(size_t current_cap, size_t min_needed) {
     if (min_needed > CSTR_MAX_SIZE) return 0;
 
-    min_needed  = MAX(min_needed, CSTR_MIN_HEAP_CAPACITY);   // ensure min heap capacity
+    min_needed = MAX(min_needed, CSTR_MIN_HEAP_CAPACITY);    // ensure min heap capacity
     current_cap = MAX(current_cap, CSTR_MIN_HEAP_CAPACITY);  // avoid multiplying by 0.
 
     size_t capacity = 0;
-    bool overflow   = false;
+    bool overflow = false;
 
     // grow capacity as long as we haven't overflow'd and still below required memory.
     while (!(overflow = ckd_mul(&capacity, current_cap, CSTR_GROWTH_FACTOR)) && capacity < min_needed) {
@@ -204,10 +205,10 @@ static bool cstr_promote_to_heap(cstr* s, size_t new_capacity) {
 
     // Null terminate the new buffer
     new_mem[s->stack.len] = '\0';
-    size_t old_len        = s->stack.len;
-    s->heap.data          = new_mem;
-    s->heap.length        = old_len;
-    s->heap.capacity      = CSTR_SET_HEAP_CAPACITY(cap);
+    size_t old_len = s->stack.len;
+    s->heap.data = new_mem;
+    s->heap.length = old_len;
+    s->heap.capacity = CSTR_SET_HEAP_CAPACITY(cap);
 
     return true;
 }
@@ -245,7 +246,7 @@ static bool cstr_ensure_capacity(cstr* s, size_t new_capacity) {
             return false;
         }
 
-        s->heap.data     = new_data;
+        s->heap.data = new_data;
         s->heap.capacity = CSTR_SET_HEAP_CAPACITY(optimal_capacity);
     } else {
         return cstr_promote_to_heap(s, new_capacity);
@@ -278,7 +279,7 @@ cstr* cstr_init(size_t initial_capacity) {
 
     if (initial_capacity <= SSO_MAX_SIZE) {
         // Initialize as stack-allocated string
-        s->stack.len     = 0;
+        s->stack.len = 0;
         s->stack.data[0] = '\0';
         // Clear remaining bytes for security
         memset(s->stack.data + 1, 0, SSO_MAX_SIZE - 1);
@@ -295,9 +296,9 @@ cstr* cstr_init(size_t initial_capacity) {
             return NULL;
         }
 
-        data[0]          = '\0';
-        s->heap.data     = data;
-        s->heap.length   = 0;
+        data[0] = '\0';
+        s->heap.data = data;
+        s->heap.length = 0;
         s->heap.capacity = CSTR_SET_HEAP_CAPACITY(optimal_capacity);
     }
 
@@ -322,7 +323,7 @@ cstr* cstr_new(const char* input) {
     }
 
     size_t len = strlen(input);
-    cstr* str  = cstr_init(len + 1);
+    cstr* str = cstr_init(len + 1);
     if (!str) {
         return NULL;
     }
@@ -483,7 +484,7 @@ bool cstr_append(cstr* s, const char* append_str) {
     }
 
     size_t current_len = cstr_get_length(s);
-    size_t new_len     = current_len + append_len;
+    size_t new_len = current_len + append_len;
 
     if (!cstr_ensure_capacity(s, new_len + 1)) {
         return false;
@@ -568,13 +569,13 @@ cstr* cstr_format(const char* format, ...) {
     }
 
     size_t capacity = (size_t)len + 1;
-    cstr* s         = cstr_init(capacity);
+    cstr* s = cstr_init(capacity);
     if (!s) {
         va_end(args);
         return NULL;
     }
 
-    char* data  = cstr_get_data(s);
+    char* data = cstr_get_data(s);
     int written = vsnprintf(data, capacity, format, args);
     va_end(args);
 
@@ -619,14 +620,14 @@ bool cstr_append_fmt(cstr* s, const char* format, ...) {
     }
 
     size_t current_len = cstr_get_length(s);
-    size_t new_len     = current_len + (size_t)append_len;
+    size_t new_len = current_len + (size_t)append_len;
 
     if (!cstr_ensure_capacity(s, new_len + 1)) {
         va_end(args);
         return false;
     }
 
-    char* dest  = cstr_get_data(s);
+    char* dest = cstr_get_data(s);
     int written = vsnprintf(dest + current_len, (size_t)append_len + 1, format, args);
     va_end(args);
 
@@ -653,8 +654,8 @@ bool cstr_append_char(cstr* s, char c) {
         return false;
     }
 
-    char* dest            = cstr_get_data(s);
-    dest[current_len]     = c;
+    char* dest = cstr_get_data(s);
+    dest[current_len] = c;
     dest[current_len + 1] = '\0';
     cstr_set_length(s, current_len + 1);
 
@@ -678,7 +679,7 @@ bool cstr_prepend(cstr* s, const char* prepend_str) {
     if (prepend_len == 0) return true;
 
     size_t current_len = cstr_get_length(s);
-    size_t new_len     = current_len + prepend_len;
+    size_t new_len = current_len + prepend_len;
     if (!cstr_ensure_capacity(s, new_len + 1)) {
         return false;
     }
@@ -834,10 +835,10 @@ size_t cstr_remove_all(cstr* s, const char* substr) {
         return 0;  // Cannot remove an empty substring
     }
 
-    char* data      = cstr_get_data(s);
+    char* data = cstr_get_data(s);
     char* write_ptr = data;
-    char* read_ptr  = data;
-    size_t count    = 0;
+    char* read_ptr = data;
+    size_t count = 0;
     const char* end = data + cstr_get_length(s);
 
     while (read_ptr < end) {
@@ -907,7 +908,7 @@ const char* cstr_data_const(const cstr* s) {
 str_view cstr_as_view(const cstr* s) {
     str_view view = {NULL, 0};
     if (s) {
-        view.data   = cstr_get_data_const(s);
+        view.data = cstr_get_data_const(s);
         view.length = cstr_get_length(s);
     }
     return view;
@@ -976,7 +977,7 @@ bool cstr_starts_with(const cstr* s, const char* prefix) {
         return false;
     }
     size_t prefix_len = strlen(prefix);
-    size_t s_len      = cstr_get_length(s);
+    size_t s_len = cstr_get_length(s);
     return prefix_len == 0 || (prefix_len <= s_len && memcmp(cstr_get_data_const(s), prefix, prefix_len) == 0);
 }
 
@@ -994,9 +995,9 @@ bool cstr_ends_with(const cstr* s, const char* suffix) {
         return false;
     }
     size_t suffix_len = strlen(suffix);
-    size_t s_len      = cstr_get_length(s);
+    size_t s_len = cstr_get_length(s);
     return suffix_len == 0 ||
-           (suffix_len <= s_len && memcmp(cstr_get_data_const(s) + s_len - suffix_len, suffix, suffix_len) == 0);
+        (suffix_len <= s_len && memcmp(cstr_get_data_const(s) + s_len - suffix_len, suffix, suffix_len) == 0);
 }
 
 /**
@@ -1029,7 +1030,7 @@ int cstr_rfind(const cstr* s, const char* substr) {
     }
 
     size_t substr_len = strlen(substr);
-    size_t s_len      = cstr_get_length(s);
+    size_t s_len = cstr_get_length(s);
 
     if (substr_len > s_len) {
         return STR_NPOS;
@@ -1040,8 +1041,8 @@ int cstr_rfind(const cstr* s, const char* substr) {
     }
 
     const char* s_data = cstr_get_data_const(s);
-    const char* found  = NULL;
-    const char* p      = s_data;
+    const char* found = NULL;
+    const char* p = s_data;
 
     while ((p = strstr(p, substr))) {
         found = p;
@@ -1062,7 +1063,7 @@ int cstr_rfind(const cstr* s, const char* substr) {
 void cstr_lower(cstr* s) {
     if (!s) return;
 
-    char* data    = cstr_get_data(s);
+    char* data = cstr_get_data(s);
     size_t length = cstr_get_length(s);
     for (size_t i = 0; i < length; ++i) {
         data[i] = (char)tolower((unsigned char)data[i]);
@@ -1080,7 +1081,7 @@ void cstr_lower(cstr* s) {
 void cstr_upper(cstr* s) {
     if (!s) return;
     size_t length = cstr_get_length(s);
-    char* data    = cstr_get_data(s);
+    char* data = cstr_get_data(s);
     for (size_t i = 0; i < length; ++i) {
         data[i] = (char)toupper((unsigned char)data[i]);
     }
@@ -1104,7 +1105,7 @@ bool cstr_snakecase(cstr* s) {
         return true;  // Empty string is already snake_case
     }
 
-    size_t underscores     = 0;
+    size_t underscores = 0;
     const char* data_const = cstr_get_data_const(s);
 
     // First pass to count needed underscores
@@ -1119,8 +1120,8 @@ bool cstr_snakecase(cstr* s) {
         return false;  // Allocation failure
     }
 
-    char* data       = cstr_get_data(s);
-    size_t read_idx  = original_length;
+    char* data = cstr_get_data(s);
+    size_t read_idx = original_length;
     size_t write_idx = new_length;
 
     // Start from the end to insert underscores without moving data multiple times
@@ -1163,7 +1164,7 @@ void cstr_camelcase(cstr* s) {
 
     size_t read = 0, write = 0;
     bool capitalize_next = false;
-    char* data           = cstr_get_data(s);
+    char* data = cstr_get_data(s);
 
     // Skip leading underscores/spaces
     while (read < length && (data[read] == '_' || isspace((unsigned char)data[read]))) {
@@ -1181,7 +1182,7 @@ void cstr_camelcase(cstr* s) {
         if (c == '_' || isspace((unsigned char)c)) {
             capitalize_next = true;
         } else if (capitalize_next) {
-            data[write++]   = (char)toupper((unsigned char)c);
+            data[write++] = (char)toupper((unsigned char)c);
             capitalize_next = false;
         } else {
             data[write++] = (char)tolower((unsigned char)c);
@@ -1229,7 +1230,7 @@ void cstr_pascalcase(cstr* s) {
             new_word = true;
         } else if (new_word) {
             data[write++] = (char)toupper((unsigned char)c);
-            new_word      = false;
+            new_word = false;
         } else {
             data[write++] = (char)tolower((unsigned char)c);
         }
@@ -1262,7 +1263,7 @@ void cstr_titlecase(cstr* s) {
         if (isspace((unsigned char)data[i])) {
             capitalize = true;
         } else if (capitalize) {
-            data[i]    = (char)toupper((unsigned char)data[i]);
+            data[i] = (char)toupper((unsigned char)data[i]);
             capitalize = false;
         } else {
             data[i] = (char)tolower((unsigned char)data[i]);
@@ -1292,12 +1293,10 @@ void cstr_trim(cstr* s) {
     char* data = cstr_get_data(s);
 
     // Find the first non-whitespace character
-    while (start < length && isspace((unsigned char)data[start]))
-        ++start;
+    while (start < length && isspace((unsigned char)data[start])) ++start;
 
     // Find the last non-whitespace character
-    while (end > start && isspace((unsigned char)data[end]))
-        --end;
+    while (end > start && isspace((unsigned char)data[end])) --end;
 
     // Calculate the new length
     size_t new_length = (start > end) ? 0 : (end - start + 1);
@@ -1334,8 +1333,7 @@ void cstr_rtrim(cstr* s) {
     char* data = cstr_get_data(s);
 
     // Find the last non-whitespace character
-    while (end > 0 && isspace((unsigned char)data[end]))
-        --end;
+    while (end > 0 && isspace((unsigned char)data[end])) --end;
 
     // New length is up to and including the last non-whitespace character
     size_t new_length = isspace((unsigned char)data[end]) ? end : end + 1;
@@ -1364,11 +1362,10 @@ void cstr_ltrim(cstr* s) {
     }
 
     size_t start = 0;
-    char* data   = cstr_get_data(s);
+    char* data = cstr_get_data(s);
 
     // Find the first non-whitespace character
-    while (start < length && isspace((unsigned char)data[start]))
-        ++start;
+    while (start < length && isspace((unsigned char)data[start])) ++start;
 
     // Calculate the new length
     size_t new_length = length - start;
@@ -1443,7 +1440,7 @@ size_t cstr_count_substr(const cstr* str, const char* substr) {
     if (!str || !substr) {
         return 0;
     }
-    size_t count   = 0;
+    size_t count = 0;
     size_t sub_len = strlen(substr);
     if (sub_len == 0) {
         return 0;  // Cannot count empty substring occurrences
@@ -1470,7 +1467,7 @@ void cstr_remove_substr(cstr* str, size_t start, size_t substr_length) {
         substr_length = length - start;
     }
 
-    char* data           = cstr_get_data(str);
+    char* data = cstr_get_data(str);
     size_t bytes_to_move = length - start - substr_length;
 
     // Move remaining characters (including null terminator)
@@ -1497,10 +1494,10 @@ void cstr_remove_char(cstr* s, char c) {
         return;
     }
 
-    char* data      = cstr_get_data(s);
-    size_t len      = cstr_get_length(s);
+    char* data = cstr_get_data(s);
+    size_t len = cstr_get_length(s);
     char* write_ptr = data;
-    char* read_ptr  = data;
+    char* read_ptr = data;
 
     for (size_t i = 0; i < len; i++, read_ptr++) {
         if (*read_ptr != c) {
@@ -1531,7 +1528,7 @@ cstr* cstr_substr(const cstr* s, size_t start, size_t length) {
     }
 
     size_t s_len = cstr_get_length(s);
-    length       = MIN(length, s_len - start);
+    length = MIN(length, s_len - start);
 
     if (length == 0) {
         return cstr_new("");  // Return an empty string if the substring length is 0
@@ -1565,9 +1562,9 @@ cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) {
         return NULL;
     }
 
-    size_t old_len     = strlen(old_str);
+    size_t old_len = strlen(old_str);
     const char* s_data = cstr_get_data_const(s);
-    size_t s_len       = cstr_get_length(s);
+    size_t s_len = cstr_get_length(s);
 
     if (old_len == 0) {
         return cstr_new(s_data);  // Cannot replace empty string, return a copy
@@ -1578,9 +1575,9 @@ cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) {
         return cstr_new(s_data);  // No occurrence found, return a copy
     }
 
-    size_t new_len           = strlen(new_str);
-    size_t pos               = (size_t)(found - s_data);
-    size_t remaining_len     = s_len - pos - old_len;
+    size_t new_len = strlen(new_str);
+    size_t pos = (size_t)(found - s_data);
+    size_t remaining_len = s_len - pos - old_len;
     size_t required_capacity = 0;
 
     if (ckd_add(&required_capacity, (pos + new_len), (remaining_len + 1))) {
@@ -1627,7 +1624,7 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
         return NULL;
     }
 
-    size_t old_len     = strlen(old_sub);
+    size_t old_len = strlen(old_sub);
     const char* s_data = cstr_get_data_const(s);
 
     if (old_len == 0) {
@@ -1635,10 +1632,10 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
     }
 
     size_t new_len = strlen(new_sub);
-    size_t s_len   = cstr_get_length(s);
+    size_t s_len = cstr_get_length(s);
 
     // Count occurrences to estimate new size
-    size_t count  = 0;
+    size_t count = 0;
     const char* p = s_data;
     while ((p = strstr(p, old_sub))) {
         count++;
@@ -1670,7 +1667,7 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
     }
 
     char* dest = cstr_get_data(result);
-    p          = s_data;
+    p = s_data;
     size_t pos = 0;
 
     while (*p) {
@@ -1691,7 +1688,7 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
                 cstr_free(result);
                 return NULL;
             }
-            dest        = cstr_get_data(result);  // Re-get data pointer after potential realloc
+            dest = cstr_get_data(result);  // Re-get data pointer after potential realloc
             dest[pos++] = *p++;
         }
     }
@@ -1723,8 +1720,8 @@ cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
     }
 
     const char* s_data = cstr_get_data_const(s);
-    size_t s_len       = cstr_get_length(s);
-    *count_out         = 0;
+    size_t s_len = cstr_get_length(s);
+    *count_out = 0;
 
     // Handle empty delimiter case
     if (!delim || !*delim) {
@@ -1746,12 +1743,12 @@ cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
 
     // Estimate capacity (avoid scanning entire string)
     size_t capacity = (s_len / (delim_len * 2)) + 4;  // Heuristic
-    cstr** result   = malloc(capacity * sizeof(cstr*));
+    cstr** result = malloc(capacity * sizeof(cstr*));
     if (!result) return NULL;
 
     const char* start = s_data;
-    const char* end   = s_data + s_len;
-    size_t count      = 0;
+    const char* end = s_data + s_len;
+    size_t count = 0;
 
     while (1) {
         const char* found = strstr(start, delim);
@@ -1766,7 +1763,7 @@ cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
         }
 
         size_t token_len = (size_t)(found - start);
-        result[count]    = cstr_init(token_len + 1);
+        result[count] = cstr_init(token_len + 1);
         if (!result[count]) goto error;
 
         memcpy(cstr_get_data(result[count]), start, token_len);
@@ -1888,7 +1885,7 @@ cstr* cstr_reverse(const cstr* s) {
         return NULL;
     }
 
-    char* dest      = cstr_get_data(result);
+    char* dest = cstr_get_data(result);
     const char* src = cstr_get_data_const(s);
 
     for (size_t i = 0; i < len; i++) {
@@ -1917,8 +1914,8 @@ void cstr_reverse_inplace(cstr* s) {
     }
     char* data = cstr_get_data(s);
     for (size_t i = 0; i < len / 2; i++) {
-        char temp         = data[i];
-        data[i]           = data[len - 1 - i];
+        char temp = data[i];
+        data[i] = data[len - 1 - i];
         data[len - 1 - i] = temp;
     }
 }

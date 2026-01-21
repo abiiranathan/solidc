@@ -70,7 +70,7 @@ extern "C" {
  * @param name Variable name to remove
  * @return 0 on success, -1 on failure
  */
-#define UNSETENV(name)                 unsetenv(name)
+#define UNSETENV(name) unsetenv(name)
 #endif
 
 #ifdef __cplusplus

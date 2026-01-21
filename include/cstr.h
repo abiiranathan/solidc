@@ -6,11 +6,12 @@
 #ifndef CSTR_H
 #define CSTR_H
 
+#include "macros.h"
+#include "str_utils.h"
+
 #include <ctype.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include "macros.h"
-#include "str_utils.h"
 
 #ifdef __cplusplus
 extern "C" {

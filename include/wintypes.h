@@ -18,24 +18,24 @@
 #include <wincrypt.h>  // For Cryptographic functions on windows
 
 // File access flags
-#define O_RDONLY     _O_RDONLY
-#define O_WRONLY     _O_WRONLY
-#define O_RDWR       _O_RDWR
-#define O_APPEND     _O_APPEND
-#define O_CREAT      _O_CREAT
-#define O_TRUNC      _O_TRUNC
-#define O_EXCL       _O_EXCL
-#define O_TEXT       _O_TEXT
-#define O_BINARY     _O_BINARY
-#define O_RAW        _O_BINARY
-#define O_TEMPORARY  _O_TEMPORARY
-#define O_NOINHERIT  _O_NOINHERIT
+#define O_RDONLY _O_RDONLY
+#define O_WRONLY _O_WRONLY
+#define O_RDWR _O_RDWR
+#define O_APPEND _O_APPEND
+#define O_CREAT _O_CREAT
+#define O_TRUNC _O_TRUNC
+#define O_EXCL _O_EXCL
+#define O_TEXT _O_TEXT
+#define O_BINARY _O_BINARY
+#define O_RAW _O_BINARY
+#define O_TEMPORARY _O_TEMPORARY
+#define O_NOINHERIT _O_NOINHERIT
 #define O_SEQUENTIAL _O_SEQUENTIAL
-#define O_RANDOM     _O_RANDOM
-#define O_ACCMODE    _O_ACCMODE
+#define O_RANDOM _O_RANDOM
+#define O_ACCMODE _O_ACCMODE
 
 // File type flags
-#define S_IFMT  _S_IFMT
+#define S_IFMT _S_IFMT
 #define S_IFDIR _S_IFDIR
 #define S_IFCHR _S_IFCHR
 #define S_IFIFO _S_IFIFO
@@ -59,9 +59,9 @@
 #endif
 
 // Permission flags
-#define S_IREAD  _S_IREAD
+#define S_IREAD _S_IREAD
 #define S_IWRITE _S_IWRITE
-#define S_IEXEC  _S_IEXEC
+#define S_IEXEC _S_IEXEC
 
 // Directory creation
 #define MKDIR(path) _mkdir(path)

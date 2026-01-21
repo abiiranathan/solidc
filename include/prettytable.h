@@ -31,8 +31,8 @@
 #ifndef PRETTYTABLE_H
 #define PRETTYTABLE_H
 
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,33 +68,33 @@ typedef int (*prettytable_strlen_fn)(void* user_data, const char* text);
  * Table border style configuration.
  */
 typedef struct {
-    const char* top_left;       // ┌
-    const char* top_mid;        // ┬
-    const char* top_right;      // ┐
-    const char* mid_left;       // ├
-    const char* mid_mid;        // ┼
-    const char* mid_right;      // ┤
-    const char* bottom_left;    // └
-    const char* bottom_mid;     // ┴
-    const char* bottom_right;   // ┘
-    const char* horizontal;     // ─
-    const char* vertical;       // │
+    const char* top_left;      // ┌
+    const char* top_mid;       // ┬
+    const char* top_right;     // ┐
+    const char* mid_left;      // ├
+    const char* mid_mid;       // ┼
+    const char* mid_right;     // ┤
+    const char* bottom_left;   // └
+    const char* bottom_mid;    // ┴
+    const char* bottom_right;  // ┘
+    const char* horizontal;    // ─
+    const char* vertical;      // │
 } prettytable_style;
 
 /**
  * Configuration for table printing.
  */
 typedef struct {
-    int num_rows;                           // Number of data rows
-    int num_cols;                           // Number of columns
-    prettytable_header_fn get_header;       // Callback for headers
-    prettytable_cell_fn get_cell;          // Callback for cell values
-    prettytable_strlen_fn get_length;      // Optional: custom length function
-    void* user_data;                        // User context passed to callbacks
-    const prettytable_style* style;        // Optional: custom border style
-    bool show_header;                       // Show header row (default: true)
-    bool show_row_count;                    // Show row count at bottom (default: true)
-    FILE* output;                           // Output stream (default: stdout)
+    int num_rows;                      // Number of data rows
+    int num_cols;                      // Number of columns
+    prettytable_header_fn get_header;  // Callback for headers
+    prettytable_cell_fn get_cell;      // Callback for cell values
+    prettytable_strlen_fn get_length;  // Optional: custom length function
+    void* user_data;                   // User context passed to callbacks
+    const prettytable_style* style;    // Optional: custom border style
+    bool show_header;                  // Show header row (default: true)
+    bool show_row_count;               // Show row count at bottom (default: true)
+    FILE* output;                      // Output stream (default: stdout)
 } prettytable_config;
 
 /**
@@ -122,4 +122,4 @@ void prettytable_config_init(prettytable_config* config);
 }
 #endif
 
-#endif // PRETTYTABLE_H
+#endif  // PRETTYTABLE_H

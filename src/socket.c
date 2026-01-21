@@ -11,8 +11,8 @@ static void printLastErrorMessage(const char* prefix) {
     // create format flags
     DWORD flags = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS;
 
-    FormatMessageA(flags, NULL, (DWORD)WSAGetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errorText,
-                   0, NULL);
+    FormatMessageA(
+        flags, NULL, (DWORD)WSAGetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errorText, 0, NULL);
 
     if (errorText != NULL) {
         fprintf(stderr, "%s failed with error %d: %s\n", prefix, WSAGetLastError(), errorText);
@@ -148,7 +148,7 @@ See man 2 recv for more information.
  */
 ssize_t socket_recv(Socket* sock, void* buffer, size_t size, int flags) {
     ssize_t bytes = 0;
-    bytes         = recv(sock->handle, buffer, size, flags);
+    bytes = recv(sock->handle, buffer, size, flags);
     return bytes;
 }
 
@@ -265,8 +265,8 @@ int socket_get_peer_address(Socket* sock, struct sockaddr* addr, socklen_t* addr
 }
 
 int socket_type(Socket* sock) {
-    int ret       = -1;
-    int type      = 0;
+    int ret = -1;
+    int type = 0;
     socklen_t len = sizeof(type);
     if (socket_get_option(sock, SOL_SOCKET, SO_TYPE, &type, &len) == 0) {
         ret = type;
@@ -275,7 +275,7 @@ int socket_type(Socket* sock) {
 }
 
 int socket_family(Socket* sock) {
-    int domain    = -1;
+    int domain = -1;
     socklen_t len = sizeof(domain);
 #ifdef _WIN32
     domain = socket_get_option(sock, SOL_SOCKET, SO_TYPE, &domain, &len);
@@ -322,8 +322,8 @@ struct sockaddr_in* socket_ipv4_address(const char* ip, uint16_t port) {
         return NULL;
     }
     memset(addr, 0, sizeof(struct sockaddr_in));
-    addr->sin_family      = AF_INET;
-    addr->sin_port        = htons(port);
+    addr->sin_family = AF_INET;
+    addr->sin_port = htons(port);
     addr->sin_addr.s_addr = inet_addr(ip);
     return addr;
 }
@@ -338,7 +338,7 @@ struct sockaddr_in6* socket_ipv6_address(const char* ip, uint16_t port) {
     }
     memset(addr, 0, sizeof(struct sockaddr_in6));
     addr->sin6_family = AF_INET6;
-    addr->sin6_port   = htons(port);
+    addr->sin6_port = htons(port);
     inet_pton(AF_INET6, ip, &addr->sin6_addr);
     return addr;
 }

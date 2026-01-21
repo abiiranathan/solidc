@@ -28,11 +28,12 @@
 extern "C" {
 #endif
 
+#include "simd.h"
+
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
-#include "simd.h"
 
 /* ==================================================
    Storage Types (Unaligned, Standard C Layout)

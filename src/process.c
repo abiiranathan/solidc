@@ -4,6 +4,7 @@
  */
 
 #include "../include/process.h"
+
 #include <errno.h>
 #include <stddef.h>
 
@@ -16,14 +17,14 @@
 #endif
 
 #define PATH_SEP ";"       // Windows uses semicolon
-#define DIR_SEP  "\\"      // Windows directory separator
+#define DIR_SEP "\\"       // Windows directory separator
 #define strtok_r strtok_s  // MSVC equivalent
 
 #else
 #include <unistd.h>  // for access
-#define ACCESS   access
+#define ACCESS access
 #define PATH_SEP ":"  // POSIX uses colon
-#define DIR_SEP  "/"  // POSIX directory separator
+#define DIR_SEP "/"   // POSIX directory separator
 #endif
 
 // Helper function to search for command in PATH
@@ -62,7 +63,7 @@ static char* find_in_path(const char* command, const char* const* environment) {
     if (!path_copy) return NULL;
 
     char* saveptr = NULL;
-    char* dir     = strtok_r(path_copy, PATH_SEP, &saveptr);
+    char* dir = strtok_r(path_copy, PATH_SEP, &saveptr);
     char full_path[4096];
 
     while (dir) {
@@ -125,17 +126,17 @@ struct FileRedirection {
 
 /* Default options for process creation */
 static const ProcessOptions DEFAULT_OPTIONS = {
-    .working_directory   = NULL,
-    .inherit_environment = true,
-    .environment         = NULL,
-    .detached            = false,
-    .io =
-        {
-            .stdin_pipe   = NULL,
-            .stdout_pipe  = NULL,
-            .stderr_pipe  = NULL,
-            .merge_stderr = false,
-        },
+  .working_directory = NULL,
+  .inherit_environment = true,
+  .environment = NULL,
+  .detached = false,
+  .io =
+      {
+        .stdin_pipe = NULL,
+        .stdout_pipe = NULL,
+        .stderr_pipe = NULL,
+        .merge_stderr = false,
+      },
 };
 
 /* Error handling helper functions */
@@ -256,7 +257,7 @@ ProcessError pipe_create(PipeHandle** pipeHandle) {
 #ifdef _WIN32
     SECURITY_ATTRIBUTES security_attrs;
     memset(&security_attrs, 0, sizeof(security_attrs));
-    security_attrs.nLength        = sizeof(security_attrs);
+    security_attrs.nLength = sizeof(security_attrs);
     security_attrs.bInheritHandle = TRUE;
 
     if (!CreatePipe(&(*pipeHandle)->read_fd, &(*pipeHandle)->write_fd, &security_attrs, 0)) {
@@ -272,7 +273,7 @@ ProcessError pipe_create(PipeHandle** pipeHandle) {
         return PROCESS_ERROR_PIPE_FAILED;
     }
 
-    (*pipeHandle)->read_fd  = fds[0];
+    (*pipeHandle)->read_fd = fds[0];
     (*pipeHandle)->write_fd = fds[1];
 #endif
 
@@ -402,7 +403,7 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
         FD_SET(pipe->read_fd, &read_fds);
 
         struct timeval timeout;
-        timeout.tv_sec  = timeout_ms / 1000;
+        timeout.tv_sec = timeout_ms / 1000;
         timeout.tv_usec = (long)((timeout_ms % 1000) * 1000);
 
         // select returns: -1 (error), 0 (timeout), >0 (ready)
@@ -511,10 +512,10 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
 
         struct timeval timeout;
         struct timeval* timeout_ptr = NULL;
-        timeout.tv_sec              = timeout_ms / 1000;
-        timeout.tv_usec             = ((long)timeout_ms % 1000) * 1000;
-        timeout_ptr                 = &timeout;
-        int select_result           = select(pipe->write_fd + 1, NULL, &write_fds, NULL, timeout_ptr);
+        timeout.tv_sec = timeout_ms / 1000;
+        timeout.tv_usec = ((long)timeout_ms % 1000) * 1000;
+        timeout_ptr = &timeout;
+        int select_result = select(pipe->write_fd + 1, NULL, &write_fds, NULL, timeout_ptr);
         if (select_result == -1) {
             if (errno == EINTR)
                 return PROCESS_ERROR_WOULD_BLOCK;  // Retry logic usually handles this, but here we return
@@ -584,7 +585,7 @@ static ProcessError win32_create_process(ProcessHandle** handle, const char* com
                                          const ProcessOptions* options) {
     // Build command line string (Windows style with quotes)
     size_t cmdline_len = 0;
-    int arg_count      = 0;
+    int arg_count = 0;
 
     while (argv[arg_count] != NULL) {
         cmdline_len += strlen(argv[arg_count]) + 3;  // Extra space for quotes and space
@@ -619,13 +620,13 @@ static ProcessError win32_create_process(ProcessHandle** handle, const char* com
     // Prepare startup info with redirections
     STARTUPINFOA startup_info;
     memset(&startup_info, 0, sizeof(startup_info));
-    startup_info.cb      = sizeof(startup_info);
+    startup_info.cb = sizeof(startup_info);
     startup_info.dwFlags = STARTF_USESTDHANDLES;
 
     // Set up standard handles (inherit by default)
-    startup_info.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
+    startup_info.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
     startup_info.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-    startup_info.hStdError  = GetStdHandle(STD_ERROR_HANDLE);
+    startup_info.hStdError = GetStdHandle(STD_ERROR_HANDLE);
 
     // Apply redirections if specified
     if (options->io.stdin_pipe) {
@@ -676,7 +677,7 @@ static ProcessError win32_create_process(ProcessHandle** handle, const char* com
     }
 
     (*handle)->process_info = process_info;
-    (*handle)->detached     = options->detached;
+    (*handle)->detached = options->detached;
 
     return PROCESS_SUCCESS;
 }
@@ -684,7 +685,7 @@ static ProcessError win32_create_process(ProcessHandle** handle, const char* com
 static ProcessError unix_create_process(ProcessHandle** handle, const char* command, const char* const argv[],
                                         const ProcessOptions* options) {
     // Create pipes for redirection if needed
-    int stdin_pipe[2]  = {-1, -1};
+    int stdin_pipe[2] = {-1, -1};
     int stdout_pipe[2] = {-1, -1};
     int stderr_pipe[2] = {-1, -1};
 
@@ -757,7 +758,7 @@ static ProcessError unix_create_process(ProcessHandle** handle, const char* comm
         } else {
             // Custom or empty environment - need to search PATH manually
             const char* const* env = options->environment ? options->environment : (const char* const[]){NULL};
-            char* cmd_path         = find_in_path(command, env);
+            char* cmd_path = find_in_path(command, env);
             if (cmd_path) {
                 execve(cmd_path, (char* const*)argv, (char* const*)env);
                 free(cmd_path);
@@ -778,7 +779,7 @@ static ProcessError unix_create_process(ProcessHandle** handle, const char* comm
         return PROCESS_ERROR_MEMORY;
     }
 
-    (*handle)->pid      = pid;
+    (*handle)->pid = pid;
     (*handle)->detached = options->detached;
 
     return PROCESS_SUCCESS;
@@ -819,14 +820,14 @@ void process_free(ProcessHandle* handle) {
 #ifndef _WIN32
 static inline void set_process_result(int status, ProcessResult* result) {
     if (WIFEXITED(status)) {
-        result->exit_code       = WEXITSTATUS(status);
+        result->exit_code = WEXITSTATUS(status);
         result->exited_normally = true;
     } else if (WIFSIGNALED(status)) {
-        result->exit_code       = WTERMSIG(status);
+        result->exit_code = WTERMSIG(status);
         result->exited_normally = false;
-        result->term_signal     = WTERMSIG(status);  // only set term_signal here
+        result->term_signal = WTERMSIG(status);  // only set term_signal here
     } else {
-        result->exit_code       = -1;  // Undefined exit reason
+        result->exit_code = -1;  // Undefined exit reason
         result->exited_normally = false;
     }
 }
@@ -842,7 +843,7 @@ void NANOSLEEP(long seconds, long nanoseconds) {
 #else
     // On Linux/Unix, we can use nanosleep directly
     struct timespec req;
-    req.tv_sec  = seconds;
+    req.tv_sec = seconds;
     req.tv_nsec = nanoseconds;
     nanosleep(&req, NULL);
 #endif
@@ -875,13 +876,13 @@ ProcessError process_wait(ProcessHandle* handle, ProcessResult* result, int time
             return process_system_error();
         }
 
-        result->exit_code       = (int)exit_code;
+        result->exit_code = (int)exit_code;
         result->exited_normally = true;
-        result->term_signal     = 0;  // No signal on Windows
+        result->term_signal = 0;  // No signal on Windows
     }
 #else
     // Linux/Unix-specific code
-    int status        = 0;
+    int status = 0;
     pid_t wait_result = 0;
 
     if (timeout_ms < 0) {
@@ -894,7 +895,7 @@ ProcessError process_wait(ProcessHandle* handle, ProcessResult* result, int time
         // Here, we wait in a loop until the process exits or the timeout is reached
         while ((wait_result = waitpid(handle->pid, &status, WNOHANG)) == 0 && remaining_timeout_ms > 0) {
             struct timespec ts;
-            ts.tv_sec  = remaining_timeout_ms / 1000;
+            ts.tv_sec = remaining_timeout_ms / 1000;
             ts.tv_nsec = (remaining_timeout_ms % 1000) * 1000000L;
 
             // Sleep for the remaining timeout duration
@@ -970,14 +971,14 @@ ProcessError process_terminate(ProcessHandle* handle, bool force) {
 ProcessError process_run_and_capture(const char* command, const char* const argv[], ProcessOptions* options,
                                      int* exit_code) {
     ProcessHandle* proc = NULL;
-    ProcessError err    = {0};
-    err                 = process_create(&proc, command, argv, options);
+    ProcessError err = {0};
+    err = process_create(&proc, command, argv, options);
     if (err != PROCESS_SUCCESS) {
         return err;
     }
 
     ProcessResult res = {0};
-    err               = process_wait(proc, &res, -1);
+    err = process_wait(proc, &res, -1);
     process_free(proc);
 
     if (exit_code) {
@@ -1024,7 +1025,7 @@ ProcessError process_redirect_to_file(FileRedirection** redirection, const char*
         return process_system_error();
     }
 
-    (*redirection)->fd            = fd;
+    (*redirection)->fd = fd;
     (*redirection)->close_on_exec = true;
 
     return PROCESS_SUCCESS;
@@ -1048,7 +1049,7 @@ ProcessError process_redirect_to_fd(FileRedirection** redirection, int fd, bool 
         return PROCESS_ERROR_MEMORY;
     }
 
-    (*redirection)->fd            = fd;
+    (*redirection)->fd = fd;
     (*redirection)->close_on_exec = close_on_exec;
 
     return PROCESS_SUCCESS;
@@ -1191,7 +1192,7 @@ ProcessError process_create_with_redirection(ProcessHandle** handle, const char*
         return PROCESS_ERROR_MEMORY;
     }
 
-    (*handle)->pid      = pid;
+    (*handle)->pid = pid;
     (*handle)->detached = options->detached;
 
     return PROCESS_SUCCESS;
@@ -1381,7 +1382,7 @@ ProcessError process_run_with_file_redirection(ProcessHandle** handle, const cha
 
     FileRedirection* stdout_redir = NULL;
     FileRedirection* stderr_redir = NULL;
-    ProcessError err              = PROCESS_SUCCESS;
+    ProcessError err = PROCESS_SUCCESS;
 
     if (stdout_file) {
         int flags = O_WRONLY | O_CREAT;

@@ -52,20 +52,20 @@ struct epoll_event {
  * Flags (Mimicking Linux constants)
  * ------------------------------------------------------------------------- */
 
-#define EPOLLIN        0x001
-#define EPOLLPRI       0x002
-#define EPOLLOUT       0x004
-#define EPOLLERR       0x008
-#define EPOLLHUP       0x010
-#define EPOLLRDHUP     0x2000
+#define EPOLLIN 0x001
+#define EPOLLPRI 0x002
+#define EPOLLOUT 0x004
+#define EPOLLERR 0x008
+#define EPOLLHUP 0x010
+#define EPOLLRDHUP 0x2000
 #define EPOLLEXCLUSIVE 0x10000000 /* Use proper flag for kqueue */
-#define EPOLLET        (1U << 31) /* Using high bit for Edge Triggered */
-#define EPOLLONESHOT   (1U << 30)
+#define EPOLLET (1U << 31)        /* Using high bit for Edge Triggered */
+#define EPOLLONESHOT (1U << 30)
 
 /* Op codes for epoll_ctl */
-#define EPOLL_CTL_ADD  1
-#define EPOLL_CTL_DEL  2
-#define EPOLL_CTL_MOD  3
+#define EPOLL_CTL_ADD 1
+#define EPOLL_CTL_DEL 2
+#define EPOLL_CTL_MOD 3
 
 /* -------------------------------------------------------------------------
  * Polyfill Functions
@@ -94,8 +94,8 @@ static inline int epoll_create(int size) {
  */
 static inline int epoll_ctl(int epfd, int op, int fd, struct epoll_event* event) {
     struct kevent kev[2];
-    int nchanges    = 0;
-    int flags_read  = 0;
+    int nchanges = 0;
+    int flags_read = 0;
     int flags_write = 0;
 
     /* Default kqueue flags */
@@ -172,9 +172,9 @@ static inline int epoll_wait(int epfd, struct epoll_event* events, int maxevents
     struct timespec* ts_ptr = NULL;
 
     if (timeout_ms >= 0) {
-        ts.tv_sec  = timeout_ms / 1000;
+        ts.tv_sec = timeout_ms / 1000;
         ts.tv_nsec = (timeout_ms % 1000) * 1000000;
-        ts_ptr     = &ts;
+        ts_ptr = &ts;
     }
 
     /*
@@ -210,7 +210,7 @@ static inline int epoll_wait(int epfd, struct epoll_event* events, int maxevents
                 ev_flags |= EPOLLHUP;
             }
 
-            events[i].events   = ev_flags;
+            events[i].events = ev_flags;
             events[i].data.ptr = k_events[i].udata;
         }
     }
@@ -270,9 +270,9 @@ static inline int create_listen_socket(uint16_t port) {
     }
 
     struct sockaddr_in addr = {0};
-    addr.sin_family         = AF_INET;
-    addr.sin_addr.s_addr    = INADDR_ANY;
-    addr.sin_port           = htons(port);
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_port = htons(port);
 
     if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
         perror("bind");

@@ -58,7 +58,7 @@ static native_handle_t get_native_handle(FILE* stream) {
  */
 static time_t filetime_to_unix(const FILETIME* ft) {
     ULARGE_INTEGER ull;
-    ull.LowPart  = ft->dwLowDateTime;
+    ull.LowPart = ft->dwLowDateTime;
     ull.HighPart = ft->dwHighDateTime;
     // Convert from 100-nanosecond intervals since 1601 to seconds since 1970
     return (time_t)((ull.QuadPart / 10000000ULL) - 11644473600ULL);
@@ -80,16 +80,16 @@ int populate_file_attrs(const char* path, FileAttributes* attr) {
 
     // Initialize structure
     *attr = (FileAttributes){
-        .attrs = FATTR_NONE,
-        .size  = 0,
-        .mtime = filetime_to_unix(&file_info.ftLastWriteTime),
+      .attrs = FATTR_NONE,
+      .size = 0,
+      .mtime = filetime_to_unix(&file_info.ftLastWriteTime),
     };
 
     // Calculate file size
     ULARGE_INTEGER file_size;
-    file_size.LowPart  = file_info.nFileSizeLow;
+    file_size.LowPart = file_info.nFileSizeLow;
     file_size.HighPart = file_info.nFileSizeHigh;
-    attr->size         = file_size.QuadPart;
+    attr->size = file_size.QuadPart;
 
     // Determine file type
     if (file_info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
@@ -111,8 +111,9 @@ int populate_file_attrs(const char* path, FileAttributes* attr) {
 
     // On Windows, executability is determined by file extension
     const char* ext = strrchr(path, '.');
-    if (ext && (strcmp(ext, ".exe") == 0 || strcmp(ext, ".bat") == 0 || strcmp(ext, ".cmd") == 0 ||
-                strcmp(ext, ".com") == 0)) {
+    if (ext &&
+        (strcmp(ext, ".exe") == 0 || strcmp(ext, ".bat") == 0 || strcmp(ext, ".cmd") == 0 ||
+         strcmp(ext, ".com") == 0)) {
         attr->attrs |= FATTR_EXECUTABLE;
     }
 
@@ -121,13 +122,6 @@ int populate_file_attrs(const char* path, FileAttributes* attr) {
 
 #else  // Unix/Linux/macOS
 
-/**
- * Populates FileAttributes structure from a file path (POSIX implementation).
- * @param path Full path to the file.
- * @param name Basename of the file.
- * @param attr Output FileAttributes structure to populate.
- * @return 0 on success, -1 on error (errno is set).
- */
 int populate_file_attrs(const char* path, FileAttributes* attr) {
     if (!attr) {
         errno = EINVAL;
@@ -141,14 +135,18 @@ int populate_file_attrs(const char* path, FileAttributes* attr) {
 
     // Initialize structure
     *attr = (FileAttributes){
-        .attrs = FATTR_NONE,
-        .size  = (uint64_t)st.st_size,
-        .mtime = st.st_mtime,
+      .attrs = FATTR_NONE,
+      .size = (uint64_t)st.st_size,
+      .mtime = st.st_mtime,
     };
 
     // Determine file type
     if (S_ISREG(st.st_mode)) {
         attr->attrs |= FATTR_FILE;
+        // Check if the file is executable by User, Group, or Other.
+        if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
+            attr->attrs |= FATTR_EXECUTABLE;
+        }
     } else if (S_ISDIR(st.st_mode)) {
         attr->attrs |= FATTR_DIR;
         attr->size = 0;  // Directory size is not meaningful
@@ -196,7 +194,6 @@ int populate_file_attrs(const char* path, FileAttributes* attr) {
 
     return 0;
 }
-
 #endif  // _WIN32
 
 file_result_t file_open(file_t* file, const char* filename, const char* mode) {
@@ -206,7 +203,7 @@ file_result_t file_open(file_t* file, const char* filename, const char* mode) {
     }
 
     // Initialize structure to safe state
-    file->stream        = NULL;
+    file->stream = NULL;
     file->native_handle = INVALID_NATIVE_HANDLE;
 
     // Open the file stream
@@ -220,7 +217,7 @@ file_result_t file_open(file_t* file, const char* filename, const char* mode) {
     if (file->native_handle == INVALID_NATIVE_HANDLE) {
         fclose(file->stream);
         file->stream = NULL;
-        errno        = EBADF;
+        errno = EBADF;
         return FILE_ERROR_OPEN_FAILED;
     }
 
@@ -228,7 +225,7 @@ file_result_t file_open(file_t* file, const char* filename, const char* mode) {
     if (populate_file_attrs(filename, &file->attr) != 0) {
         fclose(file->stream);
         file->stream = NULL;
-        errno        = EBADF;
+        errno = EBADF;
         return FILE_ERROR_OPEN_FAILED;
     }
 
@@ -280,10 +277,10 @@ file_result_t filesize_tostring(uint64_t size, char* buf, size_t len) {
     }
 
     static const char* const units[] = {"B", "KB", "MB", "GB", "TB", "PB", "EB"};
-    static const size_t num_units    = sizeof(units) / sizeof(units[0]);
+    static const size_t num_units = sizeof(units) / sizeof(units[0]);
 
     size_t unit_index = 0;
-    double value      = (double)size;
+    double value = (double)size;
 
     while (value >= 1024.0 && unit_index < num_units - 1) {
         value /= 1024.0;
@@ -291,7 +288,7 @@ file_result_t filesize_tostring(uint64_t size, char* buf, size_t len) {
     }
 
     double rounded = round(value);
-    int written    = -1;
+    int written = -1;
 
     if (fabs(value - rounded) < HUMAN_SIZE_EPSILON) {
         written = snprintf(buf, len, "%.0f %s", rounded, units[unit_index]);
@@ -411,7 +408,11 @@ void* file_readall(const file_t* file, size_t* size_out) {
 file_result_t file_lock(const file_t* file) {
 #ifdef _WIN32
     OVERLAPPED overlapped = {0};
-    if (LockFileEx(file->native_handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, MAXDWORD, MAXDWORD,
+    if (LockFileEx(file->native_handle,
+                   LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
+                   0,
+                   MAXDWORD,
+                   MAXDWORD,
                    &overlapped)) {
         return FILE_SUCCESS;
     }
@@ -457,7 +458,7 @@ file_result_t file_unlock(const file_t* file) {
 
 file_result_t file_copy(const file_t* src, file_t* dst) {
     char buffer[COPY_BUFSIZE] = {0};
-    size_t bytes_read         = 0;
+    size_t bytes_read = 0;
 
     // Clear any previous errors
     clearerr(src->stream);
@@ -490,7 +491,7 @@ void* file_mmap(const file_t* file, size_t length, bool read_access, bool write_
 
 #ifdef _WIN32
     DWORD protect = write_access ? PAGE_READWRITE : PAGE_READONLY;
-    DWORD access  = write_access ? FILE_MAP_WRITE : FILE_MAP_READ;
+    DWORD access = write_access ? FILE_MAP_WRITE : FILE_MAP_READ;
 
     HANDLE mapping = CreateFileMapping(file->native_handle, NULL, protect, (DWORD)(length >> 32), (DWORD)length, NULL);
     if (!mapping) {

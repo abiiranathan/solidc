@@ -72,7 +72,7 @@
 
 // Macro helpers
 #define _DEFER_CONCAT_IMPL(a, b) a##b
-#define _DEFER_CONCAT(a, b)      _DEFER_CONCAT_IMPL(a, b)
+#define _DEFER_CONCAT(a, b) _DEFER_CONCAT_IMPL(a, b)
 
 //******************************************************************************
 //*                                                                            *
@@ -88,8 +88,10 @@
 template <typename F>
 struct Deferrer {
     F f;
-    Deferrer(F&& func) : f(std::forward<F>(func)) {}
-    ~Deferrer() { f(); }
+    Deferrer(F&& func): f(std::forward<F>(func)) {}
+    ~Deferrer() {
+        f();
+    }
     Deferrer(const Deferrer&) = delete;
     Deferrer& operator=(const Deferrer&) = delete;
 };
@@ -106,8 +108,7 @@ Deferrer<F> operator+(DeferHelper, F&& f) {
 
 // 4. The Macro
 // Expands to: auto _var_N = DeferHelper() + [&]() { user_code };
-#define defer \
-    auto _DEFER_CONCAT(__defer_var_, __COUNTER__) = DeferHelper() + [&]()
+#define defer auto _DEFER_CONCAT(__defer_var_, __COUNTER__) = DeferHelper() + [&]()
 
 //******************************************************************************
 //*                                                                            *
@@ -134,8 +135,8 @@ Deferrer<F> operator+(DeferHelper, F&& f) {
  * Or for older approach: gcc -fno-trampolines main.c
  */
 
-#define __DEFER(N)               __DEFER_(N)
-#define __DEFER_(N)              __DEFER__(_DEFER_CONCAT(__defer_fn_, N), _DEFER_CONCAT(__defer_var_, N))
+#define __DEFER(N) __DEFER_(N)
+#define __DEFER_(N) __DEFER__(_DEFER_CONCAT(__defer_fn_, N), _DEFER_CONCAT(__defer_var_, N))
 
 /**
  * @brief Core defer macro for GCC
@@ -147,10 +148,10 @@ Deferrer<F> operator+(DeferHelper, F&& f) {
  * 
  * The [[gnu::cleanup(F)]] attribute ensures F is called when V goes out of scope.
  */
-#define __DEFER__(F, V) \
-    auto void F(int *); \
-    [[gnu::cleanup(F)]] ATTR_UNUSED int V; \
-    auto void F(int *_unused ATTR_UNUSED)
+#define __DEFER__(F, V)                                                                                                \
+    auto void F(int*);                                                                                                 \
+    [[gnu::cleanup(F)]] ATTR_UNUSED int V;                                                                             \
+    auto void F(int* _unused ATTR_UNUSED)
 
 /**
  * @brief Defer execution of a code block until scope exit
@@ -209,7 +210,7 @@ static inline void __defer_cleanup(defer_block *ptr) {
 
 // Macro helpers
 #define _DEFER_CONCAT_IMPL(a, b) a##b
-#define _DEFER_CONCAT(a, b)      _DEFER_CONCAT_IMPL(a, b)
+#define _DEFER_CONCAT(a, b) _DEFER_CONCAT_IMPL(a, b)
 
 /**
  * @brief Defer execution of a code block until scope exit
@@ -221,9 +222,8 @@ static inline void __defer_cleanup(defer_block *ptr) {
  * the surrounding scope. The block is executed automatically when
  * the defer variable goes out of scope.
  */
-#define defer \
-    __attribute__((cleanup(__defer_cleanup))) ATTR_UNUSED \
-    defer_block _DEFER_CONCAT(__defer_var_, __COUNTER__) = ^
+#define defer                                                                                                          \
+    __attribute__((cleanup(__defer_cleanup))) ATTR_UNUSED defer_block _DEFER_CONCAT(__defer_var_, __COUNTER__) = ^
 
 //******************************************************************************
 //*                                                                            *
@@ -271,10 +271,12 @@ static inline void __defer_cleanup(defer_block *ptr) {
 
 // Uses SEH __try/__finally
 // Expands to: __try { } __finally { user_code }
-#define defer __try { } __finally
+#define defer                                                                                                          \
+    __try {                                                                                                            \
+    } __finally
 
 #else
 #error "Unsupported compiler"
 #endif
 
-#endif // __DEFER__H
+#endif  // __DEFER__H

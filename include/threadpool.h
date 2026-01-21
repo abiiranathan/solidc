@@ -6,10 +6,11 @@
 #ifndef __THREADPOOL_H__
 #define __THREADPOOL_H__
 
+#include "macros.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include "macros.h"
 
 #ifdef __cplusplus
 extern "C" {

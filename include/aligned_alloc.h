@@ -51,7 +51,7 @@ static inline void aligned_free_xp(void* ptr) {
 }
 
 #define ALIGNED_ALLOC(alignment, size) aligned_alloc_xp(alignment, size)
-#define ALIGNED_FREE(ptr)              aligned_free_xp(ptr)
+#define ALIGNED_FREE(ptr) aligned_free_xp(ptr)
 
 #ifdef __cplusplus
 }

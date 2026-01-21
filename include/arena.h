@@ -48,17 +48,17 @@
 
 #ifdef _MSC_VER
 #include <intrin.h>
-#define ARENA_INLINE         __forceinline
+#define ARENA_INLINE __forceinline
 #define ARENA_PREFETCH(addr) _mm_prefetch((const char*)(addr), _MM_HINT_T0)
-#define ARENA_LIKELY(x)      (x)
-#define ARENA_UNLIKELY(x)    (x)
-#define ARENA_ALIGNED(n)     __declspec(align(n))
+#define ARENA_LIKELY(x) (x)
+#define ARENA_UNLIKELY(x) (x)
+#define ARENA_ALIGNED(n) __declspec(align(n))
 #else
-#define ARENA_INLINE         inline __attribute__((always_inline))
+#define ARENA_INLINE inline __attribute__((always_inline))
 #define ARENA_PREFETCH(addr) __builtin_prefetch((addr), 1, 3)
-#define ARENA_LIKELY(x)      __builtin_expect(!!(x), 1)
-#define ARENA_UNLIKELY(x)    __builtin_expect(!!(x), 0)
-#define ARENA_ALIGNED(n)     __attribute__((aligned(n)))
+#define ARENA_LIKELY(x) __builtin_expect(!!(x), 1)
+#define ARENA_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define ARENA_ALIGNED(n) __attribute__((aligned(n)))
 #endif
 
 /** Default alignment for arena_alloc() - optimized for x86-64/ARM64 */
@@ -249,10 +249,10 @@ void* _arena_alloc_slow(Arena* arena, size_t size, size_t alignment);
  */
 static ARENA_INLINE void* arena_alloc_align(Arena* arena, size_t size, size_t alignment) {
     // Calculate aligned address
-    uintptr_t curr         = (uintptr_t)arena->curr;
-    uintptr_t mask         = alignment - 1;
+    uintptr_t curr = (uintptr_t)arena->curr;
+    uintptr_t mask = alignment - 1;
     uintptr_t aligned_addr = (curr + mask) & ~mask;
-    uintptr_t new_curr     = aligned_addr + size;
+    uintptr_t new_curr = aligned_addr + size;
 
     // Fast path: allocation fits in committed memory
     if (ARENA_LIKELY(new_curr <= (uintptr_t)arena->end)) {
@@ -378,8 +378,8 @@ static ARENA_INLINE bool arena_alloc_batch(Arena* arena, const size_t sizes[], s
     }
 
     // Calculate total size needed with alignment padding for each block
-    size_t total_size       = 0;
-    const size_t alignment  = ARENA_DEFAULT_ALIGN;
+    size_t total_size = 0;
+    const size_t alignment = ARENA_DEFAULT_ALIGN;
     const size_t align_mask = alignment - 1;
 
     for (size_t i = 0; i < count; ++i) {
@@ -399,8 +399,8 @@ static ARENA_INLINE bool arena_alloc_batch(Arena* arena, const size_t sizes[], s
     for (size_t i = 0; i < count; ++i) {
         // Align current pointer
         uintptr_t addr = (uintptr_t)current;
-        addr           = (addr + align_mask) & ~align_mask;
-        current        = (char*)addr;
+        addr = (addr + align_mask) & ~align_mask;
+        current = (char*)addr;
 
         out_ptrs[i] = current;
         current += sizes[i];
@@ -435,7 +435,7 @@ static ARENA_INLINE char* arena_strdup(Arena* arena, const char* str) {
     }
 
     const size_t len = strlen(str);
-    char* dup        = (char*)arena_alloc(arena, len + 1);
+    char* dup = (char*)arena_alloc(arena, len + 1);
     if (dup == NULL) {
         return NULL;
     }

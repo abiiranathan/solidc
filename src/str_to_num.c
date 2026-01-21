@@ -1,4 +1,5 @@
 #include "../include/str_to_num.h"
+
 #include "../include/str_utils.h"
 
 #include <errno.h>     // for errno, ERANGE
@@ -18,8 +19,8 @@ static inline StoError validate_and_parse_signed(const char* str, int base, intm
     }
 
     char* endptr = NULL;
-    errno        = 0;
-    *result      = strtoimax(str, &endptr, base);
+    errno = 0;
+    *result = strtoimax(str, &endptr, base);
 
     // Check for standard ERANGE (overflow of intmax_t)
     if (errno == ERANGE) {
@@ -54,8 +55,8 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
     }
 
     char* endptr = NULL;
-    errno        = 0;
-    *result      = strtoumax(str, &endptr, base);
+    errno = 0;
+    *result = strtoumax(str, &endptr, base);
 
     // Check for standard conversion errors (overflow of uintmax_t)
     if (errno == ERANGE) {
@@ -198,7 +199,7 @@ StoError str_to_uintptr(const char* str, uintptr_t* result) {
     }
 
     uintmax_t temp = 0;
-    StoError err   = validate_and_parse_unsigned(str, 10, &temp);
+    StoError err = validate_and_parse_unsigned(str, 10, &temp);
     if (err != STO_SUCCESS) {
         return err;
     }
@@ -214,8 +215,8 @@ StoError str_to_float(const char* str, float* result) {
         return STO_INVALID;
     }
     char* endptr = NULL;
-    errno        = 0;
-    *result      = strtof(str, &endptr);
+    errno = 0;
+    *result = strtof(str, &endptr);
     if (endptr == str || *endptr != '\0') return STO_INVALID;
     if (errno == ERANGE) {
         if (isinf(*result) || fabsf(*result) > FLT_MAX) return STO_OVERFLOW;
@@ -230,8 +231,8 @@ StoError str_to_double(const char* str, double* result) {
         return STO_INVALID;
     }
     char* endptr = NULL;
-    errno        = 0;
-    *result      = strtod(str, &endptr);
+    errno = 0;
+    *result = strtod(str, &endptr);
     if (endptr == str || *endptr != '\0') return STO_INVALID;
     if (errno == ERANGE) {
         if (isinf(*result) || fabs(*result) > DBL_MAX) return STO_OVERFLOW;
@@ -247,8 +248,14 @@ typedef struct {
 } bool_mapping_t;
 
 static const bool_mapping_t BOOL_MAPPINGS[] = {
-    {"true", true}, {"false", false}, {"yes", true}, {"no", false},
-    {"on", true},   {"off", false},   {"1", true},   {"0", false},
+  {"true", true},
+  {"false", false},
+  {"yes", true},
+  {"no", false},
+  {"on", true},
+  {"off", false},
+  {"1", true},
+  {"0", false},
 };
 
 static const size_t BOOL_MAPPINGS_COUNT = sizeof(BOOL_MAPPINGS) / sizeof(BOOL_MAPPINGS[0]);

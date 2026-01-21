@@ -28,8 +28,14 @@
         typeof(a) _a = (a);                                                                                            \
         typeof(b) _b = (b);                                                                                            \
         if (_a != _b) {                                                                                                \
-            printf("%s:%d [%s]: Assertion '%s == %s' failed (%ld != %ld).\n", __FILE__, __LINE__, __func__, #a, #b,    \
-                   (intptr_t)_a, (intptr_t)_b);                                                                        \
+            printf("%s:%d [%s]: Assertion '%s == %s' failed (%ld != %ld).\n",                                          \
+                   __FILE__,                                                                                           \
+                   __LINE__,                                                                                           \
+                   __func__,                                                                                           \
+                   #a,                                                                                                 \
+                   #b,                                                                                                 \
+                   (intptr_t)_a,                                                                                       \
+                   (intptr_t)_b);                                                                                      \
             exit(1);                                                                                                   \
         }                                                                                                              \
     } while (0)
@@ -39,7 +45,12 @@
         typeof(a) _a = (a);                                                                                            \
         typeof(b) _b = (b);                                                                                            \
         if (_a == _b) {                                                                                                \
-            printf("%s:%d [%s]: Assertion '%s != %s' failed (both are %ld).\n", __FILE__, __LINE__, __func__, #a, #b,  \
+            printf("%s:%d [%s]: Assertion '%s != %s' failed (both are %ld).\n",                                        \
+                   __FILE__,                                                                                           \
+                   __LINE__,                                                                                           \
+                   __func__,                                                                                           \
+                   #a,                                                                                                 \
+                   #b,                                                                                                 \
                    (intptr_t)_a);                                                                                      \
             exit(1);                                                                                                   \
         }                                                                                                              \
@@ -59,13 +70,19 @@
         const char* _b = (b);                                                                                          \
         if (_a == NULL || _b == NULL) {                                                                                \
             if (_a != _b) {                                                                                            \
-                printf("%s:%d [%s]: Assertion '%s == %s' failed (one is NULL).\n", __FILE__, __LINE__, __func__, #a,   \
-                       #b);                                                                                            \
+                printf(                                                                                                \
+                    "%s:%d [%s]: Assertion '%s == %s' failed (one is NULL).\n", __FILE__, __LINE__, __func__, #a, #b); \
                 exit(1);                                                                                               \
             }                                                                                                          \
         } else if (strcmp(_a, _b) != 0) {                                                                              \
-            printf("%s:%d [%s]: Assertion '%s == %s' failed (\"%s\" != \"%s\").\n", __FILE__, __LINE__, __func__, #a,  \
-                   #b, _a, _b);                                                                                        \
+            printf("%s:%d [%s]: Assertion '%s == %s' failed (\"%s\" != \"%s\").\n",                                    \
+                   __FILE__,                                                                                           \
+                   __LINE__,                                                                                           \
+                   __func__,                                                                                           \
+                   #a,                                                                                                 \
+                   #b,                                                                                                 \
+                   _a,                                                                                                 \
+                   _b);                                                                                                \
             exit(1);                                                                                                   \
         }                                                                                                              \
     } while (0)
@@ -92,20 +109,32 @@
         typeof(min) _min = (min);                                                                                      \
         typeof(max) _max = (max);                                                                                      \
         if (_val < _min || _val > _max) {                                                                              \
-            printf("%s:%d [%s]: Value %ld is not in range [%ld, %ld].\n", __FILE__, __LINE__, __func__, (long)_val,    \
-                   (long)_min, (long)_max);                                                                            \
+            printf("%s:%d [%s]: Value %ld is not in range [%ld, %ld].\n",                                              \
+                   __FILE__,                                                                                           \
+                   __LINE__,                                                                                           \
+                   __func__,                                                                                           \
+                   (long)_val,                                                                                         \
+                   (long)_min,                                                                                         \
+                   (long)_max);                                                                                        \
             exit(1);                                                                                                   \
         }                                                                                                              \
     } while (0)
 
 #define ASSERT_FLOAT_EQ(a, b, epsilon)                                                                                 \
     do {                                                                                                               \
-        double _a   = (double)(a);                                                                                     \
-        double _b   = (double)(b);                                                                                     \
+        double _a = (double)(a);                                                                                       \
+        double _b = (double)(b);                                                                                       \
         double _eps = (double)(epsilon);                                                                               \
         if ((_a - _b) > _eps || (_b - _a) > _eps) {                                                                    \
-            printf("%s:%d [%s]: Float assertion '%s == %s' failed (%.6f != %.6f, epsilon=%.6f).\n", __FILE__,          \
-                   __LINE__, __func__, #a, #b, _a, _b, _eps);                                                          \
+            printf("%s:%d [%s]: Float assertion '%s == %s' failed (%.6f != %.6f, epsilon=%.6f).\n",                    \
+                   __FILE__,                                                                                           \
+                   __LINE__,                                                                                           \
+                   __func__,                                                                                           \
+                   #a,                                                                                                 \
+                   #b,                                                                                                 \
+                   _a,                                                                                                 \
+                   _b,                                                                                                 \
+                   _eps);                                                                                              \
             exit(1);                                                                                                   \
         }                                                                                                              \
     } while (0)
@@ -134,41 +163,41 @@
 #define WARN_UNUSED_RESULT
 #endif
 
-#define IS_POWER_OF_2(n)           ((n) > 0 && ((n) & ((n) - 1)) == 0)
+#define IS_POWER_OF_2(n) ((n) > 0 && ((n) & ((n) - 1)) == 0)
 #define STATIC_CHECK_POWER_OF_2(n) STATIC_ASSERT(IS_POWER_OF_2(n), #n " is not a power of 2")
 
 // =============================================================================
 // MEMORY AND ARRAY UTILITIES
 // =============================================================================
 
-#define ARRAY_SIZE(arr)        (sizeof(arr) / sizeof((arr)[0]))
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 #define ZERO_MEMORY(ptr, size) memset(ptr, 0, size)
-#define ZERO_STRUCT(s)         memset(&(s), 0, sizeof(s))
-#define ZERO_ARRAY(arr)        memset(arr, 0, sizeof(arr))
+#define ZERO_STRUCT(s) memset(&(s), 0, sizeof(s))
+#define ZERO_ARRAY(arr) memset(arr, 0, sizeof(arr))
 
 // =============================================================================
 // MATHEMATICAL UTILITIES
 // =============================================================================
 
-#define MIN(a, b)          ((a) < (b) ? (a) : (b))
-#define MAX(a, b)          ((a) > (b) ? (a) : (b))
-#define ABS(x)             ((x) < 0 ? -(x) : (x))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define ABS(x) ((x) < 0 ? -(x) : (x))
 #define CLAMP(x, min, max) (MIN(MAX(x, min), max))
 #define SWAP(a, b)                                                                                                     \
     do {                                                                                                               \
         typeof(a) _tmp = a;                                                                                            \
-        a              = b;                                                                                            \
-        b              = _tmp;                                                                                         \
+        a = b;                                                                                                         \
+        b = _tmp;                                                                                                      \
     } while (0)
 
 // Bit manipulation
-#define SET_BIT(num, pos)    ((num) |= (1ULL << (pos)))
-#define CLEAR_BIT(num, pos)  ((num) &= ~(1ULL << (pos)))
+#define SET_BIT(num, pos) ((num) |= (1ULL << (pos)))
+#define CLEAR_BIT(num, pos) ((num) &= ~(1ULL << (pos)))
 #define TOGGLE_BIT(num, pos) ((num) ^= (1ULL << (pos)))
-#define CHECK_BIT(num, pos)  (((num) >> (pos)) & 1)
+#define CHECK_BIT(num, pos) (((num) >> (pos)) & 1)
 
 // Alignment macros
-#define ALIGN_UP(x, align)   (((x) + (align) - 1) & ~((align) - 1))
+#define ALIGN_UP(x, align) (((x) + (align) - 1) & ~((align) - 1))
 #define ALIGN_DOWN(x, align) ((x) & ~((align) - 1))
 #define IS_ALIGNED(x, align) (((x) & ((align) - 1)) == 0)
 
@@ -190,9 +219,9 @@
 // STRING UTILITIES
 // =============================================================================
 
-#define STREQ(a, b)      (strcmp(a, b) == 0)
-#define STRNEQ(a, b, n)  (strncmp(a, b, n) == 0)
-#define STR_EMPTY(s)     ((s) == NULL || (s)[0] == '\0')
+#define STREQ(a, b) (strcmp(a, b) == 0)
+#define STRNEQ(a, b, n) (strncmp(a, b, n) == 0)
+#define STR_EMPTY(s) ((s) == NULL || (s)[0] == '\0')
 #define STR_NOT_EMPTY(s) ((s) != NULL && (s)[0] != '\0')
 
 // =============================================================================
@@ -201,12 +230,12 @@
 
 #ifdef NDEBUG
 #define DEBUG_PRINT(fmt, ...) (void)fmt;
-#define DEBUG_VAR(var)        (void)var;
-#define DEBUG_STR(str)        (void)str;
+#define DEBUG_VAR(var) (void)var;
+#define DEBUG_STR(str) (void)str;
 #else
 #define DEBUG_PRINT(fmt, ...) printf("[DEBUG] %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
-#define DEBUG_VAR(var)        printf("[DEBUG] %s:%d: %s = %ld\n", __FILE__, __LINE__, #var, (long)(var))
-#define DEBUG_STR(str)        printf("[DEBUG] %s:%d: %s = \"%s\"\n", __FILE__, __LINE__, #str, (str) ? (str) : "NULL")
+#define DEBUG_VAR(var) printf("[DEBUG] %s:%d: %s = %ld\n", __FILE__, __LINE__, #var, (long)(var))
+#define DEBUG_STR(str) printf("[DEBUG] %s:%d: %s = \"%s\"\n", __FILE__, __LINE__, #str, (str) ? (str) : "NULL")
 #endif
 
 #define LOG_ERROR(fmt, ...)                                                                                            \

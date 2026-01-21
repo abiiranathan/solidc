@@ -33,8 +33,8 @@ static inline OrthonormalBasis orthonormalize(Vec3 v0, Vec3 v1) {
     sv0 = vec3_normalize(sv0);
 
     float dot = vec3_dot(sv0, sv1);
-    sv1       = vec3_sub(sv1, vec3_mul(sv0, dot));
-    sv1       = vec3_normalize(sv1);
+    sv1 = vec3_sub(sv1, vec3_mul(sv0, dot));
+    sv1 = vec3_normalize(sv1);
 
     SimdVec3 sv2 = vec3_cross(sv0, sv1);
 
@@ -64,13 +64,13 @@ static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
         float max = fabsf(A.m[0][1]);
 
         if (fabsf(A.m[0][2]) > max) {
-            p   = 0;
-            q   = 2;
+            p = 0;
+            q = 2;
             max = fabsf(A.m[0][2]);
         }
         if (fabsf(A.m[1][2]) > max) {
-            p   = 1;
-            q   = 2;
+            p = 1;
+            q = 2;
             max = fabsf(A.m[1][2]);
         }
 
@@ -81,8 +81,8 @@ static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
         float apq = A.m[p][q];
 
         float phi = 0.5f * atanf((2.0f * apq) / (aqq - app + 1e-20f));
-        float c   = cosf(phi);
-        float s   = sinf(phi);
+        float c = cosf(phi);
+        float s = sinf(phi);
 
         for (int r = 0; r < 3; ++r) {
             float arp = A.m[r][p];
@@ -110,7 +110,7 @@ static inline EigenDecomposition mat3_eigen_symmetric(Mat3 A) {
         }
     }
 
-    result.eigenvalues  = (Vec3){A.m[0][0], A.m[1][1], A.m[2][2]};
+    result.eigenvalues = (Vec3){A.m[0][0], A.m[1][1], A.m[2][2]};
     result.eigenvectors = V;
     return result;
 }
@@ -130,15 +130,15 @@ static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
     }
 
     EigenDecomposition ed = mat3_eigen_symmetric(ATA);
-    *V                    = ed.eigenvectors;
+    *V = ed.eigenvectors;
 
-    int order[3]  = {0, 1, 2};
+    int order[3] = {0, 1, 2};
     float vals[3] = {ed.eigenvalues.x, ed.eigenvalues.y, ed.eigenvalues.z};
 
     for (int i = 0; i < 2; ++i) {
         for (int j = i + 1; j < 3; ++j) {
             if (vals[order[i]] < vals[order[j]]) {
-                int tmp  = order[i];
+                int tmp = order[i];
                 order[i] = order[j];
                 order[j] = tmp;
             }
@@ -171,10 +171,10 @@ static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
             SimdVec3 Av =
                 vec3_add(vec3_add(vec3_mul(colA[0], v_col.x), vec3_mul(colA[1], v_col.y)), vec3_mul(colA[2], v_col.z));
             SimdVec3 u_col = vec3_mul(Av, 1.0f / sigma);
-            Vec3 res       = vec3_store(u_col);
-            U->m[i][0]     = res.x;
-            U->m[i][1]     = res.y;
-            U->m[i][2]     = res.z;
+            Vec3 res = vec3_store(u_col);
+            U->m[i][0] = res.x;
+            U->m[i][1] = res.y;
+            U->m[i][2] = res.z;
         } else {
             U->m[i][0] = U->m[i][1] = U->m[i][2] = 0.0f;
         }
@@ -184,10 +184,10 @@ static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
         SimdVec3 u0 = vec3_load((Vec3){U->m[0][0], U->m[0][1], U->m[0][2]});
         SimdVec3 u1 = vec3_load((Vec3){U->m[1][0], U->m[1][1], U->m[1][2]});
         SimdVec3 u2 = vec3_cross(u0, u1);
-        Vec3 res    = vec3_store(u2);
-        U->m[2][0]  = res.x;
-        U->m[2][1]  = res.y;
-        U->m[2][2]  = res.z;
+        Vec3 res = vec3_store(u2);
+        U->m[2][0] = res.x;
+        U->m[2][1] = res.y;
+        U->m[2][2] = res.z;
     }
 
     if (mat3_determinant(*U) < 0.0f) {
@@ -214,14 +214,14 @@ static inline void mat4_qr(Mat4 A, Mat4* Q, Mat4* R) {
             // Write to Upper Triangle (Col i, Row j)
             // Assuming Mat4 m[col][row], this is m[i][j]
             R->m[i][j] = r;
-            q[i]       = vec4_sub(q[i], vec4_mul(q[j], r));
+            q[i] = vec4_sub(q[i], vec4_mul(q[j], r));
         }
 
         float norm = vec4_length(q[i]);
         if (norm < 1e-6f) norm = 1e-6f;
 
         R->m[i][i] = norm;
-        q[i]       = vec4_mul(q[i], 1.0f / norm);
+        q[i] = vec4_mul(q[i], 1.0f / norm);
 
         // Zero the Lower Triangle (Col j, Row i where i > j)
         for (int j = 0; j < i; ++j) {
@@ -243,18 +243,18 @@ static inline void mat4_power_iteration(Mat4 A, Vec4* eigenvector, float* eigenv
     float lambda_old = 0.0f;
 
     for (int iter = 0; iter < max_iter; ++iter) {
-        Vec4 v_scalar  = vec4_store(v);
+        Vec4 v_scalar = vec4_store(v);
         Vec4 Av_scalar = mat4_mul_vec4(A, v_scalar);
-        Av             = vec4_load(Av_scalar);
+        Av = vec4_load(Av_scalar);
 
         *eigenvalue = vec4_dot(Av, v);
-        Av          = vec4_normalize(Av);
+        Av = vec4_normalize(Av);
 
         if (fabsf(*eigenvalue - lambda_old) < tol) {
             break;
         }
         lambda_old = *eigenvalue;
-        v          = Av;
+        v = Av;
     }
 
     *eigenvector = vec4_store(v);
@@ -284,8 +284,8 @@ static inline bool mat3_is_positive_definite(Mat3 A) {
 }
 
 static inline float mat4_condition_number(Mat4 A) {
-    float norm_A     = mat4_norm_frobenius(A);
-    Mat4 A_inv       = mat4_inverse(A);
+    float norm_A = mat4_norm_frobenius(A);
+    Mat4 A_inv = mat4_inverse(A);
     float norm_A_inv = mat4_norm_frobenius(A_inv);
     return norm_A * norm_A_inv;
 }
@@ -294,9 +294,9 @@ static inline float mat4_condition_number(Mat4 A) {
 
 static inline bool mat4_lu(Mat4 A, Mat4* L, Mat4* U, Mat4* P) {
     const float tolerance = 1e-6f;
-    *U                    = A;
-    *L                    = mat4_identity();
-    *P                    = mat4_identity();
+    *U = A;
+    *L = mat4_identity();
+    *P = mat4_identity();
 
     for (int k = 0; k < 4; ++k) {
         int pivot_row = k;
@@ -304,7 +304,7 @@ static inline bool mat4_lu(Mat4 A, Mat4* L, Mat4* U, Mat4* P) {
         for (int i = k + 1; i < 4; ++i) {
             float val = fabsf(U->m[k][i]);
             if (val > max_val) {
-                max_val   = val;
+                max_val = val;
                 pivot_row = i;
             }
         }
@@ -314,15 +314,15 @@ static inline bool mat4_lu(Mat4 A, Mat4* L, Mat4* U, Mat4* P) {
         if (pivot_row != k) {
             for (int j = 0; j < 4; ++j) {
                 float tmp;
-                tmp                = U->m[j][k];
-                U->m[j][k]         = U->m[j][pivot_row];
+                tmp = U->m[j][k];
+                U->m[j][k] = U->m[j][pivot_row];
                 U->m[j][pivot_row] = tmp;
-                tmp                = P->m[j][k];
-                P->m[j][k]         = P->m[j][pivot_row];
+                tmp = P->m[j][k];
+                P->m[j][k] = P->m[j][pivot_row];
                 P->m[j][pivot_row] = tmp;
                 if (j < k) {
-                    tmp                = L->m[j][k];
-                    L->m[j][k]         = L->m[j][pivot_row];
+                    tmp = L->m[j][k];
+                    L->m[j][k] = L->m[j][pivot_row];
                     L->m[j][pivot_row] = tmp;
                 }
             }
@@ -330,7 +330,7 @@ static inline bool mat4_lu(Mat4 A, Mat4* L, Mat4* U, Mat4* P) {
 
         for (int i = k + 1; i < 4; ++i) {
             float factor = U->m[k][i] / U->m[k][k];
-            L->m[k][i]   = factor;
+            L->m[k][i] = factor;
             for (int j = k; j < 4; ++j) {
                 U->m[j][i] -= factor * U->m[j][k];
             }
@@ -342,20 +342,20 @@ static inline bool mat4_lu(Mat4 A, Mat4* L, Mat4* U, Mat4* P) {
 static inline Vec4 forward_substitution_mat4(Mat4 L, Vec4 b) {
     Vec4 x;
     float* x_arr = &x.x;
-    x_arr[0]     = b.x / L.m[0][0];
-    x_arr[1]     = (b.y - L.m[0][1] * x_arr[0]) / L.m[1][1];
-    x_arr[2]     = (b.z - (L.m[0][2] * x_arr[0] + L.m[1][2] * x_arr[1])) / L.m[2][2];
-    x_arr[3]     = (b.w - (L.m[0][3] * x_arr[0] + L.m[1][3] * x_arr[1] + L.m[2][3] * x_arr[2])) / L.m[3][3];
+    x_arr[0] = b.x / L.m[0][0];
+    x_arr[1] = (b.y - L.m[0][1] * x_arr[0]) / L.m[1][1];
+    x_arr[2] = (b.z - (L.m[0][2] * x_arr[0] + L.m[1][2] * x_arr[1])) / L.m[2][2];
+    x_arr[3] = (b.w - (L.m[0][3] * x_arr[0] + L.m[1][3] * x_arr[1] + L.m[2][3] * x_arr[2])) / L.m[3][3];
     return x;
 }
 
 static inline Vec4 backward_substitution_mat4(Mat4 U, Vec4 b) {
     Vec4 x;
     float* x_arr = &x.x;
-    x_arr[3]     = b.w / U.m[3][3];
-    x_arr[2]     = (b.z - U.m[3][2] * x_arr[3]) / U.m[2][2];
-    x_arr[1]     = (b.y - (U.m[2][1] * x_arr[2] + U.m[3][1] * x_arr[3])) / U.m[1][1];
-    x_arr[0]     = (b.x - (U.m[1][0] * x_arr[1] + U.m[2][0] * x_arr[2] + U.m[3][0] * x_arr[3])) / U.m[0][0];
+    x_arr[3] = b.w / U.m[3][3];
+    x_arr[2] = (b.z - U.m[3][2] * x_arr[3]) / U.m[2][2];
+    x_arr[1] = (b.y - (U.m[2][1] * x_arr[2] + U.m[3][1] * x_arr[3])) / U.m[1][1];
+    x_arr[0] = (b.x - (U.m[1][0] * x_arr[1] + U.m[2][0] * x_arr[2] + U.m[3][0] * x_arr[3])) / U.m[0][0];
     return x;
 }
 

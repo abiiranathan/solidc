@@ -15,7 +15,7 @@ extern "C" {
 #include <stdint.h>   // for SIZE_MAX
 
 /** Growth factor for capacity expansion (1.5x). Balances memory vs reallocation frequency. */
-#define DYNARRAY_GROWTH_NUMERATOR   3
+#define DYNARRAY_GROWTH_NUMERATOR 3
 #define DYNARRAY_GROWTH_DENOMINATOR 2
 
 /** Initial capacity when array is first created. */

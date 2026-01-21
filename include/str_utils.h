@@ -39,7 +39,7 @@ static inline char* trim_string(char* str) {
     }
 
     // Single-pass forward scan for trailing trim
-    char* end    = str;
+    char* end = str;
     char* cursor = str;
     while (*cursor) {
         if (!isspace((unsigned char)*cursor)) {

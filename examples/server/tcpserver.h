@@ -130,7 +130,7 @@ void tcpserver_config_default(tcpserver_config_t* config);
 /**
  * Creates and initializes a new TCP server.
  * @param config Server configuration (must remain valid during server lifetime)
- * @return Pointer to server object on success, nullptr on failure
+ * @return Pointer to server object on success, NULL on failure
  * @note The server is not yet running after this call. Use tcpserver_run() to start.
  */
 tcpserver_t* tcpserver_create(const tcpserver_config_t* config);
@@ -221,7 +221,7 @@ void tcpserver_set_connection_userdata(tcpserver_connection_t* conn, void* userd
 /**
  * Retrieves user data associated with a connection.
  * @param conn The connection
- * @return Previously stored pointer, or nullptr if not set
+ * @return Previously stored pointer, or NULL if not set
  */
 void* tcpserver_get_connection_userdata(const tcpserver_connection_t* conn);
 

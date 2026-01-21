@@ -1,4 +1,5 @@
 #include "../include/trie.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -37,7 +38,7 @@ static trie_node_t* trie_node_create(void) {
         return NULL;
     }
     node->is_end_of_word = false;
-    node->frequency      = 0;
+    node->frequency = 0;
     return node;
 }
 
@@ -105,7 +106,7 @@ bool trie_insert(trie_t* trie, const char* word) {
         return false;
     }
 
-    trie_node_t* current       = trie->root;
+    trie_node_t* current = trie->root;
     const unsigned char* uword = (const unsigned char*)word;
 
     // Traverse/create path for each character
@@ -172,7 +173,7 @@ bool trie_starts_with(const trie_t* trie, const char* prefix) {
         return false;
     }
 
-    const trie_node_t* current   = trie->root;
+    const trie_node_t* current = trie->root;
     const unsigned char* uprefix = (const unsigned char*)prefix;
 
     while (*uprefix != '\0') {
@@ -200,7 +201,7 @@ bool trie_delete(trie_t* trie, const char* word) {
         return false;
     }
 
-    trie_node_t* current       = trie->root;
+    trie_node_t* current = trie->root;
     const unsigned char* uword = (const unsigned char*)word;
 
     while (*uword != '\0') {
@@ -217,7 +218,7 @@ bool trie_delete(trie_t* trie, const char* word) {
     }
 
     current->is_end_of_word = false;
-    current->frequency      = 0;
+    current->frequency = 0;
     trie->word_count--;
 
     return true;
@@ -334,9 +335,9 @@ const char** trie_autocomplete(const trie_t* trie, const char* prefix, size_t ma
     }
 
     // Navigate to the prefix node
-    const trie_node_t* current   = trie->root;
+    const trie_node_t* current = trie->root;
     const unsigned char* uprefix = (const unsigned char*)prefix;
-    size_t prefix_len            = strlen(prefix);
+    size_t prefix_len = strlen(prefix);
 
     while (*uprefix != '\0') {
         unsigned char index = *uprefix;
@@ -350,8 +351,8 @@ const char** trie_autocomplete(const trie_t* trie, const char* prefix, size_t ma
     // Initialize collector
     // We allocate the full limit upfront in the Arena to avoid resizing logic
     suggestions_collector_t collector;
-    collector.limit       = max_suggestions;
-    collector.count       = 0;
+    collector.limit = max_suggestions;
+    collector.count = 0;
     collector.suggestions = (char**)ARENA_ALLOC_ARRAY(arena, char*, max_suggestions);
 
     if (collector.suggestions == NULL) {
@@ -360,7 +361,7 @@ const char** trie_autocomplete(const trie_t* trie, const char* prefix, size_t ma
 
     // Allocate buffer for building words in the Arena
     const size_t max_word_len = 1024;
-    char* word_buffer         = (char*)arena_alloc(arena, max_word_len);
+    char* word_buffer = (char*)arena_alloc(arena, max_word_len);
 
     if (word_buffer == NULL) {
         return NULL;
@@ -370,7 +371,8 @@ const char** trie_autocomplete(const trie_t* trie, const char* prefix, size_t ma
     if (prefix_len >= max_word_len) {
         return NULL;
     }
-    strncpy(word_buffer, prefix,
+    strncpy(word_buffer,
+            prefix,
             prefix_len + 1);  // +1 to copy null terminator if space allows, mostly to silence warnings
 
     // Collect all words with this prefix

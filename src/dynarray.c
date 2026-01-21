@@ -1,4 +1,5 @@
 #include "../include/dynarray.h"
+
 #include <stdio.h>   // for fprintf, stderr
 #include <stdlib.h>  // for malloc, realloc, free
 #include <string.h>  // for memcpy, memmove
@@ -50,10 +51,10 @@ bool dynarray_init(dynarray_t* arr, size_t element_size, size_t initial_capacity
     }
 
     *arr = (dynarray_t){
-        .data         = data,
-        .size         = 0,
-        .capacity     = initial_capacity,
-        .element_size = element_size,
+      .data = data,
+      .size = 0,
+      .capacity = initial_capacity,
+      .element_size = element_size,
     };
 
     return true;
@@ -163,7 +164,7 @@ bool dynarray_reserve(dynarray_t* arr, size_t new_capacity) {
         return false;
     }
 
-    arr->data     = new_data;
+    arr->data = new_data;
     arr->capacity = new_capacity;
 
     return true;

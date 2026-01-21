@@ -34,12 +34,13 @@
  */
 
 #include "../include/flags.h"
+
 #include "../include/str_utils.h"
 
-#define INITIAL_CAPACITY  8
-#define ERR_BUF_SIZE      128
+#define INITIAL_CAPACITY 8
+#define ERR_BUF_SIZE 128
 #define MAX_FLAG_NAME_LEN 128
-#define MAX_DEFAULT_STR   64
+#define MAX_DEFAULT_STR 64
 
 /**
  * @struct Flag
@@ -600,8 +601,7 @@ static FlagStatus parse_value(Flag* flag, const char* str) {
                 return FLAG_ERROR_INVALID_NUMBER;
 
             // Assign based on type size
-            if (flag->type == TYPE_INT8)
-                *(int8_t*)flag->value_ptr = (int8_t)val;
+            if (flag->type == TYPE_INT8) *(int8_t*)flag->value_ptr = (int8_t)val;
             else if (flag->type == TYPE_INT16)
                 *(int16_t*)flag->value_ptr = (int16_t)val;
             else if (flag->type == TYPE_INT32)
@@ -626,8 +626,7 @@ static FlagStatus parse_value(Flag* flag, const char* str) {
             if (flag->type == TYPE_UINT32 && !check_range_uint(val, UINT32_MAX)) return FLAG_ERROR_INVALID_NUMBER;
             if (flag->type == TYPE_SIZE_T && !check_range_uint(val, SIZE_MAX)) return FLAG_ERROR_INVALID_NUMBER;
 
-            if (flag->type == TYPE_UINT8)
-                *(uint8_t*)flag->value_ptr = (uint8_t)val;
+            if (flag->type == TYPE_UINT8) *(uint8_t*)flag->value_ptr = (uint8_t)val;
             else if (flag->type == TYPE_UINT16)
                 *(uint16_t*)flag->value_ptr = (uint16_t)val;
             else if (flag->type == TYPE_UINT32)
@@ -754,8 +753,7 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
                 *(bool*)f->value_ptr = b;
             } else {
                 if (!val_str) {
-                    if (i + 1 < argc && argv[i + 1][0] != '-')
-                        val_str = argv[++i];
+                    if (i + 1 < argc && argv[i + 1][0] != '-') val_str = argv[++i];
                     else {
                         set_error(fp, "Flag --%s requires a value", f->name);
                         return FLAG_ERROR_MISSING_VALUE;
@@ -1014,7 +1012,6 @@ static void print_flag_row(Flag* f, size_t max_width) {
     printf("\n");
 }
 
-
 /**
  * @brief Internal function to print help for a specific parser node (non-recursive)
  */
@@ -1096,8 +1093,7 @@ const char* flag_get_error(FlagParser* fp) {
 
     if (root->active_subcommand) {
         root = fp->active_subcommand;
-        while (root->active_subcommand)
-            root = root->active_subcommand;
+        while (root->active_subcommand) root = root->active_subcommand;
     }
     return root->last_error;
 }
@@ -1185,7 +1181,6 @@ const char* flag_status_str(FlagStatus s) {
     }
 }
 
-
 // ================ Shell completion =====================================
 #include <ctype.h>
 
@@ -1220,9 +1215,10 @@ static void write_safe_str(FILE* f, const char* str, int quote_style) {
             // Escape special chars in double-quoted string
             fputc('\\', f);
             fputc(*p, f);
-        } else if (quote_style == 0 && (*p == ' ' || *p == '\t' || *p == '\n' || *p == '|' || *p == '&' || *p == ';' ||
-                                        *p == '<' || *p == '>' || *p == '(' || *p == ')' || *p == '$' || *p == '`' ||
-                                        *p == '\\' || *p == '"' || *p == '\'' || *p == '*' || *p == '?')) {
+        } else if (quote_style == 0 &&
+                   (*p == ' ' || *p == '\t' || *p == '\n' || *p == '|' || *p == '&' || *p == ';' || *p == '<' ||
+                    *p == '>' || *p == '(' || *p == ')' || *p == '$' || *p == '`' || *p == '\\' || *p == '"' ||
+                    *p == '\'' || *p == '*' || *p == '?')) {
             // Escape special shell chars when not quoted
             fputc('\\', f);
             fputc(*p, f);
@@ -1493,8 +1489,7 @@ static void write_zsh_args(FILE* f, FlagParser* p, int indent) {
         }
 
         // Print with proper indentation
-        for (int j = 0; j < indent; j++)
-            fprintf(f, "    ");
+        for (int j = 0; j < indent; j++) fprintf(f, "    ");
 
         // Determine if flag needs an argument
         if (flag->type == TYPE_BOOL) {
@@ -1554,13 +1549,11 @@ static void write_zsh_subcommand_cases(FILE* f, FlagParser* p, int depth) {
     for (size_t i = 0; i < p->cmd_count; i++) {
         FlagParser* sub = p->subcommands[i];
 
-        for (int j = 0; j < depth; j++)
-            fprintf(f, "    ");
+        for (int j = 0; j < depth; j++) fprintf(f, "    ");
         write_safe_str(f, sub->name, 0);
         fprintf(f, ")\n");
 
-        for (int j = 0; j < depth; j++)
-            fprintf(f, "    ");
+        for (int j = 0; j < depth; j++) fprintf(f, "    ");
         fprintf(f, "    _arguments -C \\\n");
 
         // Write flags for this subcommand
@@ -1568,8 +1561,7 @@ static void write_zsh_subcommand_cases(FILE* f, FlagParser* p, int depth) {
 
         // Add nested subcommands if any
         if (sub->cmd_count > 0) {
-            for (int j = 0; j < depth + 2; j++)
-                fprintf(f, "    ");
+            for (int j = 0; j < depth + 2; j++) fprintf(f, "    ");
             fprintf(f, "'1:command:((");
             for (size_t k = 0; k < sub->cmd_count; k++) {
                 if (k > 0) fprintf(f, " ");
@@ -1581,42 +1573,33 @@ static void write_zsh_subcommand_cases(FILE* f, FlagParser* p, int depth) {
             }
             fprintf(f, "))' \\\n");
 
-            for (int j = 0; j < depth + 2; j++)
-                fprintf(f, "    ");
+            for (int j = 0; j < depth + 2; j++) fprintf(f, "    ");
             fprintf(f, "'*::arg:->args' \\\n");
         }
 
-        for (int j = 0; j < depth; j++)
-            fprintf(f, "    ");
+        for (int j = 0; j < depth; j++) fprintf(f, "    ");
         fprintf(f, "        && ret=0\n");
 
         // Handle nested state
         if (sub->cmd_count > 0) {
-            for (int j = 0; j < depth; j++)
-                fprintf(f, "    ");
+            for (int j = 0; j < depth; j++) fprintf(f, "    ");
             fprintf(f, "    case $state in\n");
-            for (int j = 0; j < depth; j++)
-                fprintf(f, "    ");
+            for (int j = 0; j < depth; j++) fprintf(f, "    ");
             fprintf(f, "        args)\n");
-            for (int j = 0; j < depth; j++)
-                fprintf(f, "    ");
+            for (int j = 0; j < depth; j++) fprintf(f, "    ");
             fprintf(f, "            case $line[1] in\n");
 
             write_zsh_subcommand_cases(f, sub, depth + 4);
 
-            for (int j = 0; j < depth; j++)
-                fprintf(f, "    ");
+            for (int j = 0; j < depth; j++) fprintf(f, "    ");
             fprintf(f, "            esac\n");
-            for (int j = 0; j < depth; j++)
-                fprintf(f, "    ");
+            for (int j = 0; j < depth; j++) fprintf(f, "    ");
             fprintf(f, "            ;;\n");
-            for (int j = 0; j < depth; j++)
-                fprintf(f, "    ");
+            for (int j = 0; j < depth; j++) fprintf(f, "    ");
             fprintf(f, "    esac\n");
         }
 
-        for (int j = 0; j < depth; j++)
-            fprintf(f, "    ");
+        for (int j = 0; j < depth; j++) fprintf(f, "    ");
         fprintf(f, "    ;;\n");
     }
 }

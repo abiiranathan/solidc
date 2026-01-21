@@ -17,22 +17,24 @@
 #define _GNU_SOURCE
 #endif
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
 #include "file.h"
 #include "macros.h"
 #include "platform.h"
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+
 #ifdef _WIN32
-#include <windows.h>
 #include "win32_dirent.h"
+
+#include <windows.h>
 
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0400  // Required for syncapi
 #endif
-#define PATH_SEP     '\\'
+#define PATH_SEP '\\'
 #define PATH_SEP_STR "\\"
 #else
 #include <dirent.h>
@@ -43,7 +45,7 @@
 #include <unistd.h>
 
 /** Platform-specific directory separator character. */
-#define PATH_SEP     '/'
+#define PATH_SEP '/'
 
 /** Platform-specific directory separator string. */
 #define PATH_SEP_STR "/"

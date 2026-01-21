@@ -2,13 +2,13 @@
 #define _GNU_SOURCE
 #endif
 
+#include "../include/lock.h"
+
 #include <errno.h>   // for errno constants
 #include <stdio.h>   // for fprintf, stderr
 #include <stdlib.h>  // for NULL
 #include <string.h>  // for strerror
 #include <time.h>    // for clock_gettime, timespec
-
-#include "../include/lock.h"
 
 #ifdef _WIN32
 

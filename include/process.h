@@ -10,19 +10,21 @@
 #define _GNU_SOURCE
 #endif
 
+#include "env.h"
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "env.h"
 
 #ifdef _WIN32
+#include "wintypes.h"
+
 #include <io.h>
 #include <sys/stat.h>
 #include <windows.h>
-#include "wintypes.h"
 #else
 #include <fcntl.h>
 #include <signal.h>
@@ -40,21 +42,21 @@ extern "C" {
  * @brief Error codes for process operations
  */
 typedef enum {
-    PROCESS_SUCCESS                 = 0,
-    PROCESS_ERROR_INVALID_ARGUMENT  = -1,
-    PROCESS_ERROR_FORK_FAILED       = -2,
-    PROCESS_ERROR_EXEC_FAILED       = -3,
-    PROCESS_ERROR_PIPE_FAILED       = -4,
-    PROCESS_ERROR_MEMORY            = -5,
-    PROCESS_ERROR_WAIT_FAILED       = -6,
-    PROCESS_ERROR_KILL_FAILED       = -7,
+    PROCESS_SUCCESS = 0,
+    PROCESS_ERROR_INVALID_ARGUMENT = -1,
+    PROCESS_ERROR_FORK_FAILED = -2,
+    PROCESS_ERROR_EXEC_FAILED = -3,
+    PROCESS_ERROR_PIPE_FAILED = -4,
+    PROCESS_ERROR_MEMORY = -5,
+    PROCESS_ERROR_WAIT_FAILED = -6,
+    PROCESS_ERROR_KILL_FAILED = -7,
     PROCESS_ERROR_PERMISSION_DENIED = -8,
-    PROCESS_ERROR_IO                = -9,
-    PROCESS_ERROR_TIMEOUT           = -10,  // Operation timed out
-    PROCESS_ERROR_WOULD_BLOCK       = -11,  // Non-blocking operation would block
-    PROCESS_ERROR_PIPE_CLOSED       = -12,  // Pipe end was closed
-    PROCESS_ERROR_TERMINATE_FAILED  = -13,
-    PROCESS_ERROR_UNKNOWN           = -14
+    PROCESS_ERROR_IO = -9,
+    PROCESS_ERROR_TIMEOUT = -10,      // Operation timed out
+    PROCESS_ERROR_WOULD_BLOCK = -11,  // Non-blocking operation would block
+    PROCESS_ERROR_PIPE_CLOSED = -12,  // Pipe end was closed
+    PROCESS_ERROR_TERMINATE_FAILED = -13,
+    PROCESS_ERROR_UNKNOWN = -14
 } ProcessError;
 
 #ifdef _WIN32

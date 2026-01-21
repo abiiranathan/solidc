@@ -49,9 +49,9 @@ typedef struct {
  */
 static inline uint64_t hashset_default_hash(const void* key, size_t key_size) {
     const uint64_t FNV_OFFSET = 14695981039346656037ULL;
-    const uint64_t FNV_PRIME  = 1099511628211ULL;
+    const uint64_t FNV_PRIME = 1099511628211ULL;
 
-    uint64_t hash              = FNV_OFFSET;
+    uint64_t hash = FNV_OFFSET;
     const unsigned char* bytes = (const unsigned char*)key;
 
     for (size_t i = 0; i < key_size; i++) {
@@ -95,16 +95,16 @@ static inline hashset_t* hashset_create(size_t key_size, size_t initial_capacity
     }
 
     size_t capacity = initial_capacity > 0 ? initial_capacity : HASHSET_DEFAULT_CAPACITY;
-    set->buckets    = (hashset_node_t**)calloc(capacity, sizeof(hashset_node_t*));
+    set->buckets = (hashset_node_t**)calloc(capacity, sizeof(hashset_node_t*));
     if (set->buckets == NULL) {
         free(set);
         return NULL;
     }
 
-    set->capacity  = capacity;
-    set->size      = 0;
-    set->key_size  = key_size;
-    set->hash_fn   = hash_fn != NULL ? hash_fn : hashset_default_hash;
+    set->capacity = capacity;
+    set->size = 0;
+    set->key_size = key_size;
+    set->hash_fn = hash_fn != NULL ? hash_fn : hashset_default_hash;
     set->equals_fn = equals_fn != NULL ? equals_fn : hashset_default_equals;
 
     return set;
@@ -147,7 +147,7 @@ static inline bool hashset_contains(const hashset_t* set, const void* key) {
     }
 
     uint64_t hash = set->hash_fn(key, set->key_size);
-    size_t index  = hash % set->capacity;
+    size_t index = hash % set->capacity;
 
     hashset_node_t* node = set->buckets[index];
     while (node != NULL) {
@@ -179,11 +179,11 @@ static inline bool hashset_rehash(hashset_t* set, size_t new_capacity) {
             hashset_node_t* next = node->next;
 
             // Compute new bucket index
-            uint64_t hash    = set->hash_fn(node->key, set->key_size);
+            uint64_t hash = set->hash_fn(node->key, set->key_size);
             size_t new_index = hash % new_capacity;
 
             // Insert at head of new bucket
-            node->next             = new_buckets[new_index];
+            node->next = new_buckets[new_index];
             new_buckets[new_index] = node;
 
             node = next;
@@ -191,7 +191,7 @@ static inline bool hashset_rehash(hashset_t* set, size_t new_capacity) {
     }
 
     free(set->buckets);
-    set->buckets  = new_buckets;
+    set->buckets = new_buckets;
     set->capacity = new_capacity;
 
     return true;
@@ -237,9 +237,9 @@ static inline bool hashset_add(hashset_t* set, const void* key) {
 
     // Insert at head of bucket
     uint64_t hash = set->hash_fn(key, set->key_size);
-    size_t index  = hash % set->capacity;
+    size_t index = hash % set->capacity;
 
-    node->next          = set->buckets[index];
+    node->next = set->buckets[index];
     set->buckets[index] = node;
     set->size++;
 
@@ -259,7 +259,7 @@ static inline bool hashset_remove(hashset_t* set, const void* key) {
     }
 
     uint64_t hash = set->hash_fn(key, set->key_size);
-    size_t index  = hash % set->capacity;
+    size_t index = hash % set->capacity;
 
     hashset_node_t* node = set->buckets[index];
     hashset_node_t* prev = NULL;
@@ -392,7 +392,7 @@ static inline hashset_t* hashset_intersection(const hashset_t* setA, const hashs
         return NULL;
     }
 
-    size_t min_size   = setA->size < setB->size ? setA->size : setB->size;
+    size_t min_size = setA->size < setB->size ? setA->size : setB->size;
     hashset_t* result = hashset_create(setA->key_size, min_size, setA->hash_fn, setA->equals_fn);
     if (result == NULL) {
         return NULL;
@@ -400,7 +400,7 @@ static inline hashset_t* hashset_intersection(const hashset_t* setA, const hashs
 
     // Iterate through smaller set for efficiency
     const hashset_t* smaller = setA->size <= setB->size ? setA : setB;
-    const hashset_t* larger  = setA->size <= setB->size ? setB : setA;
+    const hashset_t* larger = setA->size <= setB->size ? setB : setA;
 
     for (size_t i = 0; i < smaller->capacity; i++) {
         hashset_node_t* node = smaller->buckets[i];

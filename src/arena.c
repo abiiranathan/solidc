@@ -1,4 +1,5 @@
 #include "arena.h"
+
 #include <stdlib.h>
 
 #if defined(_WIN32)
@@ -38,8 +39,8 @@ Arena* arena_create(size_t reserve_size) {
         return NULL;
     }
 
-    a->curr        = a->base;
-    a->end         = a->base;  // Will be updated after commit
+    a->curr = a->base;
+    a->end = a->base;  // Will be updated after commit
     a->reserve_end = a->base + reserve_size;
 
     // Pre-commit the first page to eliminate initial allocation latency
@@ -49,7 +50,7 @@ Arena* arena_create(size_t reserve_size) {
     if (!committed) {
         VirtualFree(a->base, 0, MEM_RELEASE);
         free(a);
-        return nullptr;
+        return NULL;
     }
 #else
     if (mprotect(a->base, a->page_size, PROT_READ | PROT_WRITE) != 0) {
@@ -65,10 +66,10 @@ Arena* arena_create(size_t reserve_size) {
 }
 
 void* _arena_alloc_slow(Arena* a, size_t size, size_t align) {
-    uintptr_t curr         = (uintptr_t)a->curr;
-    uintptr_t mask         = (uintptr_t)align - 1;
+    uintptr_t curr = (uintptr_t)a->curr;
+    uintptr_t mask = (uintptr_t)align - 1;
     uintptr_t aligned_curr = (curr + mask) & ~mask;
-    uintptr_t needed       = aligned_curr + size;
+    uintptr_t needed = aligned_curr + size;
 
     if (needed > (uintptr_t)a->reserve_end) {
         return NULL;  // Absolute OOM
@@ -77,7 +78,7 @@ void* _arena_alloc_slow(Arena* a, size_t size, size_t align) {
     // Calculate how many more pages we need to commit
     // We commit in chunks of at least 64KB to reduce syscall frequency
     size_t chunk_size = 64 * 1024;
-    size_t to_commit  = needed - (uintptr_t)a->end;
+    size_t to_commit = needed - (uintptr_t)a->end;
     if (to_commit < chunk_size) to_commit = chunk_size;
 
     // Round to page boundary

@@ -72,7 +72,7 @@ uint32_t utf8_to_codepoint(const char* utf8) {
     }
 
     uint32_t codepoint = 0;
-    const uint8_t* u   = (const uint8_t*)utf8;
+    const uint8_t* u = (const uint8_t*)utf8;
 
     if ((u[0] & 0x80) == 0) {
         codepoint = u[0];
@@ -290,7 +290,7 @@ bool is_valid_utf8(const char* utf8) {
                 return false;
             }
             uint32_t codepoint = (uint32_t)((byte & 0x07) << 18) | ((uint32_t)(utf8[i + 1] & 0x3F) << 12) |
-                                 ((uint32_t)(utf8[i + 2] & 0x3F) << 6) | (utf8[i + 3] & 0x3F);
+                ((uint32_t)(utf8[i + 2] & 0x3F) << 6) | (utf8[i + 3] & 0x3F);
             if (codepoint < 0x10000 || codepoint > 0x10FFFF) {
                 return false;
             }
@@ -431,7 +431,7 @@ char* utf8_copy(const char* data) {
     }
 
     size_t length = utf8_valid_byte_count(data);
-    char* copy    = (char*)malloc(length + 1);
+    char* copy = (char*)malloc(length + 1);
     if (copy) {
         memcpy(copy, data, length);
         copy[length] = '\0';
@@ -479,7 +479,7 @@ utf8_string* utf8_new(const char* data) {
     }
 
     s->length = utf8_valid_byte_count(data);
-    s->count  = utf8_count_codepoints(data);
+    s->count = utf8_count_codepoints(data);
     return s;
 }
 
@@ -503,8 +503,8 @@ utf8_string* utf8_new_with_capacity(size_t capacity) {
     }
 
     s->data[0] = '\0';
-    s->length  = 0;
-    s->count   = 0;
+    s->length = 0;
+    s->count = 0;
     return s;
 }
 
@@ -632,7 +632,7 @@ bool utf8_append(utf8_string* s, const char* data) {
     }
 
     size_t length = utf8_valid_byte_count(data);
-    size_t count  = utf8_count_codepoints(data);
+    size_t count = utf8_count_codepoints(data);
 
     char* new_data = (char*)realloc(s->data, s->length + length + 1);
     if (!new_data) {
@@ -687,8 +687,8 @@ bool utf8_insert(utf8_string* s, size_t index, const char* data) {
         return false;
     }
 
-    size_t length  = utf8_valid_byte_count(data);
-    size_t count   = utf8_count_codepoints(data);
+    size_t length = utf8_valid_byte_count(data);
+    size_t count = utf8_count_codepoints(data);
     char* new_data = (char*)realloc(s->data, s->length + length + 1);
 
     if (!new_data) {
@@ -750,8 +750,8 @@ bool utf8_replace(utf8_string* s, const char* old_str, const char* new_str) {
 
     size_t old_byte_len = utf8_valid_byte_count(old_str);
     size_t new_byte_len = utf8_valid_byte_count(new_str);
-    size_t old_count    = utf8_count_codepoints(old_str);
-    size_t new_count    = utf8_count_codepoints(new_str);
+    size_t old_count = utf8_count_codepoints(old_str);
+    size_t new_count = utf8_count_codepoints(new_str);
 
     char* index = strstr(s->data, old_str);
     if (index == NULL) {
@@ -770,7 +770,7 @@ bool utf8_replace(utf8_string* s, const char* old_str, const char* new_str) {
     memmove(&s->data[offset + new_byte_len], &s->data[offset + old_byte_len], s->length - offset - old_byte_len + 1);
     memcpy(&s->data[offset], new_str, new_byte_len);
     s->length = s->length - old_byte_len + new_byte_len;
-    s->count  = s->count - old_count + new_count;
+    s->count = s->count - old_count + new_count;
     return true;
 }
 
@@ -793,8 +793,8 @@ size_t utf8_replace_all(utf8_string* s, const char* old_str, const char* new_str
     }
 
     size_t new_byte_len = utf8_valid_byte_count(new_str);
-    size_t old_count    = utf8_count_codepoints(old_str);
-    size_t new_count    = utf8_count_codepoints(new_str);
+    size_t old_count = utf8_count_codepoints(old_str);
+    size_t new_count = utf8_count_codepoints(new_str);
     size_t replacements = 0;
 
     char* index = s->data;
@@ -807,14 +807,14 @@ size_t utf8_replace_all(utf8_string* s, const char* old_str, const char* new_str
                 return replacements;
             }
             s->data = new_data;
-            index   = s->data + offset;
+            index = s->data + offset;
         }
 
-        memmove(&s->data[offset + new_byte_len], &s->data[offset + old_byte_len],
-                s->length - offset - old_byte_len + 1);
+        memmove(
+            &s->data[offset + new_byte_len], &s->data[offset + old_byte_len], s->length - offset - old_byte_len + 1);
         memcpy(&s->data[offset], new_str, new_byte_len);
         s->length = s->length - old_byte_len + new_byte_len;
-        s->count  = s->count - old_count + new_count;
+        s->count = s->count - old_count + new_count;
         index += new_byte_len;
         replacements++;
     }
@@ -924,7 +924,7 @@ utf8_string* utf8_readfrom(const char* filename) {
     }
 
     size_t bytes = fread(data, 1, (size_t)length, file);
-    data[bytes]  = '\0';
+    data[bytes] = '\0';
     fclose(file);
 
     utf8_string* s = utf8_new(data);
@@ -945,7 +945,7 @@ void utf8_ltrim(char* str) {
     }
 
     size_t len = strlen(str);
-    size_t i   = 0;
+    size_t i = 0;
     while (i < len && is_utf8_whitespace(&str[i])) {
         size_t char_len = utf8_char_length(&str[i]);
         if (char_len == 0) {
@@ -972,7 +972,7 @@ void utf8_rtrim(char* str) {
     }
 
     size_t len = strlen(str);
-    size_t i   = len;
+    size_t i = len;
 
     while (i > 0) {
         size_t char_start = i - 1;
@@ -1019,8 +1019,8 @@ void utf8_trim_chars(char* str, const char* chars) {
     }
 
     uint32_t trim_codepoints[256] = {0};
-    size_t num_trim_chars         = 0;
-    size_t chars_len              = strlen(chars);
+    size_t num_trim_chars = 0;
+    size_t chars_len = strlen(chars);
 
     for (size_t k = 0; k < chars_len && num_trim_chars < 256;) {
         size_t current_char_len = utf8_char_length(&chars[k]);
@@ -1046,7 +1046,7 @@ void utf8_trim_chars(char* str, const char* chars) {
     }
 
     size_t len = strlen(str);
-    size_t i   = 0;
+    size_t i = 0;
     while (i < len) {
         size_t current_char_len = utf8_char_length(&str[i]);
         if (current_char_len == 0 || i + current_char_len > len) {
@@ -1054,7 +1054,7 @@ void utf8_trim_chars(char* str, const char* chars) {
         }
 
         uint32_t codepoint = utf8_to_codepoint(&str[i]);
-        bool should_trim   = false;
+        bool should_trim = false;
 
         if (codepoint != 0xFFFD) {
             for (size_t j = 0; j < num_trim_chars; j++) {
@@ -1092,7 +1092,7 @@ void utf8_trim_chars(char* str, const char* chars) {
 
         if (char_len > 0 && char_start + char_len == i) {
             uint32_t codepoint = utf8_to_codepoint(&str[char_start]);
-            bool should_trim   = false;
+            bool should_trim = false;
 
             if (codepoint != 0xFFFD) {
                 for (size_t j = 0; j < num_trim_chars; j++) {
@@ -1129,7 +1129,7 @@ void utf8_trim_char(char* str, char c) {
     }
 
     size_t len = strlen(str);
-    size_t i   = 0;
+    size_t i = 0;
     while (i < len && str[i] == c) {
         i++;
     }
@@ -1160,7 +1160,7 @@ void utf8_tolower(char* str) {
 
     for (size_t i = 0; str[i] != '\0';) {
         uint32_t codepoint = utf8_to_codepoint(&str[i]);
-        size_t old_len     = utf8_char_length(&str[i]);
+        size_t old_len = utf8_char_length(&str[i]);
 
         if (old_len == 0) {
             break;
@@ -1198,7 +1198,7 @@ void utf8_toupper(char* str) {
 
     for (size_t i = 0; str[i] != '\0';) {
         uint32_t codepoint = utf8_to_codepoint(&str[i]);
-        size_t old_len     = utf8_char_length(&str[i]);
+        size_t old_len = utf8_char_length(&str[i]);
 
         if (old_len == 0) {
             break;
@@ -1248,7 +1248,7 @@ utf8_string** utf8_split(const utf8_string* str, const char* delim, size_t* num_
     }
 
     size_t count = 1;
-    size_t len   = str->length;
+    size_t len = str->length;
     for (size_t i = 0; i < len;) {
         if (i + delim_len <= len && utf8_starts_with(&str->data[i], delim)) {
             count++;
@@ -1275,8 +1275,8 @@ utf8_string** utf8_split(const utf8_string* str, const char* delim, size_t* num_
             parts[index] = utf8_new(&str->data[start]);
             if (parts[index]) {
                 parts[index]->data[i - start] = '\0';
-                parts[index]->length          = i - start;
-                parts[index]->count           = utf8_count_codepoints(parts[index]->data);
+                parts[index]->length = i - start;
+                parts[index]->count = utf8_count_codepoints(parts[index]->data);
             }
             index++;
             i += delim_len;
@@ -1293,8 +1293,8 @@ utf8_string** utf8_split(const utf8_string* str, const char* delim, size_t* num_
     parts[index] = utf8_new(&str->data[start]);
     if (parts[index]) {
         parts[index]->data[len - start] = '\0';
-        parts[index]->length            = len - start;
-        parts[index]->count             = utf8_count_codepoints(parts[index]->data);
+        parts[index]->length = len - start;
+        parts[index]->count = utf8_count_codepoints(parts[index]->data);
     }
 
     *num_parts = count;
@@ -1372,7 +1372,7 @@ bool utf8_ends_with(const char* str, const char* suffix) {
         return false;
     }
 
-    size_t len  = utf8_valid_byte_count(str);
+    size_t len = utf8_valid_byte_count(str);
     size_t len2 = utf8_valid_byte_count(suffix);
     if (len2 > len) {
         return false;
@@ -1468,8 +1468,8 @@ utf8_string* utf8_concat(const utf8_string* s1, const utf8_string* s2) {
     memcpy(result->data, s1->data, s1->length);
     memcpy(result->data + s1->length, s2->data, s2->length);
     result->data[s1->length + s2->length] = '\0';
-    result->length                        = s1->length + s2->length;
-    result->count                         = s1->count + s2->count;
+    result->length = s1->length + s2->length;
+    result->count = s1->count + s2->count;
 
     return result;
 }

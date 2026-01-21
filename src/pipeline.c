@@ -5,8 +5,8 @@
 #include <string.h>
 
 #ifdef _WIN32
-#define pipe(fds)          _pipe(fds, 4096, _O_BINARY)
-#define close(fd)          _close(fd)
+#define pipe(fds) _pipe(fds, 4096, _O_BINARY)
+#define close(fd) _close(fd)
 #define dup2(oldfd, newfd) _dup2(oldfd, newfd)
 #endif
 
@@ -36,14 +36,14 @@ CommandNode* create_command_node(char** args) {
  * command.
  */
 void execute_pipeline(CommandNode* head, int output_fd) {
-    int pipefd[2]          = {0};
+    int pipefd[2] = {0};
     int prev_pipe_read_end = -1;
-    CommandNode* current   = head;
-    STARTUPINFO si         = {0};
+    CommandNode* current = head;
+    STARTUPINFO si = {0};
     PROCESS_INFORMATION pi = {0};
-    HANDLE* proc_handles   = NULL;
-    DWORD proc_count       = 0;
-    DWORD command_count    = 0;
+    HANDLE* proc_handles = NULL;
+    DWORD proc_count = 0;
+    DWORD command_count = 0;
 
     // Count commands first to allocate handles array
     CommandNode* count_node = head;
@@ -69,7 +69,7 @@ void execute_pipeline(CommandNode* head, int output_fd) {
 
         // Prepare the command string
         char command[1024] = "";
-        int i              = 0;
+        int i = 0;
         while (current->args[i] != NULL) {
             // Add quotes if the argument contains spaces
             if (strchr(current->args[i], ' ') != NULL) {
@@ -85,13 +85,13 @@ void execute_pipeline(CommandNode* head, int output_fd) {
 
         // Initialize STARTUPINFO
         ZeroMemory(&si, sizeof(si));
-        si.cb      = sizeof(si);
+        si.cb = sizeof(si);
         si.dwFlags = STARTF_USESTDHANDLES;
 
         // Set standard handles
-        si.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
+        si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
         si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-        si.hStdError  = GetStdHandle(STD_ERROR_HANDLE);
+        si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
 
         // Redirect input from previous pipe if any
         if (prev_pipe_read_end != -1) {
@@ -165,7 +165,7 @@ void execute_pipeline(CommandNode* head, int output_fd) {
 void execute_pipeline(CommandNode* head, int output_fd) {
     int pipefd[2];
     int prev_pipe_read_end = -1;
-    CommandNode* current   = head;
+    CommandNode* current = head;
 
     while (current != NULL) {
         // Create a pipe if there's a next command
@@ -223,8 +223,7 @@ void execute_pipeline(CommandNode* head, int output_fd) {
     }
 
     // Wait for all child processes to finish
-    while (wait(NULL) > 0)
-        ;
+    while (wait(NULL) > 0);
 }
 #endif
 

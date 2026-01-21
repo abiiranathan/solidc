@@ -1,4 +1,5 @@
 #include "../include/dotenv.h"
+
 #include "../include/str_utils.h"
 
 #include <ctype.h>   // for isspace
@@ -43,14 +44,14 @@ static bool interpolate(const char* value, char* result, size_t result_size) {
     }
 
     size_t result_len = 0;
-    const char* ptr   = value;
+    const char* ptr = value;
     memset(result, 0, result_size);
 
     while (*ptr && result_len < result_size - 1) {
         // Look for variable interpolation pattern: ${VAR_NAME}
         if (*ptr == '$' && *(ptr + 1) == '{') {
             const char* start = ptr + 2;
-            const char* end   = strchr(start, '}');
+            const char* end = strchr(start, '}');
 
             if (end == NULL) {
                 // Malformed interpolation - copy literal characters
@@ -165,8 +166,8 @@ bool load_dotenv(const char* path) {
     }
 
     char line[MAX_LINE_LENGTH] = {0};
-    size_t line_number         = 0;
-    bool had_errors            = false;
+    size_t line_number = 0;
+    bool had_errors = false;
 
     while (fgets(line, sizeof(line), file) != NULL) {
         line_number++;
@@ -193,8 +194,8 @@ bool load_dotenv(const char* path) {
         }
 
         // Split into key and value
-        *equals     = '\0';
-        char* key   = trimmed;
+        *equals = '\0';
+        char* key = trimmed;
         char* value = equals + 1;
 
         if (!process_env_pair(key, value)) {

@@ -1,10 +1,11 @@
 #include "../include/slist.h"
+
 #include <stdalign.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define ALIGNMENT      8U
+#define ALIGNMENT 8U
 #define ALIGNMENT_MASK (ALIGNMENT - 1)
 
 // Round up to proper alignment
@@ -16,9 +17,9 @@ slist* slist_new(size_t elem_size) {
     slist* list = (slist*)malloc(sizeof(slist));
     if (!list) return NULL;
 
-    list->head      = NULL;
-    list->tail      = NULL;
-    list->size      = 0;
+    list->head = NULL;
+    list->tail = NULL;
+    list->size = 0;
     list->elem_size = elem_size;
     return list;
 }
@@ -43,11 +44,11 @@ void slist_clear(slist* list) {
         current = next;
     }
     list->head = list->tail = NULL;
-    list->size              = 0;
+    list->size = 0;
 }
 
 slist_node_t* slist_node_new(size_t elem_size, void* data) {
-    size_t total_size  = sizeof(slist_node_t) + aligned_size(elem_size);
+    size_t total_size = sizeof(slist_node_t) + aligned_size(elem_size);
     slist_node_t* node = (slist_node_t*)malloc(total_size);
     if (!node) return NULL;
 
@@ -81,7 +82,7 @@ void slist_push_back(slist* list, void* elem) {
         list->head = list->tail = node;
     } else {
         list->tail->next = node;
-        list->tail       = node;
+        list->tail = node;
     }
     list->size++;
 }
@@ -89,7 +90,7 @@ void slist_push_back(slist* list, void* elem) {
 void slist_pop_front(slist* list) {
     if (!list || !list->head) return;
     slist_node_t* temp = list->head;
-    list->head         = temp->next;
+    list->head = temp->next;
     if (!list->head) list->tail = NULL;
     slist_node_free(temp);
     list->size--;
@@ -115,7 +116,7 @@ void slist_insert(slist* list, size_t index, void* elem) {
     slist_node_t* node = slist_node_new(list->elem_size, elem);
     if (!node) return;
 
-    node->next    = current->next;
+    node->next = current->next;
     current->next = node;
     list->size++;
 }
@@ -134,7 +135,7 @@ void slist_remove(slist* list, size_t index) {
     }
 
     slist_node_t* temp = current->next;
-    current->next      = temp->next;
+    current->next = temp->next;
     if (temp == list->tail) list->tail = current;
     slist_node_free(temp);
     list->size--;
@@ -154,7 +155,7 @@ int slist_index_of(const slist* list, void* elem) {
     if (!list) return -1;
 
     slist_node_t* current = list->head;
-    int index             = 0;
+    int index = 0;
     while (current) {
         if (memcmp(current->data, elem, list->elem_size) == 0) return index;
         current = current->next;
@@ -170,8 +171,7 @@ void slist_insert_after(slist* list, void* elem, void* after) {
 
 void slist_insert_before(slist* list, void* elem, void* before) {
     int idx = slist_index_of(list, before);
-    if (idx > 0 && (size_t)idx < list->size)
-        slist_insert(list, (size_t)idx - 1, elem);
+    if (idx > 0 && (size_t)idx < list->size) slist_insert(list, (size_t)idx - 1, elem);
     else if (idx == 0)
         slist_push_front(list, elem);
 }

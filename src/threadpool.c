@@ -2,17 +2,18 @@
 #define _GNU_SOURCE
 #endif
 
-#include <stdatomic.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
+#include "../include/threadpool.h"
 
 #include "../include/align.h"
 #include "../include/aligned_alloc.h"
 #include "../include/lock.h"
 #include "../include/thread.h"
-#include "../include/threadpool.h"
+
+#include <stdatomic.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -84,9 +85,9 @@ static void ringbuffer_init(TaskRingBuffer* rb) {
 /** Lock-free push with minimal blocking fallback. */
 static bool ringbuffer_push(TaskRingBuffer* rb, Task* task) {
     // Fast path: try lock-free push
-    uint32_t head      = atomic_load_explicit(&rb->head, memory_order_acquire);
+    uint32_t head = atomic_load_explicit(&rb->head, memory_order_acquire);
     uint32_t next_head = (head + 1) & RING_BUFFER_MASK;
-    uint32_t tail      = atomic_load_explicit(&rb->tail, memory_order_acquire);
+    uint32_t tail = atomic_load_explicit(&rb->tail, memory_order_acquire);
 
     if (next_head != tail) {
         rb->tasks[head] = *task;
@@ -115,7 +116,7 @@ static bool ringbuffer_push(TaskRingBuffer* rb, Task* task) {
         cond_wait(&rb->not_full, &rb->mutex);
     }
 
-    head            = atomic_load_explicit(&rb->head, memory_order_relaxed);
+    head = atomic_load_explicit(&rb->head, memory_order_relaxed);
     rb->tasks[head] = *task;
     atomic_store_explicit(&rb->head, (head + 1) & RING_BUFFER_MASK, memory_order_release);
     cond_signal(&rb->not_empty);
@@ -134,12 +135,12 @@ static int ringbuffer_pull_batch_optimized(TaskRingBuffer* rb, Task* tasks, size
         if (head != tail) {
             // Calculate available tasks
             size_t available = (head - tail) & RING_BUFFER_MASK;
-            size_t to_take   = (available < max_tasks) ? available : max_tasks;
+            size_t to_take = (available < max_tasks) ? available : max_tasks;
 
             // Atomic reservation with single CAS
             uint32_t new_tail = (tail + to_take) & RING_BUFFER_MASK;
-            if (atomic_compare_exchange_weak_explicit(&rb->tail, &tail, new_tail, memory_order_release,
-                                                      memory_order_relaxed)) {
+            if (atomic_compare_exchange_weak_explicit(
+                    &rb->tail, &tail, new_tail, memory_order_release, memory_order_relaxed)) {
 
                 // Bulk copy tasks (optimized for cache)
                 for (size_t i = 0; i < to_take; i++) {
@@ -215,10 +216,10 @@ static inline int has_work(Threadpool* pool) {
 
 /** Streamlined worker thread with minimal atomic operations. */
 static void* thread_worker(void* arg) {
-    thread* thp            = (thread*)arg;
-    Threadpool* pool       = thp->pool;
+    thread* thp = (thread*)arg;
+    Threadpool* pool = thp->pool;
     Task batch[BATCH_SIZE] = {0};
-    int batch_count        = 0;
+    int batch_count = 0;
 
     atomic_fetch_add_explicit(&pool->num_threads_alive, 1, memory_order_relaxed);
 
@@ -291,7 +292,7 @@ Threadpool* threadpool_create(size_t num_threads) {
     atomic_store_explicit(&pool->shutdown, 0, memory_order_relaxed);
     ringbuffer_init(&pool->queue);
     pool->num_threads = num_threads;
-    pool->queue.pool  = pool;
+    pool->queue.pool = pool;
 
     pool->threads = (thread**)malloc(num_threads * sizeof(thread*));
     if (pool->threads == NULL) {
@@ -321,7 +322,7 @@ bool threadpool_submit(Threadpool* pool, void (*function)(void*), void* arg) {
 
     // Simple round-robin (no atomic counter)
     static _Thread_local size_t thread_counter = 0;
-    size_t thread_id                           = (thread_counter++) % pool->num_threads;
+    size_t thread_id = (thread_counter++) % pool->num_threads;
 
     // Try local queue first
     if (ringbuffer_push(&pool->threads[thread_id]->queue, &task)) {

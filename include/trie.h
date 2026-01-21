@@ -3,12 +3,13 @@
  * @brief Trie data structure implementation for efficient string storage and retrieval.
  */
 
+#include "arena.h"  // Include the Arena library
+
 #include <stdbool.h>  // for bool type
 #include <stdint.h>   // for uint32_t
 #include <stdio.h>    // for fprintf, stderr
 #include <stdlib.h>   // for malloc, free, calloc
 #include <string.h>   // for memset
-#include "arena.h"    // Include the Arena library
 
 /** Root structure for the Trie data structure. */
 typedef struct _trie trie_t;

@@ -118,8 +118,8 @@ int getpassword(const char* prompt, char* buffer, size_t buffer_len) {
 
 enum stream_type {
     INVALID_STREAM = -1,
-    FILE_STREAM    = 0,
-    STRING_STREAM  = 1,
+    FILE_STREAM = 0,
+    STRING_STREAM = 1,
 };
 
 // stream_t type wraps common FILE* operations to be work with
@@ -176,20 +176,20 @@ stream_t create_file_stream(FILE* fp) {
         return NULL;
     }
 
-    stream->read      = file_read;
-    stream->write     = file_write;
-    stream->flush     = (int (*)(void*))fflush;
-    stream->seek      = (int (*)(void*, long int, int))fseek;
-    stream->eof       = (int (*)(void*))feof;
+    stream->read = file_read;
+    stream->write = file_write;
+    stream->flush = (int (*)(void*))fflush;
+    stream->seek = (int (*)(void*, long int, int))fseek;
+    stream->eof = (int (*)(void*))feof;
     stream->read_char = (int (*)(void*))fgetc;
-    stream->handle    = fp;
-    stream->type      = FILE_STREAM;
+    stream->handle = fp;
+    stream->type = FILE_STREAM;
     return stream;
 }
 
 ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size) {
     ssize_t bytes_read = 0;
-    int ch             = 0;
+    int ch = 0;
     while ((ch = stream->read_char(stream->handle)) != EOF && ch != delim && bytes_read < (int)buffer_size - 1) {
         buffer[bytes_read++] = (char)ch;
     }
@@ -215,7 +215,7 @@ ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size)
 
 unsigned long io_copy(stream_t writer, stream_t reader) {
     char buffer[4096];
-    unsigned long nread         = 0;
+    unsigned long nread = 0;
     unsigned long total_written = 0;
     reader->seek(reader->handle, 0, SEEK_SET);
 
@@ -232,7 +232,7 @@ unsigned long io_copy(stream_t writer, stream_t reader) {
 // writer.
 unsigned long io_copy_n(stream_t writer, stream_t reader, size_t n) {
     char buffer[4096];
-    unsigned long nread         = 0;
+    unsigned long nread = 0;
     unsigned long total_written = 0;
     reader->seek(reader->handle, 0, SEEK_SET);
 
@@ -297,10 +297,10 @@ static int string_stream_eof(void* handle) {
 
 // implementation for writing to a string. For a char *, size must be 1.
 static size_t inner__string_stream_write(const void* ptr, size_t size, size_t count, void* handle) {
-    string_stream* ss    = (string_stream*)handle;
+    string_stream* ss = (string_stream*)handle;
     size_t bytes_written = 0;
-    size_t total_bytes   = size * count;
-    bool resized         = false;
+    size_t total_bytes = size * count;
+    bool resized = false;
 
     resized = cstr_resize(ss->str, cstr_len(ss->str) + total_bytes);
     if (!resized) {
@@ -317,8 +317,8 @@ static size_t inner__string_stream_write(const void* ptr, size_t size, size_t co
 
 static int string_stream_seek(void* handle, long offset, int whence) {
     string_stream* ss = (string_stream*)handle;
-    size_t length     = cstr_len(ss->str);
-    size_t new_pos    = ss->pos;
+    size_t length = cstr_len(ss->str);
+    size_t new_pos = ss->pos;
 
     switch (whence) {
         case SEEK_SET:
@@ -426,14 +426,14 @@ stream_t create_string_stream(size_t initial_capacity) {
         return NULL;
     }
 
-    ss->pos           = 0;
-    stream->read      = inner_string_stream_read;
-    stream->flush     = (int (*)(void*))string_flush;
+    ss->pos = 0;
+    stream->read = inner_string_stream_read;
+    stream->flush = (int (*)(void*))string_flush;
     stream->read_char = string_stream_read_char;
-    stream->eof       = string_stream_eof;
-    stream->write     = inner__string_stream_write;
-    stream->seek      = string_stream_seek;
-    stream->handle    = ss;
-    stream->type      = STRING_STREAM;
+    stream->eof = string_stream_eof;
+    stream->write = inner__string_stream_write;
+    stream->seek = string_stream_seek;
+    stream->handle = ss;
+    stream->type = STRING_STREAM;
     return stream;
 }
