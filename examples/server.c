@@ -1,4 +1,3 @@
-#define _GNU_SOURCE  // Required for SO_REUSEPORT in older libc versions
 #include <arpa/inet.h>
 #include <ctype.h>
 #include <errno.h>
@@ -16,9 +15,9 @@
 // Epoll shim for FreeBSD/Mac
 #include "../include/epoll.h"
 
-#define MAX_EVENTS        64
-#define SERVER_PORT       8080
-#define READ_BUFFER_SIZE  4096
+#define MAX_EVENTS 64
+#define SERVER_PORT 8080
+#define READ_BUFFER_SIZE 4096
 #define WRITE_BUFFER_SIZE 16384
 
 // --- Structures ---
@@ -61,7 +60,7 @@ static void handle_write(int epfd, Connection* conn) {
 
     while (conn->write_buffer_pos < conn->write_buffer_len) {
         size_t remaining = conn->write_buffer_len - conn->write_buffer_pos;
-        ssize_t written  = write(conn->fd, conn->write_buffer + conn->write_buffer_pos, remaining);
+        ssize_t written = write(conn->fd, conn->write_buffer + conn->write_buffer_pos, remaining);
 
         if (written > 0) {
             conn->write_buffer_pos += (size_t)written;
@@ -108,9 +107,14 @@ static void queue_response(int epfd, Connection* conn, const char* status, const
     }
 
     const char* conn_header = conn->close_after_write ? "close" : "keep-alive";
-    int len                 = snprintf(conn->write_buffer + conn->write_buffer_len, space,
-                                       "HTTP/1.1 %s\r\nContent-Type: %s\r\nContent-Length: %zu\r\nConnection: %s\r\n\r\n%s", status,
-                                       content_type, strlen(body), conn_header, body);
+    int len = snprintf(conn->write_buffer + conn->write_buffer_len,
+                       space,
+                       "HTTP/1.1 %s\r\nContent-Type: %s\r\nContent-Length: %zu\r\nConnection: %s\r\n\r\n%s",
+                       status,
+                       content_type,
+                       strlen(body),
+                       conn_header,
+                       body);
 
     if (len > 0 && (size_t)len < space) {
         conn->write_buffer_len += (size_t)len;
@@ -122,8 +126,7 @@ static void queue_response(int epfd, Connection* conn, const char* status, const
 
 static void handle_request(int epfd, Connection* conn) {
     while (true) {
-        if (conn->read_buffer_len < READ_BUFFER_SIZE)
-            conn->read_buffer[conn->read_buffer_len] = '\0';
+        if (conn->read_buffer_len < READ_BUFFER_SIZE) conn->read_buffer[conn->read_buffer_len] = '\0';
         else
             conn->read_buffer[READ_BUFFER_SIZE - 1] = '\0';
 
@@ -132,7 +135,7 @@ static void handle_request(int epfd, Connection* conn) {
 
         size_t header_len = (size_t)(end_of_headers - conn->read_buffer) + 4;
 
-        char saved_char               = conn->read_buffer[header_len];
+        char saved_char = conn->read_buffer[header_len];
         conn->read_buffer[header_len] = '\0';
         if (strcasestr(conn->read_buffer, "Connection: close")) conn->close_after_write = true;
         conn->read_buffer[header_len] = saved_char;
@@ -141,8 +144,10 @@ static void handle_request(int epfd, Connection* conn) {
         // Added thread info to response to prove load balancing
         char response_body[512];
         if (strncmp(conn->read_buffer, "GET / ", 6) == 0) {
-            snprintf(response_body, sizeof(response_body),
-                     "<html><body><h1>Handled by Thread ID: %lu</h1></body></html>", pthread_self());
+            snprintf(response_body,
+                     sizeof(response_body),
+                     "<html><body><h1>Handled by Thread ID: %lu</h1></body></html>",
+                     pthread_self());
             queue_response(epfd, conn, "200 OK", "text/html", response_body);
         } else {
             queue_response(epfd, conn, "404 Not Found", "text/html", "<html><body><h1>404</h1></body></html>");
@@ -192,8 +197,8 @@ static void handle_read(int epfd, Connection* conn) {
 static void handle_accept(int epfd, int listen_fd) {
     while (true) {
         struct sockaddr_in client_addr = {0};
-        socklen_t addr_len             = sizeof(client_addr);
-        int client_fd                  = accept(listen_fd, (struct sockaddr*)&client_addr, &addr_len);
+        socklen_t addr_len = sizeof(client_addr);
+        int client_fd = accept(listen_fd, (struct sockaddr*)&client_addr, &addr_len);
 
         if (client_fd == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) break;
@@ -212,7 +217,7 @@ static void handle_accept(int epfd, int listen_fd) {
             continue;
         }
 
-        conn->fd              = client_fd;
+        conn->fd = client_fd;
         struct epoll_event ev = {.events = EPOLLIN | EPOLLET | EPOLLRDHUP, .data.ptr = conn};
         if (epoll_ctl(epfd, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
             free(conn);
@@ -270,7 +275,7 @@ void* worker_routine(void* arg) {
                 handle_accept(epfd, listen_fd);
             } else {
                 Connection* conn = (Connection*)events[i].data.ptr;
-                uint32_t e       = events[i].events;
+                uint32_t e = events[i].events;
 
                 if (e & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
                     if (e & EPOLLRDHUP) {

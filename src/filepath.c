@@ -912,6 +912,7 @@ char* make_tempdir(void) {
         return NULL;
     }
 #else
+
     if (mkdtemp(tmp) == NULL) {
         free(tmp);
         return NULL;

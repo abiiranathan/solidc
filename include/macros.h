@@ -319,4 +319,25 @@
     } while (0)
 #endif
 
+// Get current time in nano-seconds.
+static inline uint64_t get_time_ns(void) {
+#if defined(_WIN32)
+    LARGE_INTEGER freq, counter;
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&counter);
+
+    // We calculate seconds and remainder separately to prevent overflow
+    // (counter * 1e9) could overflow 64-bit int if the system uptime is long.
+    uint64_t seconds = counter.QuadPart / freq.QuadPart;
+    uint64_t remainder = counter.QuadPart % freq.QuadPart;
+    return (seconds * 1000000000ULL) + ((remainder * 1000000000ULL) / freq.QuadPart);
+#else
+    struct timespec ts;
+    // macOS (since 10.12) and Linux support this
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec * 1000000000ULL + (uint64_t)ts.tv_nsec;
+#endif
+}
+
+
 #endif  // __SOLIDC_MACROS__

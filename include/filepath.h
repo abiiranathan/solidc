@@ -13,10 +13,6 @@
 #ifndef DA20B33A_06DF_4AB0_8B0A_B8874A623312
 #define DA20B33A_06DF_4AB0_8B0A_B8874A623312
 
-#if !defined(_GNU_SOURCE)
-#define _GNU_SOURCE
-#endif
-
 #include "file.h"
 #include "macros.h"
 #include "platform.h"

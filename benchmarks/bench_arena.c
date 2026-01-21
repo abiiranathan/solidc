@@ -2,6 +2,8 @@
 #define _GNU_SOURCE
 #endif
 
+#include "../include/arena.h"
+
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -9,14 +11,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "../include/arena.h"
 
 // --- Configuration ---
-#define WARMUP_ITERATIONS         100
-#define MEASUREMENT_ITERATIONS    2000
+#define WARMUP_ITERATIONS 100
+#define MEASUREMENT_ITERATIONS 2000
 #define ALLOCATIONS_PER_ITERATION 20000
-#define MIN_ALLOC_SIZE            16
-#define MAX_ALLOC_SIZE            4096
+#define MIN_ALLOC_SIZE 16
+#define MAX_ALLOC_SIZE 4096
 
 // --- Statistics & timing ---
 
@@ -66,10 +67,29 @@ static inline void touch_memory(volatile void* ptr) {
 #endif
 }
 
+#if defined(_WIN32)
+#include <windows.h>
+#else
+#include <time.h>
+#endif
+
 static inline uint64_t get_time_ns(void) {
+#if defined(_WIN32)
+    LARGE_INTEGER freq, counter;
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&counter);
+
+    // We calculate seconds and remainder separately to prevent overflow
+    // (counter * 1e9) could overflow 64-bit int if the system uptime is long.
+    uint64_t seconds = counter.QuadPart / freq.QuadPart;
+    uint64_t remainder = counter.QuadPart % freq.QuadPart;
+    return (seconds * 1000000000ULL) + ((remainder * 1000000000ULL) / freq.QuadPart);
+#else
     struct timespec ts;
+    // macOS (since 10.12) and Linux support this
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (uint64_t)ts.tv_sec * 1000000000ULL + (uint64_t)ts.tv_nsec;
+#endif
 }
 
 static int compare_double(const void* a, const void* b) {
@@ -82,13 +102,12 @@ static void calculate_stats(double* samples, size_t count, BenchmarkStats* stats
 
     qsort(samples, count, sizeof(double), compare_double);
 
-    stats->min_ns    = samples[0];
-    stats->max_ns    = samples[count - 1];
+    stats->min_ns = samples[0];
+    stats->max_ns = samples[count - 1];
     stats->median_ns = samples[count / 2];
 
     double sum = 0.0;
-    for (size_t i = 0; i < count; i++)
-        sum += samples[i];
+    for (size_t i = 0; i < count; i++) sum += samples[i];
     stats->avg_ns = sum / (double)count;
 
     double variance_sum = 0.0;
@@ -96,7 +115,7 @@ static void calculate_stats(double* samples, size_t count, BenchmarkStats* stats
         double diff = samples[i] - stats->avg_ns;
         variance_sum += diff * diff;
     }
-    stats->stddev_ns  = sqrt(variance_sum / (double)count);
+    stats->stddev_ns = sqrt(variance_sum / (double)count);
     stats->throughput = (ALLOCATIONS_PER_ITERATION * 1e9) / stats->avg_ns;
 }
 
@@ -153,7 +172,7 @@ static void benchmark_malloc(double* samples, size_t num_samples, bool warmup) {
         // 1. Allocation Loop
         for (size_t i = 0; i < ALLOCATIONS_PER_ITERATION; i++) {
             volatile char* ptr = (volatile char*)malloc(sizes[i]);
-            ptrs[i]            = (void*)ptr;
+            ptrs[i] = (void*)ptr;
 
             // Critical: Touch memory exactly the same way arena did
             *ptr = 1;
@@ -182,8 +201,13 @@ static void print_header(void) {
 }
 
 static void print_row(const char* allocator, const BenchmarkStats* stats) {
-    printf("│ %-12s │ %10.2f │ %10.2f │ %10.2f │ %10.2f │ %10.2f │ %14.0f │\n", allocator, stats->min_ns / 1000.0,
-           stats->avg_ns / 1000.0, stats->median_ns / 1000.0, stats->max_ns / 1000.0, stats->stddev_ns / 1000.0,
+    printf("│ %-12s │ %10.2f │ %10.2f │ %10.2f │ %10.2f │ %10.2f │ %14.0f │\n",
+           allocator,
+           stats->min_ns / 1000.0,
+           stats->avg_ns / 1000.0,
+           stats->median_ns / 1000.0,
+           stats->max_ns / 1000.0,
+           stats->stddev_ns / 1000.0,
            stats->throughput);
 }
 
@@ -198,7 +222,7 @@ int main(void) {
     benchmark_arena(NULL, WARMUP_ITERATIONS, true);
     benchmark_malloc(NULL, WARMUP_ITERATIONS, true);
 
-    double* arena_samples  = malloc(sizeof(double) * MEASUREMENT_ITERATIONS);
+    double* arena_samples = malloc(sizeof(double) * MEASUREMENT_ITERATIONS);
     double* malloc_samples = malloc(sizeof(double) * MEASUREMENT_ITERATIONS);
 
     printf("Running measurements...\n");

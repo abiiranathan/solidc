@@ -19,6 +19,7 @@
  */
 
 #include "../include/thread.h"
+
 #include <stddef.h>  // for NULL
 #include <stdint.h>  // for uintptr_t
 #include <stdio.h>   // for printf, fprintf
@@ -30,11 +31,11 @@ static int tests_passed = 0;
 static int tests_failed = 0;
 
 /** ANSI color codes for terminal output (if supported). */
-#define COLOR_GREEN  "\033[0;32m"
-#define COLOR_RED    "\033[0;31m"
+#define COLOR_GREEN "\033[0;32m"
+#define COLOR_RED "\033[0;31m"
 #define COLOR_YELLOW "\033[0;33m"
-#define COLOR_BLUE   "\033[0;34m"
-#define COLOR_RESET  "\033[0m"
+#define COLOR_BLUE "\033[0;34m"
+#define COLOR_RESET "\033[0m"
 
 /**
  * Reports test result.
@@ -103,8 +104,8 @@ void* fibonacci_thread(void* arg) {
     int a = 0, b = 1;
     for (int i = 2; i <= n; i++) {
         int temp = a + b;
-        a        = b;
-        b        = temp;
+        a = b;
+        b = temp;
     }
 
     printf("  Fibonacci(%d) = %d\n", n, b);
@@ -185,10 +186,10 @@ void test_thread_return_values(void) {
     print_section("Test 2: Thread Return Values");
 
     Thread threads[3];
-    int inputs[3]    = {10, 20, 30};
-    int expected[3]  = {20, 40, 60};
+    int inputs[3] = {10, 20, 30};
+    int expected[3] = {20, 40, 60};
     void* retvals[3] = {NULL};
-    int success      = 1;
+    int success = 1;
 
     // Create threads
     for (int i = 0; i < 3; i++) {
@@ -230,10 +231,10 @@ void test_fibonacci_threads(void) {
     print_section("Test 3: Fibonacci Computation in Threads");
 
     Thread threads[5];
-    int inputs[5]    = {5, 10, 12, 15, 8};
-    int expected[5]  = {5, 55, 144, 610, 21};  // Fibonacci numbers
+    int inputs[5] = {5, 10, 12, 15, 8};
+    int expected[5] = {5, 55, 144, 610, 21};  // Fibonacci numbers
     void* retvals[5] = {NULL};
-    int success      = 1;
+    int success = 1;
 
     // Create threads
     for (int i = 0; i < 5; i++) {
@@ -255,10 +256,12 @@ void test_fibonacci_threads(void) {
                 break;
             }
 
-            int result  = (int)(intptr_t)retvals[i];
+            int result = (int)(intptr_t)retvals[i];
             int matches = (result == expected[i]);
 
-            printf("  Fibonacci(%d) = %d %s\n", inputs[i], result,
+            printf("  Fibonacci(%d) = %d %s\n",
+                   inputs[i],
+                   result,
                    matches ? COLOR_GREEN "✓" COLOR_RESET : COLOR_RED "✗" COLOR_RESET);
 
             if (!matches) {
@@ -278,9 +281,9 @@ void test_thread_attributes(void) {
 
     Thread thread;
     ThreadAttr attr;
-    int n        = 15;
+    int n = 15;
     void* retval = NULL;
-    int success  = 1;
+    int success = 1;
 
     // Initialize attributes
     int ret = thread_attr_init(&attr);

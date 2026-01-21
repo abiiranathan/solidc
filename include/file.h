@@ -2,14 +2,8 @@
  * @file file.h
  * @brief Cross-platform file handling API with synchronous and asynchronous I/O support.
  */
-
 #ifndef SOLIDC_FILE_H
 #define SOLIDC_FILE_H
-
-// feature detection before stdio.h include.
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
 
 #define _POSIX_C_SOURCE 200809L  // For fstat, fileno, pwrite, pread, fcntl, etc.
 #define _FILE_OFFSET_BITS 64     // Ensure 64-bit off_t on 32-bit POSIX systems
