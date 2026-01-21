@@ -7,14 +7,6 @@
 #else
 #include <sys/mman.h>
 #include <unistd.h>
-
-// MAP_ANONYMOUS may not be available on Mac OS
-#ifndef MAP_ANONYMOUS
-#ifdef MAP_ANON
-#define MAP_ANONYMOUS MAP_ANON
-#endif
-#endif
-
 #endif
 
 Arena* arena_create(size_t reserve_size) {
@@ -37,7 +29,7 @@ Arena* arena_create(size_t reserve_size) {
 #else
     a->page_size = (size_t)sysconf(_SC_PAGESIZE);
     // Reserve address space (no RAM used)
-    a->base = (char*)mmap(NULL, reserve_size, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    a->base = (char*)mmap(NULL, reserve_size, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
     if (a->base == MAP_FAILED) a->base = NULL;
 #endif
 
