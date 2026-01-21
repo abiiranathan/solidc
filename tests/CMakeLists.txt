@@ -28,6 +28,7 @@ set(TEST_MODULES
     flags
     linear_alg
     prettytable
+    defer
 )
 
 

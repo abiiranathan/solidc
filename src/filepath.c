@@ -1,4 +1,5 @@
 #include "../include/filepath.h"
+
 #include "../include/env.h"
 #include "../include/file.h"
 #include "../include/lock.h"
@@ -61,7 +62,7 @@ static void random_string(char* str, size_t len) {
         atomic_store(&initialized, 1);
     }
 
-    const char charset[]      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     const size_t charset_size = sizeof(charset) - 1;  // Exclude null terminator
     unsigned char buffer[64];                         // Buffer for random bytes (sufficient for typical len)
 
@@ -217,8 +218,7 @@ char* dir_next(Directory* dir) {
 #ifdef _WIN32
 static void map_win32_attrs(const WIN32_FIND_DATAW* fd, FileAttributes* attr) {
     attr->attrs = FATTR_NONE;
-    if (fd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-        attr->attrs |= FATTR_DIR;
+    if (fd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) attr->attrs |= FATTR_DIR;
     else
         attr->attrs |= FATTR_FILE;
     if (fd->dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) attr->attrs |= FATTR_SYMLINK;
@@ -229,16 +229,16 @@ static void map_win32_attrs(const WIN32_FIND_DATAW* fd, FileAttributes* attr) {
 
     // Convert Windows FileTime to Unix mtime (simplified)
     ULARGE_INTEGER ull;
-    ull.LowPart  = fd->ftLastWriteTime.dwLowDateTime;
+    ull.LowPart = fd->ftLastWriteTime.dwLowDateTime;
     ull.HighPart = fd->ftLastWriteTime.dwHighDateTime;
-    attr->mtime  = (time_t)((ull.QuadPart - 116444736000000000ULL) / 10000000ULL);
+    attr->mtime = (time_t)((ull.QuadPart - 116444736000000000ULL) / 10000000ULL);
 }
 #else
 static int map_dirent_attrs(const struct dirent* entry, const char* path, FileAttributes* attr) {
     struct stat st;
     if (lstat(path, &st) != 0) return -1;
 
-    attr->size  = (size_t)st.st_size;
+    attr->size = (size_t)st.st_size;
     attr->mtime = st.st_mtime;
     attr->attrs = FATTR_NONE;
     if (entry->d_name[0] == '.') attr->attrs |= FATTR_HIDDEN;
@@ -278,9 +278,9 @@ static int delete_single_directory(const char* path) {
 #ifdef _WIN32
     if (!RemoveDirectoryA(path)) {
         DWORD err = GetLastError();
-        errno     = (err == ERROR_DIR_NOT_EMPTY)                                   ? ENOTEMPTY
-                    : (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
-                                                                                   : EACCES;
+        errno = (err == ERROR_DIR_NOT_EMPTY)                               ? ENOTEMPTY
+            : (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
+                                                                           : EACCES;
         return -1;
     }
 #else
@@ -337,17 +337,17 @@ static WalkDirOption dir_remove_callback(const FileAttributes* attr, const char*
     if (fattr_is_dir(attr)) {
         if (!RemoveDirectoryA(path)) {
             DWORD err = GetLastError();
-            errno     = (err == ERROR_DIR_NOT_EMPTY)                                   ? ENOTEMPTY
-                        : (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
-                                                                                       : EACCES;
+            errno = (err == ERROR_DIR_NOT_EMPTY)                               ? ENOTEMPTY
+                : (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
+                                                                               : EACCES;
             return DirError;
         }
     } else {
         if (!DeleteFileA(path)) {
             DWORD err = GetLastError();
-            errno     = (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
-                        : (err == ERROR_ACCESS_DENIED)                               ? EACCES
-                                                                                     : EIO;
+            errno = (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
+                : (err == ERROR_ACCESS_DENIED)                                   ? EACCES
+                                                                                 : EIO;
             return DirError;
         }
     }
@@ -499,11 +499,11 @@ char** dir_list(const char* path, size_t* count) {
         return NULL;
     }
 
-    Directory* dir  = NULL;
-    char** list     = NULL;
-    size_t size     = 0;
+    Directory* dir = NULL;
+    char** list = NULL;
+    size_t size = 0;
     size_t capacity = 10;
-    char* name      = NULL;
+    char* name = NULL;
 
     dir = dir_open(path);
     if (!dir) return NULL;
@@ -775,7 +775,7 @@ bool filepath_makedirs(const char* path) {
         }
 
         char old = *p;
-        *p       = '\0';
+        *p = '\0';
 
         if (*temp_path != '\0') {
             if (dir_create(temp_path) != 0) {
@@ -990,7 +990,7 @@ void filepath_nameonly(const char* path, char* name, size_t size) {
     filepath_basename(path, base, BASENAME_MAX);
     char* dot = strrchr(base, '.');
 
-    size_t base_len   = strnlen(base, BASENAME_MAX);
+    size_t base_len = strnlen(base, BASENAME_MAX);
     size_t source_len = dot ? (size_t)(dot - base) : base_len;
 
     // Don't exceed destination size
@@ -1081,12 +1081,12 @@ char* filepath_expanduser(const char* path) {
     }
 
     size_t pathLen = strlen(path);
-    bool isHome    = pathLen == 1 || (pathLen == 2 && (path[1] == '/' || path[1] == '\\'));
+    bool isHome = pathLen == 1 || (pathLen == 2 && (path[1] == '/' || path[1] == '\\'));
     if (isHome) {
         return strdup(home);
     }
 
-    size_t len     = strlen(home) + pathLen + 1;
+    size_t len = strlen(home) + pathLen + 1;
     char* expanded = (char*)malloc(len);
     if (!expanded) {
         errno = ENOMEM;
@@ -1121,7 +1121,7 @@ bool filepath_expanduser_buf(const char* path, char* expanded, size_t len) {
     }
 
     size_t pathLen = strlen(path);
-    bool isHome    = pathLen == 1 || (pathLen == 2 && (path[1] == '/' || path[1] == '\\'));
+    bool isHome = pathLen == 1 || (pathLen == 2 && (path[1] == '/' || path[1] == '\\'));
     if (isHome) {
         return safe_strlcpy(expanded, home, len) < len;
     }
@@ -1147,7 +1147,7 @@ char* filepath_join(const char* path1, const char* path2) {
         return NULL;
     }
 
-    size_t len   = strlen(path1) + strlen(path2) + 2;
+    size_t len = strlen(path1) + strlen(path2) + 2;
     char* joined = (char*)malloc(len);
     if (!joined) {
         errno = ENOMEM;
@@ -1172,7 +1172,7 @@ bool filepath_join_buf(const char* path1, const char* path2, char* abspath, size
 #ifdef _WIN32
     // On Windows, decide which separator to use based on what path1 already uses
     const char* sep = strchr(path1, '\\') ? "\\" : "/";
-    int result      = snprintf(abspath, len, "%s%s%s", path1, sep, path2);
+    int result = snprintf(abspath, len, "%s%s%s", path1, sep, path2);
 #else
     int result = snprintf(abspath, len, "%s/%s", path1, path2);
 #endif
@@ -1181,7 +1181,7 @@ bool filepath_join_buf(const char* path1, const char* path2, char* abspath, size
     if (result < 0 || (size_t)result >= len) {
         // Ensure null-termination if truncated (snprintf does this, but good practice to be sure)
         abspath[len - 1] = '\0';
-        errno            = ENAMETOOLONG;
+        errno = ENAMETOOLONG;
         return false;
     }
 
