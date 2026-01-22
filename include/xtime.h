@@ -10,6 +10,11 @@
 #include <stdint.h>   // for int64_t, uint32_t
 #include <time.h>     // for struct tm, time_t
 
+// Definition for strptime on windows.
+#if defined(_MSC_VER)
+#include "./win_strptime.h"
+#endif
+
 /**
  * @file xtime.h
  * @brief Cross-platform time parsing and formatting library
