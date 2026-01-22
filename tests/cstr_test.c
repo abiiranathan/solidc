@@ -1,8 +1,10 @@
+#include "../include/arena.h"
 #include "../include/cstr.h"
 #include "../include/macros.h"
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>  // for rand, malloc, free
 #include <string.h>
 #include <time.h>
 
@@ -11,7 +13,10 @@ void print_cstr(const cstr* s) {
     if (!s) {
         printf("NULL\n");
     } else {
-        printf("\"%s\" (len=%zu, cap=%zu, heap=%d)\n", cstr_data_const(s), cstr_len(s), cstr_capacity(s),
+        printf("\"%s\" (len=%zu, cap=%zu, heap=%d)\n",
+               cstr_data_const(s),
+               cstr_len(s),
+               cstr_capacity(s),
                cstr_allocated(s));
     }
 }
@@ -309,7 +314,7 @@ int main(void) {
     // Test str_as_view
     {
         printf("\nTesting str_as_view...\n");
-        cstr* s    = cstr_new("Hello");
+        cstr* s = cstr_new("Hello");
         str_view v = cstr_as_view(s);
         ASSERT(v.length == 5 && strcmp(v.data, "Hello") == 0 && "str_as_view incorrect");
         cstr_free(s);
@@ -504,7 +509,7 @@ int main(void) {
     // Test str_substr
     {
         printf("\nTesting str_substr...\n");
-        cstr* s   = cstr_new("Hello, World");
+        cstr* s = cstr_new("Hello, World");
         cstr* sub = cstr_substr(s, 7, 5);
         ASSERT_cstr_equals(sub, "World", "str_substr content");
         cstr_free(sub);
@@ -514,13 +519,13 @@ int main(void) {
     // Test str_replace
     {
         printf("\nTesting str_replace...\n");
-        cstr* s      = cstr_new("hello hello world");
+        cstr* s = cstr_new("hello hello world");
         cstr* result = cstr_replace(s, "hello", "hi");
         ASSERT_cstr_equals(result, "hi hello world", "str_replace first occurrence");
         cstr_free(s);
         cstr_free(result);
 
-        s      = cstr_new("test");
+        s = cstr_new("test");
         result = cstr_replace(s, "notfound", "x");
         ASSERT_cstr_equals(result, "test", "str_replace not found");
         cstr_free(s);
@@ -530,7 +535,7 @@ int main(void) {
     // Test str_replace_all
     {
         printf("\nTesting str_replace_all...\n");
-        cstr* s      = cstr_new("hello hello world");
+        cstr* s = cstr_new("hello hello world");
         cstr* result = cstr_replace_all(s, "hello", "hi");
         ASSERT_cstr_equals(result, "hi hi world", "str_replace_all content");
         cstr_free(s);
@@ -542,9 +547,9 @@ int main(void) {
         printf("\n**************Testing str_split***************\n");
 
         // Basic case
-        cstr* s      = cstr_new("a,b,c");
+        cstr* s = cstr_new("a,b,c");
         size_t count = 0;
-        cstr** arr   = cstr_split(s, ",", &count);
+        cstr** arr = cstr_split(s, ",", &count);
         ASSERT(count == 3 && "str_split count incorrect");
         ASSERT_cstr_equals(arr[0], "a", "str_split first element");
         ASSERT_cstr_equals(arr[1], "b", "str_split second element");
@@ -553,7 +558,7 @@ int main(void) {
         cstr_free(s);
 
         // Empty string case
-        s   = cstr_new("");
+        s = cstr_new("");
         arr = cstr_split(s, ",", &count);
         ASSERT(count == 1 && "empty string should return one empty element");
         ASSERT_cstr_equals(arr[0], "", "empty string element");
@@ -561,7 +566,7 @@ int main(void) {
         cstr_free(s);
 
         // No delimiter case
-        s   = cstr_new("abc");
+        s = cstr_new("abc");
         arr = cstr_split(s, ",", &count);
         ASSERT(count == 1 && "no delimiter should return original string");
         ASSERT_cstr_equals(arr[0], "abc", "no delimiter element");
@@ -569,13 +574,12 @@ int main(void) {
         cstr_free(s);
 
         // Long prose string case
-        const char* long_prose =
-            "It was the best of times, it was the worst of times, "
-            "it was the age of wisdom, it was the age of foolishness, "
-            "it was the epoch of belief, it was the epoch of incredulity, "
-            "it was the season of Light, it was the season of Darkness, "
-            "it was the spring of hope, it was the winter of despair.";
-        s   = cstr_new(long_prose);
+        const char* long_prose = "It was the best of times, it was the worst of times, "
+                                 "it was the age of wisdom, it was the age of foolishness, "
+                                 "it was the epoch of belief, it was the epoch of incredulity, "
+                                 "it was the season of Light, it was the season of Darkness, "
+                                 "it was the spring of hope, it was the winter of despair.";
+        s = cstr_new(long_prose);
         arr = cstr_split(s, ", ", &count);  // Split on comma+space
 
         // Verify we got the expected number of splits
@@ -603,7 +607,7 @@ int main(void) {
         cstr_free(s);
 
         // Edge case: delimiter at start/end
-        s   = cstr_new(",a,b,c,");
+        s = cstr_new(",a,b,c,");
         arr = cstr_split(s, ",", &count);
         ASSERT(count == 5 && "edge delimiters count incorrect");
         ASSERT_cstr_equals(arr[0], "", "leading delimiter element");
@@ -617,9 +621,9 @@ int main(void) {
     // Test str_join
     {
         printf("\nTesting str_join...\n");
-        cstr* s1     = cstr_new("Hello");
-        cstr* s2     = cstr_new("World");
-        cstr* arr[]  = {s1, s2};
+        cstr* s1 = cstr_new("Hello");
+        cstr* s2 = cstr_new("World");
+        cstr* arr[] = {s1, s2};
         cstr* result = cstr_join((const cstr**)arr, 2, ", ");
         ASSERT_cstr_equals(result, "Hello, World", "str_join content");
         cstr_free(s1);
@@ -630,7 +634,7 @@ int main(void) {
     // Test str_reverse
     {
         printf("\nTesting str_reverse...\n");
-        cstr* s      = cstr_new("Hello");
+        cstr* s = cstr_new("Hello");
         cstr* result = cstr_reverse(s);
         ASSERT_cstr_equals(result, "olleH", "str_reverse content");
         cstr_free(s);
@@ -743,7 +747,7 @@ int main(void) {
 
     {
         printf("Testing str_remove_all...\n");
-        cstr* s        = cstr_new("foo bar foo bar foo");
+        cstr* s = cstr_new("foo bar foo bar foo");
         size_t removed = cstr_remove_all(s, "foo ");
         ASSERT(removed == 2);
         ASSERT_cstr_equals(s, "bar bar foo", "str_remove_all");
@@ -769,7 +773,7 @@ int main(void) {
 
     {
         printf("Testing str_as_view...\n");
-        cstr* s    = cstr_new("Slice");
+        cstr* s = cstr_new("Slice");
         str_view v = cstr_as_view(s);
         ASSERT(v.data && strcmp(v.data, "Slice") == 0 && v.length == 5);
         cstr_free(s);
@@ -798,10 +802,69 @@ int main(void) {
             cstr* s = cstr_init(0);
             ASSERT(cstr_resize(s, 100));
 
-            for (int j = 0; j < 100; ++j)
-                ASSERT(cstr_append_char(s, 'a' + (rand() % 26)));
+            for (int j = 0; j < 100; ++j) ASSERT(cstr_append_char(s, 'a' + (rand() % 26)));
             cstr_free(s);
         }
+    }
+
+    // ============================================
+    // Test Arena Integration
+    // ============================================
+    {
+        printf("\n**************Testing cstr with Arena***************\n");
+        Arena* arena = arena_create(0);
+        ASSERT(arena != NULL);
+
+        // 1. Basic Creation
+        cstr* s = cstr_new_arena(arena, "Arena String");
+        ASSERT(s != NULL);
+        ASSERT_cstr_equals(s, "Arena String", "cstr_new_arena");
+        // Verify it is NOT on standard heap (how? we can't easily check address ranges portably)
+        // But we can verify it works.
+
+        // 2. Append (Small -> Small)
+        // "Arena String" (12 chars) fits in SSO.
+        // Let's make a small one first.
+        cstr* s_small = cstr_new_arena(arena, "Hi");
+        ASSERT_cstr_equals(s_small, "Hi", "small arena string");
+        cstr_append(s_small, " there");
+        ASSERT_cstr_equals(s_small, "Hi there", "small append");
+
+        // 3. Append causing growth (SSO -> Heap/Arena)
+        // Fill up to > SSO chars
+        for (int i = 0; i < 50; i++) {
+            cstr_append_char(s, '!');
+        }
+        ASSERT(cstr_len(s) == 12 + 50);
+        // The data should now be in the arena.
+        // If we destroyed the arena, accessing s would crash (in theory).
+
+        // 4. cstr_substr with arena
+        cstr* sub = cstr_substr(s, 0, 5);
+        ASSERT_cstr_equals(sub, "Arena", "cstr_substr with arena");
+        // sub should share the same arena reference?
+        // Our implementation of substr uses cstr_init_arena(s->arena, ...)
+
+        // 5. cstr_join with arena
+        const cstr* parts[] = {s_small, sub};
+        cstr* joined = cstr_join(parts, 2, " - ");
+        ASSERT_cstr_equals(joined, "Hi there - Arena", "cstr_join with arena");
+
+        // 6. cstr_replace with arena
+        cstr* replaced = cstr_replace(s_small, "Hi", "Hello");
+        ASSERT_cstr_equals(replaced, "Hello there", "cstr_replace with arena");
+
+        // 7. Freeing
+        // cstr_free(s) is a no-op for arena strings (except zeroing struct)
+        // We call it to ensure it doesn't crash or double-free.
+        cstr_free(s);
+        cstr_free(s_small);
+        cstr_free(sub);
+        cstr_free(joined);
+        cstr_free(replaced);
+
+        arena_destroy(arena);
+        printf("Arena tests passed!\n");
     }
 
     printf("\nAll tests passed successfully!\n");

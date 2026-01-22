@@ -17,6 +17,9 @@
 extern "C" {
 #endif
 
+// Forward declare Arena to avoid including arena.h here
+typedef struct Arena Arena;
+
 #if !defined(STR_MIN_CAPACITY)
 #define STR_MIN_CAPACITY 16U
 #endif
@@ -68,6 +71,15 @@ typedef struct {
 cstr* cstr_init(size_t initial_capacity);
 
 /**
+ * @brief Creates a new empty cstr using a custom arena allocator.
+ * 
+ * @param arena The arena to allocate from.
+ * @param initial_capacity Requested initial capacity.
+ * @return Pointer to new cstr, or NULL on failure.
+ */
+cstr* cstr_init_arena(Arena* arena, size_t initial_capacity);
+
+/**
  * @brief Creates a new cstr from a C string.
  *
  * Creates a new cstr containing a copy of the input C string. The new string
@@ -80,6 +92,15 @@ cstr* cstr_init(size_t initial_capacity);
  * @note Caller must call str_free() to release memory
  */
 cstr* cstr_new(const char* input);
+
+/**
+ * @brief Creates a new cstr from a C string using a custom arena allocator.
+ * 
+ * @param arena The arena to allocate from.
+ * @param input C string to copy.
+ * @return Pointer to new cstr, or NULL on failure.
+ */
+cstr* cstr_new_arena(Arena* arena, const char* input);
 
 // Debug function to print all string details
 void cstr_debug(const cstr* s);

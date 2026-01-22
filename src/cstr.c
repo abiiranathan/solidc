@@ -1,6 +1,7 @@
 #include "../include/cstr.h"
 
 #include "../include/aligned_alloc.h"
+#include "../include/arena.h"
 #include "../include/ckdint.h"
 
 #include <assert.h>
@@ -17,7 +18,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 // Small String Optimization (SSO) constants
-#define SSO_MAX_SIZE (sizeof(size_t) + sizeof(size_t) + sizeof(char*) - 1)
+#define SSO_MAX_SIZE (sizeof(void*) + sizeof(size_t) + sizeof(size_t) + sizeof(char*) - 1)
 #define SSO_HEAP_FLAG 0x80
 #define SSO_LENGTH_MASK 0x7F
 #define HEAP_FLAG_BIT (1ULL << 63)
@@ -58,6 +59,7 @@
  * @note The structure size is optimized to fit common cache line sizes.
  */
 struct cstr {
+    Arena* arena;  // Optional arena allocator
     union {
         struct {
             /// @brief Pointer to heap-allocated string data
@@ -194,8 +196,13 @@ static bool cstr_promote_to_heap(cstr* s, size_t new_capacity) {
     size_t cap = calculate_growth_capacity(SSO_MAX_SIZE, new_capacity);
     if (cap == 0) return false;
 
-    // Allocate the NEW memory first
-    char* new_mem = malloc(cap);
+    char* new_mem = NULL;
+    if (s->arena) {
+        new_mem = arena_alloc(s->arena, cap);
+    } else {
+        new_mem = malloc(cap);
+    }
+
     if (!new_mem) return false;
 
     // COPY data from Stack to the new Heap buffer
@@ -241,7 +248,18 @@ static bool cstr_ensure_capacity(cstr* s, size_t new_capacity) {
             return false;
         }
 
-        char* new_data = realloc(s->heap.data, optimal_capacity);
+        char* new_data = NULL;
+        if (s->arena) {
+            // Arena doesn't support realloc, so alloc new + copy
+            new_data = arena_alloc(s->arena, optimal_capacity);
+            if (new_data) {
+                memcpy(new_data, s->heap.data, s->heap.length + 1);
+                // Old data is left in arena (leak within arena scope)
+            }
+        } else {
+            new_data = realloc(s->heap.data, optimal_capacity);
+        }
+
         if (!new_data) {
             return false;
         }
@@ -270,11 +288,29 @@ static bool cstr_ensure_capacity(cstr* s, size_t new_capacity) {
  * @note Actual capacity may be larger than requested for optimization
  */
 cstr* cstr_init(size_t initial_capacity) {
+    return cstr_init_arena(NULL, initial_capacity);
+}
+
+/**
+ * @brief Creates a new empty cstr using a custom arena allocator.
+ * 
+ * @param arena The arena to allocate from.
+ * @param initial_capacity Requested initial capacity.
+ * @return Pointer to new cstr, or NULL on failure.
+ */
+cstr* cstr_init_arena(Arena* arena, size_t initial_capacity) {
     if (initial_capacity > CSTR_MAX_SIZE) return NULL;
 
-    cstr* s = malloc(sizeof(cstr));
+    cstr* s = NULL;
+    if (arena) {
+        s = ARENA_ALLOC(arena, cstr);
+    } else {
+        s = malloc(sizeof(cstr));
+    }
+
     if (!s) return NULL;
 
+    s->arena = arena;
     initial_capacity = MAX(initial_capacity, STR_MIN_CAPACITY);
 
     if (initial_capacity <= SSO_MAX_SIZE) {
@@ -286,13 +322,19 @@ cstr* cstr_init(size_t initial_capacity) {
     } else {
         size_t optimal_capacity = calculate_growth_capacity(0, initial_capacity);
         if (optimal_capacity == 0) {
-            free(s);
+            if (!arena) free(s);
             return NULL;
         }
 
-        char* data = ALIGNED_ALLOC(STR_ALIGNMENT, optimal_capacity);
+        char* data = NULL;
+        if (arena) {
+            data = arena_alloc(arena, optimal_capacity);
+        } else {
+            data = ALIGNED_ALLOC(STR_ALIGNMENT, optimal_capacity);
+        }
+
         if (!data) {
-            free(s);
+            if (!arena) free(s);
             return NULL;
         }
 
@@ -318,12 +360,23 @@ cstr* cstr_init(size_t initial_capacity) {
  * @note Caller must call str_free() to release memory
  */
 cstr* cstr_new(const char* input) {
+    return cstr_new_arena(NULL, input);
+}
+
+/**
+ * @brief Creates a new cstr from a C string using a custom arena allocator.
+ * 
+ * @param arena The arena to allocate from.
+ * @param input C string to copy.
+ * @return Pointer to new cstr, or NULL on failure.
+ */
+cstr* cstr_new_arena(Arena* arena, const char* input) {
     if (!input) {
         return NULL;
     }
 
     size_t len = strlen(input);
-    cstr* str = cstr_init(len + 1);
+    cstr* str = cstr_init_arena(arena, len + 1);
     if (!str) {
         return NULL;
     }
@@ -404,6 +457,12 @@ bool cstr_allocated(const cstr* s) {
  */
 void cstr_free(cstr* s) {
     if (!s) {
+        return;
+    }
+
+    // If using arena, the memory is managed by the arena.
+    // We don't free it individually.
+    if (s->arena) {
         return;
     }
 
@@ -587,9 +646,6 @@ cstr* cstr_format(const char* format, ...) {
     cstr_set_length(s, (size_t)written);
     return s;
 }
-
-#include <stdarg.h>
-#include <stdio.h>
 
 /**
  * @brief Appends a formatted string to the cstr.
@@ -1531,10 +1587,10 @@ cstr* cstr_substr(const cstr* s, size_t start, size_t length) {
     length = MIN(length, s_len - start);
 
     if (length == 0) {
-        return cstr_new("");  // Return an empty string if the substring length is 0
+        return cstr_new_arena(s->arena, "");  // Return an empty string if the substring length is 0
     }
 
-    cstr* result = cstr_init(length + 1);
+    cstr* result = cstr_init_arena(s->arena, length + 1);
     if (!result) {
         return NULL;
     }
@@ -1567,12 +1623,14 @@ cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) {
     size_t s_len = cstr_get_length(s);
 
     if (old_len == 0) {
-        return cstr_new(s_data);  // Cannot replace empty string, return a copy
+        // Cannot replace empty string, return a copy
+        return cstr_new_arena(s->arena, s_data);
     }
 
     const char* found = strstr(s_data, old_str);
     if (!found) {
-        return cstr_new(s_data);  // No occurrence found, return a copy
+        // No occurrence found, return a copy
+        return cstr_new_arena(s->arena, s_data);
     }
 
     size_t new_len = strlen(new_str);
@@ -1584,7 +1642,7 @@ cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) {
         return NULL;
     }
 
-    cstr* result = cstr_init(required_capacity);
+    cstr* result = cstr_init_arena(s->arena, required_capacity);
     if (!result) {
         return NULL;
     }
@@ -1628,7 +1686,7 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
     const char* s_data = cstr_get_data_const(s);
 
     if (old_len == 0) {
-        return cstr_new(s_data);  // Cannot replace empty string, return a copy
+        return cstr_new_arena(s->arena, s_data);  // Cannot replace empty string, return a copy
     }
 
     size_t new_len = strlen(new_sub);
@@ -1643,7 +1701,7 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
     }
 
     if (count == 0) {
-        return cstr_new(s_data);  // No occurrences found, return a copy
+        return cstr_new_arena(s->arena, s_data);  // No occurrences found, return a copy
     }
 
     // Calculate estimated result length
@@ -1661,7 +1719,7 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
         result_len_estimate = s_len >= delta ? s_len - delta : 0;  // Prevent underflow
     }
 
-    cstr* result = cstr_init(result_len_estimate + 1);
+    cstr* result = cstr_init_arena(s->arena, result_len_estimate + 1);
     if (!result) {
         return NULL;
     }
@@ -1727,7 +1785,8 @@ cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
     if (!delim || !*delim) {
         cstr** result = malloc(sizeof(cstr*));
         if (!result) return NULL;
-        result[0] = cstr_new(s_data);
+
+        result[0] = cstr_new_arena(s->arena, s_data);
         if (!result[0]) {
             free(result);
             return NULL;
@@ -1737,12 +1796,9 @@ cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
     }
 
     size_t delim_len = strlen(delim);
-    if (delim_len == 0) {
-        return cstr_split(s, NULL, count_out);
-    }
 
     // Estimate capacity (avoid scanning entire string)
-    size_t capacity = (s_len / (delim_len * 2)) + 4;  // Heuristic
+    size_t capacity = (s_len / (delim_len * 2)) + 4;
     cstr** result = malloc(capacity * sizeof(cstr*));
     if (!result) return NULL;
 
@@ -1754,7 +1810,7 @@ cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
         const char* found = strstr(start, delim);
         if (!found || found >= end) found = end;
 
-        // Grow array if needed (but less frequently)
+        // Grow array if needed
         if (count >= capacity) {
             capacity *= 2;
             cstr** new_result = realloc(result, capacity * sizeof(cstr*));
@@ -1763,12 +1819,15 @@ cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
         }
 
         size_t token_len = (size_t)(found - start);
-        result[count] = cstr_init(token_len + 1);
+        // Use s->arena for substrings
+        result[count] = cstr_init_arena(s->arena, token_len + 1);
         if (!result[count]) goto error;
 
-        memcpy(cstr_get_data(result[count]), start, token_len);
-        cstr_get_data(result[count])[token_len] = '\0';
+        char* data = cstr_get_data(result[count]);
+        memcpy(data, start, token_len);
+        data[token_len] = '\0';
         cstr_set_length(result[count], token_len);
+
         count++;
 
         if (found == end) break;
@@ -1778,7 +1837,7 @@ cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
     // Trim to exact size if we over-allocated significantly
     if (capacity > count * 2 && count > 8) {
         cstr** trimmed = realloc(result, count * sizeof(cstr*));
-        if (trimmed) result = trimmed;  // Accept if successful, keep old if not
+        if (trimmed) result = trimmed;
     }
 
     *count_out = count;
@@ -1808,18 +1867,26 @@ error:
  */
 cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
     if (!strings || count == 0) {
-        return cstr_new("");  // Return an empty string for an empty input array
+        // Return empty string on heap by default, or use first arena if available?
+        // Without strings, we have no arena context. Default to malloc.
+        return cstr_new("");
     }
 
     size_t delim_len = delim ? strlen(delim) : 0;
     size_t total_len = 0;
+    Arena* arena = NULL;
 
-    // Calculate total length needed
+    // Calculate total length needed and find arena
     for (size_t i = 0; i < count; i++) {
 
         // Invalid input array
         if (!strings[i]) {
             return NULL;
+        }
+
+        // Propagate arena from first string that has one
+        if (!arena && strings[i]->arena) {
+            arena = strings[i]->arena;
         }
 
         size_t string_len = cstr_get_length(strings[i]);
@@ -1839,7 +1906,7 @@ cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
         return NULL;
     }
 
-    cstr* result = cstr_init(total_len);
+    cstr* result = cstr_init_arena(arena, total_len);
     if (!result) {
         return NULL;
     }
@@ -1877,10 +1944,10 @@ cstr* cstr_reverse(const cstr* s) {
     }
     size_t len = cstr_get_length(s);
     if (len == 0) {
-        return cstr_new("");  // Return an empty string for an empty input
+        return cstr_new_arena(s->arena, "");  // Return an empty string for an empty input
     }
 
-    cstr* result = cstr_init(len + 1);
+    cstr* result = cstr_init_arena(s->arena, len + 1);
     if (!result) {
         return NULL;
     }
