@@ -9,19 +9,19 @@
  *   Ctrl+C to exit.
  */
 
+#include "include/vec.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>  // For usleep
-#include "include/vec.h"
 
 // --- Configuration ---
-#define WIDTH  80
+#define WIDTH 80
 #define HEIGHT 40
-#define FPS    30
+#define FPS 30
 
 // Aspect ratio correction for terminal characters (they are usually 2x taller than wide)
-#define ASPECT_RATIO  (0.5f)
+#define ASPECT_RATIO (0.5f)
 #define GRADIENT_SIZE 12
 const char GRADIENT[] = " .:;=+*#%@";
 
@@ -66,8 +66,8 @@ int main() {
     SimdVec3 camera_pos = vec3_load((Vec3){0.0f, 0.0f, -2.0f});
 
     Sphere sphere;
-    sphere.center    = vec3_load((Vec3){0.0f, 0.0f, 2.0f});  // Sphere is at Z=2
-    sphere.radius    = 1.2f;
+    sphere.center = vec3_load((Vec3){0.0f, 0.0f, 2.0f});  // Sphere is at Z=2
+    sphere.radius = 1.2f;
     sphere.radius_sq = sphere.radius * sphere.radius;
 
     // A rotating light source
@@ -128,7 +128,7 @@ int main() {
                     if (diffuse > 1.0f) diffuse = 1.0f;
 
                     int char_idx = (int)(diffuse * (float)(GRADIENT_SIZE - 2));
-                    *b_ptr++     = GRADIENT[char_idx];
+                    *b_ptr++ = GRADIENT[char_idx];
 
                 } else {
                     // --- Miss (Background) ---
