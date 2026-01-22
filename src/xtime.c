@@ -13,8 +13,6 @@
 // Platform-specific includes for high-resolution time
 #if defined(__APPLE__)
 #include <mach/mach_time.h>
-#else
-#include <sys/time.h>  // for gettimeofday
 #endif
 
 /** Nanoseconds per second */

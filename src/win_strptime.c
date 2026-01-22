@@ -61,7 +61,7 @@ static inline bool is_valid_date(int day, int month, int year) {
  * - Date validation (rejects invalid dates like Feb 30)
  * - Support for additional format specifiers
  */
-static char* strptime(const char* buf, const char* fmt, struct tm* tm) {
+char* strptime(const char* buf, const char* fmt, struct tm* tm) {
     if (buf == NULL || fmt == NULL || tm == NULL) {
         return NULL;
     }
