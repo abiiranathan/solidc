@@ -11,25 +11,6 @@
  * - Default value display
  * - Positional arguments
  *
- * @example
- * ```c
- * FlagParser* fp = flag_parser_new("myapp", "My application");
- *
- * int port = 8080;
- * bool verbose = false;
- * char* host = "localhost";
- *
- * flag_add(fp, TYPE_INT32, "port", 'p', "Server port", &port, false);
- * flag_add(fp, TYPE_BOOL, "verbose", 'v', "Enable verbose output", &verbose, false);
- * flag_add(fp, TYPE_STRING, "host", 'h', "Server host", &host, false);
- *
- * if (flag_parse(fp, argc, argv) != FLAG_OK) {
- *     fprintf(stderr, "Error: %s\n", flag_get_error(fp));
- *     flag_print_usage(fp);
- *     return 1;
- * }
- *
- * flag_parser_free(fp);
  * ```
  */
 
