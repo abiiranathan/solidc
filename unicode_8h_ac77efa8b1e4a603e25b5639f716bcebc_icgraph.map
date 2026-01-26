@@ -1,0 +1,10 @@
+<map id="ucp_to_utf8" name="ucp_to_utf8">
+<area shape="rect" id="Node000001" title="Converts a Unicode codepoint to its UTF&#45;8 byte sequence." alt="" coords="159,67,257,92"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="234,56,226,48,208,45,193,47,184,52,183,58,187,65,183,68,177,58,180,49,191,42,208,40,229,44,238,52"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#ae3f31481d188b5fbe03ca760b031677b" title="Converts all uppercase characters to lowercase in&#45;place." alt="" coords="6,29,110,55"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="145,66,109,57,110,52,146,61"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#a0695d31239b48bbee503c9191bdfc627" title="Converts all lowercase characters to uppercase in&#45;place." alt="" coords="5,103,111,128"/>
+<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="146,97,111,105,110,100,145,92"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="84,19,76,11,58,8,43,10,34,15,33,20,37,28,33,31,27,21,30,11,41,5,58,3,79,6,88,15"/>
+<area shape="poly" id="edge5_Node000003_Node000003" title=" " alt="" coords="84,92,76,84,58,81,43,83,34,88,33,94,37,101,33,104,27,94,30,85,41,78,58,76,79,80,88,88"/>
+</map>

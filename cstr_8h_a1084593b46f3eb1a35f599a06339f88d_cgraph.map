@@ -1,0 +1,14 @@
+<map id="cstr_split" name="cstr_split">
+<area shape="rect" id="Node000001" title="Splits the cstr into substrings based on a delimiter." alt="" coords="5,80,87,105"/>
+<area shape="poly" id="edge8_Node000001_Node000001" title=" " alt="" coords="21,81,15,72,18,62,29,56,46,53,67,57,76,65,72,69,64,62,46,59,31,61,22,65,21,71,25,79"/>
+<area shape="rect" id="Node000002" href="$cstr_8c.html#ac0035d2d1ada61ea0e7b9bf077885ac0" title="Frees a cstr and all associated memory." alt="" coords="157,29,236,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="84,77,144,57,146,62,86,82"/>
+<area shape="rect" id="Node000003" href="$cstr_8c.html#aaafd0342dcc8c8e0e2fabf7edacc5520" title="Creates a new empty cstr using a custom arena allocator." alt="" coords="307,117,425,143"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="87,95,293,119,292,124,87,100"/>
+<area shape="rect" id="Node000004" href="$cstr_8c.html#a1eca5d7fc6deccb9e28a6e4075c7e5aa" title="Creates a new cstr from a C string using a custom arena allocator." alt="" coords="135,155,259,180"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="74,103,159,146,157,151,72,108"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="171,31,166,21,169,11,179,5,197,3,217,6,226,15,222,19,215,11,197,8,181,10,173,15,171,20,176,28"/>
+<area shape="poly" id="edge4_Node000003_Node000003" title=" " alt="" coords="338,119,332,109,335,99,347,93,366,91,389,94,399,103,395,107,387,99,366,96,348,98,339,103,337,108,342,116"/>
+<area shape="poly" id="edge6_Node000004_Node000003" title=" " alt="" coords="254,152,294,143,295,148,255,157"/>
+<area shape="poly" id="edge7_Node000004_Node000004" title=" " alt="" coords="171,156,166,146,169,137,179,130,197,128,217,132,226,140,222,144,215,136,197,133,181,135,173,140,171,146,176,153"/>
+</map>

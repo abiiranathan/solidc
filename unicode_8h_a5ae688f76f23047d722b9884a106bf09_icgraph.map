@@ -1,0 +1,17 @@
+<map id="is_codepoint_whitespace" name="is_codepoint_whitespace">
+<area shape="rect" id="Node000001" title="Checks if a codepoint represents whitespace." alt="" coords="465,67,651,92"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="596,57,586,49,558,45,535,47,523,52,521,58,527,65,523,68,516,58,519,48,534,42,558,40,588,44,599,53"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#ad7d24e5bc418ae563b5afc21c6898e10" title="Checks if a UTF&#45;8 character represents whitespace." alt="" coords="271,67,417,92"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="452,82,418,82,418,77,452,77"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="372,56,364,48,344,45,327,47,318,52,316,58,321,65,317,68,311,58,314,49,325,42,344,40,366,43,376,52"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#a358a6ddb4231f045fa1996354bb69b56" title="Removes leading whitespace from a UTF&#45;8 string in&#45;place." alt="" coords="136,29,223,55"/>
+<area shape="poly" id="edge4_Node000002_Node000003" title=" " alt="" coords="274,66,222,54,224,49,275,61"/>
+<area shape="rect" id="Node000005" href="$unicode_8c.html#a673ecb04bcd3fc52c6222a67233a8ce1" title="Removes trailing whitespace from a UTF&#45;8 string in&#45;place." alt="" coords="136,103,223,128"/>
+<area shape="poly" id="edge8_Node000002_Node000005" title=" " alt="" coords="273,98,224,109,222,103,272,92"/>
+<area shape="poly" id="edge5_Node000003_Node000003" title=" " alt="" coords="201,18,195,11,179,8,166,10,159,14,158,20,162,28,157,30,152,21,155,11,164,5,179,3,197,6,205,14"/>
+<area shape="rect" id="Node000004" href="$unicode_8c.html#a8ec9a3447456e99105106536e4dfe39a" title="Removes leading and trailing whitespace from a UTF&#45;8 string in&#45;place." alt="" coords="5,67,88,92"/>
+<area shape="poly" id="edge6_Node000003_Node000004" title=" " alt="" coords="124,60,89,70,87,65,122,55"/>
+<area shape="poly" id="edge7_Node000004_Node000004" title=" " alt="" coords="69,55,62,48,47,45,33,47,26,52,25,58,29,65,24,68,20,58,22,49,31,42,47,40,65,43,73,52"/>
+<area shape="poly" id="edge10_Node000005_Node000004" title=" " alt="" coords="122,103,88,93,89,88,124,98"/>
+<area shape="poly" id="edge9_Node000005_Node000005" title=" " alt="" coords="201,91,195,84,179,81,166,83,159,88,158,94,162,101,157,104,152,94,155,85,164,78,179,76,197,79,205,88"/>
+</map>

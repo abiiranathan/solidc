@@ -1,0 +1,7 @@
+<map id="cstr_new_arena" name="cstr_new_arena">
+<area shape="rect" id="Node000001" title="Creates a new cstr from a C string using a custom arena allocator." alt="" coords="5,29,129,55"/>
+<area shape="poly" id="edge3_Node000001_Node000001" title=" " alt="" coords="39,31,33,21,36,11,48,5,67,3,90,6,100,15,97,19,88,11,67,8,50,10,41,15,39,20,44,28"/>
+<area shape="rect" id="Node000002" href="$cstr_8c.html#aaafd0342dcc8c8e0e2fabf7edacc5520" title="Creates a new empty cstr using a custom arena allocator." alt="" coords="177,29,296,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="130,39,163,39,163,45,130,45"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="209,31,203,21,206,11,217,5,237,3,260,6,270,15,266,19,257,11,237,8,219,10,210,15,208,20,213,28"/>
+</map>

@@ -1,0 +1,16 @@
+<map id="utf8_copy" name="utf8_copy">
+<area shape="rect" id="Node000001" title="Creates a copy of a UTF&#45;8 string containing only valid UTF&#45;8 sequences." alt="" coords="299,103,385,128"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="364,91,357,84,342,81,329,83,322,88,320,94,324,101,319,104,315,94,317,85,327,78,342,76,360,79,368,88"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#ac8dd740b9cf9558c3b5bd89f91857d08" title="Creates a new utf8_string object from a C string." alt="" coords="168,103,251,128"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="285,118,251,118,251,113,285,113"/>
+<area shape="poly" id="edge5_Node000002_Node000002" title=" " alt="" coords="231,91,225,84,209,81,196,83,189,88,188,94,192,101,187,104,182,94,185,85,194,78,209,76,227,79,235,88"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#ac66faa2fc9866e1f93c5496603126620" title="Duplicates a utf8_string object." alt="" coords="17,29,108,55"/>
+<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="174,98,119,68,95,57,97,52,121,64,176,93"/>
+<area shape="rect" id="Node000004" href="$unicode_8c.html#a08f52fa20afe83951b5486a186f32562" title="Reads a UTF&#45;8 string from a file." alt="" coords="5,103,120,128"/>
+<area shape="poly" id="edge6_Node000002_Node000004" title=" " alt="" coords="154,118,120,118,120,113,154,113"/>
+<area shape="rect" id="Node000005" href="$unicode_8c.html#a283c63b93c8d578ec05102ff6533ae5b" title="Splits a UTF&#45;8 string into parts using a delimiter." alt="" coords="21,176,104,201"/>
+<area shape="poly" id="edge8_Node000002_Node000005" title=" " alt="" coords="172,137,90,178,88,173,169,132"/>
+<area shape="poly" id="edge4_Node000003_Node000003" title=" " alt="" coords="88,18,80,11,63,8,47,10,40,15,38,20,42,28,38,31,33,21,35,11,46,5,63,3,83,6,92,15"/>
+<area shape="poly" id="edge7_Node000004_Node000004" title=" " alt="" coords="88,92,80,84,63,81,47,83,40,88,38,94,42,101,38,104,33,94,35,85,46,78,63,76,83,80,92,88"/>
+<area shape="poly" id="edge9_Node000005_Node000005" title=" " alt="" coords="88,165,80,158,63,155,47,157,40,161,38,167,42,175,38,177,33,168,35,158,46,152,63,149,83,153,92,161"/>
+</map>

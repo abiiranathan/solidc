@@ -1,0 +1,7 @@
+<map id="cstr_copy" name="cstr_copy">
+<area shape="rect" id="Node000001" title="Copies the content of src to dest (overwriting dest)." alt="" coords="148,29,232,55"/>
+<area shape="poly" id="edge3_Node000001_Node000001" title=" " alt="" coords="213,18,206,11,190,8,176,10,169,15,167,20,171,28,167,30,162,21,164,11,174,5,190,3,209,6,217,14"/>
+<area shape="rect" id="Node000002" href="$cstr_8c.html#a25bfba4b347d01a9dd987c7aba70787e" title="Alias for cstr_copy." alt="" coords="5,29,100,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="134,45,100,45,100,39,134,39"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="76,18,69,11,53,8,39,10,31,15,30,20,34,28,29,30,25,21,27,11,37,5,53,3,71,6,80,14"/>
+</map>

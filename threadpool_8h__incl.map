@@ -1,0 +1,20 @@
+<map id="include/threadpool.h" name="include/threadpool.h">
+<area shape="rect" id="Node000001" title="Thread pool implementation for concurrent task execution." alt="" coords="157,5,311,31"/>
+<area shape="rect" id="Node000002" href="$macros_8h.html" title="Collection of utility macros for assertions, memory management, math, and debugging." alt="" coords="139,79,222,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="227,33,200,69,195,66,223,29"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,152,76,177"/>
+<area shape="poly" id="edge9_Node000001_Node000003" title=" " alt="" coords="210,33,171,54,129,81,92,112,62,144,58,140,88,109,126,77,168,49,208,28"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="246,79,329,104"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="245,29,273,66,268,69,241,33"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="353,79,427,104"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="260,28,353,70,351,75,258,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="159,106,77,148,74,143,157,102"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="101,152,167,177"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="175,106,151,142,147,139,171,103"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="192,152,263,177"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="191,103,214,139,210,142,186,106"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="287,152,357,177"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="205,102,288,143,286,148,202,106"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="382,152,446,177"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="219,101,370,147,368,152,217,107"/>
+</map>

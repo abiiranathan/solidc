@@ -1,0 +1,28 @@
+<map id="include/cstr.h" name="include/cstr.h">
+<area shape="rect" id="Node000001" title="C string utilities and safe string operations." alt="" coords="533,5,641,31"/>
+<area shape="rect" id="Node000002" href="$macros_8h.html" title="Collection of utility macros for assertions, memory management, math, and debugging." alt="" coords="233,79,315,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="538,33,329,80,328,75,536,28"/>
+<area shape="rect" id="Node000008" href="$str__utils_8h.html" title="String utility functions for manipulation and processing." alt="" coords="544,79,631,104"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="590,31,590,65,585,65,585,31"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="471,152,541,177"/>
+<area shape="poly" id="edge12_Node000001_Node000009" title=" " alt="" coords="576,33,555,54,535,80,522,110,513,139,508,138,517,108,530,77,551,50,572,29"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="669,152,743,177"/>
+<area shape="poly" id="edge14_Node000001_Node000010" title=" " alt="" coords="601,29,645,77,692,139,688,142,641,80,597,33"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="706,79,789,104"/>
+<area shape="poly" id="edge13_Node000001_Node000012" title=" " alt="" coords="614,28,710,71,708,75,612,33"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,152,76,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="237,107,90,151,88,146,236,101"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="101,152,167,177"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="253,106,170,148,168,143,250,102"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="192,152,263,177"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="269,106,245,142,240,139,264,103"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="376,152,447,177"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="297,102,378,143,376,148,295,106"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="287,152,351,177"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="284,103,307,139,302,142,279,106"/>
+<area shape="poly" id="edge10_Node000008_Node000006" title=" " alt="" coords="560,106,454,149,452,144,558,102"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="576,106,531,145,528,141,573,102"/>
+<area shape="poly" id="edge9_Node000008_Node000010" title=" " alt="" coords="608,102,676,142,673,147,605,106"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="565,152,644,177"/>
+<area shape="poly" id="edge11_Node000008_Node000011" title=" " alt="" coords="593,104,601,138,596,140,588,105"/>
+</map>

@@ -1,0 +1,11 @@
+<map id="cstr_reverse" name="cstr_reverse">
+<area shape="rect" id="Node000001" title="Creates a new cstr with the contents of the input cstr reversed." alt="" coords="5,29,108,55"/>
+<area shape="poly" id="edge6_Node000001_Node000001" title=" " alt="" coords="30,31,24,21,27,11,38,5,57,3,79,6,88,15,85,19,76,11,57,8,40,10,31,15,29,20,34,28"/>
+<area shape="rect" id="Node000002" href="$cstr_8c.html#aaafd0342dcc8c8e0e2fabf7edacc5520" title="Creates a new empty cstr using a custom arena allocator." alt="" coords="328,29,447,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="108,32,156,27,218,25,280,27,315,30,314,35,280,33,218,30,156,33,109,37"/>
+<area shape="rect" id="Node000003" href="$cstr_8c.html#a1eca5d7fc6deccb9e28a6e4075c7e5aa" title="Creates a new cstr from a C string using a custom arena allocator." alt="" coords="156,67,280,92"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="109,51,150,61,149,66,108,56"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="359,31,353,21,356,11,368,5,387,3,410,6,420,15,417,19,408,11,387,8,370,10,361,15,359,20,364,28"/>
+<area shape="poly" id="edge4_Node000003_Node000002" title=" " alt="" coords="276,64,316,55,317,60,277,69"/>
+<area shape="poly" id="edge5_Node000003_Node000003" title=" " alt="" coords="191,68,185,58,188,49,200,42,218,40,240,43,249,52,246,56,238,48,218,45,201,47,193,52,191,58,196,65"/>
+</map>

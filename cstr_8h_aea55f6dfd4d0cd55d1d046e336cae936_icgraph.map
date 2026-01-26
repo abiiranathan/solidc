@@ -1,0 +1,7 @@
+<map id="cstr_append_cstr" name="cstr_append_cstr">
+<area shape="rect" id="Node000001" title="Appends a cstr to the cstr." alt="" coords="127,29,259,55"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="218,19,211,11,193,8,177,10,169,15,167,20,172,28,167,31,162,21,165,11,175,5,193,3,213,6,222,15"/>
+<area shape="rect" id="Node000002" href="$cstr_8c.html#a916da57577afe550f5402f2d6ba6b226" title="Alias for cstr_append_cstr (concatenation)." alt="" coords="5,29,79,55"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="113,45,79,45,79,39,113,39"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="68,19,60,11,42,8,27,10,18,15,17,20,21,28,17,31,11,21,14,11,25,5,42,3,63,6,72,15"/>
+</map>
