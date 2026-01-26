@@ -1,5 +1,5 @@
-#include "../include/arena.h"
 #include "../include/cstr.h"
+#include "../include/arena.h"
 #include "../include/macros.h"
 
 #include <stdint.h>
@@ -13,10 +13,7 @@ void print_cstr(const cstr* s) {
     if (!s) {
         printf("NULL\n");
     } else {
-        printf("\"%s\" (len=%zu, cap=%zu, heap=%d)\n",
-               cstr_data_const(s),
-               cstr_len(s),
-               cstr_capacity(s),
+        printf("\"%s\" (len=%zu, cap=%zu, heap=%d)\n", cstr_data_const(s), cstr_len(s), cstr_capacity(s),
                cstr_allocated(s));
     }
 }
@@ -574,11 +571,12 @@ int main(void) {
         cstr_free(s);
 
         // Long prose string case
-        const char* long_prose = "It was the best of times, it was the worst of times, "
-                                 "it was the age of wisdom, it was the age of foolishness, "
-                                 "it was the epoch of belief, it was the epoch of incredulity, "
-                                 "it was the season of Light, it was the season of Darkness, "
-                                 "it was the spring of hope, it was the winter of despair.";
+        const char* long_prose =
+            "It was the best of times, it was the worst of times, "
+            "it was the age of wisdom, it was the age of foolishness, "
+            "it was the epoch of belief, it was the epoch of incredulity, "
+            "it was the season of Light, it was the season of Darkness, "
+            "it was the spring of hope, it was the winter of despair.";
         s = cstr_new(long_prose);
         arr = cstr_split(s, ", ", &count);  // Split on comma+space
 
@@ -865,6 +863,74 @@ int main(void) {
 
         arena_destroy(arena);
         printf("Arena tests passed!\n");
+    }
+
+    // ============================================
+    // Test New Optimized Input Functions
+    // ============================================
+    {
+        printf("\n**************Testing Optimized Input Functions***************\n");
+        cstr* s = cstr_new("Hello World");
+        cstr* sub = cstr_new("World");
+        cstr* pre = cstr_new("Hello");
+
+        // Ends With
+        ASSERT(cstr_ends_with_cstr(s, sub));
+        ASSERT(!cstr_ends_with_cstr(s, pre));
+
+        // Starts With
+        ASSERT(cstr_starts_with_cstr(s, pre));
+        ASSERT(!cstr_starts_with_cstr(s, sub));
+
+        // Find / Contains
+        ASSERT(cstr_contains_cstr(s, sub));
+        ASSERT(cstr_find_cstr(s, sub) == 6);
+
+        // RFind
+        cstr* s2 = cstr_new("Hello World World");
+        ASSERT(cstr_rfind_cstr(s2, sub) == 12);
+        cstr_free(s2);
+
+        // Comparison
+        ASSERT(cstr_cmp(s, s) == 0);
+        ASSERT(cstr_cmp(s, sub) < 0);
+        ASSERT(cstr_ncmp(s, pre, 5) == 0);
+
+        // Append cstr
+        cstr* s3 = cstr_new("Foo");
+        cstr* s4 = cstr_new("Bar");
+        cstr_append_cstr(s3, s4);
+        ASSERT_cstr_equals(s3, "FooBar", "cstr_append_cstr");
+
+        // Cat / NCat
+        cstr_cat(s3, s4);
+        ASSERT_cstr_equals(s3, "FooBarBar", "cstr_cat");
+
+        cstr_ncat(s3, s4, 2);
+        ASSERT_cstr_equals(s3, "FooBarBarBa", "cstr_ncat");
+
+        // Copy / Assign
+        cstr_assign(s3, s4);
+        ASSERT_cstr_equals(s3, "Bar", "cstr_assign");
+
+        // Prepend
+        cstr_prepend_cstr(s3, s4);
+        ASSERT_cstr_equals(s3, "BarBar", "cstr_prepend_cstr");
+
+        // Insert
+        cstr_insert_cstr(s3, 3, s4);
+        ASSERT_cstr_equals(s3, "BarBarBar", "cstr_insert_cstr");
+
+        // Remove All
+        cstr_remove_all_cstr(s3, s4);
+        ASSERT_cstr_equals(s3, "", "cstr_remove_all_cstr");
+
+        cstr_free(s);
+        cstr_free(sub);
+        cstr_free(pre);
+        cstr_free(s3);
+        cstr_free(s4);
+        printf("Optimized Input tests passed!\n");
     }
 
     printf("\nAll tests passed successfully!\n");

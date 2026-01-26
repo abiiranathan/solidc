@@ -1986,3 +1986,203 @@ void cstr_reverse_inplace(cstr* s) {
         data[len - 1 - i] = temp;
     }
 }
+
+// ============================================
+// New Optimized cstr Input Functions
+// ============================================
+
+bool cstr_ends_with_cstr(const cstr* s, const cstr* suffix) {
+    if (!s || !suffix) return false;
+    size_t s_len = cstr_get_length(s);
+    size_t suffix_len = cstr_get_length(suffix);
+    if (suffix_len > s_len) return false;
+    if (suffix_len == 0) return true;
+    return memcmp(cstr_get_data_const(s) + s_len - suffix_len, cstr_get_data_const(suffix), suffix_len) == 0;
+}
+
+int cstr_find_cstr(const cstr* s, const cstr* substr) {
+    if (!s || !substr) return STR_NPOS;
+    size_t sub_len = cstr_get_length(substr);
+    if (sub_len == 0) return 0;
+    
+    const char* found = strstr(cstr_get_data_const(s), cstr_get_data_const(substr));
+    return found ? (int)(found - cstr_get_data_const(s)) : STR_NPOS;
+}
+
+int cstr_rfind_cstr(const cstr* s, const cstr* substr) {
+    if (!s || !substr) return STR_NPOS;
+    size_t sub_len = cstr_get_length(substr);
+    size_t s_len = cstr_get_length(s);
+    if (sub_len > s_len) return STR_NPOS;
+    if (sub_len == 0) return (int)s_len;
+
+    const char* s_data = cstr_get_data_const(s);
+    const char* sub_data = cstr_get_data_const(substr);
+    const char* found = NULL;
+    const char* p = s_data;
+    
+    while ((p = strstr(p, sub_data))) {
+        found = p;
+        p += 1; 
+    }
+    return found ? (int)(found - s_data) : STR_NPOS;
+}
+
+bool cstr_contains(const cstr* s, const char* substr) {
+    return cstr_find(s, substr) != STR_NPOS;
+}
+
+bool cstr_contains_cstr(const cstr* s, const cstr* substr) {
+    return cstr_find_cstr(s, substr) != STR_NPOS;
+}
+
+bool cstr_starts_with_cstr(const cstr* s, const cstr* prefix) {
+    if (!s || !prefix) return false;
+    size_t pre_len = cstr_get_length(prefix);
+    size_t s_len = cstr_get_length(s);
+    if (pre_len > s_len) return false;
+    if (pre_len == 0) return true;
+    return memcmp(cstr_get_data_const(s), cstr_get_data_const(prefix), pre_len) == 0;
+}
+
+bool cstr_append_cstr(cstr* s, const cstr* append) {
+    if (!s || !append) return false;
+    size_t append_len = cstr_get_length(append);
+    if (append_len == 0) return true;
+    
+    size_t current_len = cstr_get_length(s);
+    size_t new_len = current_len + append_len;
+    
+    if (!cstr_ensure_capacity(s, new_len + 1)) return false;
+    
+    char* dest = cstr_get_data(s);
+    memcpy(dest + current_len, cstr_get_data_const(append), append_len);
+    dest[new_len] = '\0';
+    cstr_set_length(s, new_len);
+    return true;
+}
+
+bool cstr_cat(cstr* dest, const cstr* src) {
+    return cstr_append_cstr(dest, src);
+}
+
+bool cstr_ncat(cstr* dest, const cstr* src, size_t n) {
+    if (!dest || !src) return false;
+    size_t src_len = cstr_get_length(src);
+    size_t append_len = (n < src_len) ? n : src_len;
+    if (append_len == 0) return true;
+
+    size_t current_len = cstr_get_length(dest);
+    size_t new_len = current_len + append_len;
+
+    if (!cstr_ensure_capacity(dest, new_len + 1)) return false;
+
+    char* d_ptr = cstr_get_data(dest);
+    memcpy(d_ptr + current_len, cstr_get_data_const(src), append_len);
+    d_ptr[new_len] = '\0';
+    cstr_set_length(dest, new_len);
+    return true;
+}
+
+bool cstr_copy(cstr* dest, const cstr* src) {
+    if (!dest || !src) return false;
+    if (dest == src) return true;
+    
+    size_t src_len = cstr_get_length(src);
+    if (!cstr_ensure_capacity(dest, src_len + 1)) return false;
+    
+    memcpy(cstr_get_data(dest), cstr_get_data_const(src), src_len + 1);
+    cstr_set_length(dest, src_len);
+    return true;
+}
+
+bool cstr_assign(cstr* dest, const cstr* src) {
+    return cstr_copy(dest, src);
+}
+
+bool cstr_prepend_cstr(cstr* s, const cstr* prepend) {
+    if (!s || !prepend) return false;
+    size_t prepend_len = cstr_get_length(prepend);
+    if (prepend_len == 0) return true;
+    
+    size_t current_len = cstr_get_length(s);
+    size_t new_len = current_len + prepend_len;
+    
+    if (!cstr_ensure_capacity(s, new_len + 1)) return false;
+    
+    char* dest = cstr_get_data(s);
+    memmove(dest + prepend_len, dest, current_len + 1);
+    memcpy(dest, cstr_get_data_const(prepend), prepend_len);
+    cstr_set_length(s, new_len);
+    return true;
+}
+
+bool cstr_insert_cstr(cstr* s, size_t index, const cstr* insert) {
+    if (!s || !insert) return false;
+    size_t current_len = cstr_get_length(s);
+    if (index > current_len) return false;
+    
+    size_t insert_len = cstr_get_length(insert);
+    if (insert_len == 0) return true;
+    
+    size_t new_len = current_len + insert_len;
+    if (!cstr_ensure_capacity(s, new_len + 1)) return false;
+    
+    char* data = cstr_get_data(s);
+    memmove(data + index + insert_len, data + index, current_len - index + 1);
+    memcpy(data + index, cstr_get_data_const(insert), insert_len);
+    cstr_set_length(s, new_len);
+    return true;
+}
+
+size_t cstr_count_substr_cstr(const cstr* str, const cstr* substr) {
+    if (!str || !substr) return 0;
+    size_t sub_len = cstr_get_length(substr);
+    if (sub_len == 0) return 0;
+    
+    size_t count = 0;
+    const char* p = cstr_get_data_const(str);
+    const char* sub_data = cstr_get_data_const(substr);
+    
+    while ((p = strstr(p, sub_data))) {
+        count++;
+        p += sub_len;
+    }
+    return count;
+}
+
+size_t cstr_remove_all_cstr(cstr* s, const cstr* substr) {
+    if (!s || !substr) return 0;
+    size_t sub_len = cstr_get_length(substr);
+    if (sub_len == 0) return 0;
+    
+    char* data = cstr_get_data(s);
+    char* write_ptr = data;
+    const char* read_ptr = data;
+    const char* end = data + cstr_get_length(s);
+    const char* sub_data = cstr_get_data_const(substr);
+    size_t count = 0;
+    
+    while (read_ptr < end) {
+         if ((size_t)(end - read_ptr) >= sub_len && memcmp(read_ptr, sub_data, sub_len) == 0) {
+             read_ptr += sub_len;
+             count++;
+         } else {
+             *write_ptr++ = *read_ptr++;
+         }
+    }
+    *write_ptr = '\0';
+    cstr_set_length(s, (size_t)(write_ptr - data));
+    return count;
+}
+
+int cstr_cmp(const cstr* s1, const cstr* s2) {
+    return cstr_compare(s1, s2);
+}
+
+int cstr_ncmp(const cstr* s1, const cstr* s2, size_t n) {
+    if (!s1 && !s2) return 0;
+    if (!s1) return -1;
+    if (!s2) return 1;
+    return strncmp(cstr_get_data_const(s1), cstr_get_data_const(s2), n);
+}

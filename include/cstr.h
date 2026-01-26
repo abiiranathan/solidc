@@ -178,6 +178,42 @@ bool cstr_resize(cstr* s, size_t capacity);
 bool cstr_append(cstr* s, const char* append);
 
 /**
+ * @brief Appends a cstr to the cstr.
+ *
+ * Appends the entire source cstr to the end of the destination cstr,
+ * automatically reallocating if necessary.
+ *
+ * @param s Pointer to the destination cstr (must not be NULL)
+ * @param append_str cstr to append (must not be NULL)
+ * @return true on success, false on allocation failure or invalid input
+ */
+bool cstr_append_cstr(cstr* s, const cstr* append);
+
+/**
+ * @brief Alias for cstr_append_cstr (concatenation).
+ */
+bool cstr_cat(cstr* dest, const cstr* src);
+
+/**
+ * @brief Appends at most n characters from src to dest.
+ */
+bool cstr_ncat(cstr* dest, const cstr* src, size_t n);
+
+/**
+ * @brief Copies the content of src to dest (overwriting dest).
+ * 
+ * @param dest Destination cstr (must not be NULL).
+ * @param src Source cstr (must not be NULL).
+ * @return true on success.
+ */
+bool cstr_copy(cstr* dest, const cstr* src);
+
+/**
+ * @brief Alias for cstr_copy.
+ */
+bool cstr_assign(cstr* dest, const cstr* src);
+
+/**
  * @brief Fast append assuming sufficient capacity.
  *
  * Appends a C string without checking or expanding capacity. The caller
@@ -238,6 +274,18 @@ bool cstr_append_char(cstr* s, char c);
 bool cstr_prepend(cstr* s, const char* prepend);
 
 /**
+ * @brief Prepends a cstr to the beginning of the cstr.
+ *
+ * Inserts the source cstr at the beginning of the destination cstr,
+ * shifting existing content to the right.
+ *
+ * @param s Pointer to the destination cstr (must not be NULL)
+ * @param prepend_str cstr to prepend (must not be NULL)
+ * @return true on success, false on allocation failure or invalid input
+ */
+bool cstr_prepend_cstr(cstr* s, const cstr* prepend);
+
+/**
  * @brief Fast prepend assuming sufficient capacity.
  *
  * Prepends a C string without checking or expanding capacity. The caller
@@ -262,6 +310,19 @@ bool cstr_prepend_fast(cstr* s, const char* prepend);
  * @return true on success, false on allocation failure or invalid input/index
  */
 bool cstr_insert(cstr* s, size_t index, const char* insert);
+
+/**
+ * @brief Inserts a cstr at the specified position.
+ *
+ * Inserts the source cstr at the given index, shifting existing content
+ * to make room. Index must be within the current string length.
+ *
+ * @param s Pointer to the destination cstr (must not be NULL)
+ * @param index Position to insert at (0-based, must be <= current length)
+ * @param insert_str cstr to insert (must not be NULL)
+ * @return true on success, false on allocation failure or invalid input/index
+ */
+bool cstr_insert_cstr(cstr* s, size_t index, const cstr* insert);
 
 /**
  * @brief Removes a range of characters from the cstr.
@@ -299,6 +360,18 @@ void cstr_clear(cstr* s);
  * substring is not found.
  */
 size_t cstr_remove_all(cstr* s, const char* substr);
+
+/**
+ * @brief Removes all occurrences of a substring cstr from the cstr.
+ *
+ * Removes all instances of the specified substring cstr from the string.
+ *
+ * @param s Pointer to the cstr (must not be NULL).
+ * @param substr Substring to remove (must not be NULL and not empty).
+ * @return Number of occurrences removed. Returns 0 on invalid input or if
+ * substring is not found.
+ */
+size_t cstr_remove_all_cstr(cstr* s, const cstr* substr);
 
 /**
  * @brief Returns the character at the specified index.
@@ -359,6 +432,21 @@ str_view cstr_as_view(const cstr* s);
 int cstr_compare(const cstr* s1, const cstr* s2);
 
 /**
+ * @brief Alias for cstr_compare.
+ */
+int cstr_cmp(const cstr* s1, const cstr* s2);
+
+/**
+ * @brief Compares two cstrs lexicographically with length limit.
+ *
+ * @param s1 First cstr (can be NULL).
+ * @param s2 Second cstr (can be NULL).
+ * @param n Maximum number of characters to compare.
+ * @return Negative if s1 < s2, zero if s1 == s2, positive if s1 > s2.
+ */
+int cstr_ncmp(const cstr* s1, const cstr* s2, size_t n);
+
+/**
  * @brief Checks if two cstrs are equal.
  *
  * Checks if the strings have the same length and the same character sequences.
@@ -382,6 +470,15 @@ bool cstr_equals(const cstr* s1, const cstr* s2);
 bool cstr_starts_with(const cstr* s, const char* prefix);
 
 /**
+ * @brief Checks if the cstr starts with the given prefix cstr.
+ *
+ * @param s Pointer to the cstr (can be NULL).
+ * @param prefix Prefix to check (can be NULL).
+ * @return True if the cstr starts with the prefix, false otherwise.
+ */
+bool cstr_starts_with_cstr(const cstr* s, const cstr* prefix);
+
+/**
  * @brief Checks if the cstr ends with the given suffix.
  *
  * @param s Pointer to the cstr (can be NULL).
@@ -391,6 +488,15 @@ bool cstr_starts_with(const cstr* s, const char* prefix);
  *         is considered a suffix of any string.
  */
 bool cstr_ends_with(const cstr* s, const char* suffix);
+
+/**
+ * @brief Checks if the cstr ends with the given suffix cstr.
+ *
+ * @param s Pointer to the cstr (can be NULL).
+ * @param suffix Suffix to check (can be NULL).
+ * @return True if the cstr ends with the suffix, false otherwise.
+ */
+bool cstr_ends_with_cstr(const cstr* s, const cstr* suffix);
 
 /**
  * @brief Finds the first occurrence of a substring in the cstr.
@@ -403,6 +509,16 @@ bool cstr_ends_with(const cstr* s, const char* suffix);
 int cstr_find(const cstr* s, const char* substr);
 
 /**
+ * @brief Finds the first occurrence of a substring cstr in the cstr.
+ *
+ * @param s Pointer to the cstr (can be NULL).
+ * @param substr Substring to find (can be NULL).
+ * @return Index of the first occurrence (0-based), or STR_NPOS (-1) if not
+ * found or invalid input.
+ */
+int cstr_find_cstr(const cstr* s, const cstr* substr);
+
+/**
  * @brief Finds the last occurrence of a substring in the cstr.
  *
  * @param s Pointer to the cstr (can be NULL).
@@ -411,6 +527,34 @@ int cstr_find(const cstr* s, const char* substr);
  * or invalid input.
  */
 int cstr_rfind(const cstr* s, const char* substr);
+
+/**
+ * @brief Finds the last occurrence of a substring cstr in the cstr.
+ *
+ * @param s Pointer to the cstr (can be NULL).
+ * @param substr Substring to find (can be NULL).
+ * @return Index of the last occurrence (0-based), or STR_NPOS (-1) if not found
+ * or invalid input.
+ */
+int cstr_rfind_cstr(const cstr* s, const cstr* substr);
+
+/**
+ * @brief Checks if the cstr contains the given substring.
+ * 
+ * @param s Pointer to the cstr (can be NULL).
+ * @param substr Substring to find (can be NULL).
+ * @return True if found, false otherwise.
+ */
+bool cstr_contains(const cstr* s, const char* substr);
+
+/**
+ * @brief Checks if the cstr contains the given substring cstr.
+ * 
+ * @param s Pointer to the cstr (can be NULL).
+ * @param substr Substring to find (can be NULL).
+ * @return True if found, false otherwise.
+ */
+bool cstr_contains_cstr(const cstr* s, const cstr* substr);
 
 // ============== Transformation ====================
 
@@ -529,6 +673,16 @@ void cstr_trim_chars(cstr* str, const char* chars);
  * not found.
  */
 size_t cstr_count_substr(const cstr* str, const char* substr);
+
+/**
+ * @brief Count the number of occurrences of a substring cstr within the string.
+ *
+ * @param str Pointer to the cstr (can be NULL).
+ * @param substr Substring to count (can be NULL).
+ * @return Number of occurrences. Returns 0 on invalid input or if substring is
+ * not found.
+ */
+size_t cstr_count_substr_cstr(const cstr* str, const cstr* substr);
 
 /**
  * @brief Remove characters in str from `start` index, up to `start + length`.
