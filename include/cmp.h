@@ -66,18 +66,16 @@ typedef struct {
 } cmp_config_t;
 
 // Default configurations
-#define CMP_DEFAULT_FLOAT {CMP_RELATIVE, 1e-6f, 4}
+#define CMP_DEFAULT_FLOAT  {CMP_RELATIVE, 1e-6f, 4}
 #define CMP_DEFAULT_DOUBLE {CMP_RELATIVE, 1e-12, 4}
-#define CMP_DEFAULT_LONG {CMP_RELATIVE, 1e-15, 4}
+#define CMP_DEFAULT_LONG   {CMP_RELATIVE, 1e-15, 4}
 
 // Helper functions
 static inline bool cmp_special_cases(double a, double b) {
     return (isnan(a) && isnan(b)) || (isinf(a) && isinf(b) && signbit(a) == signbit(b));
 }
 
-static inline bool cmp_is_zero(double a) {
-    return fabs(a) <= DBL_EPSILON;
-}
+static inline bool cmp_is_zero(double a) { return fabs(a) <= DBL_EPSILON; }
 
 static inline int64_t cmp_double_to_int64(double d) {
     union {
@@ -123,7 +121,7 @@ static inline bool cmp_combined(double a, double b, double epsilon) {
 }
 
 // Main generic comparison function
-#define CMP(a, b, ...)                                                                                                 \
+#define CMP(a, b, ...) \
     _Generic((a), float: cmp_float, double: cmp_double, long double: cmp_long_double)(a, b, ##__VA_ARGS__)
 
 // Type-specific comparison functions
@@ -172,30 +170,29 @@ static inline bool cmp_long_double(long double a, long double b, cmp_config_t co
     }
 }
 
-#define CMP_EPS(a, b, eps)                                                                                             \
-    cmp(a,                                                                                                             \
-        b,                                                                                                             \
-        (cmp_config_t){                                                                                                \
-          .mode = CMP_RELATIVE, .epsilon = (eps), .ulps = _Generic((a), float: 4, double: 4, long double: 4)})
+#define CMP_EPS(a, b, eps)                   \
+    cmp(a, b,                                \
+        (cmp_config_t){.mode = CMP_RELATIVE, \
+                       .epsilon = (eps),     \
+                       .ulps = _Generic((a), float: 4, double: 4, long double: 4)})
 
-#define CMP_ABS(a, b, eps)                                                                                             \
-    cmp(a,                                                                                                             \
-        b,                                                                                                             \
-        (cmp_config_t){                                                                                                \
-          .mode = CMP_ABSOLUTE, .epsilon = (eps), .ulps = _Generic((a), float: 4, double: 4, long double: 4)})
+#define CMP_ABS(a, b, eps)                   \
+    cmp(a, b,                                \
+        (cmp_config_t){.mode = CMP_ABSOLUTE, \
+                       .epsilon = (eps),     \
+                       .ulps = _Generic((a), float: 4, double: 4, long double: 4)})
 
-#define CMP_ULPS(a, b, ulps_val)                                                                                       \
-    cmp(a,                                                                                                             \
-        b,                                                                                                             \
-        (cmp_config_t){.mode = CMP_ULPS,                                                                               \
-                       .epsilon = _Generic((a), float: 1e-6f, double: 1e-12, long double: 1e-15),                      \
+#define CMP_ULPS(a, b, ulps_val)                                                                  \
+    cmp(a, b,                                                                                     \
+        (cmp_config_t){.mode = CMP_ULPS,                                                          \
+                       .epsilon = _Generic((a), float: 1e-6f, double: 1e-12, long double: 1e-15), \
                        .ulps = (ulps_val)})
 
-#define CMP_COMB(a, b, eps)                                                                                            \
-    cmp(a,                                                                                                             \
-        b,                                                                                                             \
-        (cmp_config_t){                                                                                                \
-          .mode = CMP_COMBINED, .epsilon = (eps), .ulps = _Generic((a), float: 4, double: 4, long double: 4)})
+#define CMP_COMB(a, b, eps)                  \
+    cmp(a, b,                                \
+        (cmp_config_t){.mode = CMP_COMBINED, \
+                       .epsilon = (eps),     \
+                       .ulps = _Generic((a), float: 4, double: 4, long double: 4)})
 
 #if defined(__cplusplus)
 }

@@ -51,10 +51,10 @@ bool dynarray_init(dynarray_t* arr, size_t element_size, size_t initial_capacity
     }
 
     *arr = (dynarray_t){
-      .data = data,
-      .size = 0,
-      .capacity = initial_capacity,
-      .element_size = element_size,
+        .data = data,
+        .size = 0,
+        .capacity = initial_capacity,
+        .element_size = element_size,
     };
 
     return true;

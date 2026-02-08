@@ -316,10 +316,8 @@ static inline simd_vec_t simd_min(simd_vec_t a, simd_vec_t b) {
 #elif defined(SIMD_ARCH_ARM)
     return vminq_f32(a, b);
 #else
-    return (simd_vec_t){{a.f[0] < b.f[0] ? a.f[0] : b.f[0],
-                         a.f[1] < b.f[1] ? a.f[1] : b.f[1],
-                         a.f[2] < b.f[2] ? a.f[2] : b.f[2],
-                         a.f[3] < b.f[3] ? a.f[3] : b.f[3]}};
+    return (simd_vec_t){{a.f[0] < b.f[0] ? a.f[0] : b.f[0], a.f[1] < b.f[1] ? a.f[1] : b.f[1],
+                         a.f[2] < b.f[2] ? a.f[2] : b.f[2], a.f[3] < b.f[3] ? a.f[3] : b.f[3]}};
 #endif
 }
 
@@ -330,10 +328,8 @@ static inline simd_vec_t simd_max(simd_vec_t a, simd_vec_t b) {
 #elif defined(SIMD_ARCH_ARM)
     return vmaxq_f32(a, b);
 #else
-    return (simd_vec_t){{a.f[0] > b.f[0] ? a.f[0] : b.f[0],
-                         a.f[1] > b.f[1] ? a.f[1] : b.f[1],
-                         a.f[2] > b.f[2] ? a.f[2] : b.f[2],
-                         a.f[3] > b.f[3] ? a.f[3] : b.f[3]}};
+    return (simd_vec_t){{a.f[0] > b.f[0] ? a.f[0] : b.f[0], a.f[1] > b.f[1] ? a.f[1] : b.f[1],
+                         a.f[2] > b.f[2] ? a.f[2] : b.f[2], a.f[3] > b.f[3] ? a.f[3] : b.f[3]}};
 #endif
 }
 
@@ -899,30 +895,22 @@ static inline simd_vec_t simd_cross(simd_vec_t a, simd_vec_t b) {
 
     return vld1q_f32(result);
 #else
-    return (simd_vec_t){
-      {a.f[1] * b.f[2] - a.f[2] * b.f[1], a.f[2] * b.f[0] - a.f[0] * b.f[2], a.f[0] * b.f[1] - a.f[1] * b.f[0], 0.0f}};
+    return (simd_vec_t){{a.f[1] * b.f[2] - a.f[2] * b.f[1], a.f[2] * b.f[0] - a.f[0] * b.f[2],
+                         a.f[0] * b.f[1] - a.f[1] * b.f[0], 0.0f}};
 #endif
 }
 
 /** @brief Length squared (3D, ignores w) */
-static inline float simd_length_sq3(simd_vec_t v) {
-    return simd_dot3(v, v);
-}
+static inline float simd_length_sq3(simd_vec_t v) { return simd_dot3(v, v); }
 
 /** @brief Length (3D, ignores w) */
-static inline float simd_length3(simd_vec_t v) {
-    return sqrtf(simd_dot3(v, v));
-}
+static inline float simd_length3(simd_vec_t v) { return sqrtf(simd_dot3(v, v)); }
 
 /** @brief Length squared (4D) */
-static inline float simd_length_sq4(simd_vec_t v) {
-    return simd_dot4(v, v);
-}
+static inline float simd_length_sq4(simd_vec_t v) { return simd_dot4(v, v); }
 
 /** @brief Length (4D) */
-static inline float simd_length4(simd_vec_t v) {
-    return sqrtf(simd_dot4(v, v));
-}
+static inline float simd_length4(simd_vec_t v) { return sqrtf(simd_dot4(v, v)); }
 
 /**
  * @brief Normalize Vector (3D).
@@ -1012,7 +1000,7 @@ static inline bool simd_equals_eps(simd_vec_t a, simd_vec_t b, float epsilon) {
     return vget_lane_u32(min, 0) == 0xFFFFFFFF && vget_lane_u32(min, 1) == 0xFFFFFFFF;
 #else
     return fabsf(a.f[0] - b.f[0]) < epsilon && fabsf(a.f[1] - b.f[1]) < epsilon && fabsf(a.f[2] - b.f[2]) < epsilon &&
-        fabsf(a.f[3] - b.f[3]) < epsilon;
+           fabsf(a.f[3] - b.f[3]) < epsilon;
 #endif
 }
 
@@ -1113,23 +1101,23 @@ static inline bool simd_check_all(simd_vec_t mask) {
 #if defined(SIMD_ARCH_X86)
 #define simd_transpose4(r0, r1, r2, r3) _MM_TRANSPOSE4_PS(r0, r1, r2, r3)
 #elif defined(SIMD_ARCH_ARM)
-#define simd_transpose4(r0, r1, r2, r3)                                                                                \
-    do {                                                                                                               \
-        float32x4x2_t t0 = vtrnq_f32(r0, r1);                                                                          \
-        float32x4x2_t t1 = vtrnq_f32(r2, r3);                                                                          \
-        r0 = vcombine_f32(vget_low_f32(t0.val[0]), vget_low_f32(t1.val[0]));                                           \
-        r1 = vcombine_f32(vget_low_f32(t0.val[1]), vget_low_f32(t1.val[1]));                                           \
-        r2 = vcombine_f32(vget_high_f32(t0.val[0]), vget_high_f32(t1.val[0]));                                         \
-        r3 = vcombine_f32(vget_high_f32(t0.val[1]), vget_high_f32(t1.val[1]));                                         \
+#define simd_transpose4(r0, r1, r2, r3)                                        \
+    do {                                                                       \
+        float32x4x2_t t0 = vtrnq_f32(r0, r1);                                  \
+        float32x4x2_t t1 = vtrnq_f32(r2, r3);                                  \
+        r0 = vcombine_f32(vget_low_f32(t0.val[0]), vget_low_f32(t1.val[0]));   \
+        r1 = vcombine_f32(vget_low_f32(t0.val[1]), vget_low_f32(t1.val[1]));   \
+        r2 = vcombine_f32(vget_high_f32(t0.val[0]), vget_high_f32(t1.val[0])); \
+        r3 = vcombine_f32(vget_high_f32(t0.val[1]), vget_high_f32(t1.val[1])); \
     } while (0)
 #else
-#define simd_transpose4(r0, r1, r2, r3)                                                                                \
-    do {                                                                                                               \
-        simd_vec_t t0 = r0, t1 = r1, t2 = r2, t3 = r3;                                                                 \
-        r0 = (simd_vec_t){{t0.f[0], t1.f[0], t2.f[0], t3.f[0]}};                                                       \
-        r1 = (simd_vec_t){{t0.f[1], t1.f[1], t2.f[1], t3.f[1]}};                                                       \
-        r2 = (simd_vec_t){{t0.f[2], t1.f[2], t2.f[2], t3.f[2]}};                                                       \
-        r3 = (simd_vec_t){{t0.f[3], t1.f[3], t2.f[3], t3.f[3]}};                                                       \
+#define simd_transpose4(r0, r1, r2, r3)                          \
+    do {                                                         \
+        simd_vec_t t0 = r0, t1 = r1, t2 = r2, t3 = r3;           \
+        r0 = (simd_vec_t){{t0.f[0], t1.f[0], t2.f[0], t3.f[0]}}; \
+        r1 = (simd_vec_t){{t0.f[1], t1.f[1], t2.f[1], t3.f[1]}}; \
+        r2 = (simd_vec_t){{t0.f[2], t1.f[2], t2.f[2], t3.f[2]}}; \
+        r3 = (simd_vec_t){{t0.f[3], t1.f[3], t2.f[3], t3.f[3]}}; \
     } while (0)
 #endif
 

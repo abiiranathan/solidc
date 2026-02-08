@@ -1,4 +1,5 @@
 #include "arena.h"
+#include "aligned_alloc.h"
 
 #include <stdlib.h>
 
@@ -16,7 +17,7 @@ Arena* arena_create(size_t reserve_size) {
     }
 
     // Allocate the arena metadata header
-    Arena* a = (Arena*)malloc(sizeof(Arena));
+    Arena* a = (Arena*)aligned_alloc_xp(64, sizeof(Arena));
     if (!a) return NULL;
 
     // Reserve Virtual Address Space
@@ -34,7 +35,7 @@ Arena* arena_create(size_t reserve_size) {
 #endif
 
     if (!a->base) {
-        free(a);
+        aligned_free_xp(a);
         return NULL;
     }
 
@@ -48,13 +49,13 @@ Arena* arena_create(size_t reserve_size) {
     void* committed = VirtualAlloc(a->base, a->page_size, MEM_COMMIT, PAGE_READWRITE);
     if (!committed) {
         VirtualFree(a->base, 0, MEM_RELEASE);
-        free(a);
+        aligned_free_xp(a);
         return NULL;
     }
 #else
     if (mprotect(a->base, a->page_size, PROT_READ | PROT_WRITE) != 0) {
         munmap(a->base, reserve_size);
-        free(a);
+        aligned_free_xp(a);
         return NULL;
     }
 #endif
@@ -108,5 +109,5 @@ void arena_destroy(Arena* a) {
 #else
     munmap(a->base, (size_t)(a->reserve_end - a->base));
 #endif
-    free(a);
+    aligned_free_xp(a);
 }

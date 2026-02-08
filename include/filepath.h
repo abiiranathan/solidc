@@ -30,7 +30,7 @@
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0400  // Required for syncapi
 #endif
-#define PATH_SEP '\\'
+#define PATH_SEP     '\\'
 #define PATH_SEP_STR "\\"
 #else
 #include <dirent.h>
@@ -41,7 +41,7 @@
 #include <unistd.h>
 
 /** Platform-specific directory separator character. */
-#define PATH_SEP '/'
+#define PATH_SEP     '/'
 
 /** Platform-specific directory separator string. */
 #define PATH_SEP_STR "/"

@@ -18,10 +18,10 @@
 
 #include "../include/str_utils.h"
 
-#define INITIAL_CAPACITY 8
-#define ERR_BUF_SIZE 128
+#define INITIAL_CAPACITY  8
+#define ERR_BUF_SIZE      128
 #define MAX_FLAG_NAME_LEN 128
-#define MAX_DEFAULT_STR 64
+#define MAX_DEFAULT_STR   64
 
 /**
  * @struct Flag
@@ -298,6 +298,9 @@ void flag_parser_free(FlagParser* fp) {
         if (fp->flags[i].default_ptr) {
             free(fp->flags[i].default_ptr);
         }
+        if (fp->flags[i].type == TYPE_STRING && fp->flags[i].value_ptr) {
+            free(*(char**)fp->flags[i].value_ptr);
+        }
     }
 
     free(fp->flags);
@@ -524,9 +527,7 @@ static Flag* find_flag_short(FlagParser* fp, char c) {
  * @param max Maximum allowed value
  * @return true if in range
  */
-static bool check_range_int(long long val, long long min, long long max) {
-    return (val >= min && val <= max);
-}
+static bool check_range_int(long long val, long long min, long long max) { return (val >= min && val <= max); }
 
 /**
  * @brief Check if unsigned integer is within range
@@ -534,9 +535,7 @@ static bool check_range_int(long long val, long long min, long long max) {
  * @param max Maximum allowed value
  * @return true if in range
  */
-static bool check_range_uint(unsigned long long val, unsigned long long max) {
-    return (val <= max);
-}
+static bool check_range_uint(unsigned long long val, unsigned long long max) { return (val <= max); }
 
 /**
  * @brief Parse a string value into a flag's data type
@@ -564,7 +563,8 @@ static FlagStatus parse_value(Flag* flag, const char* str) {
             *(char*)flag->value_ptr = str[0];
             break;
         case TYPE_STRING:
-            *(char**)flag->value_ptr = (char*)str;
+            if (*(char**)flag->value_ptr) free(*(char**)flag->value_ptr);
+            *(char**)flag->value_ptr = xstrdup(str);
             break;
 
         // Signed Integers
@@ -582,7 +582,8 @@ static FlagStatus parse_value(Flag* flag, const char* str) {
                 return FLAG_ERROR_INVALID_NUMBER;
 
             // Assign based on type size
-            if (flag->type == TYPE_INT8) *(int8_t*)flag->value_ptr = (int8_t)val;
+            if (flag->type == TYPE_INT8)
+                *(int8_t*)flag->value_ptr = (int8_t)val;
             else if (flag->type == TYPE_INT16)
                 *(int16_t*)flag->value_ptr = (int16_t)val;
             else if (flag->type == TYPE_INT32)
@@ -607,7 +608,8 @@ static FlagStatus parse_value(Flag* flag, const char* str) {
             if (flag->type == TYPE_UINT32 && !check_range_uint(val, UINT32_MAX)) return FLAG_ERROR_INVALID_NUMBER;
             if (flag->type == TYPE_SIZE_T && !check_range_uint(val, SIZE_MAX)) return FLAG_ERROR_INVALID_NUMBER;
 
-            if (flag->type == TYPE_UINT8) *(uint8_t*)flag->value_ptr = (uint8_t)val;
+            if (flag->type == TYPE_UINT8)
+                *(uint8_t*)flag->value_ptr = (uint8_t)val;
             else if (flag->type == TYPE_UINT16)
                 *(uint16_t*)flag->value_ptr = (uint16_t)val;
             else if (flag->type == TYPE_UINT32)
@@ -734,7 +736,8 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
                 *(bool*)f->value_ptr = b;
             } else {
                 if (!val_str) {
-                    if (i + 1 < argc && argv[i + 1][0] != '-') val_str = argv[++i];
+                    if (i + 1 < argc && argv[i + 1][0] != '-')
+                        val_str = argv[++i];
                     else {
                         set_error(fp, "Flag --%s requires a value", f->name);
                         return FLAG_ERROR_MISSING_VALUE;
@@ -1093,9 +1096,7 @@ FlagParser* flag_active_subcommand(FlagParser* parser) {
  * @param fp Parser to query
  * @return Number of positional arguments
  */
-int flag_positional_count(FlagParser* fp) {
-    return fp ? (int)fp->pos_count : 0;
-}
+int flag_positional_count(FlagParser* fp) { return fp ? (int)fp->pos_count : 0; }
 
 /**
  * @brief Get positional argument at index
@@ -1196,10 +1197,9 @@ static void write_safe_str(FILE* f, const char* str, int quote_style) {
             // Escape special chars in double-quoted string
             fputc('\\', f);
             fputc(*p, f);
-        } else if (quote_style == 0 &&
-                   (*p == ' ' || *p == '\t' || *p == '\n' || *p == '|' || *p == '&' || *p == ';' || *p == '<' ||
-                    *p == '>' || *p == '(' || *p == ')' || *p == '$' || *p == '`' || *p == '\\' || *p == '"' ||
-                    *p == '\'' || *p == '*' || *p == '?')) {
+        } else if (quote_style == 0 && (*p == ' ' || *p == '\t' || *p == '\n' || *p == '|' || *p == '&' || *p == ';' ||
+                                        *p == '<' || *p == '>' || *p == '(' || *p == ')' || *p == '$' || *p == '`' ||
+                                        *p == '\\' || *p == '"' || *p == '\'' || *p == '*' || *p == '?')) {
             // Escape special shell chars when not quoted
             fputc('\\', f);
             fputc(*p, f);

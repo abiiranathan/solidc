@@ -5,8 +5,8 @@
 #include <string.h>
 
 #ifdef _WIN32
-#define pipe(fds) _pipe(fds, 4096, _O_BINARY)
-#define close(fd) _close(fd)
+#define pipe(fds)          _pipe(fds, 4096, _O_BINARY)
+#define close(fd)          _close(fd)
 #define dup2(oldfd, newfd) _dup2(oldfd, newfd)
 #endif
 

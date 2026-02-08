@@ -35,35 +35,31 @@ typedef struct OpsConfig {
 // Initialize defaults
 void init_config(OpsConfig* c) {
     memset(c, 0, sizeof(OpsConfig));
-    c->config_path        = "/default.conf";
-    c->host               = "localhost";
-    c->port               = 8080;
-    c->cache_size         = 1024;
-    c->max_retries        = 3;
-    c->db_name            = "prod";
-    c->timeout_sec        = 30.0;
-    c->mode_char          = 'N';
-    c->priority           = 10;
-    c->threshold          = 0.5f;
+    c->config_path = strdup("/default.conf");
+    c->host = strdup("localhost");
+    c->port = 8080;
+    c->cache_size = 1024;
+    c->max_retries = 3;
+    c->db_name = strdup("prod");
+    c->timeout_sec = 30.0;
+    c->mode_char = 'N';
+    c->priority = 10;
+    c->threshold = 0.5f;
     c->handler_was_called = false;
+
+    ASSERT(c->config_path);
+    ASSERT(c->host);
+    ASSERT(c->db_name);
 }
 
 // Handlers (Modified slightly to mark execution flag)
-void hook_load_env(void* user_data) {
-    (void)user_data;
-}
+void hook_load_env(void* user_data) { (void)user_data; }
 
-void handle_server_start(void* user_data) {
-    ((OpsConfig*)user_data)->handler_was_called = true;
-}
+void handle_server_start(void* user_data) { ((OpsConfig*)user_data)->handler_was_called = true; }
 
-void handle_db_migrate(void* user_data) {
-    ((OpsConfig*)user_data)->handler_was_called = true;
-}
+void handle_db_migrate(void* user_data) { ((OpsConfig*)user_data)->handler_was_called = true; }
 
-void handle_system_check(void* user_data) {
-    ((OpsConfig*)user_data)->handler_was_called = true;
-}
+void handle_system_check(void* user_data) { ((OpsConfig*)user_data)->handler_was_called = true; }
 
 FlagParser* build_ops_parser(OpsConfig* config) {
     FlagParser* root = flag_parser_new("ops", "Test Suite");
@@ -75,13 +71,13 @@ FlagParser* build_ops_parser(OpsConfig* config) {
 
     // Server
     FlagParser* cmd_server = flag_add_subcommand(root, "server", "Server", NULL);
-    FlagParser* cmd_start  = flag_add_subcommand(cmd_server, "start", "Start", handle_server_start);
+    FlagParser* cmd_start = flag_add_subcommand(cmd_server, "start", "Start", handle_server_start);
     flag_req_string(cmd_start, "host", 'h', "Host", &config->host);
     flag_uint16(cmd_start, "port", 'p', "Port", &config->port);
     flag_size_t(cmd_start, "cache", 'z', "Cache", &config->cache_size);
 
     // Database
-    FlagParser* cmd_db      = flag_add_subcommand(root, "database", "DB", NULL);
+    FlagParser* cmd_db = flag_add_subcommand(root, "database", "DB", NULL);
     FlagParser* cmd_migrate = flag_add_subcommand(cmd_db, "migrate", "Migrate", handle_db_migrate);
     flag_string(cmd_migrate, "name", 'n', "DB Name", &config->db_name);
     flag_req_int64(cmd_migrate, "id", 'i', "ID", &config->migration_id);
@@ -101,12 +97,12 @@ FlagParser* build_ops_parser(OpsConfig* config) {
 // =============================================================================
 
 // Assertion macro that doesn't kill the whole suite, just the thread
-#define TEST_ASSERT(cond, msg)                                                                                         \
-    do {                                                                                                               \
-        if (!(cond)) {                                                                                                 \
-            fprintf(stderr, "\033[1;31m[FAIL] Thread %lu: %s\033[0m\n", (unsigned long)thread_self(), msg);            \
-            return (void*)1;                                                                                           \
-        }                                                                                                              \
+#define TEST_ASSERT(cond, msg)                                                                              \
+    do {                                                                                                    \
+        if (!(cond)) {                                                                                      \
+            fprintf(stderr, "\033[1;31m[FAIL] Thread %lu: %s\033[0m\n", (unsigned long)thread_self(), msg); \
+            return (void*)1;                                                                                \
+        }                                                                                                   \
     } while (0)
 
 typedef struct TestPayload {
@@ -129,7 +125,7 @@ void* test_server_success(void* arg) {
     FlagParser* fp = build_ops_parser(&c);
 
     char* argv[] = {"ops", "server", "start", "--host=192.168.1.1", "-p", "9000", "--cache=5000"};
-    int argc     = 7;
+    int argc = 7;
 
     FlagStatus status = flag_parse_and_invoke(fp, argc, argv, &c);
 
@@ -154,7 +150,7 @@ void* test_db_migration(void* arg) {
 
     // Testing global flags (-v, -d) mixed with subcommand flags
     char* argv[] = {"ops", "-v", "--dry-run", "database", "migrate", "--id", "999999999", "--timeout=0.5"};
-    int argc     = 8;
+    int argc = 8;
 
     FlagStatus status = flag_parse_and_invoke(fp, argc, argv, &c);
 
@@ -179,7 +175,7 @@ void* test_types(void* arg) {
     FlagParser* fp = build_ops_parser(&c);
 
     char* argv[] = {"ops", "check", "-m", "Z", "--priority=-50", "--thresh=0.123"};
-    int argc     = 6;
+    int argc = 6;
 
     FlagStatus status = flag_parse_and_invoke(fp, argc, argv, &c);
 
@@ -204,7 +200,7 @@ void* test_missing_required(void* arg) {
 
     // "host" is required for server start
     char* argv[] = {"ops", "server", "start", "-p", "80"};
-    int argc     = 5;
+    int argc = 5;
 
     // Redirect stderr to null to avoid spamming test output
     // (Optional, omitted here for simplicity)
@@ -229,7 +225,7 @@ void* test_overflow(void* arg) {
 
     // Port is uint16 (max 65535). 70000 should fail.
     char* argv[] = {"ops", "server", "start", "--host=loc", "--port=70000"};
-    int argc     = 5;
+    int argc = 5;
 
     FlagStatus status = flag_parse_and_invoke(fp, argc, argv, &c);
 
@@ -249,7 +245,7 @@ void* test_unknown_subcmd(void* arg) {
     FlagParser* fp = build_ops_parser(&c);
 
     char* argv[] = {"ops", "database", "drop"};  // 'drop' doesn't exist
-    int argc     = 3;
+    int argc = 3;
 
     flag_parse_and_invoke(fp, argc, argv, &c);
 

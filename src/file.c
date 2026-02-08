@@ -80,9 +80,9 @@ int populate_file_attrs(const char* path, FileAttributes* attr) {
 
     // Initialize structure
     *attr = (FileAttributes){
-      .attrs = FATTR_NONE,
-      .size = 0,
-      .mtime = filetime_to_unix(&file_info.ftLastWriteTime),
+        .attrs = FATTR_NONE,
+        .size = 0,
+        .mtime = filetime_to_unix(&file_info.ftLastWriteTime),
     };
 
     // Calculate file size
@@ -111,9 +111,8 @@ int populate_file_attrs(const char* path, FileAttributes* attr) {
 
     // On Windows, executability is determined by file extension
     const char* ext = strrchr(path, '.');
-    if (ext &&
-        (strcmp(ext, ".exe") == 0 || strcmp(ext, ".bat") == 0 || strcmp(ext, ".cmd") == 0 ||
-         strcmp(ext, ".com") == 0)) {
+    if (ext && (strcmp(ext, ".exe") == 0 || strcmp(ext, ".bat") == 0 || strcmp(ext, ".cmd") == 0 ||
+                strcmp(ext, ".com") == 0)) {
         attr->attrs |= FATTR_EXECUTABLE;
     }
 
@@ -135,9 +134,9 @@ int populate_file_attrs(const char* path, FileAttributes* attr) {
 
     // Initialize structure
     *attr = (FileAttributes){
-      .attrs = FATTR_NONE,
-      .size = (uint64_t)st.st_size,
-      .mtime = st.st_mtime,
+        .attrs = FATTR_NONE,
+        .size = (uint64_t)st.st_size,
+        .mtime = st.st_mtime,
     };
 
     // Determine file type
@@ -408,11 +407,7 @@ void* file_readall(const file_t* file, size_t* size_out) {
 file_result_t file_lock(const file_t* file) {
 #ifdef _WIN32
     OVERLAPPED overlapped = {0};
-    if (LockFileEx(file->native_handle,
-                   LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
-                   0,
-                   MAXDWORD,
-                   MAXDWORD,
+    if (LockFileEx(file->native_handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, MAXDWORD, MAXDWORD,
                    &overlapped)) {
         return FILE_SUCCESS;
     }
@@ -529,9 +524,7 @@ file_result_t file_munmap(void* addr, size_t length) {
 #endif
 }
 
-file_result_t file_flush(file_t* file) {
-    return (fflush(file->stream) == 0) ? FILE_SUCCESS : FILE_ERROR_IO_FAILED;
-}
+file_result_t file_flush(file_t* file) { return (fflush(file->stream) == 0) ? FILE_SUCCESS : FILE_ERROR_IO_FAILED; }
 
 int64_t file_tell(const file_t* file) {
 #ifdef _WIN32

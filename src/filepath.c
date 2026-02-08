@@ -217,7 +217,8 @@ char* dir_next(Directory* dir) {
 #ifdef _WIN32
 static void map_win32_attrs(const WIN32_FIND_DATAW* fd, FileAttributes* attr) {
     attr->attrs = FATTR_NONE;
-    if (fd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) attr->attrs |= FATTR_DIR;
+    if (fd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+        attr->attrs |= FATTR_DIR;
     else
         attr->attrs |= FATTR_FILE;
     if (fd->dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) attr->attrs |= FATTR_SYMLINK;
@@ -288,9 +289,9 @@ static int delete_single_directory(const char* path) {
 #ifdef _WIN32
     if (!RemoveDirectoryA(path)) {
         DWORD err = GetLastError();
-        errno = (err == ERROR_DIR_NOT_EMPTY)                               ? ENOTEMPTY
-            : (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
-                                                                           : EACCES;
+        errno = (err == ERROR_DIR_NOT_EMPTY)                                   ? ENOTEMPTY
+                : (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
+                                                                               : EACCES;
         return -1;
     }
 #else
@@ -347,16 +348,16 @@ static WalkDirOption dir_remove_callback(const FileAttributes* attr, const char*
     if (fattr_is_dir(attr)) {
         if (!RemoveDirectoryA(path)) {
             DWORD err = GetLastError();
-            errno = (err == ERROR_DIR_NOT_EMPTY)                               ? ENOTEMPTY
-                : (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
-                                                                               : EACCES;
+            errno = (err == ERROR_DIR_NOT_EMPTY)                                   ? ENOTEMPTY
+                    : (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
+                                                                                   : EACCES;
             return DirError;
         }
     } else {
         if (!DeleteFileA(path)) {
             DWORD err = GetLastError();
             errno = (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
-                : (err == ERROR_ACCESS_DENIED)                                   ? EACCES
+                    : (err == ERROR_ACCESS_DENIED)                               ? EACCES
                                                                                  : EIO;
             return DirError;
         }
@@ -375,14 +376,14 @@ static WalkDirOption dir_remove_callback(const FileAttributes* attr, const char*
     return DirContinue;
 }
 
-#define SET_DIR_STATUS(ret)                                                                                            \
-    if ((ret) == DirError) {                                                                                           \
-        status = -1;                                                                                                   \
-        break;                                                                                                         \
-    }                                                                                                                  \
-    if ((ret) == DirStop) {                                                                                            \
-        status = 0;                                                                                                    \
-        break;                                                                                                         \
+#define SET_DIR_STATUS(ret)  \
+    if ((ret) == DirError) { \
+        status = -1;         \
+        break;               \
+    }                        \
+    if ((ret) == DirStop) {  \
+        status = 0;          \
+        break;               \
     }
 
 /**

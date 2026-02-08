@@ -257,9 +257,7 @@ static inline Vec2 vec2_store(SimdVec2 v) {
  *
  * @note SIMD operation - processes both components simultaneously
  */
-static inline SimdVec2 vec2_add(SimdVec2 a, SimdVec2 b) {
-    return (SimdVec2){.v = simd_add(a.v, b.v)};
-}
+static inline SimdVec2 vec2_add(SimdVec2 a, SimdVec2 b) { return (SimdVec2){.v = simd_add(a.v, b.v)}; }
 
 /**
  * @brief Subtract two 2D vectors.
@@ -270,9 +268,7 @@ static inline SimdVec2 vec2_add(SimdVec2 a, SimdVec2 b) {
  * @param b Second vector
  * @return SimdVec2 containing (a.x - b.x, a.y - b.y)
  */
-static inline SimdVec2 vec2_sub(SimdVec2 a, SimdVec2 b) {
-    return (SimdVec2){.v = simd_sub(a.v, b.v)};
-}
+static inline SimdVec2 vec2_sub(SimdVec2 a, SimdVec2 b) { return (SimdVec2){.v = simd_sub(a.v, b.v)}; }
 
 /**
  * @brief Multiply a 2D vector by a scalar.
@@ -285,9 +281,7 @@ static inline SimdVec2 vec2_sub(SimdVec2 a, SimdVec2 b) {
  *
  * @note The scalar is broadcast to all SIMD lanes for parallel multiplication
  */
-static inline SimdVec2 vec2_mul(SimdVec2 a, float s) {
-    return (SimdVec2){.v = simd_mul(a.v, simd_set1(s))};
-}
+static inline SimdVec2 vec2_mul(SimdVec2 a, float s) { return (SimdVec2){.v = simd_mul(a.v, simd_set1(s))}; }
 
 /**
  * @brief Compute dot product of two 2D vectors.
@@ -322,9 +316,7 @@ static inline float vec2_dot(SimdVec2 a, SimdVec2 b) {
  * @note Use this instead of vec2_length() when comparing distances,
  *       as it avoids the expensive square root operation.
  */
-static inline float vec2_length_sq(SimdVec2 v) {
-    return vec2_dot(v, v);
-}
+static inline float vec2_length_sq(SimdVec2 v) { return vec2_dot(v, v); }
 
 /**
  * @brief Compute length (magnitude) of a 2D vector.
@@ -337,9 +329,7 @@ static inline float vec2_length_sq(SimdVec2 v) {
  * @note More expensive than vec2_length_sq() due to sqrt.
  *       Prefer squared length for distance comparisons.
  */
-static inline float vec2_length(SimdVec2 v) {
-    return sqrtf(vec2_length_sq(v));
-}
+static inline float vec2_length(SimdVec2 v) { return sqrtf(vec2_length_sq(v)); }
 
 /**
  * @brief Normalize a 2D vector to unit length.
@@ -410,9 +400,7 @@ static inline SimdVec2 vec2_rotate(SimdVec2 v, float angle) {
  * @param b The second point.
  * @return float The squared Euclidean distance |b - a|^2.
  */
-static inline float vec2_distance_sq(SimdVec2 a, SimdVec2 b) {
-    return vec2_length_sq(vec2_sub(b, a));
-}
+static inline float vec2_distance_sq(SimdVec2 a, SimdVec2 b) { return vec2_length_sq(vec2_sub(b, a)); }
 
 /**
  * @brief Computes the Euclidean distance between two points.
@@ -421,9 +409,7 @@ static inline float vec2_distance_sq(SimdVec2 a, SimdVec2 b) {
  * @param b The second point.
  * @return float The distance |b - a|.
  */
-static inline float vec2_distance(SimdVec2 a, SimdVec2 b) {
-    return sqrtf(vec2_distance_sq(a, b));
-}
+static inline float vec2_distance(SimdVec2 a, SimdVec2 b) { return sqrtf(vec2_distance_sq(a, b)); }
 
 /**
  * @brief Linearly interpolates between two vectors.
@@ -458,9 +444,7 @@ static inline SimdVec2 vec2_project(SimdVec2 a, SimdVec2 b) {
  * @brief Gets the component of A perpendicular to B.
  * Formula: A - Project(A, B)
  */
-static inline SimdVec2 vec2_reject(SimdVec2 a, SimdVec2 b) {
-    return vec2_sub(a, vec2_project(a, b));
-}
+static inline SimdVec2 vec2_reject(SimdVec2 a, SimdVec2 b) { return vec2_sub(a, vec2_project(a, b)); }
 
 /**
  * @brief Returns a vector perpendicular to v (-y, x).
@@ -501,9 +485,7 @@ static inline SimdVec3 vec3_load(Vec3 v) {
  * @param v The SimdVec3 compute vector to store
  * @return Vec3 storage format (12 bytes)
  */
-static inline Vec3 vec3_store(SimdVec3 v) {
-    return (Vec3){v.x, v.y, v.z};
-}
+static inline Vec3 vec3_store(SimdVec3 v) { return (Vec3){v.x, v.y, v.z}; }
 
 /**
  * @brief Add two 3D vectors.
@@ -514,9 +496,7 @@ static inline Vec3 vec3_store(SimdVec3 v) {
  * @param b Second vector
  * @return SimdVec3 containing (a.x + b.x, a.y + b.y, a.z + b.z)
  */
-static inline SimdVec3 vec3_add(SimdVec3 a, SimdVec3 b) {
-    return (SimdVec3){.v = simd_add(a.v, b.v)};
-}
+static inline SimdVec3 vec3_add(SimdVec3 a, SimdVec3 b) { return (SimdVec3){.v = simd_add(a.v, b.v)}; }
 
 /**
  * @brief Subtract two 3D vectors.
@@ -527,9 +507,7 @@ static inline SimdVec3 vec3_add(SimdVec3 a, SimdVec3 b) {
  * @param b Second vector
  * @return SimdVec3 containing (a.x - b.x, a.y - b.y, a.z - b.z)
  */
-static inline SimdVec3 vec3_sub(SimdVec3 a, SimdVec3 b) {
-    return (SimdVec3){.v = simd_sub(a.v, b.v)};
-}
+static inline SimdVec3 vec3_sub(SimdVec3 a, SimdVec3 b) { return (SimdVec3){.v = simd_sub(a.v, b.v)}; }
 
 /**
  * @brief Multiply a 3D vector by a scalar.
@@ -540,9 +518,7 @@ static inline SimdVec3 vec3_sub(SimdVec3 a, SimdVec3 b) {
  * @param s Scalar multiplier
  * @return SimdVec3 containing (a.x * s, a.y * s, a.z * s)
  */
-static inline SimdVec3 vec3_mul(SimdVec3 a, float s) {
-    return (SimdVec3){.v = simd_mul(a.v, simd_set1(s))};
-}
+static inline SimdVec3 vec3_mul(SimdVec3 a, float s) { return (SimdVec3){.v = simd_mul(a.v, simd_set1(s))}; }
 
 /**
  * @brief Component-wise multiply two 3D vectors (Hadamard product).
@@ -557,9 +533,7 @@ static inline SimdVec3 vec3_mul(SimdVec3 a, float s) {
  * @note This is NOT the dot product. Each component is multiplied
  *       independently without summing.
  */
-static inline SimdVec3 vec3_scale(SimdVec3 a, SimdVec3 b) {
-    return (SimdVec3){.v = simd_mul(a.v, b.v)};
-}
+static inline SimdVec3 vec3_scale(SimdVec3 a, SimdVec3 b) { return (SimdVec3){.v = simd_mul(a.v, b.v)}; }
 
 /**
  * @brief Compute dot product of two 3D vectors.
@@ -576,9 +550,7 @@ static inline SimdVec3 vec3_scale(SimdVec3 a, SimdVec3 b) {
  *       - Zero: vectors are perpendicular
  *       - Negative: vectors point in opposite directions
  */
-static inline float vec3_dot(SimdVec3 a, SimdVec3 b) {
-    return simd_dot3(a.v, b.v);
-}
+static inline float vec3_dot(SimdVec3 a, SimdVec3 b) { return simd_dot3(a.v, b.v); }
 
 /**
  * @brief Compute cross product of two 3D vectors.
@@ -603,9 +575,7 @@ static inline float vec3_dot(SimdVec3 a, SimdVec3 b) {
  * @note Common uses: computing surface normals, torque,
  *       angular momentum, coordinate system construction.
  */
-static inline SimdVec3 vec3_cross(SimdVec3 a, SimdVec3 b) {
-    return (SimdVec3){.v = simd_cross(a.v, b.v)};
-}
+static inline SimdVec3 vec3_cross(SimdVec3 a, SimdVec3 b) { return (SimdVec3){.v = simd_cross(a.v, b.v)}; }
 
 /**
  * @brief Compute squared length of a 3D vector.
@@ -619,9 +589,7 @@ static inline SimdVec3 vec3_cross(SimdVec3 a, SimdVec3 b) {
  *       to avoid expensive sqrt operation. Since sqrt is monotonic,
  *       comparing squared lengths preserves ordering.
  */
-static inline float vec3_length_sq(SimdVec3 v) {
-    return simd_length_sq3(v.v);
-}
+static inline float vec3_length_sq(SimdVec3 v) { return simd_length_sq3(v.v); }
 
 /**
  * @brief Compute length (magnitude) of a 3D vector.
@@ -631,9 +599,7 @@ static inline float vec3_length_sq(SimdVec3 v) {
  * @param v The vector
  * @return Length (Euclidean norm)
  */
-static inline float vec3_length(SimdVec3 v) {
-    return simd_length3(v.v);
-}
+static inline float vec3_length(SimdVec3 v) { return simd_length3(v.v); }
 
 /**
  * @brief Normalize a 3D vector to unit length (precise).
@@ -648,9 +614,7 @@ static inline float vec3_length(SimdVec3 v) {
  *
  * @see vec3_normalize_fast() for faster approximate normalization
  */
-static inline SimdVec3 vec3_normalize(SimdVec3 v) {
-    return (SimdVec3){.v = simd_normalize3(v.v)};
-}
+static inline SimdVec3 vec3_normalize(SimdVec3 v) { return (SimdVec3){.v = simd_normalize3(v.v)}; }
 
 /**
  * @brief Fast normalize using reciprocal square root (approximate).
@@ -673,9 +637,7 @@ static inline SimdVec3 vec3_normalize(SimdVec3 v) {
  * @warning SSE rsqrt has ~0.1% error. NEON can be more precise but
  *          still approximate. Use vec3_normalize() for critical paths.
  */
-static inline SimdVec3 vec3_normalize_fast(SimdVec3 v) {
-    return (SimdVec3){.v = simd_normalize3_fast(v.v)};
-}
+static inline SimdVec3 vec3_normalize_fast(SimdVec3 v) { return (SimdVec3){.v = simd_normalize3_fast(v.v)}; }
 
 /**
  * @brief Computes the squared distance between two points.
@@ -684,9 +646,7 @@ static inline SimdVec3 vec3_normalize_fast(SimdVec3 v) {
  * @param b The second point.
  * @return float The squared Euclidean distance |b - a|^2.
  */
-static inline float vec3_distance_sq(SimdVec3 a, SimdVec3 b) {
-    return vec3_length_sq(vec3_sub(b, a));
-}
+static inline float vec3_distance_sq(SimdVec3 a, SimdVec3 b) { return vec3_length_sq(vec3_sub(b, a)); }
 
 /**
  * @brief Computes the Euclidean distance between two points.
@@ -695,9 +655,7 @@ static inline float vec3_distance_sq(SimdVec3 a, SimdVec3 b) {
  * @param b The second point.
  * @return float The distance |b - a|.
  */
-static inline float vec3_distance(SimdVec3 a, SimdVec3 b) {
-    return sqrtf(vec3_distance_sq(a, b));
-}
+static inline float vec3_distance(SimdVec3 a, SimdVec3 b) { return sqrtf(vec3_distance_sq(a, b)); }
 
 /**
  * @brief Linearly interpolates between two vectors.
@@ -740,9 +698,7 @@ static inline SimdVec3 vec3_project(SimdVec3 a, SimdVec3 b) {
  * @param b The reference direction.
  * @return SimdVec3 The perpendicular component.
  */
-static inline SimdVec3 vec3_reject(SimdVec3 a, SimdVec3 b) {
-    return vec3_sub(a, vec3_project(a, b));
-}
+static inline SimdVec3 vec3_reject(SimdVec3 a, SimdVec3 b) { return vec3_sub(a, vec3_project(a, b)); }
 
 /**
  * @brief Generates an arbitrary unit vector orthogonal to v.
@@ -798,9 +754,7 @@ static inline SimdVec4 vec4_load(Vec4 v) {
  * @param v The SimdVec4 compute vector to store
  * @return Vec4 storage format (16 bytes)
  */
-static inline Vec4 vec4_store(SimdVec4 v) {
-    return (Vec4){v.x, v.y, v.z, v.w};
-}
+static inline Vec4 vec4_store(SimdVec4 v) { return (Vec4){v.x, v.y, v.z, v.w}; }
 
 /**
  * @brief Compute length of a 4D vector.
@@ -810,9 +764,7 @@ static inline Vec4 vec4_store(SimdVec4 v) {
  * @param v The vector
  * @return Length (Euclidean norm in 4D space)
  */
-static inline float vec4_length(SimdVec4 v) {
-    return simd_length4(v.v);
-}
+static inline float vec4_length(SimdVec4 v) { return simd_length4(v.v); }
 
 /**
  * @brief Compute squared length of a 4D vector.
@@ -822,9 +774,7 @@ static inline float vec4_length(SimdVec4 v) {
  * @param v The vector
  * @return Squared length
  */
-static inline float vec4_length_sq(SimdVec4 v) {
-    return simd_length_sq4(v.v);
-}
+static inline float vec4_length_sq(SimdVec4 v) { return simd_length_sq4(v.v); }
 
 /**
  * @brief Add two 4D vectors.
@@ -833,9 +783,7 @@ static inline float vec4_length_sq(SimdVec4 v) {
  * @param b Second vector
  * @return Component-wise sum
  */
-static inline SimdVec4 vec4_add(SimdVec4 a, SimdVec4 b) {
-    return (SimdVec4){.v = simd_add(a.v, b.v)};
-}
+static inline SimdVec4 vec4_add(SimdVec4 a, SimdVec4 b) { return (SimdVec4){.v = simd_add(a.v, b.v)}; }
 
 /**
  * @brief Subtract two 4D vectors.
@@ -844,9 +792,7 @@ static inline SimdVec4 vec4_add(SimdVec4 a, SimdVec4 b) {
  * @param b Second vector
  * @return Component-wise difference (a - b)
  */
-static inline SimdVec4 vec4_sub(SimdVec4 a, SimdVec4 b) {
-    return (SimdVec4){.v = simd_sub(a.v, b.v)};
-}
+static inline SimdVec4 vec4_sub(SimdVec4 a, SimdVec4 b) { return (SimdVec4){.v = simd_sub(a.v, b.v)}; }
 
 /**
  * @brief Multiply a 4D vector by a scalar.
@@ -855,9 +801,7 @@ static inline SimdVec4 vec4_sub(SimdVec4 a, SimdVec4 b) {
  * @param s Scalar multiplier
  * @return Uniformly scaled vector
  */
-static inline SimdVec4 vec4_mul(SimdVec4 a, float s) {
-    return (SimdVec4){.v = simd_mul(a.v, simd_set1(s))};
-}
+static inline SimdVec4 vec4_mul(SimdVec4 a, float s) { return (SimdVec4){.v = simd_mul(a.v, simd_set1(s))}; }
 
 /**
  * @brief Divides a 4D vector by a scalar.
@@ -891,9 +835,7 @@ static inline SimdVec4 vec4_div(SimdVec4 a, float s) {
  * @note Common uses: quaternion operations, homogeneous
  *       coordinate calculations, 4D geometry.
  */
-static inline float vec4_dot(SimdVec4 a, SimdVec4 b) {
-    return simd_dot4(a.v, b.v);
-}
+static inline float vec4_dot(SimdVec4 a, SimdVec4 b) { return simd_dot4(a.v, b.v); }
 
 /**
  * @brief Component-wise multiply two 4D vectors (Hadamard product).
@@ -904,9 +846,7 @@ static inline float vec4_dot(SimdVec4 a, SimdVec4 b) {
  *
  * @note Common uses: RGBA color blending, per-component scaling.
  */
-static inline SimdVec4 vec4_scale(SimdVec4 a, SimdVec4 b) {
-    return (SimdVec4){.v = simd_mul(a.v, b.v)};
-}
+static inline SimdVec4 vec4_scale(SimdVec4 a, SimdVec4 b) { return (SimdVec4){.v = simd_mul(a.v, b.v)}; }
 
 /**
  * @brief Normalize a 4D vector to unit length.
@@ -916,9 +856,7 @@ static inline SimdVec4 vec4_scale(SimdVec4 a, SimdVec4 b) {
  *
  * @warning Undefined behavior for zero or near-zero vectors.
  */
-static inline SimdVec4 vec4_normalize(SimdVec4 a) {
-    return (SimdVec4){.v = simd_normalize4(a.v)};
-}
+static inline SimdVec4 vec4_normalize(SimdVec4 a) { return (SimdVec4){.v = simd_normalize4(a.v)}; }
 
 /* ==================================================
    Rotations (Optimized)
@@ -1085,9 +1023,7 @@ static inline bool vec4_equals(Vec4 a, Vec4 b, float epsilon) {
  * @param b The second vector.
  * @return float The squared Euclidean distance |b - a|^2.
  */
-static inline float vec4_distance_sq(SimdVec4 a, SimdVec4 b) {
-    return vec4_length_sq(vec4_sub(b, a));
-}
+static inline float vec4_distance_sq(SimdVec4 a, SimdVec4 b) { return vec4_length_sq(vec4_sub(b, a)); }
 
 /**
  * @brief Computes the Euclidean distance between two 4D vectors.
@@ -1096,9 +1032,7 @@ static inline float vec4_distance_sq(SimdVec4 a, SimdVec4 b) {
  * @param b The second vector.
  * @return float The distance |b - a|.
  */
-static inline float vec4_distance(SimdVec4 a, SimdVec4 b) {
-    return sqrtf(vec4_distance_sq(a, b));
-}
+static inline float vec4_distance(SimdVec4 a, SimdVec4 b) { return sqrtf(vec4_distance_sq(a, b)); }
 
 /**
  * @brief Linearly interpolates between two 4D vectors.
@@ -1141,9 +1075,7 @@ static inline SimdVec4 vec4_project(SimdVec4 a, SimdVec4 b) {
  * @param b The reference direction.
  * @return SimdVec4 The perpendicular component.
  */
-static inline SimdVec4 vec4_reject(SimdVec4 a, SimdVec4 b) {
-    return vec4_sub(a, vec4_project(a, b));
-}
+static inline SimdVec4 vec4_reject(SimdVec4 a, SimdVec4 b) { return vec4_sub(a, vec4_project(a, b)); }
 
 #ifdef __cplusplus
 }

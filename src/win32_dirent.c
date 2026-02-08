@@ -164,8 +164,8 @@ static int __islink(const wchar_t* name, char* buffer) {
         CreateFileW(name, 0, 0, NULL, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, 0);
     if (hFile == INVALID_HANDLE_VALUE) return 0;
 
-    io_result = (DWORD)DeviceIoControl(
-        hFile, FSCTL_GET_REPARSE_POINT, NULL, 0, buffer, MAXIMUM_REPARSE_DATA_BUFFER_SIZE, &bytes_returned, NULL);
+    io_result = (DWORD)DeviceIoControl(hFile, FSCTL_GET_REPARSE_POINT, NULL, 0, buffer,
+                                       MAXIMUM_REPARSE_DATA_BUFFER_SIZE, &bytes_returned, NULL);
 
     CloseHandle(hFile);
 
@@ -197,8 +197,7 @@ static __ino_t __inode(const wchar_t* name) {
     BY_HANDLE_FILE_INFORMATION info;
     typedef BOOL(__stdcall * pfnGetFileInformationByHandleEx)(HANDLE hFile,
                                                               dirent_FILE_INFO_BY_HANDLE_CLASS FileInformationClass,
-                                                              LPVOID lpFileInformation,
-                                                              DWORD dwBufferSize);
+                                                              LPVOID lpFileInformation, DWORD dwBufferSize);
 
     HANDLE hKernel32 = GetModuleHandleW(L"kernel32.dll");
     if (!hKernel32) return value;
@@ -267,8 +266,8 @@ static DIR* __internal_opendir(wchar_t* wname, int size) {
     buffer = malloc(MAXIMUM_REPARSE_DATA_BUFFER_SIZE);
     if (!buffer) goto out_of_memory;
     do {
-        WideCharToMultiByte(
-            CP_UTF8, 0, w32fd.cFileName, -1, data->entries[data->index].d_name, NAME_MAX, &default_char, NULL);
+        WideCharToMultiByte(CP_UTF8, 0, w32fd.cFileName, -1, data->entries[data->index].d_name, NAME_MAX, &default_char,
+                            NULL);
 
         memcpy(wname + size, w32fd.cFileName, sizeof(wchar_t) * NAME_MAX);
 
@@ -379,8 +378,8 @@ DIR* _wopendir(const wchar_t* name) {
 DIR* fdopendir(intptr_t fd) {
     DIR* dirp = NULL;
     wchar_t* wname = __get_buffer();
-    typedef DWORD(__stdcall *
-                  pfnGetFinalPathNameByHandleW)(HANDLE hFile, LPWSTR lpszFilePath, DWORD cchFilePath, DWORD dwFlags);
+    typedef DWORD(__stdcall * pfnGetFinalPathNameByHandleW)(HANDLE hFile, LPWSTR lpszFilePath, DWORD cchFilePath,
+                                                            DWORD dwFlags);
 
     HANDLE hKernel32 = GetModuleHandleW(L"kernel32.dll");
     if (!hKernel32) {
@@ -471,9 +470,7 @@ void seekdir(DIR* dirp, long int offset) {
  *
  * @param dirp The directory stream.
  */
-void rewinddir(DIR* dirp) {
-    seekdir(dirp, 0);
-}
+void rewinddir(DIR* dirp) { seekdir(dirp, 0); }
 
 /**
  * @brief Returns the current position of the directory stream.

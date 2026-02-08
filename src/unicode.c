@@ -237,9 +237,7 @@ size_t utf8_char_length(const char* str) {
  * @return true if codepoint is in range [0, 0x10FFFF], false otherwise.
  * @note This does NOT check for surrogate pairs or other invalid ranges.
  */
-bool is_valid_codepoint(uint32_t codepoint) {
-    return codepoint <= UNICODE_MAX_CODEPOINT;
-}
+bool is_valid_codepoint(uint32_t codepoint) { return codepoint <= UNICODE_MAX_CODEPOINT; }
 
 /**
  * Comprehensively validates a UTF-8 encoded string.
@@ -290,7 +288,7 @@ bool is_valid_utf8(const char* utf8) {
                 return false;
             }
             uint32_t codepoint = (uint32_t)((byte & 0x07) << 18) | ((uint32_t)(utf8[i + 1] & 0x3F) << 12) |
-                ((uint32_t)(utf8[i + 2] & 0x3F) << 6) | (utf8[i + 3] & 0x3F);
+                                 ((uint32_t)(utf8[i + 2] & 0x3F) << 6) | (utf8[i + 3] & 0x3F);
             if (codepoint < 0x10000 || codepoint > 0x10FFFF) {
                 return false;
             }
@@ -309,9 +307,7 @@ bool is_valid_utf8(const char* utf8) {
  * @return true if the codepoint is a whitespace character per the C locale.
  * @note Uses iswspace() which respects the current locale settings.
  */
-bool is_codepoint_whitespace(uint32_t codepoint) {
-    return iswspace(codepoint);
-}
+bool is_codepoint_whitespace(uint32_t codepoint) { return iswspace(codepoint); }
 
 /**
  * Checks if a UTF-8 character represents whitespace.
@@ -332,9 +328,7 @@ bool is_utf8_whitespace(const char* utf8) {
  * @param codepoint The Unicode codepoint to test.
  * @return true if the codepoint is a digit character per the C locale.
  */
-bool is_codepoint_digit(uint32_t codepoint) {
-    return iswdigit(codepoint);
-}
+bool is_codepoint_digit(uint32_t codepoint) { return iswdigit(codepoint); }
 
 /**
  * Checks if a UTF-8 character represents a digit.
@@ -355,9 +349,7 @@ bool is_utf8_digit(const char* utf8) {
  * @param codepoint The Unicode codepoint to test.
  * @return true if the codepoint is alphabetic per the C locale.
  */
-bool is_codepoint_alpha(uint32_t codepoint) {
-    return iswalpha(codepoint);
-}
+bool is_codepoint_alpha(uint32_t codepoint) { return iswalpha(codepoint); }
 
 /**
  * Checks if a UTF-8 character represents an alphabetic character.
@@ -378,9 +370,7 @@ bool is_utf8_alpha(const char* utf8) {
  * @param codepoint The Unicode codepoint to test.
  * @return true if the codepoint is alphanumeric.
  */
-bool is_codepoint_alnum(uint32_t codepoint) {
-    return iswalnum(codepoint);
-}
+bool is_codepoint_alnum(uint32_t codepoint) { return iswalnum(codepoint); }
 
 /**
  * Checks if a UTF-8 character represents an alphanumeric character.
@@ -401,9 +391,7 @@ bool is_utf8_alnum(const char* utf8) {
  * @param codepoint The Unicode codepoint to test.
  * @return true if the codepoint is punctuation per the C locale.
  */
-bool is_codepoint_punct(uint32_t codepoint) {
-    return iswpunct(codepoint);
-}
+bool is_codepoint_punct(uint32_t codepoint) { return iswpunct(codepoint); }
 
 /**
  * Checks if a UTF-8 character represents a punctuation character.
@@ -810,8 +798,8 @@ size_t utf8_replace_all(utf8_string* s, const char* old_str, const char* new_str
             index = s->data + offset;
         }
 
-        memmove(
-            &s->data[offset + new_byte_len], &s->data[offset + old_byte_len], s->length - offset - old_byte_len + 1);
+        memmove(&s->data[offset + new_byte_len], &s->data[offset + old_byte_len],
+                s->length - offset - old_byte_len + 1);
         memcpy(&s->data[offset], new_str, new_byte_len);
         s->length = s->length - old_byte_len + new_byte_len;
         s->count = s->count - old_count + new_count;

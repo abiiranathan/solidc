@@ -291,27 +291,21 @@ static inline bool hashset_remove(hashset_t* set, const void* key) {
  * @param set The hash set.
  * @return Number of elements.
  */
-static inline size_t hashset_size(const hashset_t* set) {
-    return set != NULL ? set->size : 0;
-}
+static inline size_t hashset_size(const hashset_t* set) { return set != NULL ? set->size : 0; }
 
 /**
  * Returns the current bucket capacity.
  * @param set The hash set.
  * @return Number of buckets.
  */
-static inline size_t hashset_capacity(const hashset_t* set) {
-    return set != NULL ? set->capacity : 0;
-}
+static inline size_t hashset_capacity(const hashset_t* set) { return set != NULL ? set->capacity : 0; }
 
 /**
  * Checks if the set is empty.
  * @param set The hash set.
  * @return True if set has no elements.
  */
-static inline bool hashset_isempty(const hashset_t* set) {
-    return set == NULL || set->size == 0;
-}
+static inline bool hashset_isempty(const hashset_t* set) { return set == NULL || set->size == 0; }
 
 /**
  * Removes all elements from the set.

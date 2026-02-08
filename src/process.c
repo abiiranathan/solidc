@@ -4,6 +4,7 @@
  */
 
 #include "../include/process.h"
+#include "../include/file.h"  // Required for INVALID_NATIVE_HANDLE
 
 #include <errno.h>
 #include <stddef.h>
@@ -16,15 +17,15 @@
 #define X_OK 0
 #endif
 
-#define PATH_SEP ";"       // Windows uses semicolon
-#define DIR_SEP "\\"       // Windows directory separator
-#define strtok_r strtok_s  // MSVC equivalent
+#define PATH_SEP ";"   // Windows uses semicolon
+#define DIR_SEP  "\\"  // Windows directory separator
+// #define strtok_r strtok_s  // MSVC equivalent (this line caused issues on POSIX)
 
 #else
 #include <unistd.h>  // for access
-#define ACCESS access
+#define ACCESS   access
 #define PATH_SEP ":"  // POSIX uses colon
-#define DIR_SEP "/"   // POSIX directory separator
+#define DIR_SEP  "/"  // POSIX directory separator
 #endif
 
 // Helper function to search for command in PATH
@@ -126,17 +127,17 @@ struct FileRedirection {
 
 /* Default options for process creation */
 static const ProcessOptions DEFAULT_OPTIONS = {
-  .working_directory = NULL,
-  .inherit_environment = true,
-  .environment = NULL,
-  .detached = false,
-  .io =
-      {
-        .stdin_pipe = NULL,
-        .stdout_pipe = NULL,
-        .stderr_pipe = NULL,
-        .merge_stderr = false,
-      },
+    .working_directory = NULL,
+    .inherit_environment = true,
+    .environment = NULL,
+    .detached = false,
+    .io =
+        {
+            .stdin_pipe = NULL,
+            .stdout_pipe = NULL,
+            .stderr_pipe = NULL,
+            .merge_stderr = false,
+        },
 };
 
 /* Error handling helper functions */
@@ -180,30 +181,22 @@ ProcessError process_system_error(void) {
 /**
 Returns True if pipe read closed.
 */
-bool pipe_read_closed(PipeHandle* handle) {
-    return handle->read_closed;
-}
+bool pipe_read_closed(PipeHandle* handle) { return handle->read_closed; }
 
 /**
 Returns True if pipe write closed.
 */
-bool pipe_write_closed(PipeHandle* handle) {
-    return handle->write_closed;
-}
+bool pipe_write_closed(PipeHandle* handle) { return handle->write_closed; }
 
 /**
 Returns the pipe write read descriptor.
 */
-PipeFd pipe_read_fd(PipeHandle* handle) {
-    return handle->read_fd;
-}
+PipeFd pipe_read_fd(PipeHandle* handle) { return handle->read_fd; }
 
 /**
 Returns the pipe write file descriptor.
 */
-PipeFd pipe_write_fd(PipeHandle* handle) {
-    return handle->write_fd;
-}
+PipeFd pipe_write_fd(PipeHandle* handle) { return handle->write_fd; }
 
 /* String descriptions for error codes */
 const char* process_error_string(ProcessError error) {
@@ -557,26 +550,58 @@ void pipe_close(PipeHandle* pipe) {
     }
 
 #ifdef _WIN32
-    if (!pipe->read_closed) {
+    if (pipe->read_fd != INVALID_NATIVE_HANDLE && !pipe->read_closed) {
         CloseHandle(pipe->read_fd);
         pipe->read_closed = true;
+        pipe->read_fd = INVALID_NATIVE_HANDLE;
     }
-    if (!pipe->write_closed) {
+    if (pipe->write_fd != INVALID_NATIVE_HANDLE && !pipe->write_closed) {
         CloseHandle(pipe->write_fd);
         pipe->write_closed = true;
+        pipe->write_fd = INVALID_NATIVE_HANDLE;
     }
 #else
-    if (!pipe->read_closed) {
+    if (pipe->read_fd != INVALID_NATIVE_HANDLE && !pipe->read_closed) {
         close(pipe->read_fd);
         pipe->read_closed = true;
+        pipe->read_fd = INVALID_NATIVE_HANDLE;
     }
-    if (!pipe->write_closed) {
+    if (pipe->write_fd != INVALID_NATIVE_HANDLE && !pipe->write_closed) {
         close(pipe->write_fd);
         pipe->write_closed = true;
+        pipe->write_fd = INVALID_NATIVE_HANDLE;
     }
 #endif
 
     free(pipe);
+}
+
+ProcessError pipe_close_read_end(PipeHandle* pipe) {
+    if (!pipe) return PROCESS_ERROR_INVALID_ARGUMENT;
+    if (pipe->read_fd != INVALID_NATIVE_HANDLE && !pipe->read_closed) {
+#ifdef _WIN32
+        CloseHandle(pipe->read_fd);
+#else
+        close(pipe->read_fd);
+#endif
+        pipe->read_closed = true;
+        pipe->read_fd = INVALID_NATIVE_HANDLE;
+    }
+    return PROCESS_SUCCESS;
+}
+
+ProcessError pipe_close_write_end(PipeHandle* pipe) {
+    if (!pipe) return PROCESS_ERROR_INVALID_ARGUMENT;
+    if (pipe->write_fd != INVALID_NATIVE_HANDLE && !pipe->write_closed) {
+#ifdef _WIN32
+        CloseHandle(pipe->write_fd);
+#else
+        close(pipe->write_fd);
+#endif
+        pipe->write_closed = true;
+        pipe->write_fd = INVALID_NATIVE_HANDLE;
+    }
+    return PROCESS_SUCCESS;
 }
 
 /* Implementation of the process API */

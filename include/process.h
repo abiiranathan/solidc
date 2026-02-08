@@ -247,6 +247,8 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
  * @param[in] pipe Pipe handle to close
  */
 void pipe_close(PipeHandle* pipe);
+ProcessError pipe_close_read_end(PipeHandle* pipe);
+ProcessError pipe_close_write_end(PipeHandle* pipe);
 
 /**
  * @brief Get a string description of a process error

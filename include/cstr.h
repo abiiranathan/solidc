@@ -72,7 +72,7 @@ cstr* cstr_init(size_t initial_capacity);
 
 /**
  * @brief Creates a new empty cstr using a custom arena allocator.
- * 
+ *
  * @param arena The arena to allocate from.
  * @param initial_capacity Requested initial capacity.
  * @return Pointer to new cstr, or NULL on failure.
@@ -95,7 +95,7 @@ cstr* cstr_new(const char* input);
 
 /**
  * @brief Creates a new cstr from a C string using a custom arena allocator.
- * 
+ *
  * @param arena The arena to allocate from.
  * @param input C string to copy.
  * @return Pointer to new cstr, or NULL on failure.
@@ -201,7 +201,7 @@ bool cstr_ncat(cstr* dest, const cstr* src, size_t n);
 
 /**
  * @brief Copies the content of src to dest (overwriting dest).
- * 
+ *
  * @param dest Destination cstr (must not be NULL).
  * @param src Source cstr (must not be NULL).
  * @return true on success.
@@ -540,7 +540,7 @@ int cstr_rfind_cstr(const cstr* s, const cstr* substr);
 
 /**
  * @brief Checks if the cstr contains the given substring.
- * 
+ *
  * @param s Pointer to the cstr (can be NULL).
  * @param substr Substring to find (can be NULL).
  * @return True if found, false otherwise.
@@ -549,7 +549,7 @@ bool cstr_contains(const cstr* s, const char* substr);
 
 /**
  * @brief Checks if the cstr contains the given substring cstr.
- * 
+ *
  * @param s Pointer to the cstr (can be NULL).
  * @param substr Substring to find (can be NULL).
  * @return True if found, false otherwise.

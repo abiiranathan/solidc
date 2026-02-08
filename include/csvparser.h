@@ -158,15 +158,14 @@ csvwriter_free(writer);
 */
 typedef struct CsvWriter CsvWriter;
 
-#define CsvWriterConfigure(writer, ...)                                                                                \
-    csvwriter_setconfig(writer,                                                                                        \
-                        (CsvWriterConfig){.delim = ',',                                                                \
-                                          .quote = '"',                                                                \
-                                          .newline = '\n',                                                             \
-                                          .quote_all = false,                                                          \
-                                          .flush = false,                                                              \
-                                          .first_row = false,                                                          \
-                                          __VA_ARGS__})
+#define CsvWriterConfigure(writer, ...)                               \
+    csvwriter_setconfig(writer, (CsvWriterConfig){.delim = ',',       \
+                                                  .quote = '"',       \
+                                                  .newline = '\n',    \
+                                                  .quote_all = false, \
+                                                  .flush = false,     \
+                                                  .first_row = false, \
+                                                  __VA_ARGS__})
 
 // Create a new CSV writer associated with a filename.
 CsvWriter* csvwriter_new(const char* filename);

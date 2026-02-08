@@ -1,6 +1,7 @@
 #include "../include/csvparser.h"
 
 #include "../include/arena.h"
+#include "../include/cstr.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -186,13 +187,13 @@ Row** csv_reader_parse(CsvReader* reader) {
         }
 
         csv_line_params args = {
-          .arena = reader->arena,
-          .line = line,
-          .rowIndex = rowIndex,
-          .row = reader->rows[rowIndex],
-          .delim = reader->delim,
-          .quote = reader->quote,
-          .num_fields = num_fields,
+            .arena = reader->arena,
+            .line = line,
+            .rowIndex = rowIndex,
+            .row = reader->rows[rowIndex],
+            .delim = reader->delim,
+            .quote = reader->quote,
+            .num_fields = num_fields,
         };
 
         parse_success = parse_csv_line(&args);
@@ -267,13 +268,13 @@ void csv_reader_parse_async(CsvReader* reader, CsvRowCallback callback, size_t m
         }
 
         csv_line_params args = {
-          .arena = reader->arena,
-          .line = line,
-          .rowIndex = rowIndex,
-          .row = reader->rows[rowIndex],
-          .delim = reader->delim,
-          .quote = reader->quote,
-          .num_fields = num_fields,
+            .arena = reader->arena,
+            .line = line,
+            .rowIndex = rowIndex,
+            .row = reader->rows[rowIndex],
+            .delim = reader->delim,
+            .quote = reader->quote,
+            .num_fields = num_fields,
         };
 
         if (!parse_csv_line(&args)) {
@@ -289,9 +290,7 @@ void csv_reader_parse_async(CsvReader* reader, CsvRowCallback callback, size_t m
     fclose(reader->stream);
 }
 
-size_t csv_reader_numrows(const CsvReader* reader) {
-    return reader->num_rows;
-}
+size_t csv_reader_numrows(const CsvReader* reader) { return reader->num_rows; }
 
 void csv_reader_free(CsvReader* reader) {
     if (!reader) return;
@@ -322,11 +321,11 @@ void csv_reader_setconfig(CsvReader* reader, CsvReaderConfig config) {
 
 CsvReaderConfig csv_reader_getconfig(CsvReader* reader) {
     CsvReaderConfig config = {
-      .comment = reader->comment,
-      .delim = reader->delim,
-      .has_header = reader->has_header,
-      .skip_header = reader->skip_header,
-      .quote = reader->quote,
+        .comment = reader->comment,
+        .delim = reader->delim,
+        .has_header = reader->has_header,
+        .skip_header = reader->skip_header,
+        .quote = reader->quote,
     };
     return config;
 }
@@ -372,9 +371,9 @@ static bool parse_csv_line(csv_line_params* args) {
             insideQuotes = !insideQuotes;
         } else if (args->line[i] == args->delim && !insideQuotes) {
             field[fieldIndex] = '\0';
-            fields[row->count] = arena_strdupn(args->arena, field, fieldIndex);
+            char* trimmed = trim_string(field);
+            fields[row->count] = arena_strdup(args->arena, trimmed);
             if (!fields[row->count]) {
-                fprintf(stderr, "ERROR: unable to allocate memory for fields[%zu]\n", row->count);
                 return false;
             }
             row->count++;
@@ -390,9 +389,10 @@ static bool parse_csv_line(csv_line_params* args) {
         return false;
     }
 
-    // Add the last field.
+    // Add the last field with whitespace trimming
     field[fieldIndex] = '\0';
-    fields[row->count] = arena_strdupn(args->arena, field, fieldIndex);
+    char* trimmed = trim_string(field);
+    fields[row->count] = arena_strdup(args->arena, trimmed);
     if (!fields[row->count]) {
         fprintf(stderr, "ERROR: unable to allocate memory for fields[%zu]\n", row->count);
         return false;

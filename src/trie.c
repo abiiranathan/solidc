@@ -255,18 +255,14 @@ uint32_t trie_get_frequency(const trie_t* trie, const char* word) {
  * @param trie The Trie structure.
  * @return Number of unique words, or 0 if trie is NULL.
  */
-size_t trie_get_word_count(const trie_t* trie) {
-    return trie != NULL ? trie->word_count : 0;
-}
+size_t trie_get_word_count(const trie_t* trie) { return trie != NULL ? trie->word_count : 0; }
 
 /**
  * Checks if the Trie is empty.
  * @param trie The Trie structure.
  * @return true if empty or NULL, false otherwise.
  */
-bool trie_is_empty(const trie_t* trie) {
-    return trie == NULL || trie->word_count == 0;
-}
+bool trie_is_empty(const trie_t* trie) { return trie == NULL || trie->word_count == 0; }
 
 /**
  * Recursively collects all words from a node with a given prefix using Arena allocation.
@@ -371,8 +367,7 @@ const char** trie_autocomplete(const trie_t* trie, const char* prefix, size_t ma
     if (prefix_len >= max_word_len) {
         return NULL;
     }
-    strncpy(word_buffer,
-            prefix,
+    strncpy(word_buffer, prefix,
             prefix_len + 1);  // +1 to copy null terminator if space allows, mostly to silence warnings
 
     // Collect all words with this prefix

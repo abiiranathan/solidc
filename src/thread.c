@@ -48,9 +48,7 @@ static inline int win_error_to_errno(DWORD win_error) {
  * @param handle Thread handle to validate.
  * @return 1 if valid, 0 if invalid.
  */
-static inline int is_valid_thread_handle(HANDLE handle) {
-    return (handle != NULL && handle != INVALID_HANDLE_VALUE);
-}
+static inline int is_valid_thread_handle(HANDLE handle) { return (handle != NULL && handle != INVALID_HANDLE_VALUE); }
 #endif
 
 /* Windows-specific thread parameter wrapper */
@@ -264,13 +262,9 @@ int thread_detach(Thread tid) {
 }
 
 #ifdef _WIN32
-DWORD thread_self() {
-    return GetCurrentThreadId();
-}
+DWORD thread_self() { return GetCurrentThreadId(); }
 #else
-pthread_t thread_self() {
-    return pthread_self();
-}
+pthread_t thread_self() { return pthread_self(); }
 #endif
 
 /* Thread Attribute Management */
@@ -605,13 +599,8 @@ char* get_groupname() {
         char* domain_buffer = (char*)malloc(domain_len);
         if (domain_buffer != NULL) {
             name_len = sizeof(win_groupname_buffer);
-            if (LookupAccountSidA(NULL,
-                                  primary_group->PrimaryGroup,
-                                  win_groupname_buffer,
-                                  &name_len,
-                                  domain_buffer,
-                                  &domain_len,
-                                  &sid_type)) {
+            if (LookupAccountSidA(NULL, primary_group->PrimaryGroup, win_groupname_buffer, &name_len, domain_buffer,
+                                  &domain_len, &sid_type)) {
                 result = win_groupname_buffer;
             }
             free(domain_buffer);
@@ -634,13 +623,9 @@ int get_ppid() {
     return (int)ppid;
 }
 
-unsigned int get_uid() {
-    return (unsigned int)getuid();
-}
+unsigned int get_uid() { return (unsigned int)getuid(); }
 
-unsigned int get_gid() {
-    return (unsigned int)getgid();
-}
+unsigned int get_gid() { return (unsigned int)getgid(); }
 
 char* get_username() {
     struct passwd* pw = getpwuid(getuid());

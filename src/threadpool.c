@@ -108,7 +108,6 @@ static bool ringbuffer_push(TaskRingBuffer* rb, Task* task) {
     // Re-check condition under lock
     while (((atomic_load_explicit(&rb->head, memory_order_relaxed) + 1) & RING_BUFFER_MASK) ==
            atomic_load_explicit(&rb->tail, memory_order_relaxed)) {
-
         if (atomic_load_explicit(&rb->pool->shutdown, memory_order_acquire)) {
             lock_release(&rb->mutex);
             return false;
@@ -139,9 +138,8 @@ static int ringbuffer_pull_batch_optimized(TaskRingBuffer* rb, Task* tasks, size
 
             // Atomic reservation with single CAS
             uint32_t new_tail = (tail + to_take) & RING_BUFFER_MASK;
-            if (atomic_compare_exchange_weak_explicit(
-                    &rb->tail, &tail, new_tail, memory_order_release, memory_order_relaxed)) {
-
+            if (atomic_compare_exchange_weak_explicit(&rb->tail, &tail, new_tail, memory_order_release,
+                                                      memory_order_relaxed)) {
                 // Bulk copy tasks (optimized for cache)
                 for (size_t i = 0; i < to_take; i++) {
                     tasks[i] = rb->tasks[(tail + i) & RING_BUFFER_MASK];

@@ -34,22 +34,22 @@ extern "C" {
 
 // Cross-platform prefetch macros
 #if defined(__GNUC__) || defined(__clang__)
-#define PREFETCH_READ(addr) __builtin_prefetch((addr), 0, 3)
+#define PREFETCH_READ(addr)  __builtin_prefetch((addr), 0, 3)
 #define PREFETCH_WRITE(addr) __builtin_prefetch((addr), 1, 3)
 #elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
 #include <intrin.h>
-#define PREFETCH_READ(addr) _mm_prefetch((char*)(addr), _MM_HINT_T0)
+#define PREFETCH_READ(addr)  _mm_prefetch((char*)(addr), _MM_HINT_T0)
 #define PREFETCH_WRITE(addr) _mm_prefetch((char*)(addr), _MM_HINT_T0)
 #elif defined(__has_builtin)
 #if __has_builtin(__builtin_prefetch)
-#define PREFETCH_READ(addr) __builtin_prefetch((addr), 0, 3)
+#define PREFETCH_READ(addr)  __builtin_prefetch((addr), 0, 3)
 #define PREFETCH_WRITE(addr) __builtin_prefetch((addr), 1, 3)
 #else
-#define PREFETCH_READ(addr) ((void)0)
+#define PREFETCH_READ(addr)  ((void)0)
 #define PREFETCH_WRITE(addr) ((void)0)
 #endif
 #else
-#define PREFETCH_READ(addr) ((void)0)
+#define PREFETCH_READ(addr)  ((void)0)
 #define PREFETCH_WRITE(addr) ((void)0)
 #endif
 
@@ -69,10 +69,10 @@ typedef struct {
     HashFunction hash_func;        // Optional: Custom hash function
 } MapConfig;
 
-#define MapConfigInt (&(MapConfig){.key_compare = key_compare_int})
-#define MapConfigFloat (&(MapConfig){.key_compare = key_compare_float})
+#define MapConfigInt    (&(MapConfig){.key_compare = key_compare_int})
+#define MapConfigFloat  (&(MapConfig){.key_compare = key_compare_float})
 #define MapConfigDouble (&(MapConfig){.key_compare = key_compare_double})
-#define MapConfigStr (&(MapConfig){.key_compare = key_compare_char_ptr})
+#define MapConfigStr    (&(MapConfig){.key_compare = key_compare_char_ptr})
 
 // Generic map implementation using xxhash as the hash function.
 typedef struct hash_map HashMap;
@@ -123,9 +123,7 @@ size_t map_length(HashMap* m);
 // Get the capacity of the map
 size_t map_capacity(HashMap* m);
 
-static inline bool key_compare_int(const void* a, const void* b) {
-    return a && b && *(const int*)a == *(const int*)b;
-}
+static inline bool key_compare_int(const void* a, const void* b) { return a && b && *(const int*)a == *(const int*)b; }
 
 static inline bool key_compare_char_ptr(const void* a, const void* b) {
     return a && b && strcmp((const char*)a, (const char*)b) == 0;

@@ -5,8 +5,8 @@
 #ifndef SOLIDC_FILE_H
 #define SOLIDC_FILE_H
 
-#define _POSIX_C_SOURCE 200809L  // For fstat, fileno, pwrite, pread, fcntl, etc.
-#define _FILE_OFFSET_BITS 64     // Ensure 64-bit off_t on 32-bit POSIX systems
+#define _POSIX_C_SOURCE   200809L  // For fstat, fileno, pwrite, pread, fcntl, etc.
+#define _FILE_OFFSET_BITS 64       // Ensure 64-bit off_t on 32-bit POSIX systems
 
 #include "platform.h"
 
@@ -82,36 +82,28 @@ typedef struct FileAttributes {
  * @param flag The flag to check (from FileAttrFlags).
  * @return true if the flag is set, false otherwise.
  */
-static inline bool fattr_has(const FileAttributes* attr, FileAttrFlags flag) {
-    return (attr->attrs & flag) != 0;
-}
+static inline bool fattr_has(const FileAttributes* attr, FileAttrFlags flag) { return (attr->attrs & flag) != 0; }
 
 /**
  * Checks if the file is a regular file.
  * @param attr File attributes structure.
  * @return true if file is a regular file, false otherwise.
  */
-static inline bool fattr_is_file(const FileAttributes* attr) {
-    return (attr->attrs & FATTR_FILE) != 0;
-}
+static inline bool fattr_is_file(const FileAttributes* attr) { return (attr->attrs & FATTR_FILE) != 0; }
 
 /**
  * Checks if the file is a directory.
  * @param attr File attributes structure.
  * @return true if file is a directory, false otherwise.
  */
-static inline bool fattr_is_dir(const FileAttributes* attr) {
-    return (attr->attrs & FATTR_DIR) != 0;
-}
+static inline bool fattr_is_dir(const FileAttributes* attr) { return (attr->attrs & FATTR_DIR) != 0; }
 
 /**
  * Checks if the file is a symbolic link.
  * @param attr File attributes structure.
  * @return true if file is a symbolic link, false otherwise.
  */
-static inline bool fattr_is_symlink(const FileAttributes* attr) {
-    return (attr->attrs & FATTR_SYMLINK) != 0;
-}
+static inline bool fattr_is_symlink(const FileAttributes* attr) { return (attr->attrs & FATTR_SYMLINK) != 0; }
 
 /**
  * Checks if the file is an I/O device (character or block device).

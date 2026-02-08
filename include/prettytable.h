@@ -1,22 +1,22 @@
 /**
  * @file prettytable.h
  * @brief Generic pretty table printer library for C
- * 
+ *
  * A fast, minimal library for printing formatted tables with box-drawing characters.
  * Uses callback functions to support any data source.
- * 
+ *
  * Example usage:
- * 
+ *
  *   const char* get_cell(void* data, int row, int col) {
  *       MyData* d = (MyData*)data;
  *       return d->cells[row][col];
  *   }
- * 
+ *
  *   const char* get_header(void* data, int col) {
  *       const char* headers[] = {"ID", "Name", "Age"};
  *       return headers[col];
  *   }
- * 
+ *
  *   prettytable_config cfg = {
  *       .num_rows = 3,
  *       .num_cols = 3,
@@ -24,7 +24,7 @@
  *       .get_cell = get_cell,
  *       .user_data = &my_data
  *   };
- * 
+ *
  *   prettytable_print(&cfg);
  */
 

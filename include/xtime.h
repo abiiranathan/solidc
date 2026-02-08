@@ -24,14 +24,14 @@
  */
 
 /** Common time format specifiers */
-#define XTIME_FMT_ISO8601 "%Y-%m-%dT%H:%M:%S"       // 2024-11-28T14:30:00
-#define XTIME_FMT_RFC3339 "%Y-%m-%dT%H:%M:%S%z"     // 2024-11-28T14:30:00+00:00
-#define XTIME_FMT_RFC2822 "%a, %d %b %Y %H:%M:%S"   // Thu, 28 Nov 2024 14:30:00
-#define XTIME_FMT_HTTP "%a, %d %b %Y %H:%M:%S GMT"  // HTTP date format
-#define XTIME_FMT_UNIX "%s"                         // Unix timestamp
-#define XTIME_FMT_DATE "%Y-%m-%d"                   // 2024-11-28
-#define XTIME_FMT_TIME "%H:%M:%S"                   // 14:30:00
-#define XTIME_FMT_DATETIME "%Y-%m-%d %H:%M:%S"      // 2024-11-28 14:30:00
+#define XTIME_FMT_ISO8601  "%Y-%m-%dT%H:%M:%S"          // 2024-11-28T14:30:00
+#define XTIME_FMT_RFC3339  "%Y-%m-%dT%H:%M:%S%z"        // 2024-11-28T14:30:00+00:00
+#define XTIME_FMT_RFC2822  "%a, %d %b %Y %H:%M:%S"      // Thu, 28 Nov 2024 14:30:00
+#define XTIME_FMT_HTTP     "%a, %d %b %Y %H:%M:%S GMT"  // HTTP date format
+#define XTIME_FMT_UNIX     "%s"                         // Unix timestamp
+#define XTIME_FMT_DATE     "%Y-%m-%d"                   // 2024-11-28
+#define XTIME_FMT_TIME     "%H:%M:%S"                   // 14:30:00
+#define XTIME_FMT_DATETIME "%Y-%m-%d %H:%M:%S"          // 2024-11-28 14:30:00
 
 /** Error codes returned by xtime functions */
 typedef enum {

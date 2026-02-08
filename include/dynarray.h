@@ -15,7 +15,7 @@ extern "C" {
 #include <stdint.h>   // for SIZE_MAX
 
 /** Growth factor for capacity expansion (1.5x). Balances memory vs reallocation frequency. */
-#define DYNARRAY_GROWTH_NUMERATOR 3
+#define DYNARRAY_GROWTH_NUMERATOR   3
 #define DYNARRAY_GROWTH_DENOMINATOR 2
 
 /** Initial capacity when array is first created. */
@@ -122,27 +122,21 @@ void dynarray_clear(dynarray_t* arr);
  * @param arr Pointer to the array.
  * @return Number of elements.
  */
-static inline size_t dynarray_size(const dynarray_t* arr) {
-    return arr ? arr->size : 0;
-}
+static inline size_t dynarray_size(const dynarray_t* arr) { return arr ? arr->size : 0; }
 
 /**
  * Returns the current capacity of the array.
  * @param arr Pointer to the array.
  * @return Current capacity.
  */
-static inline size_t dynarray_capacity(const dynarray_t* arr) {
-    return arr ? arr->capacity : 0;
-}
+static inline size_t dynarray_capacity(const dynarray_t* arr) { return arr ? arr->capacity : 0; }
 
 /**
  * Checks if the array is empty.
  * @param arr Pointer to the array.
  * @return true if empty or NULL, false otherwise.
  */
-static inline bool dynarray_is_empty(const dynarray_t* arr) {
-    return arr == NULL || arr->size == 0;
-}
+static inline bool dynarray_is_empty(const dynarray_t* arr) { return arr == NULL || arr->size == 0; }
 
 #ifdef __cplusplus
 }

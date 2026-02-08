@@ -52,20 +52,20 @@ struct epoll_event {
  * Flags (Mimicking Linux constants)
  * ------------------------------------------------------------------------- */
 
-#define EPOLLIN 0x001
-#define EPOLLPRI 0x002
-#define EPOLLOUT 0x004
-#define EPOLLERR 0x008
-#define EPOLLHUP 0x010
-#define EPOLLRDHUP 0x2000
+#define EPOLLIN        0x001
+#define EPOLLPRI       0x002
+#define EPOLLOUT       0x004
+#define EPOLLERR       0x008
+#define EPOLLHUP       0x010
+#define EPOLLRDHUP     0x2000
 #define EPOLLEXCLUSIVE 0x10000000 /* Use proper flag for kqueue */
-#define EPOLLET (1U << 31)        /* Using high bit for Edge Triggered */
-#define EPOLLONESHOT (1U << 30)
+#define EPOLLET        (1U << 31) /* Using high bit for Edge Triggered */
+#define EPOLLONESHOT   (1U << 30)
 
 /* Op codes for epoll_ctl */
-#define EPOLL_CTL_ADD 1
-#define EPOLL_CTL_DEL 2
-#define EPOLL_CTL_MOD 3
+#define EPOLL_CTL_ADD  1
+#define EPOLL_CTL_DEL  2
+#define EPOLL_CTL_MOD  3
 
 /* -------------------------------------------------------------------------
  * Polyfill Functions

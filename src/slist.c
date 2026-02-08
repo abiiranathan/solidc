@@ -5,13 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define ALIGNMENT 8U
+#define ALIGNMENT      8U
 #define ALIGNMENT_MASK (ALIGNMENT - 1)
 
 // Round up to proper alignment
-static inline size_t aligned_size(size_t n) {
-    return (n + ALIGNMENT_MASK) & ~(ALIGNMENT_MASK);
-}
+static inline size_t aligned_size(size_t n) { return (n + ALIGNMENT_MASK) & ~(ALIGNMENT_MASK); }
 
 slist* slist_new(size_t elem_size) {
     slist* list = (slist*)malloc(sizeof(slist));
@@ -30,9 +28,7 @@ void slist_free(slist* list) {
     free(list);
 }
 
-size_t slist_size(const slist* list) {
-    return list ? list->size : 0;
-}
+size_t slist_size(const slist* list) { return list ? list->size : 0; }
 
 void slist_clear(slist* list) {
     if (!list) return;
@@ -171,21 +167,18 @@ void slist_insert_after(slist* list, void* elem, void* after) {
 
 void slist_insert_before(slist* list, void* elem, void* before) {
     int idx = slist_index_of(list, before);
-    if (idx > 0 && (size_t)idx < list->size) slist_insert(list, (size_t)idx - 1, elem);
+    if (idx > 0 && (size_t)idx < list->size)
+        slist_insert(list, (size_t)idx - 1, elem);
     else if (idx == 0)
         slist_push_front(list, elem);
 }
 
 void slist_print_asint(const slist* list) {
-    SLIST_FOR_EACH(list, node) {
-        printf("%d ", *(int*)node->data);
-    }
+    SLIST_FOR_EACH(list, node) { printf("%d ", *(int*)node->data); }
     printf("\n");
 }
 
 void slist_print_aschar(const slist* list) {
-    SLIST_FOR_EACH(list, node) {
-        printf("%c ", *(char*)node->data);
-    }
+    SLIST_FOR_EACH(list, node) { printf("%c ", *(char*)node->data); }
     printf("\n");
 }

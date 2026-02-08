@@ -6,22 +6,22 @@
 #include <string.h>  // for strcmp, strlen
 
 /** Test framework macros for better assertion handling. */
-#define CSV_ASSERT(condition, message, ...)                                                                            \
-    do {                                                                                                               \
-        if (!(condition)) {                                                                                            \
-            fprintf(stderr, "ASSERTION FAILED at %s:%d in %s(): " message "\n", __FILE__, __LINE__, __func__,          \
-                    ##__VA_ARGS__);                                                                                    \
-            abort();                                                                                                   \
-        }                                                                                                              \
+#define CSV_ASSERT(condition, message, ...)                                                                   \
+    do {                                                                                                      \
+        if (!(condition)) {                                                                                   \
+            fprintf(stderr, "ASSERTION FAILED at %s:%d in %s(): " message "\n", __FILE__, __LINE__, __func__, \
+                    ##__VA_ARGS__);                                                                           \
+            abort();                                                                                          \
+        }                                                                                                     \
     } while (0)
 
-#define CSV_ASSERT_EQ(expected, actual, message, ...)                                                                  \
-    do {                                                                                                               \
-        if ((expected) != (actual)) {                                                                                  \
-            fprintf(stderr, "ASSERTION FAILED at %s:%d in %s(): Expected %ld, got %ld. " message "\n", __FILE__,       \
-                    __LINE__, __func__, (long)(expected), (long)(actual), ##__VA_ARGS__);                              \
-            abort();                                                                                                   \
-        }                                                                                                              \
+#define CSV_ASSERT_EQ(expected, actual, message, ...)                                                            \
+    do {                                                                                                         \
+        if ((expected) != (actual)) {                                                                            \
+            fprintf(stderr, "ASSERTION FAILED at %s:%d in %s(): Expected %ld, got %ld. " message "\n", __FILE__, \
+                    __LINE__, __func__, (long)(expected), (long)(actual), ##__VA_ARGS__);                        \
+            abort();                                                                                             \
+        }                                                                                                        \
     } while (0)
 
 #define CSV_ASSERT_STR_EQ(expected, actual, message, ...)                                                              \
@@ -38,22 +38,22 @@
 #define CSV_ASSERT_NULL(ptr, message, ...) CSV_ASSERT((ptr) == NULL, message, ##__VA_ARGS__)
 
 /** Test case counter for progress reporting. */
-static size_t test_count  = 0;
+static size_t test_count = 0;
 static size_t test_passed = 0;
 
 /** Marks the start of a test case. */
-#define TEST_START(test_name)                                                                                          \
-    do {                                                                                                               \
-        test_count++;                                                                                                  \
-        printf("Running test %zu: %s... ", test_count, (test_name));                                                   \
-        fflush(stdout);                                                                                                \
+#define TEST_START(test_name)                                        \
+    do {                                                             \
+        test_count++;                                                \
+        printf("Running test %zu: %s... ", test_count, (test_name)); \
+        fflush(stdout);                                              \
     } while (0)
 
 /** Marks successful completion of a test case. */
-#define TEST_PASS()                                                                                                    \
-    do {                                                                                                               \
-        test_passed++;                                                                                                 \
-        printf("PASSED\n");                                                                                            \
+#define TEST_PASS()         \
+    do {                    \
+        test_passed++;      \
+        printf("PASSED\n"); \
     } while (0)
 
 /**
@@ -94,7 +94,7 @@ static char* create_temp_csv_file(const char* csv_data) {
     CSV_ASSERT_NOT_NULL(file, "Failed to open temporary file for writing: %s", tmpfile);
 
     size_t data_len = strlen(csv_data);
-    size_t written  = fwrite(csv_data, 1, data_len, file);
+    size_t written = fwrite(csv_data, 1, data_len, file);
     CSV_ASSERT_EQ(data_len, written, "Failed to write complete CSV data to file");
 
     int close_result = fclose(file);
@@ -125,8 +125,8 @@ static void run_csv_reader_test(const char* test_name, const char* csv_data, Row
     CSV_ASSERT_NOT_NULL(reader, "Failed to create CSV reader");
 
     CsvReaderConfig config = csv_reader_getconfig(reader);
-    config.has_header      = has_header;
-    config.skip_header     = skip_header;
+    config.has_header = has_header;
+    config.skip_header = skip_header;
 
     csv_reader_setconfig(reader, config);
 
@@ -171,9 +171,9 @@ static void test_csv_writer(void) {
     CSV_ASSERT_NOT_NULL(writer, "Failed to create CSV writer");
 
     // Write header and data rows
-    const char* header_fields[]  = {"name", "age"};
-    const char* alice_fields[]   = {"Alice", "25"};
-    const char* bob_fields[]     = {"Bob", "30"};
+    const char* header_fields[] = {"name", "age"};
+    const char* alice_fields[] = {"Alice", "25"};
+    const char* bob_fields[] = {"Bob", "30"};
     const char* charlie_fields[] = {"Charlie", "35"};
 
     bool ok = csvwriter_write_row(writer, header_fields, 2);
@@ -227,13 +227,13 @@ static void test_csv_writer(void) {
 static void test_csv_edge_cases(void) {
     // Test empty CSV
     const char* empty_csv = "";
-    Row* no_rows          = NULL;
+    Row* no_rows = NULL;
 
     run_csv_reader_test("Empty CSV", empty_csv, no_rows, 0, false, false);
 
     // Test CSV with only header
     const char* header_only_csv = "name,age\n";
-    Row header_row[]            = {{.fields = (char*[]){"name", "age"}, .count = 2}};
+    Row header_row[] = {{.fields = (char*[]){"name", "age"}, .count = 2}};
     run_csv_reader_test("Header-only CSV (no skip)", header_only_csv, header_row, 1, false, true);
 
     // Test CSV with quoted fields containing commas
@@ -279,6 +279,45 @@ static void print_test_summary(void) {
     }
 }
 
+/**
+ * Tests that leading and trailing whitespace is trimmed from fields.
+ */
+/**
+ * Tests that leading and trailing whitespace is trimmed from fields.
+ */
+static void test_csv_whitespace_trimming(void) {
+    // Test CSV with whitespace around field values (but not leading line whitespace)
+    const char* whitespace_csv =
+        "name, age , city\n"
+        "Alice  , 25,  Seattle\n"
+        "Bob,  30  ,Portland\n"
+        "Charlie,35  ,  San Francisco  \n";
+
+    Row whitespace_expected[] = {
+        {.fields = (char*[]){"name", "age", "city"}, .count = 3},
+        {.fields = (char*[]){"Alice", "25", "Seattle"}, .count = 3},
+        {.fields = (char*[]){"Bob", "30", "Portland"}, .count = 3},
+        {.fields = (char*[]){"Charlie", "35", "San Francisco"}, .count = 3},
+    };
+
+    run_csv_reader_test("Whitespace trimming", whitespace_csv, whitespace_expected, 4, false, true);
+
+    // Test with quoted fields (whitespace inside quotes should be preserved)
+    const char* quoted_whitespace_csv =
+        "name,description\n"
+        "Alice,\"  Software Engineer  \"\n"
+        "Bob  ,Manager\n";
+
+    Row quoted_whitespace_expected[] = {
+        {.fields = (char*[]){"name", "description"}, .count = 2},
+        {.fields = (char*[]){"Alice", "Software Engineer"}, .count = 2},
+        {.fields = (char*[]){"Bob", "Manager"}, .count = 2},
+    };
+
+    run_csv_reader_test("Whitespace in quoted fields preserved", quoted_whitespace_csv, quoted_whitespace_expected, 3,
+                        false, true);
+}
+
 int main(void) {
     printf("Starting CSV Parser Test Suite\n");
     printf("==============================\n");
@@ -314,6 +353,9 @@ int main(void) {
 
     // Test edge cases
     test_csv_edge_cases();
+
+    // Test trimming of white space
+    test_csv_whitespace_trimming();
 
     // Print final results
     print_test_summary();

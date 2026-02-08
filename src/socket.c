@@ -11,8 +11,8 @@ static void printLastErrorMessage(const char* prefix) {
     // create format flags
     DWORD flags = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS;
 
-    FormatMessageA(
-        flags, NULL, (DWORD)WSAGetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errorText, 0, NULL);
+    FormatMessageA(flags, NULL, (DWORD)WSAGetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errorText,
+                   0, NULL);
 
     if (errorText != NULL) {
         fprintf(stderr, "%s failed with error %d: %s\n", prefix, WSAGetLastError(), errorText);
@@ -29,9 +29,7 @@ void socket_initialize() {
     WSAStartup(MAKEWORD(2, 2), &wsaData);
 }
 
-void socket_cleanup() {
-    WSACleanup();
-}
+void socket_cleanup() { WSACleanup(); }
 #else
 void socket_initialize(void) {
     // do nothing
@@ -97,9 +95,7 @@ int socket_bind(Socket* sock, const struct sockaddr* addr, socklen_t addrlen) {
     return ret;
 }
 
-int socket_listen(Socket* sock, int backlog) {
-    return listen(sock->handle, backlog);
-}
+int socket_listen(Socket* sock, int backlog) { return listen(sock->handle, backlog); }
 
 // Accept an incoming connection
 Socket* socket_accept(Socket* sock, struct sockaddr* addr, socklen_t* addrlen) {
@@ -164,9 +160,7 @@ ssize_t socket_send(Socket* sock, const void* buffer, size_t size, int flags) {
 }
 
 // Get the socket file descriptor
-int socket_fd(Socket* sock) {
-    return sock->handle;
-}
+int socket_fd(Socket* sock) { return sock->handle; }
 
 int socket_error(void) {
 #ifdef _WIN32

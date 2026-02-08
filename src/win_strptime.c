@@ -53,7 +53,7 @@ static inline bool is_valid_date(int day, int month, int year) {
 /**
  * Windows implementation of strptime using manual parsing.
  * Supports common format specifiers needed by xtime.
- * 
+ *
  * POSIX compliance improvements:
  * - Proper whitespace handling per POSIX spec
  * - Correct field initialization
@@ -357,20 +357,10 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
             case 'b':    // Abbreviated month name
             case 'h':    // Same as %b
             case 'B': {  // Full month name
-                static const char* months[] = {"january",
-                                               "february",
-                                               "march",
-                                               "april",
-                                               "may",
-                                               "june",
-                                               "july",
-                                               "august",
-                                               "september",
-                                               "october",
-                                               "november",
-                                               "december"};
-                static const char* abbr_months[] = {
-                  "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"};
+                static const char* months[] = {"january", "february", "march",     "april",   "may",      "june",
+                                               "july",    "august",   "september", "october", "november", "december"};
+                static const char* abbr_months[] = {"jan", "feb", "mar", "apr", "may", "jun",
+                                                    "jul", "aug", "sep", "oct", "nov", "dec"};
 
                 bool found = false;
                 // Try full names first, then abbreviations
@@ -406,8 +396,8 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
 
             case 'a':    // Abbreviated weekday name
             case 'A': {  // Full weekday name
-                static const char* weekdays[] = {
-                  "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"};
+                static const char* weekdays[] = {"sunday",   "monday", "tuesday", "wednesday",
+                                                 "thursday", "friday", "saturday"};
                 static const char* abbr_weekdays[] = {"sun", "mon", "tue", "wed", "thu", "fri", "sat"};
 
                 bool found = false;

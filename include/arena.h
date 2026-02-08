@@ -48,17 +48,17 @@
 
 #ifdef _MSC_VER
 #include <intrin.h>
-#define ARENA_INLINE __forceinline
+#define ARENA_INLINE         __forceinline
 #define ARENA_PREFETCH(addr) _mm_prefetch((const char*)(addr), _MM_HINT_T0)
-#define ARENA_LIKELY(x) (x)
-#define ARENA_UNLIKELY(x) (x)
-#define ARENA_ALIGNED(n) __declspec(align(n))
+#define ARENA_LIKELY(x)      (x)
+#define ARENA_UNLIKELY(x)    (x)
+#define ARENA_ALIGNED(n)     __declspec(align(n))
 #else
-#define ARENA_INLINE inline __attribute__((always_inline))
+#define ARENA_INLINE         inline __attribute__((always_inline))
 #define ARENA_PREFETCH(addr) __builtin_prefetch((addr), 1, 3)
-#define ARENA_LIKELY(x) __builtin_expect(!!(x), 1)
-#define ARENA_UNLIKELY(x) __builtin_expect(!!(x), 0)
-#define ARENA_ALIGNED(n) __attribute__((aligned(n)))
+#define ARENA_LIKELY(x)      __builtin_expect(!!(x), 1)
+#define ARENA_UNLIKELY(x)    __builtin_expect(!!(x), 0)
+#define ARENA_ALIGNED(n)     __attribute__((aligned(n)))
 #endif
 
 /** Default alignment for arena_alloc() - optimized for x86-64/ARM64 */
@@ -187,9 +187,7 @@ void arena_destroy(Arena* arena);
  *
  * Useful for monitoring memory usage and debugging.
  */
-static ARENA_INLINE size_t arena_committed_size(const Arena* arena) {
-    return (size_t)(arena->end - arena->base);
-}
+static ARENA_INLINE size_t arena_committed_size(const Arena* arena) { return (size_t)(arena->end - arena->base); }
 
 /**
  * Returns the total number of bytes allocated by the user.
@@ -199,9 +197,7 @@ static ARENA_INLINE size_t arena_committed_size(const Arena* arena) {
  *
  * Note: This is less than or equal to committed_size due to page granularity.
  */
-static ARENA_INLINE size_t arena_used_size(const Arena* arena) {
-    return (size_t)(arena->curr - arena->base);
-}
+static ARENA_INLINE size_t arena_used_size(const Arena* arena) { return (size_t)(arena->curr - arena->base); }
 
 /**
  * Returns the total reserved address space size.
@@ -313,7 +309,7 @@ static ARENA_INLINE void* arena_alloc(Arena* arena, size_t size) {
  * Automatically uses correct size and alignment for the type.
  * Returns NULL if allocation fails.
  */
-#define ARENA_ALLOC_ARRAY(arena, type, count)                                                                          \
+#define ARENA_ALLOC_ARRAY(arena, type, count) \
     ((type*)arena_alloc_align((arena), sizeof(type) * (count), _Alignof(type)))
 
 /**
@@ -322,10 +318,10 @@ static ARENA_INLINE void* arena_alloc(Arena* arena, size_t size) {
  * Usage: MyStruct* obj = ARENA_ALLOC_ZERO(arena, MyStruct);
  * Returns NULL if allocation fails.
  */
-#define ARENA_ALLOC_ZERO(arena, type)                                                                                  \
-    ({                                                                                                                 \
-        type* _ptr = ARENA_ALLOC((arena), type);                                                                       \
-        (_ptr != NULL) ? (type*)memset(_ptr, 0, sizeof(type)) : NULL;                                                  \
+#define ARENA_ALLOC_ZERO(arena, type)                                 \
+    ({                                                                \
+        type* _ptr = ARENA_ALLOC((arena), type);                      \
+        (_ptr != NULL) ? (type*)memset(_ptr, 0, sizeof(type)) : NULL; \
     })
 
 /**
@@ -334,10 +330,10 @@ static ARENA_INLINE void* arena_alloc(Arena* arena, size_t size) {
  * Usage: int* arr = ARENA_ALLOC_ARRAY_ZERO(arena, int, 100);
  * Returns NULL if allocation fails.
  */
-#define ARENA_ALLOC_ARRAY_ZERO(arena, type, count)                                                                     \
-    ({                                                                                                                 \
-        type* _ptr = ARENA_ALLOC_ARRAY((arena), type, (count));                                                        \
-        (_ptr != NULL) ? (type*)memset(_ptr, 0, sizeof(type) * (count)) : NULL;                                        \
+#define ARENA_ALLOC_ARRAY_ZERO(arena, type, count)                              \
+    ({                                                                          \
+        type* _ptr = ARENA_ALLOC_ARRAY((arena), type, (count));                 \
+        (_ptr != NULL) ? (type*)memset(_ptr, 0, sizeof(type) * (count)) : NULL; \
     })
 
 // ============================================================================

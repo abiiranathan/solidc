@@ -10,24 +10,24 @@
 #include <string.h>
 #include <time.h>
 
-#define CACHE_LINE_SIZE 64           // Size of CPU cache line for alignment
-#define INITIAL_BUCKET_MULTIPLIER 2  // Load factor: buckets = capacity * 2
-#define CACHE_FILE_MAGIC 0x45484346  // ASCII "FCHE" (Fast Cache) in Little Endian
-#define CACHE_FILE_VERSION 1
+#define CACHE_LINE_SIZE           64          // Size of CPU cache line for alignment
+#define INITIAL_BUCKET_MULTIPLIER 2           // Load factor: buckets = capacity * 2
+#define CACHE_FILE_MAGIC          0x45484346  // ASCII "FCHE" (Fast Cache) in Little Endian
+#define CACHE_FILE_VERSION        1
 
 // --- Packed Metadata Constants ---
 // We use a 64-bit integer to store {Hash:32, KeyLen:32}
 // We reserve Hash values 0 and 1 for control flags.
-#define HASH_EMPTY 0    // Slot never used
+#define HASH_EMPTY   0  // Slot never used
 #define HASH_DELETED 1  // Slot previously used, now tombstone
 #define HASH_MIN_VAL 2  // Minimum valid hash value (ensures no collision with control flags)
 
 // Branch prediction hints for better CPU pipeline utilization
 #if defined(__GNUC__) || defined(__clang__)
-#define likely(x) __builtin_expect(!!(x), 1)
+#define likely(x)   __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 #else
-#define likely(x) (x)
+#define likely(x)   (x)
 #define unlikely(x) (x)
 #endif
 
@@ -126,16 +126,12 @@ static inline uint32_t hash_key(const char* key, size_t len) {
  * Packs hash and key length into single 64-bit value for fast comparison.
  * This is the core optimization: one 64-bit load + compare instead of pointer chase.
  */
-static inline uint64_t pack_meta(uint32_t hash, uint32_t len) {
-    return ((uint64_t)hash << 32) | (uint32_t)len;
-}
+static inline uint64_t pack_meta(uint32_t hash, uint32_t len) { return ((uint64_t)hash << 32) | (uint32_t)len; }
 
 /**
  * Extracts hash from packed metadata.
  */
-static inline uint32_t meta_hash(uint64_t meta) {
-    return (uint32_t)(meta >> 32);
-}
+static inline uint32_t meta_hash(uint64_t meta) { return (uint32_t)(meta >> 32); }
 
 /**
  * Calculates the value pointer from a cache entry.

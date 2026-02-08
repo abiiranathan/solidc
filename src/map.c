@@ -15,9 +15,9 @@
 #include <xxhash.h>
 
 // Default maximum load factor
-#define DEFAULT_MAX_LOAD_FACTOR 0.75f
+#define DEFAULT_MAX_LOAD_FACTOR   0.75f
 #define TOMBSTONE_RATIO_THRESHOLD 0.5f  // Rehash when tombstones > 50% of size
-#define MIN_CAPACITY 8                  // Minimum capacity to avoid frequent resizing
+#define MIN_CAPACITY              8     // Minimum capacity to avoid frequent resizing
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
@@ -87,9 +87,7 @@ static inline size_t calculate_new_capacity(size_t current) {
 }
 
 // Wrapper to match HashFunction signature
-static inline size_t xxhash_wrapper(const void* key, size_t len) {
-    return (size_t)xxhash(key, (size_t)len);
-}
+static inline size_t xxhash_wrapper(const void* key, size_t len) { return (size_t)xxhash(key, (size_t)len); }
 
 // Map creation with better error handling and memory optimization
 HashMap* map_create(const MapConfig* config) {
@@ -105,8 +103,8 @@ HashMap* map_create(const MapConfig* config) {
     }
 
     float max_load_factor = config->max_load_factor > 0.1f && config->max_load_factor <= 0.95f
-        ? config->max_load_factor
-        : DEFAULT_MAX_LOAD_FACTOR;
+                                ? config->max_load_factor
+                                : DEFAULT_MAX_LOAD_FACTOR;
 
     HashMap* m = (HashMap*)malloc(sizeof(HashMap));
     if (!m) {
@@ -138,14 +136,10 @@ HashMap* map_create(const MapConfig* config) {
 }
 
 // Helper to get key pointer from interleaved array
-static inline void** get_key_ptr(HashMap* m, size_t index) {
-    return &m->keys_values[index * 2];
-}
+static inline void** get_key_ptr(HashMap* m, size_t index) { return &m->keys_values[index * 2]; }
 
 // Helper to get value pointer from interleaved array
-static inline void** get_value_ptr(HashMap* m, size_t index) {
-    return &m->keys_values[index * 2 + 1];
-}
+static inline void** get_value_ptr(HashMap* m, size_t index) { return &m->keys_values[index * 2 + 1]; }
 
 // Resize the map with optimized rehashing and error handling
 static bool map_resize(HashMap* m, size_t new_capacity, size_t key_len) {
@@ -224,9 +218,7 @@ static bool map_resize(HashMap* m, size_t new_capacity, size_t key_len) {
     return true;
 }
 
-size_t map_length(HashMap* m) {
-    return m->size;
-}
+size_t map_length(HashMap* m) { return m->size; }
 
 // Set a key-value pair with optimizations and better error handling
 bool map_set(HashMap* m, void* key, size_t key_len, void* value) {

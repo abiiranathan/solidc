@@ -33,18 +33,11 @@ option(BUILD_BENCHMARKS "Build the benchmarks" ON)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
 # ==============================================================================
-# Dependencies (FetchContent)
+# Dependencies (Local)
 # ==============================================================================
-include(FetchContent)
-message(STATUS "Fetching dependencies...")
 
 # --- xxHash ---
-FetchContent_Declare(
-    xxHash
-    GIT_REPOSITORY https://github.com/Cyan4973/xxHash.git
-    GIT_TAG        v0.8.2
-)
-FetchContent_MakeAvailable(xxHash)
+set(xxhash_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/xxhash")
 
 add_library(xxHash_obj OBJECT ${xxhash_SOURCE_DIR}/xxhash.c)
 target_include_directories(xxHash_obj PUBLIC ${xxhash_SOURCE_DIR})

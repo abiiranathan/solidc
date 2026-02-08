@@ -4,13 +4,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define ALIGNMENT 8U
+#define ALIGNMENT      8U
 #define ALIGNMENT_MASK (ALIGNMENT - 1)
 
 // Round up to proper alignment
-static inline size_t aligned_size(size_t n) {
-    return (n + ALIGNMENT_MASK) & ~(ALIGNMENT_MASK);
-}
+static inline size_t aligned_size(size_t n) { return (n + ALIGNMENT_MASK) & ~(ALIGNMENT_MASK); }
 
 // Node allocation: single malloc (node + element)
 static list_node_t* list_node_new(size_t elem_size, void* data) {
@@ -58,9 +56,7 @@ void list_clear(list_t* list) {
     list->size = 0;
 }
 
-size_t list_size(const list_t* list) {
-    return list ? list->size : 0;
-}
+size_t list_size(const list_t* list) { return list ? list->size : 0; }
 
 void list_push_back(list_t* list, void* elem) {
     if (!list) return;
@@ -81,7 +77,8 @@ void list_pop_back(list_t* list) {
     if (!list || !list->tail) return;
     list_node_t* n = list->tail;
     list->tail = n->prev;
-    if (list->tail) list->tail->next = NULL;
+    if (list->tail)
+        list->tail->next = NULL;
     else
         list->head = NULL;
     list_node_free(n);
@@ -107,7 +104,8 @@ void list_pop_front(list_t* list) {
     if (!list || !list->head) return;
     list_node_t* n = list->head;
     list->head = n->next;
-    if (list->head) list->head->prev = NULL;
+    if (list->head)
+        list->head->prev = NULL;
     else
         list->tail = NULL;
     list_node_free(n);
@@ -166,11 +164,13 @@ void list_remove(list_t* list, void* elem) {
     list_node_t* cur = list->head;
     for (int i = 0; i < idx; i++) cur = cur->next;
 
-    if (cur->prev) cur->prev->next = cur->next;
+    if (cur->prev)
+        cur->prev->next = cur->next;
     else
         list->head = cur->next;
 
-    if (cur->next) cur->next->prev = cur->prev;
+    if (cur->next)
+        cur->next->prev = cur->prev;
     else
         list->tail = cur->prev;
 

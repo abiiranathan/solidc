@@ -26,9 +26,7 @@ static const int16_t MAX_TZ_OFFSET = 1439;  // ±23:59
 /**
  * Helper: Checks if a year is a leap year.
  */
-static inline bool is_leap_year(int year) {
-    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
-}
+static inline bool is_leap_year(int year) { return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0); }
 
 /**
  * Helper: Returns the number of days in a given month.
@@ -400,15 +398,8 @@ xtime_error_t xtime_to_json(const xtime_t* t, char* buf, size_t buflen) {
     }
 
     // 1. Format Date and Time: YYYY-MM-DDTHH:MM:SS
-    int written = snprintf(buf,
-                           buflen,
-                           "%04d-%02d-%02dT%02d:%02d:%02d",
-                           tm_val.tm_year + 1900,
-                           tm_val.tm_mon + 1,
-                           tm_val.tm_mday,
-                           tm_val.tm_hour,
-                           tm_val.tm_min,
-                           tm_val.tm_sec);
+    int written = snprintf(buf, buflen, "%04d-%02d-%02dT%02d:%02d:%02d", tm_val.tm_year + 1900, tm_val.tm_mon + 1,
+                           tm_val.tm_mday, tm_val.tm_hour, tm_val.tm_min, tm_val.tm_sec);
 
     if (written < 0 || (size_t)written >= buflen) {
         return XTIME_ERR_BUFFER_TOO_SMALL;

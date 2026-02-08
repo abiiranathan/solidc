@@ -18,15 +18,15 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 // Small String Optimization (SSO) constants
-#define SSO_MAX_SIZE (sizeof(void*) + sizeof(size_t) + sizeof(size_t) + sizeof(char*) - 1)
-#define SSO_HEAP_FLAG 0x80
+#define SSO_MAX_SIZE    (sizeof(void*) + sizeof(size_t) + sizeof(size_t) + sizeof(char*) - 1)
+#define SSO_HEAP_FLAG   0x80
 #define SSO_LENGTH_MASK 0x7F
-#define HEAP_FLAG_BIT (1ULL << 63)
+#define HEAP_FLAG_BIT   (1ULL << 63)
 
 // Security and performance constants
-#define CSTR_GROWTH_FACTOR 2
+#define CSTR_GROWTH_FACTOR     2
 #define CSTR_MIN_HEAP_CAPACITY 16
-#define CSTR_MAX_SIZE (SIZE_MAX / 2)  // Prevent overflow attacks
+#define CSTR_MAX_SIZE          (SIZE_MAX / 2)  // Prevent overflow attacks
 
 // Optimized string alignment for heap data.
 #if defined(__x86_64__) && defined(__AVX2__)
@@ -40,7 +40,7 @@
 // Macros for capacity manipulation
 #define CSTR_SET_HEAP_CAPACITY(cap) ((cap) | HEAP_FLAG_BIT)
 #define CSTR_GET_HEAP_CAPACITY(cap) ((cap) & ~HEAP_FLAG_BIT)
-#define CSTR_IS_HEAP(s) ((s->heap.capacity & HEAP_FLAG_BIT) != 0)
+#define CSTR_IS_HEAP(s)             ((s->heap.capacity & HEAP_FLAG_BIT) != 0)
 
 /**
  * @brief A dynamically resizable C-string with Small String Optimization (SSO).
@@ -105,9 +105,7 @@ static inline size_t cstr_get_length(const cstr* s) {
  * @return Pointer to null-terminated string data
  * @pre s != NULL
  */
-static inline char* cstr_get_data(cstr* s) {
-    return CSTR_IS_HEAP(s) ? s->heap.data : s->stack.data;
-}
+static inline char* cstr_get_data(cstr* s) { return CSTR_IS_HEAP(s) ? s->heap.data : s->stack.data; }
 
 /**
  * @brief Retrieves a const pointer to the string data.
@@ -287,13 +285,11 @@ static bool cstr_ensure_capacity(cstr* s, size_t new_capacity) {
  * @note Caller must call str_free() to release memory
  * @note Actual capacity may be larger than requested for optimization
  */
-cstr* cstr_init(size_t initial_capacity) {
-    return cstr_init_arena(NULL, initial_capacity);
-}
+cstr* cstr_init(size_t initial_capacity) { return cstr_init_arena(NULL, initial_capacity); }
 
 /**
  * @brief Creates a new empty cstr using a custom arena allocator.
- * 
+ *
  * @param arena The arena to allocate from.
  * @param initial_capacity Requested initial capacity.
  * @return Pointer to new cstr, or NULL on failure.
@@ -359,13 +355,11 @@ cstr* cstr_init_arena(Arena* arena, size_t initial_capacity) {
  * input is NULL
  * @note Caller must call str_free() to release memory
  */
-cstr* cstr_new(const char* input) {
-    return cstr_new_arena(NULL, input);
-}
+cstr* cstr_new(const char* input) { return cstr_new_arena(NULL, input); }
 
 /**
  * @brief Creates a new cstr from a C string using a custom arena allocator.
- * 
+ *
  * @param arena The arena to allocate from.
  * @param input C string to copy.
  * @return Pointer to new cstr, or NULL on failure.
@@ -441,9 +435,7 @@ void cstr_debug(const cstr* s) {
  * @param s Pointer to the cstr (can be NULL)
  * @return true if heap-allocated, false if stack-allocated or NULL
  */
-bool cstr_allocated(const cstr* s) {
-    return s && CSTR_IS_HEAP(s);
-}
+bool cstr_allocated(const cstr* s) { return s && CSTR_IS_HEAP(s); }
 
 /**
  * @brief Frees a cstr and all associated memory.
@@ -481,9 +473,7 @@ void cstr_free(cstr* s) {
  * @param s Pointer to the cstr (can be NULL)
  * @return Length excluding null terminator, or 0 if s is NULL
  */
-size_t cstr_len(const cstr* s) {
-    return s ? cstr_get_length(s) : 0;
-}
+size_t cstr_len(const cstr* s) { return s ? cstr_get_length(s) : 0; }
 
 /**
  * @brief Returns the current capacity of the string.
@@ -491,9 +481,7 @@ size_t cstr_len(const cstr* s) {
  * @param s Pointer to the cstr (can be NULL)
  * @return Current capacity including null terminator, or 0 if s is NULL
  */
-size_t cstr_capacity(const cstr* s) {
-    return s ? cstr_get_capacity(s) : 0;
-}
+size_t cstr_capacity(const cstr* s) { return s ? cstr_get_capacity(s) : 0; }
 
 /**
  * @brief Checks if the string is empty.
@@ -501,9 +489,7 @@ size_t cstr_capacity(const cstr* s) {
  * @param s Pointer to the cstr (can be NULL)
  * @return true if NULL or empty, false otherwise
  */
-bool cstr_empty(const cstr* s) {
-    return !s || cstr_get_length(s) == 0;
-}
+bool cstr_empty(const cstr* s) { return !s || cstr_get_length(s) == 0; }
 
 /**
  * @brief Resizes the string's capacity.
@@ -936,9 +922,7 @@ char cstr_at(const cstr* s, size_t index) {
  * @param s Pointer to the cstr (can be NULL).
  * @return Pointer to the null-terminated string, or NULL if s is NULL.
  */
-char* cstr_data(cstr* s) {
-    return s ? cstr_get_data(s) : NULL;
-}
+char* cstr_data(cstr* s) { return s ? cstr_get_data(s) : NULL; }
 
 /**
  * @brief Returns a const pointer to the cstr's data.
@@ -948,9 +932,7 @@ char* cstr_data(cstr* s) {
  * @param s Pointer to the cstr (can be NULL).
  * @return Const pointer to the null-terminated string, or NULL if s is NULL.
  */
-const char* cstr_data_const(const cstr* s) {
-    return s ? cstr_get_data_const(s) : NULL;
-}
+const char* cstr_data_const(const cstr* s) { return s ? cstr_get_data_const(s) : NULL; }
 
 /**
  * @brief Converts the cstr to a string view.
@@ -1053,7 +1035,7 @@ bool cstr_ends_with(const cstr* s, const char* suffix) {
     size_t suffix_len = strlen(suffix);
     size_t s_len = cstr_get_length(s);
     return suffix_len == 0 ||
-        (suffix_len <= s_len && memcmp(cstr_get_data_const(s) + s_len - suffix_len, suffix, suffix_len) == 0);
+           (suffix_len <= s_len && memcmp(cstr_get_data_const(s) + s_len - suffix_len, suffix, suffix_len) == 0);
 }
 
 /**
@@ -1878,7 +1860,6 @@ cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
 
     // Calculate total length needed and find arena
     for (size_t i = 0; i < count; i++) {
-
         // Invalid input array
         if (!strings[i]) {
             return NULL;
@@ -2004,7 +1985,7 @@ int cstr_find_cstr(const cstr* s, const cstr* substr) {
     if (!s || !substr) return STR_NPOS;
     size_t sub_len = cstr_get_length(substr);
     if (sub_len == 0) return 0;
-    
+
     const char* found = strstr(cstr_get_data_const(s), cstr_get_data_const(substr));
     return found ? (int)(found - cstr_get_data_const(s)) : STR_NPOS;
 }
@@ -2020,21 +2001,17 @@ int cstr_rfind_cstr(const cstr* s, const cstr* substr) {
     const char* sub_data = cstr_get_data_const(substr);
     const char* found = NULL;
     const char* p = s_data;
-    
+
     while ((p = strstr(p, sub_data))) {
         found = p;
-        p += 1; 
+        p += 1;
     }
     return found ? (int)(found - s_data) : STR_NPOS;
 }
 
-bool cstr_contains(const cstr* s, const char* substr) {
-    return cstr_find(s, substr) != STR_NPOS;
-}
+bool cstr_contains(const cstr* s, const char* substr) { return cstr_find(s, substr) != STR_NPOS; }
 
-bool cstr_contains_cstr(const cstr* s, const cstr* substr) {
-    return cstr_find_cstr(s, substr) != STR_NPOS;
-}
+bool cstr_contains_cstr(const cstr* s, const cstr* substr) { return cstr_find_cstr(s, substr) != STR_NPOS; }
 
 bool cstr_starts_with_cstr(const cstr* s, const cstr* prefix) {
     if (!s || !prefix) return false;
@@ -2049,12 +2026,12 @@ bool cstr_append_cstr(cstr* s, const cstr* append) {
     if (!s || !append) return false;
     size_t append_len = cstr_get_length(append);
     if (append_len == 0) return true;
-    
+
     size_t current_len = cstr_get_length(s);
     size_t new_len = current_len + append_len;
-    
+
     if (!cstr_ensure_capacity(s, new_len + 1)) return false;
-    
+
     char* dest = cstr_get_data(s);
     memcpy(dest + current_len, cstr_get_data_const(append), append_len);
     dest[new_len] = '\0';
@@ -2062,9 +2039,7 @@ bool cstr_append_cstr(cstr* s, const cstr* append) {
     return true;
 }
 
-bool cstr_cat(cstr* dest, const cstr* src) {
-    return cstr_append_cstr(dest, src);
-}
+bool cstr_cat(cstr* dest, const cstr* src) { return cstr_append_cstr(dest, src); }
 
 bool cstr_ncat(cstr* dest, const cstr* src, size_t n) {
     if (!dest || !src) return false;
@@ -2087,29 +2062,27 @@ bool cstr_ncat(cstr* dest, const cstr* src, size_t n) {
 bool cstr_copy(cstr* dest, const cstr* src) {
     if (!dest || !src) return false;
     if (dest == src) return true;
-    
+
     size_t src_len = cstr_get_length(src);
     if (!cstr_ensure_capacity(dest, src_len + 1)) return false;
-    
+
     memcpy(cstr_get_data(dest), cstr_get_data_const(src), src_len + 1);
     cstr_set_length(dest, src_len);
     return true;
 }
 
-bool cstr_assign(cstr* dest, const cstr* src) {
-    return cstr_copy(dest, src);
-}
+bool cstr_assign(cstr* dest, const cstr* src) { return cstr_copy(dest, src); }
 
 bool cstr_prepend_cstr(cstr* s, const cstr* prepend) {
     if (!s || !prepend) return false;
     size_t prepend_len = cstr_get_length(prepend);
     if (prepend_len == 0) return true;
-    
+
     size_t current_len = cstr_get_length(s);
     size_t new_len = current_len + prepend_len;
-    
+
     if (!cstr_ensure_capacity(s, new_len + 1)) return false;
-    
+
     char* dest = cstr_get_data(s);
     memmove(dest + prepend_len, dest, current_len + 1);
     memcpy(dest, cstr_get_data_const(prepend), prepend_len);
@@ -2121,13 +2094,13 @@ bool cstr_insert_cstr(cstr* s, size_t index, const cstr* insert) {
     if (!s || !insert) return false;
     size_t current_len = cstr_get_length(s);
     if (index > current_len) return false;
-    
+
     size_t insert_len = cstr_get_length(insert);
     if (insert_len == 0) return true;
-    
+
     size_t new_len = current_len + insert_len;
     if (!cstr_ensure_capacity(s, new_len + 1)) return false;
-    
+
     char* data = cstr_get_data(s);
     memmove(data + index + insert_len, data + index, current_len - index + 1);
     memcpy(data + index, cstr_get_data_const(insert), insert_len);
@@ -2139,11 +2112,11 @@ size_t cstr_count_substr_cstr(const cstr* str, const cstr* substr) {
     if (!str || !substr) return 0;
     size_t sub_len = cstr_get_length(substr);
     if (sub_len == 0) return 0;
-    
+
     size_t count = 0;
     const char* p = cstr_get_data_const(str);
     const char* sub_data = cstr_get_data_const(substr);
-    
+
     while ((p = strstr(p, sub_data))) {
         count++;
         p += sub_len;
@@ -2155,30 +2128,28 @@ size_t cstr_remove_all_cstr(cstr* s, const cstr* substr) {
     if (!s || !substr) return 0;
     size_t sub_len = cstr_get_length(substr);
     if (sub_len == 0) return 0;
-    
+
     char* data = cstr_get_data(s);
     char* write_ptr = data;
     const char* read_ptr = data;
     const char* end = data + cstr_get_length(s);
     const char* sub_data = cstr_get_data_const(substr);
     size_t count = 0;
-    
+
     while (read_ptr < end) {
-         if ((size_t)(end - read_ptr) >= sub_len && memcmp(read_ptr, sub_data, sub_len) == 0) {
-             read_ptr += sub_len;
-             count++;
-         } else {
-             *write_ptr++ = *read_ptr++;
-         }
+        if ((size_t)(end - read_ptr) >= sub_len && memcmp(read_ptr, sub_data, sub_len) == 0) {
+            read_ptr += sub_len;
+            count++;
+        } else {
+            *write_ptr++ = *read_ptr++;
+        }
     }
     *write_ptr = '\0';
     cstr_set_length(s, (size_t)(write_ptr - data));
     return count;
 }
 
-int cstr_cmp(const cstr* s1, const cstr* s2) {
-    return cstr_compare(s1, s2);
-}
+int cstr_cmp(const cstr* s1, const cstr* s2) { return cstr_compare(s1, s2); }
 
 int cstr_ncmp(const cstr* s1, const cstr* s2, size_t n) {
     if (!s1 && !s2) return 0;

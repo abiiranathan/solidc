@@ -117,9 +117,7 @@ static inline void mat4_print(Mat4 m, const char* name) {
 // Matrix Initialization
 // ======================
 
-static inline Mat3 mat3_identity(void) {
-    return (Mat3){{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}};
-}
+static inline Mat3 mat3_identity(void) { return (Mat3){{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}}; }
 
 static inline bool mat3_equal(Mat3 a, Mat3 b) {
     static float EPSILON = 1e-6f;
@@ -141,7 +139,7 @@ static inline bool mat4_equal(Mat4 a, Mat4 b) {
     static float EPSILON = 1e-6f;
     // Unroll comparison for all 4 columns
     return simd_equals_eps(a.cols[0], b.cols[0], EPSILON) && simd_equals_eps(a.cols[1], b.cols[1], EPSILON) &&
-        simd_equals_eps(a.cols[2], b.cols[2], EPSILON) && simd_equals_eps(a.cols[3], b.cols[3], EPSILON);
+           simd_equals_eps(a.cols[2], b.cols[2], EPSILON) && simd_equals_eps(a.cols[3], b.cols[3], EPSILON);
 }
 
 static inline Mat3 mat3_diag(Mat3 m) {
@@ -238,8 +236,8 @@ static inline Mat3 mat3_scalar_mul(Mat3 m, float scalar) {
 static inline float mat3_determinant(Mat3 m) {
     // Sarrus rule / Co-factor expansion
     return m.m[0][0] * (m.m[1][1] * m.m[2][2] - m.m[2][1] * m.m[1][2]) -
-        m.m[0][1] * (m.m[1][0] * m.m[2][2] - m.m[2][0] * m.m[1][2]) +
-        m.m[0][2] * (m.m[1][0] * m.m[2][1] - m.m[2][0] * m.m[1][1]);
+           m.m[0][1] * (m.m[1][0] * m.m[2][2] - m.m[2][0] * m.m[1][2]) +
+           m.m[0][2] * (m.m[1][0] * m.m[2][1] - m.m[2][0] * m.m[1][1]);
 }
 
 // Matrix LU, Forward Sub, Backward Sub, Exp kept scalar as they are algorithmically complex
@@ -528,9 +526,9 @@ static inline float mat4_determinant(Mat4 m) {
     // This is verbose but allows the compiler to optimize the arithmetic tree
 
     float det = m00 * (m11 * (m22 * m33 - m32 * m23) - m21 * (m12 * m33 - m32 * m13) + m31 * (m12 * m23 - m22 * m13)) -
-        m10 * (m01 * (m22 * m33 - m32 * m23) - m21 * (m02 * m33 - m32 * m03) + m31 * (m02 * m23 - m22 * m03)) +
-        m20 * (m01 * (m12 * m33 - m32 * m13) - m11 * (m02 * m33 - m32 * m03) + m31 * (m02 * m13 - m12 * m03)) -
-        m30 * (m01 * (m12 * m23 - m22 * m13) - m11 * (m02 * m23 - m22 * m03) + m21 * (m02 * m13 - m12 * m03));
+                m10 * (m01 * (m22 * m33 - m32 * m23) - m21 * (m02 * m33 - m32 * m03) + m31 * (m02 * m23 - m22 * m03)) +
+                m20 * (m01 * (m12 * m33 - m32 * m13) - m11 * (m02 * m33 - m32 * m03) + m31 * (m02 * m13 - m12 * m03)) -
+                m30 * (m01 * (m12 * m23 - m22 * m13) - m11 * (m02 * m23 - m22 * m03) + m21 * (m02 * m13 - m12 * m03));
 
     return det;
 }
@@ -561,28 +559,20 @@ static inline Mat4 mat4_inverse(Mat4 m) {
     // 3. Compute Adjugate Matrix Columns (Transpose of Cofactors)
 
     // Inverse Column 0
-    simd_vec_t col0 = simd_set((m11 * Fac0 - m12 * Fac1 + m13 * Fac2),
-                               -(m10 * Fac0 - m12 * Fac3 + m13 * Fac4),
-                               (m10 * Fac1 - m11 * Fac3 + m13 * Fac5),
-                               -(m10 * Fac2 - m11 * Fac4 + m12 * Fac5));
+    simd_vec_t col0 = simd_set((m11 * Fac0 - m12 * Fac1 + m13 * Fac2), -(m10 * Fac0 - m12 * Fac3 + m13 * Fac4),
+                               (m10 * Fac1 - m11 * Fac3 + m13 * Fac5), -(m10 * Fac2 - m11 * Fac4 + m12 * Fac5));
 
     // Inverse Column 1
-    simd_vec_t col1 = simd_set(-(m01 * Fac0 - m02 * Fac1 + m03 * Fac2),
-                               (m00 * Fac0 - m02 * Fac3 + m03 * Fac4),
-                               -(m00 * Fac1 - m01 * Fac3 + m03 * Fac5),
-                               (m00 * Fac2 - m01 * Fac4 + m02 * Fac5));
+    simd_vec_t col1 = simd_set(-(m01 * Fac0 - m02 * Fac1 + m03 * Fac2), (m00 * Fac0 - m02 * Fac3 + m03 * Fac4),
+                               -(m00 * Fac1 - m01 * Fac3 + m03 * Fac5), (m00 * Fac2 - m01 * Fac4 + m02 * Fac5));
 
     // Inverse Column 2
-    simd_vec_t col2 = simd_set((m31 * Fac6 - m32 * Fac7 + m33 * Fac8),
-                               -(m30 * Fac6 - m32 * Fac9 + m33 * Fac10),
-                               (m30 * Fac7 - m31 * Fac9 + m33 * Fac11),
-                               -(m30 * Fac8 - m31 * Fac10 + m32 * Fac11));
+    simd_vec_t col2 = simd_set((m31 * Fac6 - m32 * Fac7 + m33 * Fac8), -(m30 * Fac6 - m32 * Fac9 + m33 * Fac10),
+                               (m30 * Fac7 - m31 * Fac9 + m33 * Fac11), -(m30 * Fac8 - m31 * Fac10 + m32 * Fac11));
 
     // Inverse Column 3
-    simd_vec_t col3 = simd_set(-(m21 * Fac6 - m22 * Fac7 + m23 * Fac8),
-                               (m20 * Fac6 - m22 * Fac9 + m23 * Fac10),
-                               -(m20 * Fac7 - m21 * Fac9 + m23 * Fac11),
-                               (m20 * Fac8 - m21 * Fac10 + m22 * Fac11));
+    simd_vec_t col3 = simd_set(-(m21 * Fac6 - m22 * Fac7 + m23 * Fac8), (m20 * Fac6 - m22 * Fac9 + m23 * Fac10),
+                               -(m20 * Fac7 - m21 * Fac9 + m23 * Fac11), (m20 * Fac8 - m21 * Fac10 + m22 * Fac11));
 
     // 4. Calculate Determinant
     //    Dot product of first column of inputs with first column of adjugate
@@ -619,8 +609,8 @@ static inline Mat4 mat4_ortho(float left, float right, float bottom, float top, 
     m.cols[2] = simd_set(0, 0, -2.0f / (far - near), 0);
 
     // Last column
-    m.cols[3] = simd_set(
-        -(right + left) / (right - left), -(top + bottom) / (top - bottom), -(far + near) / (far - near), 1.0f);
+    m.cols[3] = simd_set(-(right + left) / (right - left), -(top + bottom) / (top - bottom),
+                         -(far + near) / (far - near), 1.0f);
     return m;
 }
 

@@ -134,6 +134,6 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm);
 }
 #endif
 
-#endif // defined(_MSC_VER)
+#endif  // defined(_MSC_VER)
 
-#endif // WIN_STRPTIME_H
+#endif  // WIN_STRPTIME_H
