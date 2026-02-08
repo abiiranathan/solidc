@@ -1,0 +1,7 @@
+<map id="utf8_copy" name="utf8_copy">
+<area shape="rect" id="Node000001" title="Creates a copy of a UTF&#45;8 string containing only valid UTF&#45;8 sequences." alt="" coords="5,29,92,55"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="20,31,14,21,17,11,29,5,49,3,73,6,83,15,79,19,70,11,49,8,30,10,21,15,19,20,24,28"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a37b529eaefb2e43c5f2a7eda74138c13" title="Counts the number of valid UTF&#45;8 bytes in a string." alt="" coords="140,29,307,55"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="92,39,126,39,126,45,92,45"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="194,31,188,21,192,11,204,5,223,3,247,6,257,15,254,19,245,11,223,8,205,10,196,15,194,20,199,28"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="include/slist.h" name="include/slist.h">
+<area shape="rect" id="Node000001" title="Singly linked list implementation for efficient insertions and deletions." alt="" coords="73,5,185,31"/>
+<area shape="rect" id="Node000002" href="$solidc_8h.html" title="Master header file that includes all SolidC library modules." alt="" coords="5,79,128,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="112,43,79,80,75,77,108,39"/>
+<area shape="rect" id="Node000003" href="$slist_8c_source.html" title=" " alt="" coords="152,79,235,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="151,39,185,77,181,80,147,43"/>
+</map>

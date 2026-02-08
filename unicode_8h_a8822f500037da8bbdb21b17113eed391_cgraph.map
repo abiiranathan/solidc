@@ -1,0 +1,7 @@
+<map id="utf8_split_free" name="utf8_split_free">
+<area shape="rect" id="Node000001" title="Frees an array of utf8_string objects returned by utf8_split()." alt="" coords="5,29,121,55"/>
+<area shape="poly" id="edge3_Node000001_Node000001" title=" " alt="" coords="38,31,33,21,36,11,46,5,63,3,84,6,92,15,89,18,81,11,63,8,48,10,40,15,39,20,43,28"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a32318a6b53c2731556ae4cd967a4f643" title="Frees all resources associated with a utf8_string." alt="" coords="169,29,251,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="122,39,155,39,155,45,122,45"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="185,31,180,21,183,11,193,5,210,3,230,6,239,15,235,18,228,11,210,8,195,10,187,15,185,20,190,28"/>
+</map>

@@ -1,0 +1,10 @@
+<map id="utf8_append" name="utf8_append">
+<area shape="rect" id="Node000001" title="Appends UTF&#45;8 data to the end of a utf8_string." alt="" coords="5,67,108,92"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="26,68,20,58,23,49,36,42,57,40,82,44,93,52,89,56,80,48,57,45,37,47,27,52,25,58,30,65"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a0b46c6da59494b8d0042d1557f77b6fe" title="Counts the number of Unicode codepoints in a UTF&#45;8 string." alt="" coords="156,29,325,55"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="107,66,163,55,164,60,109,72"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#a37b529eaefb2e43c5f2a7eda74138c13" title="Counts the number of valid UTF&#45;8 bytes in a string." alt="" coords="157,103,324,128"/>
+<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="109,87,163,97,162,103,108,92"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="210,31,204,21,207,11,220,5,241,3,266,6,277,15,273,19,264,11,241,8,221,10,211,15,209,20,214,28"/>
+<area shape="poly" id="edge5_Node000003_Node000003" title=" " alt="" coords="210,104,204,94,207,85,220,78,241,76,266,80,277,88,273,92,264,84,241,81,221,83,211,88,209,94,214,101"/>
+</map>

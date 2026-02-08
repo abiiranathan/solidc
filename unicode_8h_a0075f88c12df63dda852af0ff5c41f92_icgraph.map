@@ -1,0 +1,41 @@
+<map id="utf8_to_codepoint" name="utf8_to_codepoint">
+<area shape="rect" id="Node000001" title="Decodes a UTF&#45;8 byte sequence to its Unicode codepoint." alt="" coords="481,323,620,348"/>
+<area shape="poly" id="edge20_Node000001_Node000001" title=" " alt="" coords="586,313,576,304,551,301,530,303,519,308,516,314,522,321,518,324,511,314,515,304,528,298,551,296,578,300,589,308"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a650f29191e8178a5a2124648f76c9d6f" title="Checks if a UTF&#45;8 character represents an alphanumeric character." alt="" coords="295,29,409,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="543,310,532,259,512,193,479,126,457,95,432,68,408,54,411,50,435,64,461,92,483,123,517,191,537,257,548,309"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#af2018e35eb3e3d76cc29c597ed141943" title="Checks if a UTF&#45;8 character represents an alphabetic character." alt="" coords="297,103,407,128"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="539,311,524,273,501,227,470,181,432,141,406,128,408,123,435,137,475,177,506,224,529,271,544,309"/>
+<area shape="rect" id="Node000004" href="$unicode_8c.html#a0bb308da5e4e999b234bbb2111cdae90" title="Checks if a UTF&#45;8 character represents a digit." alt="" coords="301,176,403,201"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="531,313,489,263,462,237,432,215,403,202,405,197,435,210,466,233,493,260,535,310"/>
+<area shape="rect" id="Node000005" href="$unicode_8c.html#a4b4875bd66dffc4433e6bbbb23542a85" title="Checks if a UTF&#45;8 character represents a punctuation character." alt="" coords="297,249,407,275"/>
+<area shape="poly" id="edge7_Node000001_Node000005" title=" " alt="" coords="508,319,432,289,398,277,400,272,434,283,510,315"/>
+<area shape="rect" id="Node000006" href="$unicode_8c.html#ad7d24e5bc418ae563b5afc21c6898e10" title="Checks if a UTF&#45;8 character represents whitespace." alt="" coords="279,323,425,348"/>
+<area shape="poly" id="edge9_Node000001_Node000006" title=" " alt="" coords="468,338,426,338,426,333,468,333"/>
+<area shape="rect" id="Node000010" href="$unicode_8c.html#afec2f1cc66175b8c06fb77db9ebc6f17" title="Prints the Unicode codepoints in U+XXXX format to stdout." alt="" coords="271,396,433,421"/>
+<area shape="poly" id="edge18_Node000001_Node000010" title=" " alt="" coords="503,355,389,398,387,393,501,350"/>
+<area shape="rect" id="Node000011" href="$unicode_8c.html#ae3f31481d188b5fbe03ca760b031677b" title="Converts all uppercase characters to lowercase in&#45;place." alt="" coords="300,469,404,495"/>
+<area shape="poly" id="edge21_Node000001_Node000011" title=" " alt="" coords="527,359,435,435,377,471,375,467,432,431,524,355"/>
+<area shape="rect" id="Node000012" href="$unicode_8c.html#a0695d31239b48bbee503c9191bdfc627" title="Converts all lowercase characters to uppercase in&#45;place." alt="" coords="299,543,405,568"/>
+<area shape="poly" id="edge23_Node000001_Node000012" title=" " alt="" coords="539,362,498,431,468,471,435,508,409,529,381,545,379,540,406,524,432,504,464,468,493,428,534,359"/>
+<area shape="rect" id="Node000013" href="$unicode_8c.html#afec6fd3b06a385932c453e975a34d3ce" title="Removes leading and trailing characters from a UTF&#45;8 string in&#45;place." alt="" coords="290,616,414,641"/>
+<area shape="poly" id="edge25_Node000001_Node000013" title=" " alt="" coords="545,362,530,407,507,464,476,525,435,581,410,602,384,618,381,614,407,598,431,578,471,522,503,462,525,405,540,361"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="382,19,373,11,352,8,334,10,325,15,323,20,328,28,323,31,317,21,321,11,333,5,352,3,375,6,385,15"/>
+<area shape="poly" id="edge4_Node000003_Node000003" title=" " alt="" coords="382,92,373,84,352,81,334,83,325,88,323,94,328,101,323,104,317,94,321,85,333,78,352,76,375,79,385,88"/>
+<area shape="poly" id="edge6_Node000004_Node000004" title=" " alt="" coords="382,165,373,158,352,155,334,157,325,161,323,167,328,174,323,177,317,168,321,158,333,152,352,149,375,153,385,161"/>
+<area shape="poly" id="edge8_Node000005_Node000005" title=" " alt="" coords="382,239,373,231,352,228,334,230,325,235,323,240,328,248,323,251,317,241,321,231,333,225,352,223,375,226,385,235"/>
+<area shape="poly" id="edge10_Node000006_Node000006" title=" " alt="" coords="382,312,373,304,352,301,334,303,325,308,323,314,328,321,323,324,317,314,321,305,333,298,352,296,375,299,385,308"/>
+<area shape="rect" id="Node000007" href="$unicode_8c.html#a358a6ddb4231f045fa1996354bb69b56" title="Removes leading whitespace from a UTF&#45;8 string in&#45;place." alt="" coords="136,287,223,312"/>
+<area shape="poly" id="edge11_Node000006_Node000007" title=" " alt="" coords="277,322,222,311,224,306,278,317"/>
+<area shape="rect" id="Node000009" href="$unicode_8c.html#a673ecb04bcd3fc52c6222a67233a8ce1" title="Removes trailing whitespace from a UTF&#45;8 string in&#45;place." alt="" coords="136,360,223,385"/>
+<area shape="poly" id="edge15_Node000006_Node000009" title=" " alt="" coords="280,354,223,366,222,361,279,348"/>
+<area shape="poly" id="edge12_Node000007_Node000007" title=" " alt="" coords="201,275,195,268,179,265,166,267,159,272,158,278,162,285,157,288,152,278,155,269,164,262,179,260,197,263,205,272"/>
+<area shape="rect" id="Node000008" href="$unicode_8c.html#a8ec9a3447456e99105106536e4dfe39a" title="Removes leading and trailing whitespace from a UTF&#45;8 string in&#45;place." alt="" coords="5,324,88,349"/>
+<area shape="poly" id="edge13_Node000007_Node000008" title=" " alt="" coords="124,318,89,328,87,323,122,313"/>
+<area shape="poly" id="edge14_Node000008_Node000008" title=" " alt="" coords="69,313,62,305,47,303,33,305,26,309,25,315,29,323,24,325,20,316,22,306,31,300,47,297,65,301,73,309"/>
+<area shape="poly" id="edge17_Node000009_Node000008" title=" " alt="" coords="122,360,88,350,89,345,124,355"/>
+<area shape="poly" id="edge16_Node000009_Node000009" title=" " alt="" coords="201,349,195,341,179,339,166,341,159,345,158,351,162,359,157,361,152,352,155,342,164,336,179,333,197,337,205,345"/>
+<area shape="poly" id="edge19_Node000010_Node000010" title=" " alt="" coords="382,385,373,378,352,375,334,377,325,381,323,387,328,394,323,397,317,388,321,378,333,372,352,369,375,373,385,381"/>
+<area shape="poly" id="edge22_Node000011_Node000011" title=" " alt="" coords="382,459,373,451,352,448,334,450,325,455,323,460,328,468,323,471,317,461,321,451,333,445,352,443,375,446,385,455"/>
+<area shape="poly" id="edge24_Node000012_Node000012" title=" " alt="" coords="382,532,373,524,352,521,334,523,325,528,323,534,328,541,323,544,317,534,321,525,333,518,352,516,375,519,385,528"/>
+<area shape="poly" id="edge26_Node000013_Node000013" title=" " alt="" coords="382,605,373,598,352,595,334,597,325,601,323,607,328,614,323,617,317,608,321,598,333,592,352,589,375,593,385,601"/>
+</map>

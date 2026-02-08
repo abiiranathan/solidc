@@ -1,0 +1,24 @@
+<map id="include/str_utils.h" name="include/str_utils.h">
+<area shape="rect" id="Node000001" title="String utility functions for manipulation and processing." alt="" coords="615,5,752,31"/>
+<area shape="rect" id="Node000002" href="$cstr_8h.html" title="C string utilities and safe string operations." alt="" coords="287,79,395,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="616,36,396,81,394,76,614,31"/>
+<area shape="rect" id="Node000004" href="$solidc_8h.html" title="Master header file that includes all SolidC library modules." alt="" coords="327,225,450,251"/>
+<area shape="poly" id="edge10_Node000001_Node000004" title=" " alt="" coords="678,45,650,120,633,156,616,179,577,204,534,221,491,232,451,237,450,232,490,227,533,216,575,200,612,175,628,153,645,117,673,43"/>
+<area shape="rect" id="Node000009" href="$dotenv_8c_source.html" title=" " alt="" coords="677,79,777,104"/>
+<area shape="poly" id="edge11_Node000001_Node000009" title=" " alt="" coords="700,41,722,77,718,80,696,44"/>
+<area shape="rect" id="Node000010" href="$str__to__num_8c_source.html" title=" " alt="" coords="801,79,931,104"/>
+<area shape="poly" id="edge12_Node000001_Node000010" title=" " alt="" coords="726,33,837,76,835,81,724,38"/>
+<area shape="rect" id="Node000003" href="$flags_8h.html" title="Command&#45;line flag parsing library." alt="" coords="485,152,601,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="387,106,511,149,510,154,385,111"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="290,111,261,124,238,139,226,157,226,166,231,176,250,196,274,211,301,222,328,228,327,233,299,227,272,216,247,200,226,179,221,167,221,155,234,135,259,119,288,106"/>
+<area shape="rect" id="Node000005" href="$stdstreams_8h.html" title="Standard stream handling utilities." alt="" coords="5,152,164,177"/>
+<area shape="poly" id="edge5_Node000002_Node000005" title=" " alt="" coords="287,110,127,154,125,149,286,105"/>
+<area shape="rect" id="Node000007" href="$cstr_8c_source.html" title=" " alt="" coords="240,152,319,177"/>
+<area shape="poly" id="edge8_Node000002_Node000007" title=" " alt="" coords="324,116,291,154,287,150,320,113"/>
+<area shape="rect" id="Node000008" href="$csvparser_8c_source.html" title=" " alt="" coords="343,152,461,177"/>
+<area shape="poly" id="edge9_Node000002_Node000008" title=" " alt="" coords="362,113,394,150,390,154,358,116"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="507,185,415,228,413,223,505,181"/>
+<area shape="poly" id="edge6_Node000005_Node000004" title=" " alt="" coords="147,178,340,223,339,228,146,183"/>
+<area shape="rect" id="Node000006" href="$stdstreams_8c_source.html" title=" " alt="" coords="20,225,149,251"/>
+<area shape="poly" id="edge7_Node000005_Node000006" title=" " alt="" coords="87,191,87,225,82,225,82,191"/>
+</map>

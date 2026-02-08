@@ -1,0 +1,4 @@
+<map id="build_pipeline" name="build_pipeline">
+<area shape="rect" id="Node000001" title="Build the pipeline using a NULL&#45;terminated array of CommandNode pointers." alt="" coords="5,29,119,55"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="81,18,75,11,62,8,51,10,45,14,44,20,47,28,42,30,38,21,40,12,49,5,62,3,78,6,85,14"/>
+</map>

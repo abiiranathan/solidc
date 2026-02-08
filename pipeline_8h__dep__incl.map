@@ -1,0 +1,7 @@
+<map id="include/pipeline.h" name="include/pipeline.h">
+<area shape="rect" id="Node000001" title="Data pipeline utilities for processing streams." alt="" coords="67,5,205,31"/>
+<area shape="rect" id="Node000002" href="$solidc_8h.html" title="Master header file that includes all SolidC library modules." alt="" coords="5,79,128,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="117,43,80,80,76,77,113,39"/>
+<area shape="rect" id="Node000003" href="$pipeline_8c_source.html" title=" " alt="" coords="153,79,261,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="159,39,197,77,193,80,155,43"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="include/list.h" name="include/list.h">
+<area shape="rect" id="Node000001" title="Doubly linked list implementation with memory management." alt="" coords="75,5,181,31"/>
+<area shape="rect" id="Node000002" href="$solidc_8h.html" title="Master header file that includes all SolidC library modules." alt="" coords="5,79,128,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="111,43,79,80,75,77,107,40"/>
+<area shape="rect" id="Node000003" href="$list_8c_source.html" title=" " alt="" coords="153,79,229,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="149,39,183,77,179,80,145,43"/>
+</map>

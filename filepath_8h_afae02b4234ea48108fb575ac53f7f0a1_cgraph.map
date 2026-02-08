@@ -1,0 +1,17 @@
+<map id="dir_remove" name="dir_remove">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,128,101,153"/>
+<area shape="rect" id="Node000002" href="$filepath_8c.html#af54d8cbf030f00437fdef2047afdafb3" title=" " alt="" coords="149,128,303,153"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="102,138,136,138,136,143,102,143"/>
+<area shape="poly" id="edge6_Node000002_Node000002" title=" " alt="" coords="197,129,191,120,195,110,207,104,226,101,249,105,259,113,256,117,247,110,226,107,208,109,199,113,197,119,202,126"/>
+<area shape="rect" id="Node000003" href="$filepath_8c.html#ac8e3c6d41770ce40cf0669d2b99b037a" title=" " alt="" coords="382,29,462,55"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="244,126,291,96,350,64,368,56,370,61,352,68,294,100,247,130"/>
+<area shape="rect" id="Node000004" href="$filepath_8c.html#aed2439100a9cc53757707f5753afb9a8" title=" " alt="" coords="383,103,461,128"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="303,128,369,119,369,125,304,133"/>
+<area shape="rect" id="Node000005" href="$filepath_8c.html#a745f8e2389ede07765ad35ba6b6c12ea" title=" " alt="" coords="357,152,487,177"/>
+<area shape="poly" id="edge7_Node000002_Node000005" title=" " alt="" coords="304,147,343,152,343,158,303,153"/>
+<area shape="rect" id="Node000006" href="$file_8c.html#ae876faa1a30905108f9ad397ae52d7ac" title=" " alt="" coords="351,225,493,251"/>
+<area shape="poly" id="edge8_Node000002_Node000006" title=" " alt="" coords="254,151,384,217,382,222,251,156"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="390,31,383,21,387,11,400,5,422,3,449,6,460,15,457,19,447,11,422,8,401,10,390,15,388,20,394,28"/>
+<area shape="poly" id="edge5_Node000004_Node000004" title=" " alt="" coords="390,104,383,94,387,84,400,78,422,76,449,80,460,88,457,93,447,84,422,81,401,83,390,88,388,94,394,101"/>
+<area shape="poly" id="edge9_Node000006_Node000006" title=" " alt="" coords="390,227,383,217,387,207,400,201,422,199,449,202,460,211,457,215,447,207,422,204,401,206,390,211,388,216,394,224"/>
+</map>

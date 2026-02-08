@@ -1,0 +1,15 @@
+<map id="include/simd.h" name="include/simd.h">
+<area shape="rect" id="Node000001" title="Portable Single Instruction Multiple Data (SIMD) Intrinsics Wrapper." alt="" coords="5,5,123,31"/>
+<area shape="rect" id="Node000002" href="$solidc_8h.html" title="Master header file that includes all SolidC library modules." alt="" coords="64,299,187,324"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="58,44,51,73,51,104,63,179,89,249,118,297,114,300,84,252,58,180,45,104,46,72,53,43"/>
+<area shape="rect" id="Node000003" href="$vec_8h_source.html" title=" " alt="" coords="61,79,169,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="83,41,109,77,104,80,78,44"/>
+<area shape="poly" id="edge8_Node000003_Node000002" title=" " alt="" coords="109,118,95,179,93,215,97,250,107,276,120,297,115,300,102,278,92,251,88,215,90,178,103,117"/>
+<area shape="rect" id="Node000004" href="$linear__alg_8h.html" title="Linear algebra operations and utilities." alt="" coords="107,225,256,251"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="125,116,148,176,176,224,171,227,143,178,120,118"/>
+<area shape="rect" id="Node000005" href="$matrix_8h.html" title="Matrix operations and mathematical utilities." alt="" coords="157,152,285,177"/>
+<area shape="poly" id="edge5_Node000003_Node000005" title=" " alt="" coords="144,109,205,150,202,154,142,114"/>
+<area shape="poly" id="edge4_Node000004_Node000002" title=" " alt="" coords="166,263,136,300,132,297,161,260"/>
+<area shape="poly" id="edge7_Node000005_Node000002" title=" " alt="" coords="248,186,271,217,276,235,270,252,254,271,233,285,188,303,186,298,230,281,250,267,266,249,270,234,267,219,244,189"/>
+<area shape="poly" id="edge6_Node000005_Node000004" title=" " alt="" coords="210,191,190,227,185,224,206,188"/>
+</map>

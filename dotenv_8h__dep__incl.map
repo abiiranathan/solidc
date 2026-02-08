@@ -1,0 +1,7 @@
+<map id="include/dotenv.h" name="include/dotenv.h">
+<area shape="rect" id="Node000001" title="Environment variable loading from .env files." alt="" coords="70,5,199,31"/>
+<area shape="rect" id="Node000002" href="$solidc_8h.html" title="Master header file that includes all SolidC library modules." alt="" coords="5,79,128,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="116,42,80,80,76,77,112,39"/>
+<area shape="rect" id="Node000003" href="$dotenv_8c_source.html" title=" " alt="" coords="153,79,253,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="157,39,194,77,190,80,153,42"/>
+</map>

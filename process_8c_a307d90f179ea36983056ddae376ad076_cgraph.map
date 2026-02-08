@@ -1,0 +1,9 @@
+<map id="process_run_and_capture" name="process_run_and_capture">
+<area shape="rect" id="Node000001" title="Run a command and capture its output." alt="" coords="5,55,192,80"/>
+<area shape="rect" id="Node000002" href="$process_8c.html#a4ae7664bb48e61bb2211a010678fb860" title="Create a new process When custom environment is provided, command must be an absolute path or relativ..." alt="" coords="240,5,360,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="151,52,233,31,235,37,152,57"/>
+<area shape="rect" id="Node000003" href="$process_8c.html#a878c2f499845f3b3948c33d013bd16cf" title="Free resources associated with a process handle." alt="" coords="247,55,353,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="192,65,234,65,234,70,192,70"/>
+<area shape="rect" id="Node000004" href="$process_8c.html#aab27c2b93b61c29afa2279842d1c3642" title="Wait for a process to complete." alt="" coords="247,104,353,129"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="152,77,235,98,233,103,151,83"/>
+</map>

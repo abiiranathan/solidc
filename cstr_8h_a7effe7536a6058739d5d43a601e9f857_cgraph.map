@@ -1,0 +1,10 @@
+<map id="cstr_new" name="cstr_new">
+<area shape="rect" id="Node000001" title="Creates a new cstr from a C string." alt="" coords="5,29,85,55"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="20,31,15,21,18,11,28,5,45,3,66,6,75,15,71,19,63,11,45,8,30,10,22,15,20,20,25,28"/>
+<area shape="rect" id="Node000002" href="$cstr_8c.html#a1eca5d7fc6deccb9e28a6e4075c7e5aa" title="Creates a new cstr from a C string using a custom arena allocator." alt="" coords="133,29,257,55"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="85,39,120,39,120,45,85,45"/>
+<area shape="poly" id="edge5_Node000002_Node000002" title=" " alt="" coords="170,31,165,21,168,11,178,5,195,3,216,6,225,15,221,19,213,11,195,8,180,10,172,15,170,20,175,28"/>
+<area shape="rect" id="Node000003" href="$cstr_8c.html#aaafd0342dcc8c8e0e2fabf7edacc5520" title="Creates a new empty cstr using a custom arena allocator." alt="" coords="305,29,424,55"/>
+<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="258,39,291,39,291,45,258,45"/>
+<area shape="poly" id="edge4_Node000003_Node000003" title=" " alt="" coords="337,31,331,21,334,11,345,5,365,3,388,6,398,15,394,19,385,11,365,8,347,10,338,15,336,20,341,28"/>
+</map>

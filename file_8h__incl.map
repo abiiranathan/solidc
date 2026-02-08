@@ -1,0 +1,23 @@
+<map id="include/file.h" name="include/file.h">
+<area shape="rect" id="Node000001" title="Cross&#45;platform file handling API with synchronous and asynchronous I/O support." alt="" coords="405,5,510,31"/>
+<area shape="rect" id="Node000002" href="$platform_8h.html" title="Cross&#45;platform compatibility definitions." alt="" coords="8,79,99,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="405,31,113,81,112,76,404,25"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="123,79,205,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="411,33,219,79,218,74,410,28"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="229,79,304,104"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="428,33,312,76,310,71,426,28"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="329,79,399,104"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="444,33,392,72,388,68,441,29"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="424,79,491,104"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="460,31,460,65,455,65,455,31"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="515,79,578,104"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="473,29,523,68,520,72,470,33"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="602,79,705,104"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="490,28,609,71,608,76,488,33"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="729,79,815,104"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="508,28,717,75,715,80,507,33"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="839,79,913,104"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="511,24,649,45,826,76,825,81,648,50,510,29"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,152,101,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="56,104,56,138,51,138,51,104"/>
+</map>

@@ -1,0 +1,10 @@
+<map id="utf8_free" name="utf8_free">
+<area shape="rect" id="Node000001" title="Frees all resources associated with a utf8_string." alt="" coords="200,67,281,92"/>
+<area shape="poly" id="edge3_Node000001_Node000001" title=" " alt="" coords="269,56,260,48,241,45,224,47,215,52,213,58,218,65,214,68,208,58,211,49,222,42,241,40,263,43,272,52"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a121e5e7ae6f6f18318b2a6937efcaef5" title="Removes an element from a utf8_string array and frees it." alt="" coords="5,29,152,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="186,70,134,57,135,52,188,64"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#a8822f500037da8bbdb21b17113eed391" title="Frees an array of utf8_string objects returned by utf8_split()." alt="" coords="21,103,137,128"/>
+<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="187,94,137,105,136,100,186,89"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="107,19,98,11,79,8,62,10,53,15,51,20,56,28,52,31,46,21,49,11,60,5,79,3,101,6,110,15"/>
+<area shape="poly" id="edge5_Node000003_Node000003" title=" " alt="" coords="107,92,98,84,79,81,62,83,53,88,51,94,56,101,52,104,46,94,49,85,60,78,79,76,101,79,110,88"/>
+</map>

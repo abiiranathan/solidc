@@ -1,0 +1,7 @@
+<map id="include/trie.h" name="include/trie.h">
+<area shape="rect" id="Node000001" title="Trie data structure implementation for efficient string storage and retrieval." alt="" coords="76,5,183,31"/>
+<area shape="rect" id="Node000002" href="$solidc_8h.html" title="Master header file that includes all SolidC library modules." alt="" coords="5,79,128,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="112,43,79,80,75,77,108,39"/>
+<area shape="rect" id="Node000003" href="$trie_8c_source.html" title=" " alt="" coords="153,79,231,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="151,39,184,77,180,80,147,43"/>
+</map>

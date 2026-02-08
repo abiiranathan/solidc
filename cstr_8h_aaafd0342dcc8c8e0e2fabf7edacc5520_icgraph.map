@@ -1,0 +1,37 @@
+<map id="cstr_init_arena" name="cstr_init_arena">
+<area shape="rect" id="Node000001" title="Creates a new empty cstr using a custom arena allocator." alt="" coords="475,265,593,291"/>
+<area shape="poly" id="edge3_Node000001_Node000001" title=" " alt="" coords="563,255,555,247,534,244,516,246,507,251,505,256,510,264,506,267,500,257,503,247,515,241,534,239,557,242,567,251"/>
+<area shape="rect" id="Node000002" href="$cstr_8c.html#addbb5ac6b50949c8b4ef489563117300" title="Creates a new empty cstr with specified initial capacity." alt="" coords="327,29,402,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="522,253,508,215,488,168,460,119,425,76,397,57,400,52,428,72,464,116,492,166,513,213,527,251"/>
+<area shape="rect" id="Node000003" href="$cstr_8c.html#a44181a4b47f50b2520ae3ed80c5191b1" title="Joins multiple cstrs with a delimiter." alt="" coords="5,191,83,216"/>
+<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="506,259,461,224,401,185,330,147,292,132,254,121,191,108,164,110,132,120,107,135,86,154,55,192,51,189,82,150,104,131,130,116,163,105,192,103,255,115,294,127,332,142,403,180,464,220,509,254"/>
+<area shape="rect" id="Node000004" href="$cstr_8c.html#a1eca5d7fc6deccb9e28a6e4075c7e5aa" title="Creates a new cstr from a C string using a custom arena allocator." alt="" coords="303,303,427,328"/>
+<area shape="poly" id="edge6_Node000001_Node000004" title=" " alt="" coords="463,296,423,305,422,300,462,291"/>
+<area shape="rect" id="Node000006" href="$cstr_8c.html#ab09b35f79bd6b009ca46cb3e2beee52c" title="Replaces the first occurrence of a substring with another in the cstr." alt="" coords="142,155,243,180"/>
+<area shape="poly" id="edge21_Node000001_Node000006" title=" " alt="" coords="482,263,426,245,234,183,235,178,428,239,483,258"/>
+<area shape="rect" id="Node000007" href="$cstr_8c.html#a5e8d893a2d7559b2eb124d18bff2ff99" title="Replaces all occurrences of a substring with another." alt="" coords="131,228,255,253"/>
+<area shape="poly" id="edge22_Node000001_Node000007" title=" " alt="" coords="461,272,426,269,254,250,255,245,427,263,461,267"/>
+<area shape="rect" id="Node000008" href="$cstr_8c.html#a3cb97207769b7dcc91c8d805293f19b6" title="Creates a new cstr with the contents of the input cstr reversed." alt="" coords="141,375,244,400"/>
+<area shape="poly" id="edge23_Node000001_Node000008" title=" " alt="" coords="505,300,469,322,428,342,380,357,331,369,245,384,244,379,330,364,379,352,426,337,467,318,502,296"/>
+<area shape="rect" id="Node000009" href="$cstr_8c.html#ae40a0dbbb1586e7ae46735342a773825" title="Splits the cstr into substrings based on a delimiter." alt="" coords="152,448,233,473"/>
+<area shape="poly" id="edge24_Node000001_Node000009" title=" " alt="" coords="514,304,476,342,428,379,378,405,326,426,234,454,233,449,324,421,376,400,425,374,473,338,510,300"/>
+<area shape="rect" id="Node000010" href="$cstr_8c.html#ab0329e72b480c5a1c0b51053cc725be9" title="Extracts a substring from the cstr." alt="" coords="146,521,239,547"/>
+<area shape="poly" id="edge25_Node000001_Node000010" title=" " alt="" coords="524,304,487,370,460,407,428,439,382,470,332,495,283,513,240,526,239,521,281,508,330,490,380,465,425,435,456,403,483,367,519,302"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="394,19,385,11,365,8,347,10,338,15,336,20,341,28,337,31,331,21,334,11,345,5,365,3,388,6,398,15"/>
+<area shape="poly" id="edge5_Node000003_Node000003" title=" " alt="" coords="69,180,62,172,44,169,29,171,21,176,19,182,24,189,19,192,14,182,17,173,27,166,44,164,64,168,73,176"/>
+<area shape="poly" id="edge10_Node000004_Node000004" title=" " alt="" coords="394,292,385,284,365,281,347,283,338,288,336,294,341,301,337,304,331,294,334,285,345,278,365,276,388,279,398,288"/>
+<area shape="rect" id="Node000005" href="$cstr_8c.html#a7effe7536a6058739d5d43a601e9f857" title="Creates a new cstr from a C string." alt="" coords="153,301,233,327"/>
+<area shape="poly" id="edge7_Node000004_Node000005" title=" " alt="" coords="288,317,233,317,233,312,288,312"/>
+<area shape="poly" id="edge11_Node000004_Node000006" title=" " alt="" coords="346,293,307,243,281,217,253,194,233,183,236,178,256,189,285,213,311,240,350,290"/>
+<area shape="poly" id="edge13_Node000004_Node000007" title=" " alt="" coords="324,299,254,267,227,256,229,251,256,262,326,294"/>
+<area shape="poly" id="edge15_Node000004_Node000008" title=" " alt="" coords="322,336,225,377,223,372,320,331"/>
+<area shape="poly" id="edge17_Node000004_Node000009" title=" " alt="" coords="340,340,256,413,212,450,208,446,253,409,337,336"/>
+<area shape="poly" id="edge19_Node000004_Node000010" title=" " alt="" coords="353,342,314,410,287,450,257,488,215,523,212,519,253,484,283,447,309,408,348,339"/>
+<area shape="poly" id="edge8_Node000005_Node000003" title=" " alt="" coords="162,295,61,218,64,214,165,291"/>
+<area shape="poly" id="edge9_Node000005_Node000005" title=" " alt="" coords="218,290,210,283,193,280,177,282,170,287,168,292,172,300,168,303,163,293,165,283,176,277,193,275,213,278,222,287"/>
+<area shape="poly" id="edge12_Node000006_Node000006" title=" " alt="" coords="218,144,210,136,193,133,177,135,170,140,168,146,172,153,168,156,163,146,165,137,176,130,193,128,213,132,222,140"/>
+<area shape="poly" id="edge14_Node000007_Node000007" title=" " alt="" coords="218,217,210,210,193,207,177,209,170,213,168,219,172,227,168,229,163,220,165,210,176,204,193,201,213,205,222,213"/>
+<area shape="poly" id="edge16_Node000008_Node000008" title=" " alt="" coords="218,364,210,356,193,353,177,355,170,360,168,366,172,373,168,376,163,366,165,357,176,350,193,348,213,352,222,360"/>
+<area shape="poly" id="edge18_Node000009_Node000009" title=" " alt="" coords="218,437,210,430,193,427,177,429,170,433,168,439,172,447,168,449,163,440,165,430,176,424,193,421,213,425,222,433"/>
+<area shape="poly" id="edge20_Node000010_Node000010" title=" " alt="" coords="218,510,210,503,193,500,177,502,170,507,168,512,172,520,168,523,163,513,165,503,176,497,193,495,213,498,222,507"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="include/socket.h" name="include/socket.h">
+<area shape="rect" id="Node000001" title="Cross&#45;platform socket programming utilities." alt="" coords="70,5,197,31"/>
+<area shape="rect" id="Node000002" href="$solidc_8h.html" title="Master header file that includes all SolidC library modules." alt="" coords="5,79,128,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="115,43,79,80,76,77,111,39"/>
+<area shape="rect" id="Node000003" href="$socket_8c_source.html" title=" " alt="" coords="152,79,251,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="156,39,192,77,188,80,152,42"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="include/str_to_num.h" name="include/str_to_num.h">
+<area shape="rect" id="Node000001" title="String to number conversion utilities." alt="" coords="62,5,221,31"/>
+<area shape="rect" id="Node000002" href="$solidc_8h.html" title="Master header file that includes all SolidC library modules." alt="" coords="5,79,128,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="121,42,81,80,77,77,118,38"/>
+<area shape="rect" id="Node000003" href="$str__to__num_8c_source.html" title=" " alt="" coords="153,79,282,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="165,38,207,76,203,80,162,42"/>
+</map>

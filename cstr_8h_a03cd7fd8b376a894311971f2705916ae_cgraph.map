@@ -1,0 +1,7 @@
+<map id="cstr_trim_chars" name="cstr_trim_chars">
+<area shape="rect" id="Node000001" title="Removes leading and trailing characters from the cstr in place based on a set of characters." alt="" coords="5,29,128,55"/>
+<area shape="poly" id="edge3_Node000001_Node000001" title=" " alt="" coords="41,31,36,21,38,11,49,5,67,3,88,6,97,15,93,19,85,11,67,8,51,10,43,15,41,20,46,28"/>
+<area shape="rect" id="Node000002" href="$cstr_8c.html#aac384bc30a7cba763812edbfecf22df1" title="Clears the cstr, setting its length to 0." alt="" coords="176,29,261,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="128,39,162,39,162,45,128,45"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="193,31,188,21,190,11,201,5,219,3,240,6,249,15,245,19,237,11,219,8,203,10,195,15,193,20,198,28"/>
+</map>

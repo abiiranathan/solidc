@@ -1,0 +1,7 @@
+<map id="cstr_init" name="cstr_init">
+<area shape="rect" id="Node000001" title="Creates a new empty cstr with specified initial capacity." alt="" coords="5,29,80,55"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="18,30,13,21,16,11,26,5,43,3,63,6,71,15,67,18,60,11,43,8,28,10,20,15,18,20,23,28"/>
+<area shape="rect" id="Node000002" href="$cstr_8c.html#aaafd0342dcc8c8e0e2fabf7edacc5520" title="Creates a new empty cstr using a custom arena allocator." alt="" coords="128,29,247,55"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="80,39,114,39,114,45,80,45"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="163,30,158,21,160,11,171,5,187,3,207,6,216,15,212,18,205,11,187,8,172,10,165,15,163,20,167,28"/>
+</map>

@@ -1,0 +1,30 @@
+<map id="include/macros.h" name="include/macros.h">
+<area shape="rect" id="Node000001" title="Collection of utility macros for assertions, memory management, math, and debugging." alt="" coords="625,5,758,31"/>
+<area shape="rect" id="Node000002" href="$cstr_8h.html" title="C string utilities and safe string operations." alt="" coords="327,79,435,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="629,36,432,81,430,76,628,31"/>
+<area shape="rect" id="Node000004" href="$solidc_8h.html" title="Master header file that includes all SolidC library modules." alt="" coords="429,225,551,251"/>
+<area shape="poly" id="edge13_Node000001_Node000004" title=" " alt="" coords="683,44,646,123,615,179,573,209,530,228,528,223,571,204,611,176,641,121,678,42"/>
+<area shape="rect" id="Node000009" href="$filepath_8h.html" title="Cross&#45;platform file path manipulation and directory traversal utilities." alt="" coords="677,79,812,104"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="710,40,738,77,734,80,706,43"/>
+<area shape="rect" id="Node000011" href="$threadpool_8h.html" title="Thread pool implementation for concurrent task execution." alt="" coords="837,79,991,104"/>
+<area shape="poly" id="edge14_Node000001_Node000011" title=" " alt="" coords="741,32,879,76,877,81,739,37"/>
+<area shape="rect" id="Node000003" href="$flags_8h.html" title="Command&#45;line flag parsing library." alt="" coords="188,152,304,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="348,113,269,154,267,149,346,108"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="371,117,364,147,364,162,370,176,383,192,400,205,439,223,436,228,397,210,379,196,365,179,359,163,358,146,366,116"/>
+<area shape="rect" id="Node000005" href="$stdstreams_8h.html" title="Standard stream handling utilities." alt="" coords="5,152,164,177"/>
+<area shape="poly" id="edge5_Node000002_Node000005" title=" " alt="" coords="321,110,133,154,132,149,319,105"/>
+<area shape="rect" id="Node000007" href="$cstr_8c_source.html" title=" " alt="" coords="380,152,459,177"/>
+<area shape="poly" id="edge8_Node000002_Node000007" title=" " alt="" coords="396,115,415,151,411,153,391,118"/>
+<area shape="rect" id="Node000008" href="$csvparser_8c_source.html" title=" " alt="" coords="483,152,601,177"/>
+<area shape="poly" id="edge9_Node000002_Node000008" title=" " alt="" coords="420,107,517,149,515,154,418,112"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="299,179,451,223,450,228,297,184"/>
+<area shape="poly" id="edge6_Node000005_Node000004" title=" " alt="" coords="164,177,429,223,428,229,163,182"/>
+<area shape="rect" id="Node000006" href="$stdstreams_8c_source.html" title=" " alt="" coords="20,225,149,251"/>
+<area shape="poly" id="edge7_Node000005_Node000006" title=" " alt="" coords="87,191,87,225,82,225,82,191"/>
+<area shape="poly" id="edge11_Node000009_Node000004" title=" " alt="" coords="729,117,698,149,659,180,599,209,540,228,539,223,597,204,657,175,695,145,725,113"/>
+<area shape="rect" id="Node000010" href="$filepath_8c_source.html" title=" " alt="" coords="728,152,833,177"/>
+<area shape="poly" id="edge12_Node000009_Node000010" title=" " alt="" coords="759,115,777,151,772,153,754,117"/>
+<area shape="poly" id="edge15_Node000011_Node000004" title=" " alt="" coords="904,117,880,150,864,166,846,180,791,199,713,215,552,234,551,229,712,209,790,194,843,175,861,162,876,147,899,114"/>
+<area shape="rect" id="Node000012" href="$threadpool_8c_source.html" title=" " alt="" coords="909,152,1036,177"/>
+<area shape="poly" id="edge16_Node000011_Node000012" title=" " alt="" coords="934,113,965,150,961,154,930,116"/>
+</map>

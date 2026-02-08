@@ -1,0 +1,9 @@
+<map id="process_run_with_file_redirection" name="process_run_with_file_redirection">
+<area shape="rect" id="Node000001" title="Create a process that redirects its output from stdout and/or stderr to files." alt="" coords="5,55,168,95"/>
+<area shape="rect" id="Node000002" href="$process_8c.html#a1e2b1d68298caa96e60854bb4f672fcc" title="Close and free a file redirection." alt="" coords="216,5,407,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="165,53,247,32,248,37,166,58"/>
+<area shape="rect" id="Node000003" href="$process_8c.html#af3518152337c93632c6d87ff20928ed8" title="Create a process with extended redirection options." alt="" coords="234,55,389,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="168,73,220,73,220,78,168,78"/>
+<area shape="rect" id="Node000004" href="$process_8c.html#a4e7312983a2af50f89e7484babb8f889" title="Create a new file redirection for a process." alt="" coords="223,120,399,145"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="166,93,248,114,247,119,165,98"/>
+</map>

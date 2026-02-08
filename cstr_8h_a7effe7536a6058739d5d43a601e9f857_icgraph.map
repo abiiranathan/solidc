@@ -1,0 +1,7 @@
+<map id="cstr_new" name="cstr_new">
+<area shape="rect" id="Node000001" title="Creates a new cstr from a C string." alt="" coords="131,29,211,55"/>
+<area shape="poly" id="edge3_Node000001_Node000001" title=" " alt="" coords="192,18,185,11,171,8,158,10,151,14,150,20,154,28,149,30,145,21,147,11,156,5,171,3,188,6,196,14"/>
+<area shape="rect" id="Node000002" href="$cstr_8c.html#a44181a4b47f50b2520ae3ed80c5191b1" title="Joins multiple cstrs with a delimiter." alt="" coords="5,29,83,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="117,45,83,45,83,39,117,39"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="65,18,59,11,44,8,31,10,25,14,23,20,27,28,22,30,18,21,20,11,29,5,44,3,61,6,69,14"/>
+</map>

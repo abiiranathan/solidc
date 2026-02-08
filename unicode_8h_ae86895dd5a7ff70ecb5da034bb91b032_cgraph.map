@@ -1,0 +1,7 @@
+<map id="utf8_starts_with" name="utf8_starts_with">
+<area shape="rect" id="Node000001" title="Checks if a string starts with a given prefix." alt="" coords="5,29,132,55"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="37,31,30,21,33,11,47,5,69,3,95,6,107,15,103,19,93,11,69,8,48,10,37,15,35,20,41,28"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a37b529eaefb2e43c5f2a7eda74138c13" title="Counts the number of valid UTF&#45;8 bytes in a string." alt="" coords="180,29,347,55"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="132,39,166,39,166,45,132,45"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="231,31,224,21,228,11,241,5,263,3,290,6,301,15,298,19,288,11,263,8,243,10,232,15,230,20,235,28"/>
+</map>

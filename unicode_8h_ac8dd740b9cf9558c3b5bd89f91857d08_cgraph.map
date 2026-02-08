@@ -1,0 +1,14 @@
+<map id="utf8_new" name="utf8_new">
+<area shape="rect" id="Node000001" title="Creates a new utf8_string object from a C string." alt="" coords="5,80,88,105"/>
+<area shape="poly" id="edge7_Node000001_Node000001" title=" " alt="" coords="18,81,12,72,15,62,27,56,47,53,71,57,81,66,77,70,68,62,47,59,28,61,19,65,17,71,22,78"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a3619b219411d41dbdd9197a4d9f378a3" title="Creates a copy of a UTF&#45;8 string containing only valid UTF&#45;8 sequences." alt="" coords="177,29,264,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="87,78,163,56,165,61,89,83"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#a37b529eaefb2e43c5f2a7eda74138c13" title="Counts the number of valid UTF&#45;8 bytes in a string." alt="" coords="353,55,520,80"/>
+<area shape="poly" id="edge8_Node000001_Node000003" title=" " alt="" coords="88,87,339,71,340,76,89,93"/>
+<area shape="rect" id="Node000004" href="$unicode_8c.html#a0b46c6da59494b8d0042d1557f77b6fe" title="Counts the number of Unicode codepoints in a UTF&#45;8 string." alt="" coords="136,155,305,180"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="79,103,179,147,177,152,76,108"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="192,31,186,21,189,11,201,5,221,3,245,6,255,15,251,19,242,11,221,8,202,10,193,15,191,20,196,28"/>
+<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="264,44,340,53,339,59,264,50"/>
+<area shape="poly" id="edge4_Node000003_Node000003" title=" " alt="" coords="401,56,394,46,398,36,412,30,437,28,467,32,479,41,475,45,465,37,437,33,414,35,401,40,399,46,405,53"/>
+<area shape="poly" id="edge6_Node000004_Node000004" title=" " alt="" coords="192,156,186,146,189,137,201,130,221,128,245,132,255,140,251,144,242,136,221,133,202,135,193,140,191,146,196,153"/>
+</map>

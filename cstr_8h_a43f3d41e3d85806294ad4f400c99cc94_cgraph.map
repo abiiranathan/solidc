@@ -1,0 +1,7 @@
+<map id="cstr_contains_cstr" name="cstr_contains_cstr">
+<area shape="rect" id="Node000001" title="Checks if the cstr contains the given substring cstr." alt="" coords="5,29,144,55"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="46,31,40,21,43,11,55,5,75,3,98,6,108,15,105,19,96,11,75,8,57,10,47,15,45,20,51,28"/>
+<area shape="rect" id="Node000002" href="$cstr_8c.html#adccd42f0c6646bb395f6779cd4bc80f1" title="Finds the first occurrence of a substring cstr in the cstr." alt="" coords="192,29,300,55"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="144,39,178,39,178,45,144,45"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="217,31,211,21,215,11,227,5,246,3,269,6,279,15,276,19,267,11,246,8,228,10,219,15,217,20,222,28"/>
+</map>
