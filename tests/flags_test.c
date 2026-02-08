@@ -35,12 +35,12 @@ typedef struct OpsConfig {
 // Initialize defaults
 void init_config(OpsConfig* c) {
     memset(c, 0, sizeof(OpsConfig));
-    c->config_path = strdup("/default.conf");
-    c->host = strdup("localhost");
+    c->config_path = "/default.conf";
+    c->host = "localhost";
     c->port = 8080;
     c->cache_size = 1024;
     c->max_retries = 3;
-    c->db_name = strdup("prod");
+    c->db_name = "prod";
     c->timeout_sec = 30.0;
     c->mode_char = 'N';
     c->priority = 10;

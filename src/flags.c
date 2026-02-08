@@ -15,10 +15,10 @@
  */
 
 #include "../include/flags.h"
-
+#include "../include/arena.h"
 #include "../include/str_utils.h"
 
-#define INITIAL_CAPACITY  8
+#define INITIAL_CAPACITY  64
 #define ERR_BUF_SIZE      128
 #define MAX_FLAG_NAME_LEN 128
 #define MAX_DEFAULT_STR   64
@@ -50,6 +50,7 @@ struct Flag {
  * their own flags and handlers.
  */
 struct FlagParser {
+    Arena* arena;      /**< Memory arena for all allocations */
     char* name;        /**< Name of this parser/command */
     char* description; /**< Description shown in help */
     char* footer;      /**< Optional footer text for help */
@@ -76,115 +77,82 @@ struct FlagParser {
 // --- Memory Helpers ---
 
 /**
- * @brief Safe realloc wrapper that exits on failure
- * @param ptr Pointer to reallocate
- * @param size New size in bytes
- * @return Reallocated pointer
- */
-static void* xrealloc(void* ptr, size_t size) {
-    if (size == 0) {
-        free(ptr);
-        return NULL;
-    }
-    void* new_ptr = realloc(ptr, size);
-    if (!new_ptr) {
-        fprintf(stderr, "Fatal: Memory allocation failed.\n");
-        exit(EXIT_FAILURE);
-    }
-    return new_ptr;
-}
-
-/**
- * @brief Safe strdup wrapper that exits on failure
- * @param s String to duplicate
- * @return Duplicated string
- */
-static char* xstrdup(const char* s) {
-    if (!s) return NULL;
-    char* new_s = strdup(s);
-    if (!new_s) {
-        fprintf(stderr, "Fatal: Memory allocation failed.\n");
-        exit(EXIT_FAILURE);
-    }
-    return new_s;
-}
-
-/**
  * @brief Allocate and copy default value for a flag
+ * @param arena The arena to allocate from
  * @param type The data type of the flag
  * @param value_ptr Pointer to the default value
  * @return Allocated copy of the default value, or NULL on failure
  */
-static void* copy_default_value(FlagDataType type, void* value_ptr) {
+static void* copy_default_value(Arena* arena, FlagDataType type, void* value_ptr) {
     if (!value_ptr) return NULL;
 
     switch (type) {
         case TYPE_BOOL: {
-            bool* copy = malloc(sizeof(bool));
+            bool* copy = ARENA_ALLOC(arena, bool);
             if (copy) *copy = *(bool*)value_ptr;
             return copy;
         }
         case TYPE_CHAR: {
-            char* copy = malloc(sizeof(char));
+            char* copy = ARENA_ALLOC(arena, char);
             if (copy) *copy = *(char*)value_ptr;
             return copy;
         }
         case TYPE_STRING: {
             char* str = *(char**)value_ptr;
-            return str ? xstrdup(str) : NULL;
+            return str ? arena_strdup(arena, str) : NULL;
         }
         case TYPE_INT8: {
-            int8_t* copy = malloc(sizeof(int8_t));
+            int8_t* copy = ARENA_ALLOC(arena, int8_t);
             if (copy) *copy = *(int8_t*)value_ptr;
             return copy;
         }
         case TYPE_UINT8: {
-            uint8_t* copy = malloc(sizeof(uint8_t));
+            uint8_t* copy = ARENA_ALLOC(arena, uint8_t);
             if (copy) *copy = *(uint8_t*)value_ptr;
             return copy;
         }
         case TYPE_INT16: {
-            int16_t* copy = malloc(sizeof(int16_t));
+            int16_t* copy = ARENA_ALLOC(arena, int16_t);
             if (copy) *copy = *(int16_t*)value_ptr;
             return copy;
         }
         case TYPE_UINT16: {
-            uint16_t* copy = malloc(sizeof(uint16_t));
+            uint16_t* copy = ARENA_ALLOC(arena, uint16_t);
             if (copy) *copy = *(uint16_t*)value_ptr;
             return copy;
         }
         case TYPE_INT32: {
-            int32_t* copy = malloc(sizeof(int32_t));
+            int32_t* copy = ARENA_ALLOC(arena, int32_t);
             if (copy) *copy = *(int32_t*)value_ptr;
             return copy;
         }
         case TYPE_UINT32: {
-            uint32_t* copy = malloc(sizeof(uint32_t));
+            uint32_t* copy = ARENA_ALLOC(arena, uint32_t);
             if (copy) *copy = *(uint32_t*)value_ptr;
             return copy;
         }
         case TYPE_INT64: {
-            int64_t* copy = malloc(sizeof(int64_t));
+            int64_t* copy = ARENA_ALLOC(arena, int64_t);
             if (copy) *copy = *(int64_t*)value_ptr;
             return copy;
         }
         case TYPE_UINT64: {
-            uint64_t* copy = malloc(sizeof(uint64_t));
+            uint64_t* copy = ARENA_ALLOC(arena, uint64_t);
             if (copy) *copy = *(uint64_t*)value_ptr;
             return copy;
         }
         case TYPE_SIZE_T: {
-            size_t* copy = malloc(sizeof(size_t));
+            size_t* copy = ARENA_ALLOC(arena, size_t);
             if (copy) *copy = *(size_t*)value_ptr;
             return copy;
         }
         case TYPE_FLOAT: {
-            float* copy = malloc(sizeof(float));
+            float* copy = ARENA_ALLOC(arena, float);
             if (copy) *copy = *(float*)value_ptr;
             return copy;
         }
         case TYPE_DOUBLE: {
-            double* copy = malloc(sizeof(double));
+            double* copy = ARENA_ALLOC(arena, double);
             if (copy) *copy = *(double*)value_ptr;
             return copy;
         }
@@ -268,16 +236,22 @@ static void format_default_value(FlagDataType type, void* default_ptr, char* buf
  * The returned parser must be freed with flag_parser_free() when done.
  */
 FlagParser* flag_parser_new(const char* name, const char* description) {
-    FlagParser* fp = (FlagParser*)calloc(1, sizeof(FlagParser));
-
-    // Safe to crash if we can't allocate in a CLI.
-    if (!fp) {
-        perror("calloc");
+    // Create arena with default size
+    Arena* arena = arena_create(0);
+    if (!arena) {
+        perror("arena_create");
         exit(1);
     }
 
-    fp->name = xstrdup(name);
-    fp->description = xstrdup(description);
+    FlagParser* fp = ARENA_ALLOC_ZERO(arena, FlagParser);
+    if (!fp) {
+        perror("arena_alloc");
+        exit(1);
+    }
+
+    fp->arena = arena;
+    fp->name = arena_strdup(arena, name);
+    fp->description = arena_strdup(arena, description);
     return fp;
 }
 
@@ -289,28 +263,7 @@ FlagParser* flag_parser_new(const char* name, const char* description) {
  */
 void flag_parser_free(FlagParser* fp) {
     if (!fp) return;
-    free(fp->name);
-    free(fp->description);
-    free(fp->footer);
-    for (size_t i = 0; i < fp->flag_count; i++) {
-        free(fp->flags[i].name);
-        free(fp->flags[i].description);
-        if (fp->flags[i].default_ptr) {
-            free(fp->flags[i].default_ptr);
-        }
-        if (fp->flags[i].type == TYPE_STRING && fp->flags[i].value_ptr) {
-            free(*(char**)fp->flags[i].value_ptr);
-        }
-    }
-
-    free(fp->flags);
-    for (size_t i = 0; i < fp->cmd_count; i++) {
-        flag_parser_free(fp->subcommands[i]);
-    }
-
-    free(fp->subcommands);
-    free(fp->positional_args);
-    free(fp);
+    arena_destroy(fp->arena);
 }
 
 /**
@@ -320,8 +273,7 @@ void flag_parser_free(FlagParser* fp) {
  */
 void flag_parser_set_footer(FlagParser* parser, const char* footer) {
     if (!parser) return;
-    free(parser->footer);
-    parser->footer = xstrdup(footer);
+    parser->footer = arena_strdup(parser->arena, footer);
 }
 
 /**
@@ -367,22 +319,28 @@ Flag* flag_add(FlagParser* fp, FlagDataType type, const char* name, char short_n
 
     if (fp->flag_count >= fp->flag_capacity) {
         size_t new_cap = (fp->flag_capacity == 0) ? INITIAL_CAPACITY : fp->flag_capacity * 2;
-        fp->flags = (Flag*)xrealloc(fp->flags, new_cap * sizeof(Flag));
+        Flag* new_flags = ARENA_ALLOC_ARRAY(fp->arena, Flag, new_cap);
+        if (!new_flags) exit(1);
+
+        if (fp->flags) {
+            memcpy(new_flags, fp->flags, fp->flag_count * sizeof(Flag));
+        }
+        fp->flags = new_flags;
         fp->flag_capacity = new_cap;
     }
 
     Flag* f = &fp->flags[fp->flag_count++];
     f->type = type;
-    f->name = xstrdup(name);
+    f->name = arena_strdup(fp->arena, name);
     f->short_name = short_name;
-    f->description = xstrdup(desc);
+    f->description = arena_strdup(fp->arena, desc);
     f->value_ptr = value_ptr;
     f->required = required;
     f->is_present = false;
     f->validator = NULL;
 
     // Copy the default value for display in help
-    f->default_ptr = copy_default_value(type, value_ptr);
+    f->default_ptr = copy_default_value(fp->arena, type, value_ptr);
     return f;
 }
 
@@ -408,11 +366,21 @@ FlagParser* flag_add_subcommand(FlagParser* fp, const char* name, const char* de
     if (!fp || !name) return NULL;
     if (fp->cmd_count >= fp->cmd_capacity) {
         size_t new_cap = (fp->cmd_capacity == 0) ? INITIAL_CAPACITY : fp->cmd_capacity * 2;
-        fp->subcommands = (FlagParser**)xrealloc(fp->subcommands, new_cap * sizeof(FlagParser*));
+        FlagParser** new_cmds = ARENA_ALLOC_ARRAY(fp->arena, FlagParser*, new_cap);
+        if (!new_cmds) exit(1);
+
+        if (fp->subcommands) {
+            memcpy(new_cmds, fp->subcommands, fp->cmd_count * sizeof(FlagParser*));
+        }
+        fp->subcommands = new_cmds;
         fp->cmd_capacity = new_cap;
     }
 
-    FlagParser* sub = flag_parser_new(name, desc);
+    // Subcommands share the same arena as the root
+    FlagParser* sub = ARENA_ALLOC_ZERO(fp->arena, FlagParser);
+    sub->arena = fp->arena;
+    sub->name = arena_strdup(fp->arena, name);
+    sub->description = arena_strdup(fp->arena, desc);
     sub->handler = handler;
     sub->pre_invoke = NULL;
     fp->subcommands[fp->cmd_count++] = sub;
@@ -545,7 +513,7 @@ static bool check_range_uint(unsigned long long val, unsigned long long max) { r
  *
  * Handles all supported data types with proper range checking and error detection.
  */
-static FlagStatus parse_value(Flag* flag, const char* str) {
+static FlagStatus parse_value(FlagParser* fp, Flag* flag, const char* str) {
     if (!str) return FLAG_ERROR_MISSING_VALUE;
     char* endptr = NULL;
     errno = 0;
@@ -563,8 +531,10 @@ static FlagStatus parse_value(Flag* flag, const char* str) {
             *(char*)flag->value_ptr = str[0];
             break;
         case TYPE_STRING:
-            if (*(char**)flag->value_ptr) free(*(char**)flag->value_ptr);
-            *(char**)flag->value_ptr = xstrdup(str);
+            // Don't free the old value - we don't know if it's malloc'd or static,
+            // and we are moving to arena-managed strings.
+            // if (*(char**)flag->value_ptr) free(*(char**)flag->value_ptr);
+            *(char**)flag->value_ptr = arena_strdup(fp->arena, str);
             break;
 
         // Signed Integers
@@ -692,7 +662,13 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
             // Add positional
             if (fp->pos_count >= fp->pos_capacity) {
                 size_t new_cap = (fp->pos_capacity == 0) ? INITIAL_CAPACITY : fp->pos_capacity * 2;
-                fp->positional_args = (char**)xrealloc(fp->positional_args, new_cap * sizeof(char*));
+                char** new_pos = ARENA_ALLOC_ARRAY(fp->arena, char*, new_cap);
+                if (!new_pos) exit(1);
+
+                if (fp->positional_args) {
+                    memcpy(new_pos, fp->positional_args, fp->pos_count * sizeof(char*));
+                }
+                fp->positional_args = new_pos;
                 fp->pos_capacity = new_cap;
             }
             fp->positional_args[fp->pos_count++] = arg;
@@ -743,7 +719,7 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
                         return FLAG_ERROR_MISSING_VALUE;
                     }
                 }
-                FlagStatus s = parse_value(f, val_str);
+                FlagStatus s = parse_value(fp, f, val_str);
                 if (s != FLAG_OK) {
                     set_error(fp, "Invalid value for --%s: '%s' (Type mismatch or overflow)", f->name, val_str);
                     return s;
@@ -772,7 +748,7 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
                     if (k + 1 < len) {
                         val_str = &arg[k + 1];
                         if (*val_str == '=') val_str++;
-                        FlagStatus s = parse_value(f, val_str);
+                        FlagStatus s = parse_value(fp, f, val_str);
                         if (s != FLAG_OK) {
                             set_error(fp, "Invalid value for -%c (Type mismatch or overflow)", c);
                             return s;
@@ -781,7 +757,7 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
                     } else {
                         if (i + 1 < argc && argv[i + 1][0] != '-') {
                             val_str = argv[++i];
-                            FlagStatus s = parse_value(f, val_str);
+                            FlagStatus s = parse_value(fp, f, val_str);
                             if (s != FLAG_OK) {
                                 set_error(fp, "Invalid value for -%c (Type mismatch or overflow)", c);
                                 return s;
