@@ -12,4 +12,7 @@ target_link_libraries(example solidc m)
 add_executable(graphics graphics.c)
 target_link_libraries(graphics solidc m)
 
+add_executable(ml_demo ml_demo.c)
+target_link_libraries(ml_demo solidc m)
+
 

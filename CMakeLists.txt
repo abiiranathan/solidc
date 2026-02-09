@@ -95,6 +95,7 @@ set(HEADERS
     include/platform.h
     include/str_utils.h
     include/prettytable.h
+    include/ml.h
 )
 
 # Source files
@@ -124,6 +125,7 @@ set(SOURCES
     src/trie.c
     src/flags.c
     src/prettytable.c
+    src/ml.c
 )
 
 

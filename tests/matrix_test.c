@@ -229,12 +229,35 @@ void test_linear_systems() {
     assert_mat4_eq("PA == LU", PA, LU);
 }
 
+void test_extensions_ml() {
+    print_header("ML Extensions (Add, Sub, Scalar Mul)");
+
+    Mat4 A = mat4_identity();
+    Mat4 B = mat4_identity();
+
+    // Add
+    Mat4 sum = mat4_add(A, B);
+    Mat4 expected_sum = mat4_diag(mat4_new_column_major(2,0,0,0, 0,2,0,0, 0,0,2,0, 0,0,0,2));
+    assert_mat4_eq("Mat4 Add", expected_sum, sum);
+
+    // Sub
+    Mat4 diff = mat4_sub(A, B);
+    Mat4 expected_diff = mat4_new_column_major(0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0);
+    assert_mat4_eq("Mat4 Sub", expected_diff, diff);
+
+    // Scalar Mul
+    Mat4 scaled = mat4_scalar_mul(A, 3.0f);
+    Mat4 expected_scaled = mat4_diag(mat4_new_column_major(3,0,0,0, 0,3,0,0, 0,0,3,0, 0,0,0,3));
+    assert_mat4_eq("Mat4 Scalar Mul", expected_scaled, scaled);
+}
+
 int main() {
     test_initialization();
     test_multiplication();
     test_transforms();
     test_inverse_det();
     test_linear_systems();
+    test_extensions_ml();
 
     print_header("Summary");
     printf("Total Tests: %d\n", g_tests_passed + g_tests_failed);

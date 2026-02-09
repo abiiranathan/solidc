@@ -167,7 +167,7 @@ typedef union ALIGN(16) SimdVec4 {
  * @param v The vector to print
  * @param name Optional name to display (can be NULL)
  */
-void vec2_print(const Vec2 v, const char* name) {
+static inline void vec2_print(const Vec2 v, const char* name) {
     if (name) {
         printf("%s: ", name);
     }
@@ -179,7 +179,7 @@ void vec2_print(const Vec2 v, const char* name) {
  * @param v The vector to print
  * @param name Optional name to display (can be NULL)
  */
-void vec3_print(const Vec3 v, const char* name) {
+static inline void vec3_print(const Vec3 v, const char* name) {
     if (name) {
         printf("%s: ", name);
     }
@@ -191,7 +191,7 @@ void vec3_print(const Vec3 v, const char* name) {
  * @param v The vector to print
  * @param name Optional name to display (can be NULL)
  */
-void vec3_print_ex(const Vec3 v, const char* name) {
+static inline void vec3_print_ex(const Vec3 v, const char* name) {
     if (name) {
         printf("%s: ", name);
     }
@@ -203,7 +203,7 @@ void vec3_print_ex(const Vec3 v, const char* name) {
  * @param v The vector to print
  * @param name Optional name to display (can be NULL)
  */
-void vec4_print(const Vec4 v, const char* name) {
+static inline void vec4_print(const Vec4 v, const char* name) {
     if (name) {
         printf("%s: ", name);
     }
@@ -1076,6 +1076,26 @@ static inline SimdVec4 vec4_project(SimdVec4 a, SimdVec4 b) {
  * @return SimdVec4 The perpendicular component.
  */
 static inline SimdVec4 vec4_reject(SimdVec4 a, SimdVec4 b) { return vec4_sub(a, vec4_project(a, b)); }
+
+/**
+ * @brief Returns a vector with the component-wise minimum of two vectors.
+ */
+static inline SimdVec4 vec4_min(SimdVec4 a, SimdVec4 b) { return (SimdVec4){.v = simd_min(a.v, b.v)}; }
+
+/**
+ * @brief Returns a vector with the component-wise maximum of two vectors.
+ */
+static inline SimdVec4 vec4_max(SimdVec4 a, SimdVec4 b) { return (SimdVec4){.v = simd_max(a.v, b.v)}; }
+
+/**
+ * @brief Returns a vector with the component-wise absolute value.
+ */
+static inline SimdVec4 vec4_abs(SimdVec4 v) { return (SimdVec4){.v = simd_abs(v.v)}; }
+
+/**
+ * @brief Returns the sum of all components (x+y+z+w).
+ */
+static inline float vec4_sum(SimdVec4 v) { return simd_hadd(v.v); }
 
 #ifdef __cplusplus
 }

@@ -639,6 +639,34 @@ static inline Mat4 mat4_look_at(SimdVec3 eye, SimdVec3 target, SimdVec3 up) {
     return view;
 }
 
+static inline Mat4 mat4_add(Mat4 a, Mat4 b) {
+    Mat4 res;
+    res.cols[0] = simd_add(a.cols[0], b.cols[0]);
+    res.cols[1] = simd_add(a.cols[1], b.cols[1]);
+    res.cols[2] = simd_add(a.cols[2], b.cols[2]);
+    res.cols[3] = simd_add(a.cols[3], b.cols[3]);
+    return res;
+}
+
+static inline Mat4 mat4_sub(Mat4 a, Mat4 b) {
+    Mat4 res;
+    res.cols[0] = simd_sub(a.cols[0], b.cols[0]);
+    res.cols[1] = simd_sub(a.cols[1], b.cols[1]);
+    res.cols[2] = simd_sub(a.cols[2], b.cols[2]);
+    res.cols[3] = simd_sub(a.cols[3], b.cols[3]);
+    return res;
+}
+
+static inline Mat4 mat4_scalar_mul(Mat4 a, float s) {
+    Mat4 res;
+    simd_vec_t v = simd_set1(s);
+    res.cols[0] = simd_mul(a.cols[0], v);
+    res.cols[1] = simd_mul(a.cols[1], v);
+    res.cols[2] = simd_mul(a.cols[2], v);
+    res.cols[3] = simd_mul(a.cols[3], v);
+    return res;
+}
+
 #ifdef __cplusplus
 }
 #endif

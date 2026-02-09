@@ -306,6 +306,25 @@ void test_extensions() {
     assert_float_eq("Vec3 Ortho Is Normalized", 1.0f, vec3_length(vOrtho), EPSILON);
 }
 
+void test_extensions_ml() {
+    print_header("ML Extensions (Min, Max, Abs, Sum)");
+
+    SimdVec4 a = vec4_load((Vec4){1.0f, -2.0f, 3.0f, -4.0f});
+    SimdVec4 b = vec4_load((Vec4){-1.0f, 2.0f, -3.0f, 4.0f});
+
+    // Min
+    assert_vec4_eq("Vec4 Min", (Vec4){-1.0f, -2.0f, -3.0f, -4.0f}, vec4_min(a, b));
+
+    // Max
+    assert_vec4_eq("Vec4 Max", (Vec4){1.0f, 2.0f, 3.0f, 4.0f}, vec4_max(a, b));
+
+    // Abs
+    assert_vec4_eq("Vec4 Abs", (Vec4){1.0f, 2.0f, 3.0f, 4.0f}, vec4_abs(a));
+
+    // Sum
+    assert_float_eq("Vec4 Sum", -2.0f, vec4_sum(a), EPSILON); // 1 - 2 + 3 - 4 = -2
+}
+
 int main() {
     test_architecture();
     test_vec2_full();
@@ -314,6 +333,7 @@ int main() {
     test_rotations();
     test_comparison_utils();
     test_extensions();
+    test_extensions_ml();
 
     print_header("Summary");
     printf("Total Tests: %d\n", g_tests_passed + g_tests_failed);
