@@ -422,55 +422,79 @@ static bool parse_csv_line(csv_line_params* args) {
 
 // count the number of lines in a csv file.
 // ignore comments. Optionally skip header.
+#define _CSV_READ_BUFSIZE (64u * 1024u) /* 64 KB — fits comfortably in L2 */
+
 static size_t line_count(CsvReader* reader) {
     size_t lines = 0;
-    int prevChar = '\n';
     bool headerSkipped = false;
+    bool line_first_char = true; /* first char of a new logical line?    */
+    bool skip_this_line = false; /* skip remainder of current line       */
+    bool blank_line = true;      /* is the current line blank?           */
 
-    while (!feof(reader->stream)) {
-        int c = fgetc(reader->stream);
-        if (c == EOF) {
-            break;
+    /* One stack buffer; we never hold a reference across a fread() call. */
+    char buf[_CSV_READ_BUFSIZE];
+    size_t nread;
+
+    rewind(reader->stream);
+
+    while ((nread = fread(buf, 1, sizeof(buf), reader->stream)) > 0) {
+        const char* p = buf;
+        const char* end = buf + nread;
+
+        while (p < end) {
+            /* Find the next newline in the remaining block. */
+            const char* nl = (const char*)memchr(p, '\n', (size_t)(end - p));
+            const char* chunk_end = nl ? nl + 1 : end;
+
+            /* ---- process characters in [p, chunk_end) ---- */
+            for (const char* c = p; c < chunk_end; c++) {
+                if (*c == '\n') {
+                    /* End of line: count it if it had real content. */
+                    if (!skip_this_line && !blank_line) {
+                        /* Header skip (only first real data line). */
+                        if (reader->has_header && reader->skip_header && !headerSkipped && lines == 0) {
+                            headerSkipped = true;
+                        } else {
+                            lines++;
+                        }
+                    }
+                    /* Reset state for next line. */
+                    skip_this_line = false;
+                    blank_line = true;
+                    line_first_char = true;
+                    continue;
+                }
+
+                /* Non-newline character. */
+                if (skip_this_line) continue;
+
+                if (line_first_char) {
+                    line_first_char = false;
+                    if (*c == reader->comment) {
+                        skip_this_line = true;
+                        continue;
+                    }
+                }
+
+                if (*c != '\r' && (*c != ' ' && *c != '\t')) {
+                    blank_line = false;
+                }
+            }
+
+            p = chunk_end;
         }
+    }
 
-        // Ignore comment lines
-        if (c == reader->comment) {
-            while ((c = fgetc(reader->stream)) != EOF && c != '\n');
-            // c is now either EOF or '\n', no need to read again
-            continue;
-        }
-
-        // Skip the header line if it exists and hasn't been skipped yet
+    /* Handle last line if it did not end with '\n'. */
+    if (!skip_this_line && !blank_line) {
         if (reader->has_header && reader->skip_header && !headerSkipped && lines == 0) {
-            while ((c = fgetc(reader->stream)) != EOF && c != '\n');
-            headerSkipped = true;
-            continue;
-        }
-
-        if (c == '\n' && !isspace(prevChar)) {
-            int nextChar = fgetc(reader->stream);
-            if (nextChar == EOF) {
-                break;
-            }
-
-            if (isspace(nextChar)) {
-                continue;
-            }
+            /* header only — nothing to count */
+        } else {
             lines++;
-
-            // Put back the character if it is not EOF
-            ungetc(nextChar, reader->stream);
-        } else if (!isspace(c)) {
-            prevChar = c;
         }
     }
 
-    // Count last line if it doesn't end with a newline character and is not empty
-    if (prevChar != '\n' && !isspace(prevChar)) {
-        lines++;
-    }
-
-    fseek(reader->stream, 0, SEEK_SET);
+    rewind(reader->stream);
     return lines;
 }
 

@@ -1142,21 +1142,30 @@ void utf8_trim_char(char* str, char c) {
  * @note May change string length if case conversion alters byte count.
  */
 void utf8_tolower(char* str) {
-    if (!str) {
-        return;
-    }
+    if (!str) return;
 
     for (size_t i = 0; str[i] != '\0';) {
+        unsigned char byte = (unsigned char)str[i];
+
+        /* ---- ASCII fast path (covers the vast majority of real text) ---- */
+        if (byte < 0x80u) {
+            /* Branchless lowercase: set bit 5 only when byte is A-Z.        */
+            /* Mask is 1 for characters in 'A'..'Z' (0x41..0x5A), 0 otherwise */
+            unsigned int is_upper = (byte - 'A' + 1u <= 26u) ? 1u : 0u;
+            str[i] = (char)(byte | (is_upper << 5));
+            i++;
+            continue;
+        }
+
+        /* ---- Multibyte path ---- */
         uint32_t codepoint = utf8_to_codepoint(&str[i]);
         size_t old_len = utf8_char_length(&str[i]);
 
-        if (old_len == 0) {
-            break;
-        }
+        if (old_len == 0) break;
 
-        if (iswupper(codepoint)) {
-            char utf8[5] = {0};
-            ucp_to_utf8(towlower(codepoint), utf8);
+        if (iswupper((wint_t)codepoint)) {
+            char utf8[UTF8_MAX_LEN] = {0};
+            ucp_to_utf8((uint32_t)towlower((wint_t)codepoint), utf8);
             size_t new_len = utf8_valid_byte_count(utf8);
 
             if (new_len != old_len) {
@@ -1180,21 +1189,29 @@ void utf8_tolower(char* str) {
  * @note May change string length if case conversion alters byte count.
  */
 void utf8_toupper(char* str) {
-    if (!str) {
-        return;
-    }
+    if (!str) return;
 
     for (size_t i = 0; str[i] != '\0';) {
+        unsigned char byte = (unsigned char)str[i];
+
+        /* ---- ASCII fast path ---- */
+        if (byte < 0x80u) {
+            /* Branchless uppercase: clear bit 5 only when byte is a-z.     */
+            unsigned int is_lower = (byte - 'a' + 1u <= 26u) ? 1u : 0u;
+            str[i] = (char)(byte & (unsigned char)~(is_lower << 5));
+            i++;
+            continue;
+        }
+
+        /* ---- Multibyte path ---- */
         uint32_t codepoint = utf8_to_codepoint(&str[i]);
         size_t old_len = utf8_char_length(&str[i]);
 
-        if (old_len == 0) {
-            break;
-        }
+        if (old_len == 0) break;
 
-        if (iswlower(codepoint)) {
-            char utf8[5] = {0};
-            ucp_to_utf8(towupper(codepoint), utf8);
+        if (iswlower((wint_t)codepoint)) {
+            char utf8[UTF8_MAX_LEN] = {0};
+            ucp_to_utf8((uint32_t)towupper((wint_t)codepoint), utf8);
             size_t new_len = utf8_valid_byte_count(utf8);
 
             if (new_len != old_len) {

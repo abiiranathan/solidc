@@ -10,15 +10,15 @@
 #define COLOR_CYAN   "\033[0;36m"
 #define COLOR_RESET  "\033[0m"
 
-#define LOG_ERROR(fmt, ...)                                                                                            \
+#define LOG_ERROR(fmt, ...) \
     fprintf(stderr, COLOR_RED "[ERROR]: %s:%d:%s(): " fmt COLOR_RESET "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
-#define LOG_ASSERT(condition, fmt, ...)                                                                                \
-    do {                                                                                                               \
-        if (!(condition)) {                                                                                            \
-            LOG_ERROR("Assertion failed: " #condition " " fmt, ##__VA_ARGS__);                                         \
-            exit(EXIT_FAILURE);                                                                                        \
-        }                                                                                                              \
+#define LOG_ASSERT(condition, fmt, ...)                                        \
+    do {                                                                       \
+        if (!(condition)) {                                                    \
+            LOG_ERROR("Assertion failed: " #condition " " fmt, ##__VA_ARGS__); \
+            exit(EXIT_FAILURE);                                                \
+        }                                                                      \
     } while (0)
 
 #define LOG_SECTION(name) printf("\n" COLOR_CYAN "=== %s ===" COLOR_RESET "\n", name)
@@ -26,12 +26,12 @@
 /**
  * Macro to run a test function with automatic logging.
  */
-#define RUN_TEST(test_func)                                                                                            \
-    do {                                                                                                               \
-        printf("  Running %-45s ... ", #test_func);                                                                    \
-        fflush(stdout);                                                                                                \
-        test_func();                                                                                                   \
-        printf(COLOR_GREEN "PASSED" COLOR_RESET "\n");                                                                 \
+#define RUN_TEST(test_func)                            \
+    do {                                               \
+        printf("  Running %-45s ... ", #test_func);    \
+        fflush(stdout);                                \
+        test_func();                                   \
+        printf(COLOR_GREEN "PASSED" COLOR_RESET "\n"); \
     } while (0)
 
 /* ============================================================================
@@ -478,7 +478,7 @@ static void test_hashset_is_proper_subset_equal_sets(void) {
 static uint64_t string_hash(const void* key, size_t key_size) {
     (void)key_size;  // String hash doesn't use key_size
     const char* str = *(const char**)key;
-    uint64_t hash   = 5381;
+    uint64_t hash = 5381;
     int c;
     while ((c = *str++)) {
         hash = ((hash << 5) + hash) + (uint64_t)c;
