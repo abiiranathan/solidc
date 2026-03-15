@@ -10,8 +10,8 @@
 #include <string.h>
 #include <time.h>
 
-#define NUM_TASKS 100000
-#define NUM_RUNS 1
+#define NUM_TASKS 1000000
+#define NUM_RUNS  1
 
 /** CPU work simulation functions. */
 static inline uint64_t fast_hash(uint64_t x) {
@@ -73,14 +73,18 @@ benchmark_result run_benchmark(size_t num_threads) {
 }
 
 void print_table_header() {
-    printf("┌─────────────┬─────────────────┬─────────────────┬─────────────────┬─────────────────┐"
-           "\n");
-    printf("│   Threads   │   Throughput    │   Avg Latency   │   Elapsed Time  │   Efficiency    "
-           "│\n");
-    printf("│             │   (tasks/sec)   │     (µs/task)   │      (sec)      │       (%%)       "
-           "│\n");
-    printf("├─────────────┼─────────────────┼─────────────────┼─────────────────┼─────────────────┤"
-           "\n");
+    printf(
+        "┌─────────────┬─────────────────┬─────────────────┬─────────────────┬─────────────────┐"
+        "\n");
+    printf(
+        "│   Threads   │   Throughput    │   Avg Latency   │   Elapsed Time  │   Efficiency    "
+        "│\n");
+    printf(
+        "│             │   (tasks/sec)   │     (µs/task)   │      (sec)      │       (%%)       "
+        "│\n");
+    printf(
+        "├─────────────┼─────────────────┼─────────────────┼─────────────────┼─────────────────┤"
+        "\n");
 }
 
 void print_table_row(size_t threads, benchmark_result* results, double baseline_throughput) {
@@ -98,29 +102,24 @@ void print_table_row(size_t threads, benchmark_result* results, double baseline_
 
     double efficiency = (avg_throughput / baseline_throughput) / (int)threads * 100.0;
 
-    printf("│     %2zu      │  %15.2f     │     %10.4f    │     %10.4f    │     %10.2f    │\n",
-           threads,
-           avg_throughput,
-           avg_latency,
-           avg_elapsed,
-           efficiency);
+    printf("│     %2zu      │  %15.2f     │     %10.4f    │     %10.4f    │     %10.2f    │\n", threads, avg_throughput,
+           avg_latency, avg_elapsed, efficiency);
 }
 
 void print_table_separator() {
-    printf("├─────────────┼─────────────────┼─────────────────┼─────────────────┼─────────────────┤"
-           "\n");
+    printf(
+        "├─────────────┼─────────────────┼─────────────────┼─────────────────┼─────────────────┤"
+        "\n");
 }
 
 void print_table_footer() {
-    printf("└─────────────┴─────────────────┴─────────────────┴─────────────────┴─────────────────┘"
-           "\n");
+    printf(
+        "└─────────────┴─────────────────┴─────────────────┴─────────────────┴─────────────────┘"
+        "\n");
 }
 
 void print_run_details(int run, benchmark_result result) {
-    printf("  Run %d: %.2f tasks/sec, %.4f µs/task, %.4f sec\n",
-           run + 1,
-           result.throughput,
-           result.latency,
+    printf("  Run %d: %.2f tasks/sec, %.4f µs/task, %.4f sec\n", run + 1, result.throughput, result.latency,
            result.elapsed_time);
 }
 

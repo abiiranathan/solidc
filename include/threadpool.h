@@ -21,7 +21,7 @@ extern "C" {
 #endif
 
 #ifndef RING_BUFFER_SIZE
-#define RING_BUFFER_SIZE 4096  // Must be power of 2
+#define RING_BUFFER_SIZE 1024  // Must be power of 2
 #endif
 
 STATIC_CHECK_POWER_OF_2(RING_BUFFER_SIZE);
