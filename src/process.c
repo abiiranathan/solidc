@@ -605,62 +605,102 @@ ProcessError pipe_close_write_end(PipeHandle* pipe) {
 }
 
 /* Implementation of the process API */
+/**
+ * Fix: Command injection in win32_create_process via unsafe argument quoting.
+ *
+ * Replace the naive quote-if-spaces logic with proper Windows command-line
+ * escaping that handles inner quotes and backslash sequences per the MSDN
+ * CommandLineToArgvW spec.
+ */
+
 #ifdef _WIN32
+
+/**
+ * Append a single argv element to dest using proper Windows escaping rules.
+ *
+ * Rules (from MSDN "Parsing C++ Command-Line Arguments"):
+ *  - Backslashes before a double-quote are doubled, then the quote is escaped.
+ *  - Backslashes before the closing quote are doubled.
+ *  - All other backslashes are literal.
+ *  - Arguments with spaces/tabs/quotes are wrapped in double-quotes.
+ */
+static void append_escaped_win32_arg(char* dest, const char* arg) {
+    /* Fast path: nothing that needs quoting */
+    if (*arg != '\0' && !strpbrk(arg, " \t\n\v\"")) {
+        strcat(dest, arg);
+        return;
+    }
+
+    strcat(dest, "\"");
+
+    for (const char* p = arg; *p != '\0';) {
+        /* Count consecutive backslashes */
+        int num_bs = 0;
+        while (*p == '\\') {
+            num_bs++;
+            p++;
+        }
+
+        if (*p == '\0') {
+            /* Trailing backslashes: double them before the closing quote */
+            for (int k = 0; k < num_bs * 2; k++) strcat(dest, "\\");
+            break;
+        } else if (*p == '"') {
+            /* Backslashes before a quote: double them, then escape the quote */
+            for (int k = 0; k < num_bs * 2 + 1; k++) strcat(dest, "\\");
+            strcat(dest, "\"");
+            p++;
+        } else {
+            /* Literal backslashes followed by a normal char */
+            for (int k = 0; k < num_bs; k++) strcat(dest, "\\");
+            size_t len = strlen(dest);
+            dest[len] = *p;
+            dest[len + 1] = '\0';
+            p++;
+        }
+    }
+
+    strcat(dest, "\"");
+}
+
 static ProcessError win32_create_process(ProcessHandle** handle, const char* command, const char* const argv[],
                                          const ProcessOptions* options) {
-    // Build command line string (Windows style with quotes)
+    /* Calculate an upper-bound for the command-line buffer.
+     * Each character can expand to at most 2 (backslash doubling) plus
+     * 2 surrounding quotes + 1 space separator. */
     size_t cmdline_len = 0;
     int arg_count = 0;
 
     while (argv[arg_count] != NULL) {
-        cmdline_len += strlen(argv[arg_count]) + 3;  // Extra space for quotes and space
+        cmdline_len += strlen(argv[arg_count]) * 2 + 4; /* worst-case escaping */
         arg_count++;
+    }
+    if (arg_count == 0) {
+        return PROCESS_ERROR_INVALID_ARGUMENT;
     }
 
     char* cmdline = (char*)malloc(cmdline_len + 1);
     if (!cmdline) {
         return PROCESS_ERROR_MEMORY;
     }
-
     cmdline[0] = '\0';
+
     for (int i = 0; i < arg_count; i++) {
-        if (i > 0) {
-            strcat(cmdline, " ");
-        }
-
-        // Quote the argument if it contains spaces
-        bool needs_quotes = (strchr(argv[i], ' ') != NULL);
-
-        if (needs_quotes) {
-            strcat(cmdline, "\"");
-        }
-
-        strcat(cmdline, argv[i]);
-
-        if (needs_quotes) {
-            strcat(cmdline, "\"");
-        }
+        if (i > 0) strcat(cmdline, " ");
+        append_escaped_win32_arg(cmdline, argv[i]);
     }
 
-    // Prepare startup info with redirections
+    /* Prepare startup info with redirections */
     STARTUPINFOA startup_info;
     memset(&startup_info, 0, sizeof(startup_info));
     startup_info.cb = sizeof(startup_info);
     startup_info.dwFlags = STARTF_USESTDHANDLES;
-
-    // Set up standard handles (inherit by default)
     startup_info.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
     startup_info.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     startup_info.hStdError = GetStdHandle(STD_ERROR_HANDLE);
 
-    // Apply redirections if specified
-    if (options->io.stdin_pipe) {
-        startup_info.hStdInput = options->io.stdin_pipe->read_fd;
-    }
-
-    if (options->io.stdout_pipe) {
-        startup_info.hStdOutput = options->io.stdout_pipe->write_fd;
-    }
+    if (options->io.stdin_pipe) startup_info.hStdInput = options->io.stdin_pipe->read_fd;
+    if (options->io.stdout_pipe) startup_info.hStdOutput = options->io.stdout_pipe->write_fd;
 
     if (options->io.stderr_pipe) {
         startup_info.hStdError = options->io.stderr_pipe->write_fd;
@@ -668,24 +708,14 @@ static ProcessError win32_create_process(ProcessHandle** handle, const char* com
         startup_info.hStdError = startup_info.hStdOutput;
     }
 
-    // Create the process
     DWORD creation_flags = 0;
     if (options->detached) {
         creation_flags |= DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP;
     }
 
     PROCESS_INFORMATION process_info;
-    BOOL success = CreateProcessA(command,                         // command to execute
-                                  cmdline,                         // Command line
-                                  NULL,                            // Process handle not inheritable
-                                  NULL,                            // Thread handle not inheritable
-                                  TRUE,                            // Inherit handles
-                                  creation_flags,                  // Creation flags
-                                  (LPVOID)(options->environment),  // Environment block
-                                  options->working_directory,      // Working directory
-                                  &startup_info,                   // Startup info
-                                  &process_info                    // Process info
-    );
+    BOOL success = CreateProcessA(command, cmdline, NULL, NULL, TRUE, creation_flags, (LPVOID)(options->environment),
+                                  options->working_directory, &startup_info, &process_info);
 
     free(cmdline);
 
@@ -693,7 +723,6 @@ static ProcessError win32_create_process(ProcessHandle** handle, const char* com
         return process_system_error();
     }
 
-    // Store the process handle
     *handle = (ProcessHandle*)malloc(sizeof(ProcessHandle));
     if (!*handle) {
         CloseHandle(process_info.hProcess);

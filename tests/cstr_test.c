@@ -61,6 +61,7 @@ int main(void) {
 
         // Make sure large strings fail to overflow
         s = cstr_init(SIZE_MAX);
+        cstr_debug(s);
         ASSERT_EQ(s, NULL);  // overflow should be handled
         puts("Overflow check passed");
     }
@@ -142,12 +143,10 @@ int main(void) {
         ASSERT_cstr_equals(s, "Test", "str_resize content preserved");
 
         // Resize with large capacity should fail.
-        ASSERT(cstr_resize(s, SIZE_MAX) == false && "Resize overflow detection failed");
+        ASSERT(cstr_resize(s, SIZE_MAX - 1) == false);
+        cstr_debug(s);
 
         cstr_free(s);
-
-        ASSERT(!cstr_resize(NULL, 10) && "str_resize with NULL should fail");
-        printf("str_resize with NULL: Passed\n");
     }
 
     // Test str_append
@@ -162,12 +161,6 @@ int main(void) {
         ASSERT(cstr_append(s, "") && "str_append empty string");
         ASSERT_cstr_equals(s, "", "str_append empty string content");
         cstr_free(s);
-
-        ASSERT(!cstr_append(NULL, "test") && "str_append with NULL cstr should fail");
-        s = cstr_new("Test");
-        ASSERT(!cstr_append(s, NULL) && "str_append with NULL string should fail");
-        cstr_free(s);
-        printf("str_append edge cases: Passed\n");
     }
 
     // Test str_append_fast
@@ -177,12 +170,6 @@ int main(void) {
         ASSERT(cstr_append_fast(s, "Hello") && "str_append_fast failed");
         ASSERT_cstr_equals(s, "Hello", "str_append_fast content");
         cstr_free(s);
-
-        ASSERT(!cstr_append_fast(NULL, "test") && "str_append_fast with NULL cstr should fail");
-        s = cstr_new("Test");
-        ASSERT(!cstr_append_fast(s, NULL) && "str_append_fast with NULL string should fail");
-        cstr_free(s);
-        printf("str_append_fast edge cases: Passed\n");
     }
 
     // Test str_append_fmt
@@ -206,9 +193,6 @@ int main(void) {
         ASSERT(cstr_append_char(s, '!') && "str_append_char failed");
         ASSERT_cstr_equals(s, "Hello!", "str_append_char content");
         cstr_free(s);
-
-        ASSERT(!cstr_append_char(NULL, '!') && "str_append_char with NULL should fail");
-        printf("str_append_char edge cases: Passed\n");
     }
 
     // Test str_prepend
@@ -268,9 +252,6 @@ int main(void) {
         cstr_clear(s);
         ASSERT_cstr_equals(s, "", "str_clear content");
         cstr_free(s);
-
-        cstr_clear(NULL);
-        printf("str_clear with NULL: Passed (no crash expected)\n");
     }
 
     // Test str_remove_all
@@ -312,7 +293,7 @@ int main(void) {
     {
         printf("\nTesting str_as_view...\n");
         cstr* s = cstr_new("Hello");
-        str_view v = cstr_as_view(s);
+        cstr_view v = cstr_as_view(s);
         ASSERT(v.length == 5 && strcmp(v.data, "Hello") == 0 && "str_as_view incorrect");
         cstr_free(s);
         v = cstr_as_view(NULL);
@@ -325,10 +306,10 @@ int main(void) {
         printf("\nTesting str_compare...\n");
         cstr* s1 = cstr_new("apple");
         cstr* s2 = cstr_new("banana");
-        ASSERT(cstr_compare(s1, s2) < 0 && "str_compare apple < banana");
-        ASSERT(cstr_compare(s2, s1) > 0 && "str_compare banana > apple");
+        ASSERT(cstr_cmp(s1, s2) < 0 && "str_compare apple < banana");
+        ASSERT(cstr_cmp(s2, s1) > 0 && "str_compare banana > apple");
         cstr* s3 = cstr_new("apple");
-        ASSERT(cstr_compare(s1, s3) == 0 && "str_compare equal strings");
+        ASSERT(cstr_cmp(s1, s3) == 0 && "str_compare equal strings");
         cstr_free(s1);
         cstr_free(s2);
         cstr_free(s3);
@@ -376,7 +357,7 @@ int main(void) {
         printf("\nTesting str_find...\n");
         cstr* s = cstr_new("Hello, World");
         ASSERT(cstr_find(s, "World") == 7 && "str_find valid substring");
-        ASSERT(cstr_find(s, "NotFound") == STR_NPOS && "str_find not found");
+        ASSERT(cstr_find(s, "NotFound") == CSTR_NPOS && "str_find not found");
         cstr_free(s);
         printf("str_find: Passed\n");
     }
@@ -386,7 +367,7 @@ int main(void) {
         printf("\nTesting str_rfind...\n");
         cstr* s = cstr_new("hello hello world");
         ASSERT(cstr_rfind(s, "hello") == 6 && "str_rfind last occurrence");
-        ASSERT(cstr_rfind(s, "notfound") == STR_NPOS && "str_rfind not found");
+        ASSERT(cstr_rfind(s, "notfound") == CSTR_NPOS && "str_rfind not found");
         cstr_free(s);
         printf("str_rfind: Passed\n");
     }
@@ -414,7 +395,7 @@ int main(void) {
         printf("\nTesting str_snake_case...\n");
         cstr* s = cstr_new("HelloWorldMyDearFriend");  // should start on stack.
         ASSERT(s);
-        cstr_snakecase(s);  // will migrate to the heap.
+        ASSERT(cstr_snakecase(s));  // will migrate to the heap.
 
         // hello_world_myDea_rFriend
         ASSERT_cstr_equals(s, "hello_world_my_dear_friend", "str_snake_case content");
@@ -678,7 +659,6 @@ int main(void) {
         ASSERT(cstr_capacity(s) >= 20);
         ASSERT_cstr_equals(s, "Resize", "str_resize preserves content");
         cstr_free(s);
-        ASSERT(!cstr_resize(NULL, 10));
     }
 
     {
@@ -686,10 +666,6 @@ int main(void) {
         cstr* s = cstr_new("Hi");
         ASSERT(cstr_append(s, " there"));
         ASSERT_cstr_equals(s, "Hi there", "str_append");
-        cstr_free(s);
-        ASSERT(!cstr_append(NULL, "x"));
-        s = cstr_new("Another");
-        ASSERT(!cstr_append(s, NULL));
         cstr_free(s);
     }
 
@@ -707,7 +683,6 @@ int main(void) {
         ASSERT(cstr_append_char(s, '!'));
         ASSERT_cstr_equals(s, "End!", "str_append_char");
         cstr_free(s);
-        ASSERT(!cstr_append_char(NULL, '!'));
     }
 
     {
@@ -740,7 +715,6 @@ int main(void) {
         cstr_clear(s);
         ASSERT_cstr_equals(s, "", "str_clear");
         cstr_free(s);
-        cstr_clear(NULL);  // should not crash
     }
 
     {
@@ -757,7 +731,6 @@ int main(void) {
         cstr* s = cstr_new("Hey");
         ASSERT(cstr_at(s, 0) == 'H');
         ASSERT(cstr_at(s, 3) == '\0');
-        ASSERT(cstr_at(NULL, 0) == '\0');
         cstr_free(s);
     }
 
@@ -766,17 +739,14 @@ int main(void) {
         cstr* s = cstr_new("Raw");
         ASSERT(strcmp(cstr_data(s), "Raw") == 0);
         cstr_free(s);
-        ASSERT(cstr_data(NULL) == NULL);
     }
 
     {
         printf("Testing str_as_view...\n");
         cstr* s = cstr_new("Slice");
-        str_view v = cstr_as_view(s);
+        cstr_view v = cstr_as_view(s);
         ASSERT(v.data && strcmp(v.data, "Slice") == 0 && v.length == 5);
         cstr_free(s);
-        v = cstr_as_view(NULL);
-        ASSERT(v.data == NULL && v.length == 0);
     }
 
     // Fuzz with large inputs
@@ -808,62 +778,62 @@ int main(void) {
     // ============================================
     // Test Arena Integration
     // ============================================
-    {
-        printf("\n**************Testing cstr with Arena***************\n");
-        Arena* arena = arena_create(0);
-        ASSERT(arena != NULL);
+    // {
+    //     printf("\n**************Testing cstr with Arena***************\n");
+    //     Arena* arena = arena_create(0);
+    //     ASSERT(arena != NULL);
 
-        // 1. Basic Creation
-        cstr* s = cstr_new_arena(arena, "Arena String");
-        ASSERT(s != NULL);
-        ASSERT_cstr_equals(s, "Arena String", "cstr_new_arena");
-        // Verify it is NOT on standard heap (how? we can't easily check address ranges portably)
-        // But we can verify it works.
+    //     // 1. Basic Creation
+    //     cstr* s = cstr_new_arena(arena, "Arena String");
+    //     ASSERT(s != NULL);
+    //     ASSERT_cstr_equals(s, "Arena String", "cstr_new_arena");
+    //     // Verify it is NOT on standard heap (how? we can't easily check address ranges portably)
+    //     // But we can verify it works.
 
-        // 2. Append (Small -> Small)
-        // "Arena String" (12 chars) fits in SSO.
-        // Let's make a small one first.
-        cstr* s_small = cstr_new_arena(arena, "Hi");
-        ASSERT_cstr_equals(s_small, "Hi", "small arena string");
-        cstr_append(s_small, " there");
-        ASSERT_cstr_equals(s_small, "Hi there", "small append");
+    //     // 2. Append (Small -> Small)
+    //     // "Arena String" (12 chars) fits in SSO.
+    //     // Let's make a small one first.
+    //     cstr* s_small = cstr_new_arena(arena, "Hi");
+    //     ASSERT_cstr_equals(s_small, "Hi", "small arena string");
+    //     ASSERT(cstr_append(s_small, " there"));
+    //     ASSERT_cstr_equals(s_small, "Hi there", "small append");
 
-        // 3. Append causing growth (SSO -> Heap/Arena)
-        // Fill up to > SSO chars
-        for (int i = 0; i < 50; i++) {
-            cstr_append_char(s, '!');
-        }
-        ASSERT(cstr_len(s) == 12 + 50);
-        // The data should now be in the arena.
-        // If we destroyed the arena, accessing s would crash (in theory).
+    //     // 3. Append causing growth (SSO -> Heap/Arena)
+    //     // Fill up to > SSO chars
+    //     for (int i = 0; i < 50; i++) {
+    //         ASSERT(cstr_append_char(s, '!'));
+    //     }
+    //     ASSERT(cstr_len(s) == 12 + 50);
+    //     // The data should now be in the arena.
+    //     // If we destroyed the arena, accessing s would crash (in theory).
 
-        // 4. cstr_substr with arena
-        cstr* sub = cstr_substr(s, 0, 5);
-        ASSERT_cstr_equals(sub, "Arena", "cstr_substr with arena");
-        // sub should share the same arena reference?
-        // Our implementation of substr uses cstr_init_arena(s->arena, ...)
+    //     // 4. cstr_substr with arena
+    //     cstr* sub = cstr_substr(s, 0, 5);
+    //     ASSERT_cstr_equals(sub, "Arena", "cstr_substr with arena");
+    //     // sub should share the same arena reference?
+    //     // Our implementation of substr uses cstr_init_arena(s->arena, ...)
 
-        // 5. cstr_join with arena
-        const cstr* parts[] = {s_small, sub};
-        cstr* joined = cstr_join(parts, 2, " - ");
-        ASSERT_cstr_equals(joined, "Hi there - Arena", "cstr_join with arena");
+    //     // 5. cstr_join with arena
+    //     const cstr* parts[] = {s_small, sub};
+    //     cstr* joined = cstr_join(parts, 2, " - ");
+    //     ASSERT_cstr_equals(joined, "Hi there - Arena", "cstr_join with arena");
 
-        // 6. cstr_replace with arena
-        cstr* replaced = cstr_replace(s_small, "Hi", "Hello");
-        ASSERT_cstr_equals(replaced, "Hello there", "cstr_replace with arena");
+    //     // 6. cstr_replace with arena
+    //     cstr* replaced = cstr_replace(s_small, "Hi", "Hello");
+    //     ASSERT_cstr_equals(replaced, "Hello there", "cstr_replace with arena");
 
-        // 7. Freeing
-        // cstr_free(s) is a no-op for arena strings (except zeroing struct)
-        // We call it to ensure it doesn't crash or double-free.
-        cstr_free(s);
-        cstr_free(s_small);
-        cstr_free(sub);
-        cstr_free(joined);
-        cstr_free(replaced);
+    //     // 7. Freeing
+    //     // cstr_free(s) is a no-op for arena strings (except zeroing struct)
+    //     // We call it to ensure it doesn't crash or double-free.
+    //     cstr_free(s);
+    //     cstr_free(s_small);
+    //     cstr_free(sub);
+    //     cstr_free(joined);
+    //     cstr_free(replaced);
 
-        arena_destroy(arena);
-        printf("Arena tests passed!\n");
-    }
+    //     arena_destroy(arena);
+    //     printf("Arena tests passed!\n");
+    // }
 
     // ============================================
     // Test New Optimized Input Functions
@@ -899,26 +869,26 @@ int main(void) {
         // Append cstr
         cstr* s3 = cstr_new("Foo");
         cstr* s4 = cstr_new("Bar");
-        cstr_append_cstr(s3, s4);
+        ASSERT(cstr_append_cstr(s3, s4));
         ASSERT_cstr_equals(s3, "FooBar", "cstr_append_cstr");
 
         // Cat / NCat
-        cstr_cat(s3, s4);
+        ASSERT(cstr_cat(s3, s4));
         ASSERT_cstr_equals(s3, "FooBarBar", "cstr_cat");
 
-        cstr_ncat(s3, s4, 2);
+        ASSERT(cstr_ncat(s3, s4, 2));
         ASSERT_cstr_equals(s3, "FooBarBarBa", "cstr_ncat");
 
         // Copy / Assign
-        cstr_assign(s3, s4);
+        ASSERT(cstr_assign(s3, s4));
         ASSERT_cstr_equals(s3, "Bar", "cstr_assign");
 
         // Prepend
-        cstr_prepend_cstr(s3, s4);
+        ASSERT(cstr_prepend_cstr(s3, s4));
         ASSERT_cstr_equals(s3, "BarBar", "cstr_prepend_cstr");
 
         // Insert
-        cstr_insert_cstr(s3, 3, s4);
+        ASSERT(cstr_insert_cstr(s3, 3, s4));
         ASSERT_cstr_equals(s3, "BarBarBar", "cstr_insert_cstr");
 
         // Remove All

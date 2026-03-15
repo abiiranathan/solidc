@@ -171,16 +171,27 @@ int socket_error(void) {
 }
 
 void socket_strerror(int err, char* buffer, size_t size) {
+    if (!buffer || size == 0) return;
+
 #ifdef _WIN32
-    FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, (DWORD)err, 0, buffer, size, NULL);
+    FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, (DWORD)err, 0, buffer, (DWORD)size, NULL);
+    /* Ensure NUL-termination (FormatMessageA does not guarantee it on short buffers). */
+    buffer[size - 1] = '\0';
 #else
 #if defined(__GLIBC__) || defined(__linux__)
-    // GNU version returns char*
+    /*
+     * GNU strerror_r: returns char* which may point to a static string
+     * rather than `buffer`.  Copy it into the caller's buffer if needed.
+     */
     char* msg = strerror_r(err, buffer, size);
-    (void)msg;
+    if (msg != buffer && msg != NULL) {
+        strncpy(buffer, msg, size - 1);
+        buffer[size - 1] = '\0';
+    }
 #else
-    // POSIX version (macOS, BSD) returns int
+    /* POSIX strerror_r (macOS, BSD): always writes into buffer, returns int. */
     strerror_r(err, buffer, size);
+    buffer[size - 1] = '\0'; /* ensure NUL-termination */
 #endif
 #endif
 }

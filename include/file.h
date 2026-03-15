@@ -5,8 +5,10 @@
 #ifndef SOLIDC_FILE_H
 #define SOLIDC_FILE_H
 
+#if !defined(_POSIX_C_SOURCE) && !defined(_WIN32)
 #define _POSIX_C_SOURCE   200809L  // For fstat, fileno, pwrite, pread, fcntl, etc.
 #define _FILE_OFFSET_BITS 64       // Ensure 64-bit off_t on 32-bit POSIX systems
+#endif
 
 #include "platform.h"
 
@@ -249,7 +251,7 @@ ssize_t file_pwrite(file_t* file, const void* buffer, size_t size, int64_t offse
  * @return Allocated buffer containing file content, or NULL on error.
  * @note Caller must free() the returned buffer. Sets errno on failure.
  */
-void* file_readall(const file_t* file, size_t* size_out);
+void* file_readall(file_t* file, size_t* size_out);
 
 /**
  * Attempts to acquire an exclusive advisory lock on the entire file.

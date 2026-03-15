@@ -1,38 +1,21 @@
 /**
- * arena.h - High-performance virtual memory arena allocator
+ * arena.h - High-performance arena allocator
  *
- * Design Philosophy:
- * ==================
- * Uses OS virtual memory (mmap/VirtualAlloc) to reserve a large address space
- * upfront, then commits pages on-demand. This eliminates linked list overhead
- * and syscall frequency while providing near-zero-cost resets.
+ * Pure bump-pointer allocator. Overflow blocks are co-located with their
+ * ArenaBlock header (one allocation per block instead of two). Blocks double
+ * in size on each expansion. Reset is O(1) and keeps committed pages alive.
  *
- * Key Benefits:
- * - Reserve: O(1) - reserve address space (no physical RAM)
- * - Allocate: O(1) - bump pointer with rare page commit
- * - Reset: O(1) - just reset pointer (keeps committed pages)
- * - Destroy: O(1) - single munmap/VirtualFree
+ * Two creation modes:
  *
- * Performance Characteristics:
- * - Small allocations: ~2-3 ns/op (10-20x faster than malloc)
- * - Large allocations: ~5 ns/op (200x+ faster than malloc)
- * - Reset: ~0 ns (instant pointer reset)
+ *   // Heap-allocated arena struct:
+ *   Arena* a = arena_create(0);
+ *   arena_destroy(a);
  *
- * Typical Usage:
- * ==============
- * ```c
- * // Reserve 1GB of address space (no RAM used)
- * Arena* arena = arena_create(1024 * 1024 * 1024);
- *
- * // Allocate objects (commits pages as needed)
- * MyStruct* obj = arena_alloc(arena, sizeof(MyStruct));
- *
- * // Reset for next request/frame (O(1), keeps committed pages)
- * arena_reset(arena);
- *
- * // Cleanup
- * arena_destroy(arena);
- * ```
+ *   // Stack/static arena struct (zero heap overhead at init):
+ *   char buf[64 * 1024];
+ *   Arena a;
+ *   arena_init(&a, buf, sizeof(buf));
+ *   arena_destroy(&a);  // frees overflow blocks; buf is caller-owned
  */
 
 #ifndef ARENA_H
@@ -41,10 +24,11 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
-// ============================================================================
-// Compiler-Specific Attributes
-// ============================================================================
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #ifdef _MSC_VER
 #include <intrin.h>
@@ -61,423 +45,236 @@
 #define ARENA_ALIGNED(n)     __attribute__((aligned(n)))
 #endif
 
-/** Default alignment for arena_alloc() - optimized for x86-64/ARM64 */
+/** Default alignment for arena_alloc(). Suitable for SSE/AVX and NEON. */
 #define ARENA_DEFAULT_ALIGN 16
 
+/** Minimum size for heap-backed overflow blocks. */
+#define ARENA_MIN_BLOCK_SIZE (64 * 1024)
+
 /**
- * Minimum chunk size for page commits.
- * Larger values reduce syscall frequency but may waste memory.
- * 64KB is a good balance for most workloads.
+ * Block descriptor. For overflow blocks this struct is stored at the start of
+ * the heap allocation itself (co-located), so each new block costs one call to
+ * aligned_alloc_xp instead of two. The usable region begins at block->base.
+ *
+ * The first block uses first_block inside Arena and points into a caller- or
+ * TLS-provided buffer, so is_static is set and its memory is never freed.
  */
-#define ARENA_COMMIT_CHUNK_SIZE (64 * 1024)
-
-/** Default arena size if not specified (1GB virtual address space) */
-#define ARENA_DEFAULT_SIZE (1ULL * 1024 * 1024 * 1024)
-
-// ============================================================================
-// Arena Structure
-// ============================================================================
+typedef struct ArenaBlock {
+    struct ArenaBlock* next;
+    char* base; /** Start of usable region (past header + alignment padding). */
+    char* end;  /** One past the last byte of this block's buffer.            */
+    bool is_static;
+} ArenaBlock;
 
 /**
- * Arena allocator using virtual memory.
- *
- * Memory Layout:
- * [base ... curr ... end ... reserve_end]
- *  ^         ^        ^      ^
- *  |         |        |      +-- End of reserved address space
- *  |         |        +--------- End of committed (physical) memory
- *  |         +------------------ Current allocation pointer
- *  +---------------------------- Start of reserved address space
- *
+ * Arena control structure. Aligned to 64 bytes to keep curr and end in the
+ * same cache line as current_block. With the free list removed the struct is
+ * ~72 bytes — one cache line for the hot fields, a second for the rest.
  */
 typedef struct ARENA_ALIGNED(64) Arena {
-    char* curr;        /** Next allocation address (moves forward on alloc) */
-    char* end;         /** End of committed memory (if exceeded, commit more pages) */
-    char* base;        /** Start of reserved virtual address space */
-    char* reserve_end; /** Absolute end of reserved address space */
-    size_t page_size;  /** OS page size (typically 4KB) */
+    char* curr;                /** Next allocation address.                          */
+    char* end;                 /** End of current block.                             */
+    ArenaBlock* current_block; /** Block being allocated from.                       */
+    ArenaBlock* head;          /** Head of the block chain.                          */
+    size_t page_size;          /** OS page size (typically 4096).                    */
+    size_t total_committed;
+    bool heap_allocated;    /** True when Arena struct was allocated by arena_create(). */
+    ArenaBlock first_block; /** Embedded header for the initial (static/stack) buffer.  */
 } Arena;
 
-// ============================================================================
-// Core API
-// ============================================================================
+/**
+ * Initialises an Arena using caller-provided storage as the first block.
+ *
+ * The arena never frees `buf`. Overflow blocks are heap-allocated and freed
+ * by arena_destroy(). No heap allocation, no TLS lookup — init is free.
+ *
+ * @param a    Caller-owned Arena struct (stack, static, or embedded).
+ * @param buf  Backing buffer. Must outlive the arena.
+ * @param size Size of `buf` in bytes.
+ */
+void arena_init(Arena* restrict a, void* restrict buf, size_t size);
 
 /**
- * Creates a new arena with the specified reserved address space.
- * Pre-commits the first page to eliminate initial allocation latency.
+ * Allocates an Arena struct on the heap and initialises it.
  *
- * @param reserve_size Size of virtual address space to reserve (not physical RAM).
- *                     Use 0 for default size (1GB). Should be a multiple of page size.
- * @return New arena on success, NULL on failure (out of address space).
+ * Uses a thread-local 1 MB static buffer as the first block when available
+ * and large enough; otherwise heap-allocates the initial block.
  *
- * Note: This reserves address space and commits the first page. The first page
- * commit ensures the initial allocations have zero latency. Subsequent pages
- * are committed on-demand as needed.
- *
- * Example:
- * ```c
- * // Reserve 1GB (commits first 4KB immediately)
- * Arena* arena = arena_create(1024 * 1024 * 1024);
- * if (!arena) {
- *     fprintf(stderr, "Failed to reserve address space\n");
- *     return -1;
- * }
- * ```
+ * @param reserve_size Initial block size hint. 0 uses the default (64 KB, or the TLS buffer).
+ * @return New arena, or NULL on allocation failure.
  */
 Arena* arena_create(size_t reserve_size);
 
 /**
- * Resets the arena to reuse committed memory.
- *
- * @param arena Arena to reset. NULL is safely ignored.
- *
- * This is an O(1) operation that just resets the allocation pointer to the start.
- * Committed pages remain committed, avoiding page faults on subsequent allocations.
- *
- * All pointers allocated from this arena become invalid after reset.
- *
- * Performance: ~0 ns (just a pointer write)
- *
- * Example:
- * ```c
- * // Process request
- * char* buffer = arena_alloc(arena, 1024);
- * process_request(buffer);
- *
- * // Reset for next request (instant)
- * arena_reset(arena);
- * ```
+ * Resets the arena so all committed memory can be reused. O(1).
+ * All previously returned pointers become invalid.
+ * Committed pages are retained to avoid subsequent page faults.
  */
-static ARENA_INLINE void arena_reset(Arena* a) {
-    a->curr = a->base;
-
-    // If you want to be aggressive about memory, you can decommit here.
-    // However, for a high-perf server, we usually keep the memory committed
-    // so the NEXT request doesn't trigger page faults or syscalls.
-    /*
-    #if defined(_WIN32)
-        VirtualFree(a->base, a->end - a->base, MEM_DECOMMIT);
-    #else
-        madvise(a->base, a->end - a->base, MADV_DONTNEED);
-    #endif
-    a->end = a->base;
-    */
+static ARENA_INLINE void arena_reset(Arena* restrict a) {
+    if (!a || !a->head) return;
+    a->current_block = a->head;
+    a->curr = a->head->base;
+    a->end = a->head->end;
 }
 
 /**
- * Destroys the arena and releases all memory.
- *
- * @param arena Arena to destroy. NULL is safely ignored.
- *
- * Releases both the reserved address space and committed physical memory.
- * All pointers allocated from this arena become invalid.
- *
- * Example:
- * ```c
- * arena_destroy(arena);
- * ```
+ * Destroys the arena and frees all heap-allocated overflow blocks.
+ * If the Arena struct was heap-allocated by arena_create(), it is freed too.
+ * NULL is safely ignored.
  */
-void arena_destroy(Arena* arena);
+void arena_destroy(Arena* restrict arena);
+
+/** Returns total bytes committed across all blocks (physical RAM in use). */
+static ARENA_INLINE size_t arena_committed_size(const Arena* restrict a) { return a->total_committed; }
 
 /**
- * Returns the total number of bytes currently committed (physical RAM used).
- *
- * @param arena Arena to query. Must not be NULL.
- * @return Number of committed bytes.
- *
- * Useful for monitoring memory usage and debugging.
+ * Returns bytes consumed by user allocations in the current arena state.
+ * Assumes all blocks before current_block are fully used, which holds for
+ * any arena that has not been reset mid-chain.
  */
-static ARENA_INLINE size_t arena_committed_size(const Arena* arena) { return (size_t)(arena->end - arena->base); }
-
-/**
- * Returns the total number of bytes allocated by the user.
- *
- * @param arena Arena to query. Must not be NULL.
- * @return Number of allocated bytes.
- *
- * Note: This is less than or equal to committed_size due to page granularity.
- */
-static ARENA_INLINE size_t arena_used_size(const Arena* arena) { return (size_t)(arena->curr - arena->base); }
-
-/**
- * Returns the total reserved address space size.
- *
- * @param arena Arena to query. Must not be NULL.
- * @return Total reserved bytes.
- */
-static ARENA_INLINE size_t arena_reserved_size(const Arena* arena) {
-    return (size_t)(arena->reserve_end - arena->base);
+static ARENA_INLINE size_t arena_used_size(const Arena* restrict a) {
+    if (!a || !a->current_block) return 0;
+    size_t block_capacity = (size_t)(a->current_block->end - a->current_block->base);
+    size_t block_used = (size_t)(a->curr - a->current_block->base);
+    return (a->total_committed - block_capacity) + block_used;
 }
 
-// ============================================================================
-// Allocation Functions
-// ============================================================================
+/**
+ * Internal slow path: allocates a new block when the current one is full.
+ * Not for direct use.
+ */
+void* _arena_alloc_slow(Arena* restrict arena, size_t size, size_t alignment);
 
 /**
- * Internal slow path: commits new pages when current committed memory exhausted.
- * Users should not call this directly - it's invoked automatically by arena_alloc.
+ * Allocates `size` bytes aligned to `alignment` (must be a power of two).
+ *
+ * @return Aligned pointer valid until the next arena_reset() or
+ *         arena_destroy(), or NULL on failure.
  */
-void* _arena_alloc_slow(Arena* arena, size_t size, size_t alignment);
+static ARENA_INLINE void* arena_alloc_align(Arena* restrict arena, size_t size, size_t alignment) {
+    if (size == 0) return NULL;
 
-/**
- * Allocates memory with specified alignment.
- *
- * @param arena Arena to allocate from. Must not be NULL.
- * @param size Number of bytes to allocate. Must be > 0.
- * @param alignment Required alignment (must be power of 2). Typically 8, 16, 32, or 64.
- * @return Pointer to allocated memory, or NULL if out of reserved address space.
- *
- * Performance: ~2-3 ns for small allocations (hot path), ~200-500 ns when committing
- * new pages (cold path, amortized over ~16K allocations with 64KB commit chunks).
- *
- * The returned pointer is aligned to the specified alignment and remains valid until
- * arena_reset() or arena_destroy() is called.
- *
- * Example:
- * ```c
- * // Allocate cache-line aligned buffer
- * void* buffer = arena_alloc_align(arena, 1024, 64);
- * if (!buffer) {
- *     fprintf(stderr, "Arena out of address space\n");
- *     return -1;
- * }
- * ```
- */
-static ARENA_INLINE void* arena_alloc_align(Arena* arena, size_t size, size_t alignment) {
-    // Calculate aligned address
-    uintptr_t curr = (uintptr_t)arena->curr;
-    uintptr_t mask = alignment - 1;
-    uintptr_t aligned_addr = (curr + mask) & ~mask;
-    uintptr_t new_curr = aligned_addr + size;
+    uintptr_t aligned = ((uintptr_t)arena->curr + alignment - 1) & ~(alignment - 1);
+    uintptr_t next = aligned + size;
 
-    // Fast path: allocation fits in committed memory
-    if (ARENA_LIKELY(new_curr <= (uintptr_t)arena->end)) {
-        arena->curr = (char*)new_curr;
-        return (void*)aligned_addr;
+    if (ARENA_LIKELY(next <= (uintptr_t)arena->end)) {
+        arena->curr = (char*)next;
+        return (void*)aligned;
     }
 
-    // Slow path: need to commit more pages
     return _arena_alloc_slow(arena, size, alignment);
 }
 
 /**
- * Allocates memory with default alignment (16 bytes).
- *
- * @param arena Arena to allocate from. Must not be NULL.
- * @param size Number of bytes to allocate. Must be > 0.
- * @return Pointer to allocated memory, or NULL if out of reserved address space.
- *
- * This is the primary allocation function. 16-byte alignment is optimal for:
- * - x86-64 SSE/AVX instructions
- * - ARM64 NEON instructions
- * - Most struct layouts
- *
- * Performance: ~2-3 ns per allocation (10-20x faster than malloc)
- *
- * Example:
- * ```c
- * MyStruct* obj = arena_alloc(arena, sizeof(MyStruct));
- * if (!obj) {
- *     fprintf(stderr, "Arena exhausted\n");
- *     return -1;
- * }
- * ```
+ * Allocates `size` bytes with ARENA_DEFAULT_ALIGN (16-byte) alignment.
+ * This is the primary allocation function (~2-3 ns on the fast path).
  */
-static ARENA_INLINE void* arena_alloc(Arena* arena, size_t size) {
+static ARENA_INLINE void* arena_alloc(Arena* restrict arena, size_t size) {
     return arena_alloc_align(arena, size, ARENA_DEFAULT_ALIGN);
 }
 
-// ============================================================================
-// Type-Safe Allocation Macros (with NULL checking)
-// ============================================================================
-
 /**
- * Type-safe allocation macro for single objects.
- *
- * Usage: MyStruct* obj = ARENA_ALLOC(arena, MyStruct);
- *
- * Automatically uses correct size and alignment for the type.
- * Returns NULL if allocation fails.
+ * Allocates `size` bytes with no alignment padding (1-byte aligned).
+ * Use for byte buffers, strings, or data with no alignment requirement.
+ * Slightly faster than arena_alloc() as it skips the alignment arithmetic.
  */
+static ARENA_INLINE void* arena_alloc_unaligned(Arena* restrict arena, size_t size) {
+    if (size == 0) return NULL;
+
+    char* ptr = arena->curr;
+    char* next = ptr + size;
+
+    if (ARENA_LIKELY(next <= arena->end)) {
+        arena->curr = next;
+        return ptr;
+    }
+
+    return _arena_alloc_slow(arena, size, 1);
+}
+
+/** Allocates a single object with its natural alignment. */
 #define ARENA_ALLOC(arena, type) ((type*)arena_alloc_align((arena), sizeof(type), _Alignof(type)))
 
-/**
- * Type-safe allocation macro for arrays.
- *
- * Usage: int* arr = ARENA_ALLOC_ARRAY(arena, int, 100);
- *
- * Automatically uses correct size and alignment for the type.
- * Returns NULL if allocation fails.
- */
+/** Allocates an array of `count` objects with the type's natural alignment. */
 #define ARENA_ALLOC_ARRAY(arena, type, count) \
     ((type*)arena_alloc_align((arena), sizeof(type) * (count), _Alignof(type)))
 
-/**
- * Allocates zero-initialized memory.
- *
- * Usage: MyStruct* obj = ARENA_ALLOC_ZERO(arena, MyStruct);
- * Returns NULL if allocation fails.
- */
-#define ARENA_ALLOC_ZERO(arena, type)                                 \
-    ({                                                                \
-        type* _ptr = ARENA_ALLOC((arena), type);                      \
-        (_ptr != NULL) ? (type*)memset(_ptr, 0, sizeof(type)) : NULL; \
+/** Allocates a zero-initialized object. Returns NULL on failure. */
+#define ARENA_ALLOC_ZERO(arena, type)                         \
+    ({                                                        \
+        type* _ptr = ARENA_ALLOC((arena), type);              \
+        (_ptr) ? (type*)memset(_ptr, 0, sizeof(type)) : NULL; \
+    })
+
+/** Allocates a zero-initialized array. Returns NULL on failure. */
+#define ARENA_ALLOC_ARRAY_ZERO(arena, type, count)                      \
+    ({                                                                  \
+        type* _ptr = ARENA_ALLOC_ARRAY((arena), type, (count));         \
+        (_ptr) ? (type*)memset(_ptr, 0, sizeof(type) * (count)) : NULL; \
     })
 
 /**
- * Allocates zero-initialized array.
+ * Allocates `count` blocks in a single contiguous region, each aligned to
+ * ARENA_DEFAULT_ALIGN. Requires only one bounds check and at most one block
+ * transition. All-or-nothing: on failure, no pointers are written.
  *
- * Usage: int* arr = ARENA_ALLOC_ARRAY_ZERO(arena, int, 100);
- * Returns NULL if allocation fails.
+ * @param sizes    Array of per-block sizes (length `count`).
+ * @param out_ptrs Array to receive the resulting pointers (length `count`).
+ * @return true on success, false on failure or invalid arguments.
  */
-#define ARENA_ALLOC_ARRAY_ZERO(arena, type, count)                              \
-    ({                                                                          \
-        type* _ptr = ARENA_ALLOC_ARRAY((arena), type, (count));                 \
-        (_ptr != NULL) ? (type*)memset(_ptr, 0, sizeof(type) * (count)) : NULL; \
-    })
+static ARENA_INLINE bool arena_alloc_batch(Arena* restrict arena, const size_t* restrict sizes, size_t count,
+                                           void** restrict out_ptrs) {
+    if (!arena || !sizes || !out_ptrs || count == 0) return false;
 
-// ============================================================================
-// Batch and String Allocation Functions
-// ============================================================================
-
-#include <string.h>
-
-/**
- * Allocate multiple memory blocks in a single operation.
- *
- * @param arena Target arena. Must not be NULL.
- * @param sizes Array of sizes for each allocation. Must not be NULL.
- * @param count Number of allocations to perform. Must be > 0.
- * @param out_ptrs Array to store the resulting pointers. Must not be NULL.
- * @return true on success, false if allocation fails.
- *
- * This performs a single bulk allocation and divides it among the requested blocks,
- * with each block aligned to ARENA_DEFAULT_ALIGN. This is more efficient than
- * multiple individual allocations as it:
- * - Requires only one boundary check and at most one page commit
- * - Provides better cache locality for related allocations
- * - Is truly atomic (all-or-nothing)
- *
- * Example:
- * ```c
- * size_t sizes[] = {64, 128, 256};
- * void* ptrs[3];
- * if (!arena_alloc_batch(arena, sizes, 3, ptrs)) {
- *     fprintf(stderr, "Batch allocation failed\n");
- *     return -1;
- * }
- * ```
- */
-static ARENA_INLINE bool arena_alloc_batch(Arena* arena, const size_t sizes[], size_t count, void* out_ptrs[]) {
-    if (arena == NULL || sizes == NULL || out_ptrs == NULL || count == 0) {
-        return false;
-    }
-
-    // Calculate total size needed with alignment padding for each block
-    size_t total_size = 0;
-    const size_t alignment = ARENA_DEFAULT_ALIGN;
-    const size_t align_mask = alignment - 1;
-
+    const size_t mask = ARENA_DEFAULT_ALIGN - 1;
+    size_t total = 0;
     for (size_t i = 0; i < count; ++i) {
-        // Each block needs to be aligned
-        total_size = (total_size + align_mask) & ~align_mask;
-        total_size += sizes[i];
+        total = (total + mask) & ~mask;
+        total += sizes[i];
     }
 
-    // Allocate the entire batch as one contiguous block
-    char* base = (char*)arena_alloc(arena, total_size);
-    if (base == NULL) {
-        return false;
-    }
+    char* base = (char*)arena_alloc(arena, total);
+    if (!base) return false;
 
-    // Divide the allocated block among the requested pointers
-    char* current = base;
+    char* cur = base;
     for (size_t i = 0; i < count; ++i) {
-        // Align current pointer
-        uintptr_t addr = (uintptr_t)current;
-        addr = (addr + align_mask) & ~align_mask;
-        current = (char*)addr;
-
-        out_ptrs[i] = current;
-        current += sizes[i];
+        cur = (char*)(((uintptr_t)cur + mask) & ~mask);
+        out_ptrs[i] = cur;
+        cur += sizes[i];
     }
 
     return true;
 }
 
 /**
- * Duplicate a string in the arena.
- *
- * @param arena Target arena. Must not be NULL.
- * @param str String to duplicate. Must not be NULL.
- * @return Pointer to duplicated string, or NULL on failure.
- *
- * The duplicated string is null-terminated and remains valid until
- * arena_reset() or arena_destroy() is called.
- *
- * Example:
- * ```c
- * const char* name = "John Doe";
- * char* dup = arena_strdup(arena, name);
- * if (!dup) {
- *     fprintf(stderr, "Failed to duplicate string\n");
- *     return -1;
- * }
- * ```
+ * Duplicates a null-terminated string into the arena.
+ * Returns NULL if either argument is NULL or allocation fails.
  */
-static ARENA_INLINE char* arena_strdup(Arena* arena, const char* str) {
-    if (arena == NULL || str == NULL) {
-        return NULL;
-    }
-
-    const size_t len = strlen(str);
-    char* dup = (char*)arena_alloc(arena, len + 1);
-    if (dup == NULL) {
-        return NULL;
-    }
-
-    memcpy(dup, str, len);
-    dup[len] = '\0';
+static ARENA_INLINE char* arena_strdup(Arena* restrict arena, const char* restrict str) {
+    if (!arena || !str) return NULL;
+    size_t len = strlen(str);
+    char* dup = (char*)arena_alloc_unaligned(arena, len + 1);
+    if (!dup) return NULL;
+    memcpy(dup, str, len + 1);
     return dup;
 }
 
 /**
- * Duplicate a string with specified length in the arena.
- *
- * @param arena Target arena. Must not be NULL.
- * @param str String (or binary data) to duplicate. Must not be NULL.
- * @param length Exact number of bytes to copy (excluding null terminator).
- * @return Pointer to duplicated string, or NULL on failure.
- *
- * Copies exactly length bytes from str without assuming null-termination.
- * The result is always null-terminated for safe string operations.
- *
- * The duplicated string remains valid until arena_reset() or arena_destroy() is called.
- *
- * Example:
- * ```c
- * // Copy substring from non-null-terminated buffer
- * const char* buffer = "HelloWorld"; // part of larger buffer
- * char* hello = arena_strdupn(arena, buffer, 5);  // "Hello"
- * if (!hello) {
- *     fprintf(stderr, "Failed to duplicate string\n");
- *     return -1;
- * }
- * ```
+ * Copies exactly `length` bytes from `str` and appends a null terminator.
+ * Does not require `str` to be null-terminated.
+ * Returns NULL if either pointer argument is NULL or allocation fails.
  */
-static ARENA_INLINE char* arena_strdupn(Arena* arena, const char* str, size_t length) {
-    if (arena == NULL || str == NULL) {
-        return NULL;
-    }
-
-    char* dup = (char*)arena_alloc(arena, length + 1);
-    if (dup == NULL) {
-        return NULL;
-    }
-
+static ARENA_INLINE char* arena_strdupn(Arena* restrict arena, const char* restrict str, size_t length) {
+    if (!arena || !str) return NULL;
+    char* dup = (char*)arena_alloc_unaligned(arena, length + 1);
+    if (!dup) return NULL;
     memcpy(dup, str, length);
     dup[length] = '\0';
     return dup;
 }
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif  // ARENA_H

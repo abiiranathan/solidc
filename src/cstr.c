@@ -1,2159 +1,1146 @@
-#include "../include/cstr.h"
+/**
+ * @file cstr.c
+ * @brief Implementation of high-performance C string with SSO.
+ *
+ * Optimisation notes:
+ *
+ *  SSO self-referential pointer
+ *    On init/SSO-promote, `data` is set to `&s->buf[0]`.  Every read of
+ *    string bytes goes through one unconditional pointer dereference — no
+ *    ternary, no branch.  Only free/resize needs cstr_is_heap().
+ *
+ *  uint32_t fields
+ *    Struct is 32 bytes on 64-bit.  length and capacity fit in L1 cache
+ *    together with one hot 16-byte SSO string.
+ *
+ *  Search — cstr_search_impl()
+ *    Uses a Sunday/Horspool bad-character skip table for needle length > 8.
+ *    For short needles (≤ 8 bytes) it uses a SWAR (SIMD-Within-A-Register)
+ *    first-byte scan to skip directly to candidates, avoiding glibc memmem's
+ *    dynamic dispatch and the dynamic linker overhead it sometimes carries.
+ *    Both paths avoid touching more haystack memory than necessary.
+ *
+ *  replace_all
+ *    Single forward scan with a fixed-size stack-local offset table to avoid
+ *    heap allocation for the common case (< 64 matches).
+ *
+ *  Growth policy
+ *    Exact doubling from the next power-of-two above the request, ensuring
+ *    amortised O(1) appends with no fractional-factor rounding surprises.
+ */
 
-#include "../include/aligned_alloc.h"
-#include "../include/arena.h"
-#include "../include/ckdint.h"
+#include "cstr.h"
 
 #include <assert.h>
 #include <ctype.h>
-#include <errno.h>
 #include <stdarg.h>
-#include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
+/* -------------------------------------------------------------------------
+ * Internal macros
+ * ---------------------------------------------------------------------- */
 
-// Small String Optimization (SSO) constants
-#define SSO_MAX_SIZE    (sizeof(void*) + sizeof(size_t) + sizeof(size_t) + sizeof(char*) - 1)
-#define SSO_HEAP_FLAG   0x80
-#define SSO_LENGTH_MASK 0x7F
-#define HEAP_FLAG_BIT   (1ULL << 63)
+#define CSTR_MAX_SIZE ((size_t)CSTR_MAX_LEN)
 
-// Security and performance constants
-#define CSTR_GROWTH_FACTOR     2
-#define CSTR_MIN_HEAP_CAPACITY 16
-#define CSTR_MAX_SIZE          (SIZE_MAX / 2)  // Prevent overflow attacks
-
-// Optimized string alignment for heap data.
-#if defined(__x86_64__) && defined(__AVX2__)
-#define STR_ALIGNMENT 32  // AVX2 alignment
-#elif defined(__x86_64__) && defined(__SSE2__)
-#define STR_ALIGNMENT 16  // SSE alignment
+// Branch prediction hints for better CPU pipeline utilization
+#if defined(__GNUC__) || defined(__clang__)
+#define likely(x)   __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
 #else
-#define STR_ALIGNMENT 8
+#define likely(x)   (x)
+#define unlikely(x) (x)
 #endif
 
-// Macros for capacity manipulation
-#define CSTR_SET_HEAP_CAPACITY(cap) ((cap) | HEAP_FLAG_BIT)
-#define CSTR_GET_HEAP_CAPACITY(cap) ((cap) & ~HEAP_FLAG_BIT)
-#define CSTR_IS_HEAP(s)             ((s->heap.capacity & HEAP_FLAG_BIT) != 0)
+/* Round x up to the next power-of-two ≥ x. Undefined for x == 0. */
+static inline uint32_t next_pow2_u32(uint32_t x) {
+    if (x <= 1) return 1;
+    x--;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    return x + 1;
+}
 
-/**
- * @brief A dynamically resizable C-string with Small String Optimization (SSO).
- *
- * This structure implements an efficient string type that stores small strings
- * (up to SSO_MAX_SIZE bytes) directly in the structure to avoid heap
- * allocation, and larger strings on the heap. This provides optimal performance
- * for both small and large strings while maintaining a consistent API.
- * Heap strings can grow dynamically up CSTR_MAX_SIZE.
- *
- * The structure uses a union to overlay stack and heap storage modes:
- * - Stack mode: For strings up to SSO_MAX_SIZE-1 characters
- * - Heap mode: For larger strings, indicated by the MSB of capacity field
- *
- * @note All strings are null-terminated regardless of storage mode.
- * @note The structure size is optimized to fit common cache line sizes.
- */
-struct cstr {
-    Arena* arena;  // Optional arena allocator
-    union {
-        struct {
-            /// @brief Pointer to heap-allocated string data
-            char* data;
-
-            /// @brief Length of the string (excluding null terminator)
-            size_t length;
-
-            /// @brief Capacity with heap flag in MSB. Use CSTR_GET_HEAP_CAPACITY() to
-            /// extract actual capacity.
-            size_t capacity;
-        } heap;
-
-        struct {
-            /// @brief Inline buffer for small strings
-            char data[SSO_MAX_SIZE];
-
-            /// @brief Length of stack string (with potential flags in upper bits)
-            unsigned char len;
-        } stack;  // stack data. Do not use directly!!
-    };
-};
-
-// --- Internal Helper Functions ---
-
-/**
- * @brief Retrieves the length of the string.
- * @param s Pointer to the cstr (must not be NULL)
- * @return Length of the string excluding null terminator
- * @pre s != NULL
- */
-static inline size_t cstr_get_length(const cstr* s) {
-    if (CSTR_IS_HEAP(s)) {
-        return s->heap.length;
-    } else {
-        return s->stack.len & SSO_LENGTH_MASK;
+/* Minimum heap allocation that fits `need` bytes + NUL. */
+static inline uint32_t cstr_grow_cap(uint32_t current, uint32_t need) {
+    uint32_t cap = current < CSTR_MIN_HEAP ? CSTR_MIN_HEAP : current;
+    while (cap < need) {
+        if (cap <= CSTR_MAX_LEN / 2) {
+            cap *= 2;
+        } else {
+            cap = CSTR_MAX_LEN;
+            break; /* saturate: cannot grow further */
+        }
     }
+    return cap;
 }
 
-/**
- * @brief Retrieves a mutable pointer to the string data.
- * @param s Pointer to the cstr (must not be NULL)
- * @return Pointer to null-terminated string data
- * @pre s != NULL
- */
-static inline char* cstr_get_data(cstr* s) { return CSTR_IS_HEAP(s) ? s->heap.data : s->stack.data; }
-
-/**
- * @brief Retrieves a const pointer to the string data.
- * @param s Pointer to the cstr (must not be NULL)
- * @return Const pointer to null-terminated string data
- * @pre s != NULL
- */
-static inline const char* cstr_get_data_const(const cstr* s) {
-    return (const char*)(CSTR_IS_HEAP(s) ? s->heap.data : s->stack.data);
-}
-
-/**
- * @brief Retrieves the current capacity of the string.
- * @param s Pointer to the cstr (must not be NULL)
- * @return Capacity including space for null terminator
- * @pre s != NULL
- */
-static inline size_t cstr_get_capacity(const cstr* s) {
-    return CSTR_IS_HEAP(s) ? CSTR_GET_HEAP_CAPACITY(s->heap.capacity) : SSO_MAX_SIZE;
-}
-
-/**
- * @brief Sets the length of the string.
+/* -------------------------------------------------------------------------
+ * Internal: promote SSO → heap, or grow existing heap.
  *
- * This function updates the length field without modifying the actual string
- * data. The caller is responsible for ensuring the string data is properly
- * null-terminated and that the length is accurate.
- *
- * @param s Pointer to the cstr (must not be NULL)
- * @param len New length (must be less than current capacity)
- * @pre s != NULL
- * @pre len < cstr_get_capacity(s)
- */
-static inline void cstr_set_length(cstr* s, size_t len) {
-    if (CSTR_IS_HEAP(s)) {
-        s->heap.length = len;
-    } else {
-        // since this function is called internally, we are sure to be in bounds.
-        s->stack.len = (unsigned char)len;
-    }
-}
+ * After a successful call, s->data points to heap memory of size cap,
+ * s->capacity has the heap flag set, and existing content is preserved.
+ * ---------------------------------------------------------------------- */
+static bool cstr_ensure_cap(cstr* s, size_t need) {
+    /* need is the total bytes required INCLUDING the NUL terminator. */
+    if (CSTR_UNLIKELY(need > (size_t)CSTR_MAX_LEN)) return false;
 
-/**
- * @brief Calculates optimal capacity for growth.
- *
- * Uses a growth factor to minimize reallocations while preventing excessive
- * memory usage. Includes overflow protection.
- *
- * @param current_cap Current capacity
- * @param min_needed Minimum capacity needed
- * @return Optimal new capacity, or 0 if overflow would occur
- */
-static size_t calculate_growth_capacity(size_t current_cap, size_t min_needed) {
-    if (min_needed > CSTR_MAX_SIZE) return 0;
+    uint32_t need32 = (uint32_t)need;
 
-    min_needed = MAX(min_needed, CSTR_MIN_HEAP_CAPACITY);    // ensure min heap capacity
-    current_cap = MAX(current_cap, CSTR_MIN_HEAP_CAPACITY);  // avoid multiplying by 0.
+    if (!cstr_is_heap(s)) {
+        /* SSO path: need > CSTR_SSO_CAP triggers promotion */
+        if (need32 <= CSTR_SSO_CAP) return true;
 
-    size_t capacity = 0;
-    bool overflow = false;
+        uint32_t cap = cstr_grow_cap(CSTR_SSO_CAP, need32);
+        char* mem = (char*)malloc(cap);
+        if (CSTR_UNLIKELY(!mem)) return false;
 
-    // grow capacity as long as we haven't overflow'd and still below required memory.
-    while (!(overflow = ckd_mul(&capacity, current_cap, CSTR_GROWTH_FACTOR)) && capacity < min_needed) {
-        current_cap = capacity;  // update current capacity.
-    };
-
-    if (overflow) return 0;
-    return (overflow || capacity > CSTR_MAX_SIZE) ? 0 : capacity;
-}
-
-/**
- * @brief Promotes a stack-allocated string to heap storage.
- *
- * This function transitions a string from stack storage to heap storage when
- * the required capacity exceeds the SSO threshold. It preserves all existing
- * string data during the transition.
- *
- * @param s Pointer to the cstr (must be stack-allocated)
- * @param capacity_needed Minimum capacity required including null terminator
- * @return true on success, false on allocation failure
- * @pre s != NULL && !CSTR_IS_HEAP(s)
- * @pre capacity_needed > SSO_MAX_SIZE
- */
-static bool cstr_promote_to_heap(cstr* s, size_t new_capacity) {
-    // Calculate actual allocation size (powers of 2, etc.)
-    size_t cap = calculate_growth_capacity(SSO_MAX_SIZE, new_capacity);
-    if (cap == 0) return false;
-
-    char* new_mem = NULL;
-    if (s->arena) {
-        new_mem = arena_alloc(s->arena, cap);
-    } else {
-        new_mem = malloc(cap);
-    }
-
-    if (!new_mem) return false;
-
-    // COPY data from Stack to the new Heap buffer
-    // We must do this BEFORE modifying the struct, because writing to
-    // s->heap members might overwrite s->stack.data members!
-    memcpy(new_mem, s->stack.data, s->stack.len);
-
-    // Null terminate the new buffer
-    new_mem[s->stack.len] = '\0';
-    size_t old_len = s->stack.len;
-    s->heap.data = new_mem;
-    s->heap.length = old_len;
-    s->heap.capacity = CSTR_SET_HEAP_CAPACITY(cap);
-
-    return true;
-}
-
-/**
- * @brief Ensures the string has at least the specified capacity.
- *
- * This function handles both stack-to-heap promotion and heap reallocation
- * as needed. It uses intelligent growth strategies to minimize future
- * reallocations while preventing excessive memory usage.
- *
- * @param s Pointer to the cstr (must not be NULL)
- * @param new_capacity Minimum capacity required including null terminator
- * @return true on success, false on allocation failure or overflow
- * @pre s != NULL
- */
-static bool cstr_ensure_capacity(cstr* s, size_t new_capacity) {
-    if (new_capacity <= cstr_get_capacity(s)) {
+        memcpy(mem, s->buf, s->length + 1);
+        s->data = mem;
+        s->capacity = CSTR_HEAP_FLAG | cap;
         return true;
     }
 
-    // Prevent overflow attacks
-    if (new_capacity > CSTR_MAX_SIZE) {
-        return false;
-    }
+    /* Heap path */
+    uint32_t cur_cap = cstr_heap_cap(s);
+    if (need32 <= cur_cap) return true;
 
-    if (CSTR_IS_HEAP(s)) {
-        size_t optimal_capacity = calculate_growth_capacity(cstr_get_capacity(s), new_capacity);
-        if (optimal_capacity == 0) {
-            return false;
-        }
+    uint32_t new_cap = cstr_grow_cap(cur_cap, need32);
+    if (new_cap == 0) return false;
 
-        char* new_data = NULL;
-        if (s->arena) {
-            // Arena doesn't support realloc, so alloc new + copy
-            new_data = arena_alloc(s->arena, optimal_capacity);
-            if (new_data) {
-                memcpy(new_data, s->heap.data, s->heap.length + 1);
-                // Old data is left in arena (leak within arena scope)
-            }
-        } else {
-            new_data = realloc(s->heap.data, optimal_capacity);
-        }
+    char* mem = (char*)realloc(s->data, new_cap);
+    if (CSTR_UNLIKELY(!mem)) return false;
 
-        if (!new_data) {
-            return false;
-        }
-
-        s->heap.data = new_data;
-        s->heap.capacity = CSTR_SET_HEAP_CAPACITY(optimal_capacity);
-    } else {
-        return cstr_promote_to_heap(s, new_capacity);
-    }
-
+    s->data = mem;
+    s->capacity = CSTR_HEAP_FLAG | new_cap;
     return true;
 }
 
-// --- Public API Functions ---
+/* -------------------------------------------------------------------------
+ * Lifecycle
+ * ---------------------------------------------------------------------- */
 
-/**
- * @brief Creates a new empty cstr with specified initial capacity.
- *
- * Creates a new dynamically allocated cstr with at least the requested
- * capacity. The string is initialized to empty but can grow up to the specified
- * capacity without reallocation.
- *
- * @param initial_capacity Requested initial capacity including null terminator
- * @return Pointer to new cstr on success, NULL on allocation failure
- * @note Caller must call str_free() to release memory
- * @note Actual capacity may be larger than requested for optimization
- */
-cstr* cstr_init(size_t initial_capacity) { return cstr_init_arena(NULL, initial_capacity); }
-
-/**
- * @brief Creates a new empty cstr using a custom arena allocator.
- *
- * @param arena The arena to allocate from.
- * @param initial_capacity Requested initial capacity.
- * @return Pointer to new cstr, or NULL on failure.
- */
-cstr* cstr_init_arena(Arena* arena, size_t initial_capacity) {
-    if (initial_capacity > CSTR_MAX_SIZE) return NULL;
-
-    cstr* s = NULL;
-    if (arena) {
-        s = ARENA_ALLOC(arena, cstr);
-    } else {
-        s = malloc(sizeof(cstr));
+cstr* cstr_init(size_t initial_capacity) {
+    if (initial_capacity >= CSTR_MAX_SIZE) {
+        return NULL;
     }
 
-    if (!s) return NULL;
+    cstr* s = (cstr*)malloc(sizeof(cstr));
+    if (CSTR_UNLIKELY(!s)) return NULL;
 
-    s->arena = arena;
-    initial_capacity = MAX(initial_capacity, STR_MIN_CAPACITY);
+    cstr_init_inplace(s);
 
-    if (initial_capacity <= SSO_MAX_SIZE) {
-        // Initialize as stack-allocated string
-        s->stack.len = 0;
-        s->stack.data[0] = '\0';
-        // Clear remaining bytes for security
-        memset(s->stack.data + 1, 0, SSO_MAX_SIZE - 1);
-    } else {
-        size_t optimal_capacity = calculate_growth_capacity(0, initial_capacity);
-        if (optimal_capacity == 0) {
-            if (!arena) free(s);
+    if (initial_capacity >= CSTR_SSO_CAP) {
+        if (CSTR_UNLIKELY(!cstr_ensure_cap(s, initial_capacity + 1))) {
+            free(s);
             return NULL;
         }
-
-        char* data = NULL;
-        if (arena) {
-            data = arena_alloc(arena, optimal_capacity);
-        } else {
-            data = ALIGNED_ALLOC(STR_ALIGNMENT, optimal_capacity);
-        }
-
-        if (!data) {
-            if (!arena) free(s);
-            return NULL;
-        }
-
-        data[0] = '\0';
-        s->heap.data = data;
-        s->heap.length = 0;
-        s->heap.capacity = CSTR_SET_HEAP_CAPACITY(optimal_capacity);
     }
-
     return s;
 }
 
-/**
- * @brief Creates a new cstr from a C string.
- *
- * Creates a new cstr containing a copy of the input C string. The new string
- * will have exactly the capacity needed to store the input plus room for
- * growth.
- *
- * @param input C string to copy (must be null-terminated, can be NULL)
- * @return Pointer to new cstr on success, NULL on allocation failure or if
- * input is NULL
- * @note Caller must call str_free() to release memory
- */
-cstr* cstr_new(const char* input) { return cstr_new_arena(NULL, input); }
-
-/**
- * @brief Creates a new cstr from a C string using a custom arena allocator.
- *
- * @param arena The arena to allocate from.
- * @param input C string to copy.
- * @return Pointer to new cstr, or NULL on failure.
- */
-cstr* cstr_new_arena(Arena* arena, const char* input) {
-    if (!input) {
-        return NULL;
-    }
-
-    size_t len = strlen(input);
-    cstr* str = cstr_init_arena(arena, len + 1);
-    if (!str) {
-        return NULL;
-    }
-
-    if (len > 0) {
-        char* dest = cstr_get_data(str);
-        memcpy(dest, input, len);
-        dest[len] = '\0';
-        cstr_set_length(str, len);
-    }
-
-    return str;
+cstr* cstr_new(const char* input) {
+    if (CSTR_UNLIKELY(!input)) return NULL;
+    return cstr_new_len(input, strlen(input));
 }
 
-/**
- * @brief Debug function to print comprehensive string information.
- *
- * Outputs detailed information about the string's internal state, including
- * storage mode, capacity, length, and raw data representation. Useful for
- * debugging and understanding the SSO behavior.
- *
- * @param s Pointer to the cstr (can be NULL)
- */
-void cstr_debug(const cstr* s) {
-    if (!s) {
-        printf("String: NULL\n");
-        return;
-    }
+cstr* cstr_new_len(const char* data, size_t length) {
+    if (CSTR_UNLIKELY(!data && length > 0)) return NULL;
 
-    printf("=== String Debug Info ===\n");
-    printf("Storage type: %s\n", CSTR_IS_HEAP(s) ? "heap" : "stack");
-    printf("Length: %zu\n", cstr_get_length(s));
-    printf("Capacity: %zu\n", cstr_get_capacity(s));
-    printf("Content: \"%s\"\n", cstr_get_data_const((cstr*)s));
-    printf("Union size: %zu bytes\n", sizeof(cstr));
+    cstr* s = (cstr*)malloc(sizeof(cstr));
+    if (CSTR_UNLIKELY(!s)) return NULL;
+    cstr_init_inplace(s);
 
-    if (CSTR_IS_HEAP(s)) {
-        printf("--- Heap Details ---\n");
-        printf("Raw capacity field: 0x%016zx\n", s->heap.capacity);
-        printf("Actual capacity: %zu\n", cstr_get_capacity(s));
-        printf("Data pointer: %p\n", (void*)s->heap.data);
-        printf("Heap flag bit set: %s\n", (s->heap.capacity & HEAP_FLAG_BIT) != 0 ? "yes" : "no");
-    } else {
-        printf("--- Stack Details ---\n");
-        printf("Available space: %zu bytes\n", SSO_MAX_SIZE);
-        printf("Used space: %zu bytes\n", cstr_get_length(s));
-        printf("Free space: %zu bytes\n", SSO_MAX_SIZE - cstr_get_length(s));
-        printf("len_and_flag value: %u\n", s->stack.len);
-
-        printf("Stack data (hex): ");
-        for (size_t i = 0; i < SSO_MAX_SIZE; i++) {
-            printf("%02x ", (unsigned char)s->stack.data[i]);
+    if (length > 0) {
+        if (CSTR_UNLIKELY(!cstr_ensure_cap(s, length + 1))) {
+            free(s);
+            return NULL;
         }
-        printf("\n");
+        memcpy(s->data, data, length);
+        s->data[length] = '\0';
+        s->length = (uint32_t)length;
     }
-    printf("========================\n\n");
+    return s;
 }
 
-/**
- * @brief Checks if the string uses heap storage.
- *
- * @param s Pointer to the cstr (can be NULL)
- * @return true if heap-allocated, false if stack-allocated or NULL
- */
-bool cstr_allocated(const cstr* s) { return s && CSTR_IS_HEAP(s); }
+void cstr_drop(cstr* s) {
+    if (!s) return;
+    if (cstr_is_heap(s)) {
+        free(s->data);
+        s->data = NULL;
+        cstr_init_inplace(s); /* reset to safe SSO state */
+    }
+}
 
-/**
- * @brief Frees a cstr and all associated memory.
- *
- * Releases all memory associated with the cstr, including heap-allocated
- * string data if applicable. After calling this function, the pointer
- * becomes invalid and must not be used.
- *
- * @param s Pointer to the cstr to free (can be NULL)
- * @note Safe to call with NULL pointer
- */
 void cstr_free(cstr* s) {
-    if (!s) {
-        return;
-    }
-
-    // If using arena, the memory is managed by the arena.
-    // We don't free it individually.
-    if (s->arena) {
-        return;
-    }
-
-    if (CSTR_IS_HEAP(s)) {
-        ALIGNED_FREE(s->heap.data);
-    }
-
-    // Clear memory for security
-    memset(s, 0, sizeof(cstr));
+    if (!s) return;
+    if (cstr_is_heap(s)) {
+        free(s->data);
+        s->data = NULL;
+    };
     free(s);
 }
 
-/**
- * @brief Returns the length of the string.
- *
- * @param s Pointer to the cstr (can be NULL)
- * @return Length excluding null terminator, or 0 if s is NULL
- */
-size_t cstr_len(const cstr* s) { return s ? cstr_get_length(s) : 0; }
-
-/**
- * @brief Returns the current capacity of the string.
- *
- * @param s Pointer to the cstr (can be NULL)
- * @return Current capacity including null terminator, or 0 if s is NULL
- */
-size_t cstr_capacity(const cstr* s) { return s ? cstr_get_capacity(s) : 0; }
-
-/**
- * @brief Checks if the string is empty.
- *
- * @param s Pointer to the cstr (can be NULL)
- * @return true if NULL or empty, false otherwise
- */
-bool cstr_empty(const cstr* s) { return !s || cstr_get_length(s) == 0; }
-
-/**
- * @brief Resizes the string's capacity.
- *
- * Ensures the string has at least the specified capacity. If the current
- * capacity is already sufficient, no operation is performed.
- *
- * @param s Pointer to the cstr (must not be NULL)
- * @param new_capacity Minimum required capacity including null terminator
- * @return true on success, false on allocation failure or if s is NULL
- */
-bool cstr_resize(cstr* s, size_t new_capacity) {
+void cstr_debug(const cstr* s) {
     if (!s) {
-        return false;
+        fprintf(stderr, "cstr: NULL\n");
+        return;
     }
-    return cstr_ensure_capacity(s, new_capacity);
+
+    fprintf(stderr,
+            "cstr { data=%p, length=%u, capacity=%u, mode=%s }\n"
+            "  content: \"%.*s\"\n",
+            (const void*)s->data, s->length, (unsigned)(cstr_is_heap(s) ? cstr_heap_cap(s) : CSTR_SSO_CAP - 1u),
+            cstr_is_heap(s) ? "heap" : "sso", (int)s->length, s->data);
 }
 
-/**
- * @brief Appends a C string to the cstr.
- *
- * Appends the entire source string to the end of the destination string,
- * automatically reallocating if necessary.
- *
- * @param s Pointer to the destination cstr (must not be NULL)
- * @param append_str C string to append (must not be NULL)
- * @return true on success, false on allocation failure or invalid input
- */
-bool cstr_append(cstr* s, const char* append_str) {
-    if (!s || !append_str) {
-        return false;
+/* -------------------------------------------------------------------------
+ * Capacity management
+ * ---------------------------------------------------------------------- */
+
+bool cstr_reserve(cstr* s, size_t capacity) { return cstr_ensure_cap(s, capacity + 1); }
+
+void cstr_shrink_to_fit(cstr* s) {
+    if (!cstr_is_heap(s)) return;
+    uint32_t needed = s->length + 1;
+    if (cstr_heap_cap(s) == needed) return;
+
+    char* mem = (char*)realloc(s->data, needed);
+    if (mem) {
+        s->data = mem;
+        s->capacity = CSTR_HEAP_FLAG | needed;
     }
+    /* Failure is non-fatal — we just stay oversized. */
+}
 
-    size_t append_len = strlen(append_str);
-    if (append_len == 0) {
-        return true;
-    }
+/* -------------------------------------------------------------------------
+ * Append / prepend / insert
+ * ---------------------------------------------------------------------- */
 
-    size_t current_len = cstr_get_length(s);
-    size_t new_len = current_len + append_len;
+bool cstr_append(cstr* s, const char* CSTR_RESTRICT append_str) {
+    size_t n = strlen(append_str);
+    if (n == 0) return true;
 
-    if (!cstr_ensure_capacity(s, new_len + 1)) {
-        return false;
-    }
+    size_t new_len = (size_t)s->length + n;
+    if (CSTR_UNLIKELY(new_len > CSTR_MAX_SIZE)) return false;
+    if (CSTR_UNLIKELY(!cstr_ensure_cap(s, new_len + 1))) return false;
 
-    char* dest = cstr_get_data(s);
-    memcpy(dest + current_len, append_str, append_len);
-    dest[new_len] = '\0';
-    cstr_set_length(s, new_len);
-
+    memcpy(s->data + s->length, append_str, n + 1); /* +1 copies NUL */
+    s->length = (uint32_t)new_len;
     return true;
-}
-
-/**
- * @brief Fast append assuming sufficient capacity.
- *
- * Appends a C string without checking or expanding capacity. The caller
- * must ensure sufficient capacity exists.
- *
- * @param s Pointer to the destination cstr (must not be NULL)
- * @param append_str C string to append (must not be NULL)
- * @return true on success, false on invalid input
- * @pre Sufficient capacity must exist for the append operation
- */
-bool cstr_append_fast(cstr* s, const char* append_str) {
-    if (!s || !append_str) {
-        return false;
-    }
-
-    size_t append_len = strlen(append_str);
-    if (append_len == 0) {
-        return true;
-    }
-
-    size_t current_len = cstr_get_length(s);
-
-    // Verify capacity assumption
-    assert(current_len + append_len + 1 <= cstr_get_capacity(s));
-
-    char* dest = cstr_get_data(s);
-    memcpy(dest + current_len, append_str, append_len);
-    dest[current_len + append_len] = '\0';
-    cstr_set_length(s, current_len + append_len);
-
-    return true;
-}
-
-/**
- * @brief Creates a new cstr from a formatted string (printf-style).
- *
- * Creates a new cstr by formatting the input according to the format string,
- * similar to sprintf but with automatic memory management.
- *
- * @param format Printf-style format string (must not be NULL)
- * @param ... Arguments for the format string
- * @return Pointer to new formatted cstr on success, NULL on failure
- * @note Caller must call str_free() to release memory
- */
-cstr* cstr_format(const char* format, ...) {
-    if (!format) {
-        return NULL;
-    }
-
-    va_list args;
-    va_start(args, format);
-
-    // Get required length
-    va_list args_copy;
-    va_copy(args_copy, args);
-    int len = vsnprintf(NULL, 0, format, args_copy);
-    va_end(args_copy);
-
-    if (len < 0) {
-        va_end(args);
-        return NULL;
-    }
-
-    // Prevent unreasonably large format results
-    if ((size_t)len >= CSTR_MAX_SIZE) {
-        va_end(args);
-        return NULL;
-    }
-
-    size_t capacity = (size_t)len + 1;
-    cstr* s = cstr_init(capacity);
-    if (!s) {
-        va_end(args);
-        return NULL;
-    }
-
-    char* data = cstr_get_data(s);
-    int written = vsnprintf(data, capacity, format, args);
-    va_end(args);
-
-    if (written < 0 || (size_t)written >= capacity) {
-        cstr_free(s);
-        return NULL;
-    }
-
-    cstr_set_length(s, (size_t)written);
-    return s;
-}
-
-/**
- * @brief Appends a formatted string to the cstr.
- *
- * Appends text formatted according to printf-style format string and arguments
- * to the end of the existing string content.
- *
- * @param s Pointer to the destination cstr (must not be NULL)
- * @param format Printf-style format string (must not be NULL)
- * @param ... Arguments for the format string
- * @return true on success, false on allocation failure or formatting error
- */
-bool cstr_append_fmt(cstr* s, const char* format, ...) {
-    if (!s || !format) return false;
-
-    va_list args;
-    va_start(args, format);
-
-    // Get required length
-    va_list args_copy;
-    va_copy(args_copy, args);
-    int append_len = vsnprintf(NULL, 0, format, args_copy);
-    va_end(args_copy);
-
-    if (append_len < 0) {
-        va_end(args);
-        return false;
-    }
-
-    size_t current_len = cstr_get_length(s);
-    size_t new_len = current_len + (size_t)append_len;
-
-    if (!cstr_ensure_capacity(s, new_len + 1)) {
-        va_end(args);
-        return false;
-    }
-
-    char* dest = cstr_get_data(s);
-    int written = vsnprintf(dest + current_len, (size_t)append_len + 1, format, args);
-    va_end(args);
-
-    if (written != append_len) return false;
-
-    cstr_set_length(s, new_len);
-    return true;
-}
-
-/**
- * @brief Appends a single character to the cstr.
- *
- * @param s Pointer to the destination cstr (must not be NULL)
- * @param c Character to append
- * @return true on success, false on allocation failure or invalid input
- */
-bool cstr_append_char(cstr* s, char c) {
-    if (!s) {
-        return false;
-    }
-
-    size_t current_len = cstr_get_length(s);
-    if (!cstr_ensure_capacity(s, current_len + 2)) {
-        return false;
-    }
-
-    char* dest = cstr_get_data(s);
-    dest[current_len] = c;
-    dest[current_len + 1] = '\0';
-    cstr_set_length(s, current_len + 1);
-
-    return true;
-}
-
-/**
- * @brief Prepends a C string to the beginning of the cstr.
- *
- * Inserts the source string at the beginning of the destination string,
- * shifting existing content to the right.
- *
- * @param s Pointer to the destination cstr (must not be NULL)
- * @param prepend_str C string to prepend (must not be NULL)
- * @return true on success, false on allocation failure or invalid input
- */
-bool cstr_prepend(cstr* s, const char* prepend_str) {
-    if (!s || !prepend_str) return false;
-
-    size_t prepend_len = strlen(prepend_str);
-    if (prepend_len == 0) return true;
-
-    size_t current_len = cstr_get_length(s);
-    size_t new_len = current_len + prepend_len;
-    if (!cstr_ensure_capacity(s, new_len + 1)) {
-        return false;
-    }
-
-    char* dest = cstr_get_data(s);
-    memmove(dest + prepend_len, dest, current_len);
-    memcpy(dest, prepend_str, prepend_len);
-    dest[new_len] = '\0';
-
-    cstr_set_length(s, new_len);
-
-    return true;
-}
-
-/**
- * @brief Fast prepend assuming sufficient capacity.
- *
- * Prepends a C string without checking or expanding capacity. The caller
- * must ensure sufficient capacity exists.
- *
- * @param s Pointer to the destination cstr (must not be NULL)
- * @param prepend_str C string to prepend (must not be NULL)
- * @return true on success, false on invalid input
- * @pre Sufficient capacity must exist for the prepend operation
- */
-bool cstr_prepend_fast(cstr* s, const char* prepend_str) {
-    if (!s || !prepend_str) {
-        return false;
-    }
-
-    size_t prepend_len = strlen(prepend_str);
-    if (prepend_len == 0) {
-        return true;
-    }
-
-    size_t current_len = cstr_get_length(s);
-
-    // Verify capacity assumption
-    assert(current_len + prepend_len + 1 <= cstr_get_capacity(s));
-
-    char* dest = cstr_get_data(s);
-    memmove(dest + prepend_len, dest, current_len + 1);
-    memcpy(dest, prepend_str, prepend_len);  // NOLINT
-    cstr_set_length(s, current_len + prepend_len);
-
-    return true;
-}
-
-/**
- * @brief Inserts a C string at the specified position.
- *
- * Inserts the source string at the given index, shifting existing content
- * to make room. Index must be within the current string length.
- *
- * @param s Pointer to the destination cstr (must not be NULL)
- * @param index Position to insert at (0-based, must be <= current length)
- * @param insert_str C string to insert (must not be NULL)
- * @return true on success, false on allocation failure or invalid input/index
- */
-bool cstr_insert(cstr* s, size_t index, const char* insert_str) {
-    size_t current_length = cstr_get_length(s);
-
-    if (!s || !insert_str || index > current_length) {
-        return false;
-    }
-
-    size_t insert_len = strlen(insert_str);
-    if (insert_len == 0) {
-        return true;
-    }
-
-    size_t new_length = current_length + insert_len;
-    if (!cstr_ensure_capacity(s, new_length + 1)) {
-        return false;
-    }
-
-    char* data = cstr_get_data(s);
-    memmove(data + index + insert_len, data + index, current_length - index + 1);
-    memcpy(data + index, insert_str, insert_len);  // NOLINT
-    cstr_set_length(s, new_length);
-    return true;
-}
-
-/**
- * @brief Removes a range of characters from the cstr.
- *
- * Removes 'count' characters starting from 'index'. If 'index' + 'count'
- * extends beyond the string's length, characters are removed until the end.
- *
- * @param s Pointer to the cstr (must not be NULL)
- * @param index Starting index of the range to remove.
- * @param count Number of characters to remove.
- * @return True on success, false on invalid input or index.
- */
-bool cstr_remove(cstr* s, size_t index, size_t count) {
-    if (!s) {
-        return false;
-    }
-    size_t current_length = cstr_get_length(s);
-
-    if (index > current_length) {
-        // Invalid index, unless count is 0 and index is exactly the length
-        return index == current_length && count == 0;
-    }
-
-    // Adjust count if it exceeds the remaining length
-    count = MIN(count, current_length - index);
-
-    if (count == 0) {
-        return true;  // No characters to remove
-    }
-
-    char* data = cstr_get_data(s);
-    // Shift the remaining part of the string
-    memmove(data + index, data + index + count,
-            current_length - index - count + 1);  // +1 for the null terminator
-    cstr_set_length(s, current_length - count);
-    return true;
-}
-
-/**
- * @brief Clears the cstr, setting its length to 0.
- *
- * Sets the string's length to zero and null-terminates the first character.
- * The capacity remains unchanged.
- *
- * @param s Pointer to the cstr (can be NULL).
- */
-void cstr_clear(cstr* s) {
-    if (s) {
-        cstr_set_length(s, 0);
-        cstr_get_data(s)[0] = '\0';
-    }
-}
-
-/**
- * @brief Removes all occurrences of a substring from the cstr.
- *
- * Removes all instances of the specified substring from the string.
- *
- * @param s Pointer to the cstr (must not be NULL).
- * @param substr Substring to remove (must not be NULL and not empty).
- * @return Number of occurrences removed. Returns 0 on invalid input or if
- * substring is not found.
- */
-size_t cstr_remove_all(cstr* s, const char* substr) {
-    if (!s || !substr || !*substr) {
-        return 0;
-    }
-
-    size_t substr_len = strlen(substr);
-    if (substr_len == 0) {
-        return 0;  // Cannot remove an empty substring
-    }
-
-    char* data = cstr_get_data(s);
-    char* write_ptr = data;
-    char* read_ptr = data;
-    size_t count = 0;
-    const char* end = data + cstr_get_length(s);
-
-    while (read_ptr < end) {
-        // Check if the substring exists starting from read_ptr
-        if ((size_t)(end - read_ptr) >= substr_len && strncmp(read_ptr, substr, substr_len) == 0) {
-            read_ptr += substr_len;  // Skip the substring
-            count++;
-        } else {
-            *write_ptr++ = *read_ptr++;  // Copy the character
-        }
-    }
-    *write_ptr = '\0';  // Null-terminate the resulting string
-    cstr_set_length(s, (size_t)(write_ptr - data));
-    return count;
-}
-
-/**
- * @brief Returns the character at the specified index.
- *
- * @param s Pointer to the cstr (can be NULL).
- * @param index Index of the character (0-based).
- * @return The character at the index, or '\0' if s is NULL or index is out of
- * bounds.
- */
-char cstr_at(const cstr* s, size_t index) {
-    if (!s || index >= cstr_get_length(s)) {
-        return '\0';
-    }
-    return cstr_get_data_const(s)[index];
-}
-
-/**
- * @brief Returns a mutable pointer to the cstr's data.
- *
- * Provides direct access to the underlying character buffer. Use with caution,
- * as modifying the buffer without updating the string's length can lead to
- * inconsistencies.
- *
- * @param s Pointer to the cstr (can be NULL).
- * @return Pointer to the null-terminated string, or NULL if s is NULL.
- */
-char* cstr_data(cstr* s) { return s ? cstr_get_data(s) : NULL; }
-
-/**
- * @brief Returns a const pointer to the cstr's data.
- *
- * Provides read-only access to the underlying character buffer.
- *
- * @param s Pointer to the cstr (can be NULL).
- * @return Const pointer to the null-terminated string, or NULL if s is NULL.
- */
-const char* cstr_data_const(const cstr* s) { return s ? cstr_get_data_const(s) : NULL; }
-
-/**
- * @brief Converts the cstr to a string view.
- *
- * Creates a read-only view of the cstr's data and length.
- *
- * @param s Pointer to the cstr (can be NULL).
- * @return A str_view representing the cstr's data and length. If s is NULL,
- * an empty str_view is returned.
- */
-str_view cstr_as_view(const cstr* s) {
-    str_view view = {NULL, 0};
-    if (s) {
-        view.data = cstr_get_data_const(s);
-        view.length = cstr_get_length(s);
-    }
-    return view;
-}
-
-/**
- * @brief Compares two cstrs lexicographically.
- *
- * Compares the strings based on their character sequences.
- *
- * @param s1 First cstr (can be NULL).
- * @param s2 Second cstr (can be NULL).
- * @return Negative if s1 < s2, zero if s1 == s2, positive if s1 > s2.
- *         NULL strings are considered less than non-NULL strings. Two NULL
- *         strings are considered equal.
- */
-int cstr_compare(const cstr* s1, const cstr* s2) {
-    if (!s1 && !s2) {
-        return 0;
-    }
-    if (!s1) {
-        return -1;
-    }
-    if (!s2) {
-        return 1;
-    }
-    return strcmp(cstr_get_data_const(s1), cstr_get_data_const(s2));
-}
-
-/**
- * @brief Checks if two cstrs are equal.
- *
- * Checks if the strings have the same length and the same character sequences.
- *
- * @param s1 First cstr (can be NULL).
- * @param s2 Second cstr (can be NULL).
- * @return True if the cstrs are equal, false otherwise. Two NULL strings are
- *         considered equal.
- */
-bool cstr_equals(const cstr* s1, const cstr* s2) {
-    if (s1 == s2) {
-        return true;  // Same pointer or both NULL
-    }
-    if (!s1 || !s2) {
-        return false;  // One is NULL, other isn't
-    }
-    size_t len1 = cstr_get_length(s1);
-    size_t len2 = cstr_get_length(s2);
-    if (len1 != len2) {
-        return false;  // Different lengths
-    }
-    return memcmp(cstr_get_data_const(s1), cstr_get_data_const(s2), len1) == 0;
-}
-
-/**
- * @brief Checks if the cstr starts with the given prefix.
- *
- * @param s Pointer to the cstr (can be NULL).
- * @param prefix Prefix to check (can be NULL).
- * @return True if the cstr starts with the prefix, false otherwise.
- *         Returns false if s is NULL or prefix is NULL. An empty prefix
- *         is considered a prefix of any string.
- */
-bool cstr_starts_with(const cstr* s, const char* prefix) {
-    if (!s || !prefix) {
-        return false;
-    }
-    size_t prefix_len = strlen(prefix);
-    size_t s_len = cstr_get_length(s);
-    return prefix_len == 0 || (prefix_len <= s_len && memcmp(cstr_get_data_const(s), prefix, prefix_len) == 0);
-}
-
-/**
- * @brief Checks if the cstr ends with the given suffix.
- *
- * @param s Pointer to the cstr (can be NULL).
- * @param suffix Suffix to check (can be NULL).
- * @return True if the cstr ends with the suffix, false otherwise.
- *         Returns false if s is NULL or suffix is NULL. An empty suffix
- *         is considered a suffix of any string.
- */
-bool cstr_ends_with(const cstr* s, const char* suffix) {
-    if (!s || !suffix) {
-        return false;
-    }
-    size_t suffix_len = strlen(suffix);
-    size_t s_len = cstr_get_length(s);
-    return suffix_len == 0 ||
-           (suffix_len <= s_len && memcmp(cstr_get_data_const(s) + s_len - suffix_len, suffix, suffix_len) == 0);
-}
-
-/**
- * @brief Finds the first occurrence of a substring in the cstr.
- *
- * @param s Pointer to the cstr (can be NULL).
- * @param substr Substring to find (can be NULL).
- * @return Index of the first occurrence (0-based), or STR_NPOS (-1) if not
- * found or invalid input.
- */
-int cstr_find(const cstr* s, const char* substr) {
-    if (!s || !substr) {
-        return STR_NPOS;
-    }
-    const char* found = strstr(cstr_get_data_const(s), substr);
-    return found ? (int)(found - cstr_get_data_const(s)) : STR_NPOS;
-}
-
-/**
- * @brief Finds the last occurrence of a substring in the cstr.
- *
- * @param s Pointer to the cstr (can be NULL).
- * @param substr Substring to find (can be NULL).
- * @return Index of the last occurrence (0-based), or STR_NPOS (-1) if not found
- * or invalid input.
- */
-int cstr_rfind(const cstr* s, const char* substr) {
-    if (!s || !substr || !*substr) {
-        return STR_NPOS;
-    }
-
-    size_t substr_len = strlen(substr);
-    size_t s_len = cstr_get_length(s);
-
-    if (substr_len > s_len) {
-        return STR_NPOS;
-    }
-    if (substr_len == 0) {
-        // An empty substring is found at the end
-        return (int)s_len;
-    }
-
-    const char* s_data = cstr_get_data_const(s);
-    const char* found = NULL;
-    const char* p = s_data;
-
-    while ((p = strstr(p, substr))) {
-        found = p;
-        p += substr_len;
-    }
-
-    return found ? (int)(found - s_data) : STR_NPOS;
-}
-
-/**
- * @brief Converts the cstr to lowercase in place.
- *
- * Converts all uppercase characters in the string to their lowercase
- * equivalents.
- *
- * @param s Pointer to the cstr (can be NULL).
- */
-void cstr_lower(cstr* s) {
-    if (!s) return;
-
-    char* data = cstr_get_data(s);
-    size_t length = cstr_get_length(s);
-    for (size_t i = 0; i < length; ++i) {
-        data[i] = (char)tolower((unsigned char)data[i]);
-    }
-}
-
-/**
- * @brief Converts the cstr to uppercase in place.
- *
- * Converts all lowercase characters in the string to their uppercase
- * equivalents.
- *
- * @param s Pointer to the cstr (can be NULL).
- */
-void cstr_upper(cstr* s) {
-    if (!s) return;
-    size_t length = cstr_get_length(s);
-    char* data = cstr_get_data(s);
-    for (size_t i = 0; i < length; ++i) {
-        data[i] = (char)toupper((unsigned char)data[i]);
-    }
-}
-
-/**
- * @brief Converts the cstr to snake_case in place.
- *
- * Converts a string like "CamelCaseString" or "PascalCaseString" to
- * "camel_case_string". Inserts underscores before uppercase letters
- * (except the first) and converts all characters to lowercase.
- *
- * @param s Pointer to the cstr (can be NULL).
- * @return true on success, false on allocation failure or invalid input.
- */
-bool cstr_snakecase(cstr* s) {
-    if (!s) return false;
-
-    size_t original_length = cstr_get_length(s);
-    if (original_length == 0) {
-        return true;  // Empty string is already snake_case
-    }
-
-    size_t underscores = 0;
-    const char* data_const = cstr_get_data_const(s);
-
-    // First pass to count needed underscores
-    for (size_t i = 0; i < original_length; ++i) {
-        if (i > 0 && isupper((unsigned char)data_const[i])) {
-            underscores++;
-        }
-    }
-
-    size_t new_length = original_length + underscores;
-    if (!cstr_ensure_capacity(s, new_length + 1)) {
-        return false;  // Allocation failure
-    }
-
-    char* data = cstr_get_data(s);
-    size_t read_idx = original_length;
-    size_t write_idx = new_length;
-
-    // Start from the end to insert underscores without moving data multiple times
-    while (read_idx > 0) {
-        read_idx--;
-        char c = data[read_idx];
-
-        if (read_idx > 0 && isupper((unsigned char)c)) {
-            data[--write_idx] = (char)tolower((unsigned char)c);
-            data[--write_idx] = '_';
-        } else {
-            data[--write_idx] = (char)tolower((unsigned char)c);
-        }
-    }
-
-    data[new_length] = '\0';
-    cstr_set_length(s, new_length);
-
-    return true;
-}
-
-/**
- * @brief Converts the cstr to camelCase in place.
- *
- * Converts a string like "snake_case_string" or "PascalCaseString" to
- * "camelCaseString". Removes underscores/spaces and capitalizes the following
- * letter. The first character is converted to lowercase.
- *
- * @param s Pointer to the cstr (can be NULL).
- */
-void cstr_camelcase(cstr* s) {
-    if (!s) {
-        return;
-    }
-
-    size_t length = cstr_get_length(s);
-    if (length == 0) {
-        return;
-    }
-
-    size_t read = 0, write = 0;
-    bool capitalize_next = false;
-    char* data = cstr_get_data(s);
-
-    // Skip leading underscores/spaces
-    while (read < length && (data[read] == '_' || isspace((unsigned char)data[read]))) {
-        read++;
-    }
-
-    if (read < length) {
-        // First character should be lowercase
-        data[write++] = (char)tolower((unsigned char)data[read++]);
-    }
-
-    while (read < length) {
-        char c = data[read++];
-
-        if (c == '_' || isspace((unsigned char)c)) {
-            capitalize_next = true;
-        } else if (capitalize_next) {
-            data[write++] = (char)toupper((unsigned char)c);
-            capitalize_next = false;
-        } else {
-            data[write++] = (char)tolower((unsigned char)c);
-        }
-    }
-
-    data[write] = '\0';
-    cstr_set_length(s, write);
-}
-
-/**
- * @brief Converts the cstr to PascalCase in place.
- *
- * Converts a string like "snake_case_string" or "camelCaseString" to
- * "PascalCaseString". Removes underscores/spaces and capitalizes the following
- * letter. The first character is converted to uppercase.
- *
- * @param s Pointer to the cstr (can be NULL).
- */
-void cstr_pascalcase(cstr* s) {
-    if (!s) {
-        return;
-    }
-
-    size_t length = cstr_get_length(s);
-    if (length == 0) {
-        return;
-    }
-
-    size_t read = 0, write = 0;
-    char* data = cstr_get_data(s);
-
-    // Skip leading underscores/spaces
-    while (read < length && (data[read] == '_' || isspace((unsigned char)data[read]))) {
-        read++;
-    }
-
-    // Start with true to capitalize the first letter (if it exists)
-    bool new_word = true;
-
-    while (read < length) {
-        char c = data[read++];
-
-        if (c == '_' || isspace((unsigned char)c)) {
-            new_word = true;
-        } else if (new_word) {
-            data[write++] = (char)toupper((unsigned char)c);
-            new_word = false;
-        } else {
-            data[write++] = (char)tolower((unsigned char)c);
-        }
-    }
-
-    data[write] = '\0';
-    cstr_set_length(s, write);
-}
-
-/**
- * @brief Converts the cstr to Title Case in place.
- *
- * Capitalizes the first character of each word and converts the rest to
- * lowercase. Words are delimited by spaces.
- *
- * @param s Pointer to the cstr (can be NULL).
- */
-void cstr_titlecase(cstr* s) {
-    if (!s) {
-        return;
-    }
-    size_t length = cstr_get_length(s);
-    if (length == 0) {
-        return;
-    }
-    char* data = cstr_get_data(s);
-
-    bool capitalize = true;
-    for (size_t i = 0; i < length; i++) {
-        if (isspace((unsigned char)data[i])) {
-            capitalize = true;
-        } else if (capitalize) {
-            data[i] = (char)toupper((unsigned char)data[i]);
-            capitalize = false;
-        } else {
-            data[i] = (char)tolower((unsigned char)data[i]);
-        }
-    }
-}
-
-/**
- * @brief Removes leading and trailing whitespace from the cstr in place.
- *
- * Removes whitespace characters (as defined by `isspace()`) from both the
- * beginning and the end of the string.
- *
- * @param s Pointer to the cstr (can be NULL).
- */
-void cstr_trim(cstr* s) {
-    if (!s) {
-        return;
-    }
-
-    size_t length = cstr_get_length(s);
-    if (length == 0) {
-        return;
-    }
-
-    size_t start = 0, end = length - 1;
-    char* data = cstr_get_data(s);
-
-    // Find the first non-whitespace character
-    while (start < length && isspace((unsigned char)data[start])) ++start;
-
-    // Find the last non-whitespace character
-    while (end > start && isspace((unsigned char)data[end])) --end;
-
-    // Calculate the new length
-    size_t new_length = (start > end) ? 0 : (end - start + 1);
-
-    // Move the remaining part to the beginning
-    if (new_length > 0 && start > 0) {
-        memmove(data, data + start, new_length);
-    }
-
-    // Null-terminate the trimmed string
-    data[new_length] = '\0';
-    cstr_set_length(s, new_length);
-}
-
-/**
- * @brief Removes trailing whitespace from the cstr in place.
- *
- * Removes whitespace characters (as defined by `isspace()`) from the end
- * of the string.
- *
- * @param s Pointer to the cstr (can be NULL).
- */
-void cstr_rtrim(cstr* s) {
-    if (!s) {
-        return;
-    }
-
-    size_t length = cstr_get_length(s);
-    if (length == 0) {
-        return;
-    }
-
-    size_t end = length - 1;
-    char* data = cstr_get_data(s);
-
-    // Find the last non-whitespace character
-    while (end > 0 && isspace((unsigned char)data[end])) --end;
-
-    // New length is up to and including the last non-whitespace character
-    size_t new_length = isspace((unsigned char)data[end]) ? end : end + 1;
-
-    // Null-terminate the trimmed string
-    data[new_length] = '\0';
-    cstr_set_length(s, new_length);
-}
-
-/**
- * @brief Removes leading whitespace from the cstr in place.
- *
- * Removes whitespace characters (as defined by `isspace()`) from the beginning
- * of the string.
- *
- * @param s Pointer to the cstr (can be NULL).
- */
-void cstr_ltrim(cstr* s) {
-    if (!s) {
-        return;
-    }
-
-    size_t length = cstr_get_length(s);
-    if (length == 0) {
-        return;
-    }
-
-    size_t start = 0;
-    char* data = cstr_get_data(s);
-
-    // Find the first non-whitespace character
-    while (start < length && isspace((unsigned char)data[start])) ++start;
-
-    // Calculate the new length
-    size_t new_length = length - start;
-
-    // Move the remaining part to the beginning
-    if (new_length > 0 && start > 0) {
-        memmove(data, data + start, new_length);
-    }
-
-    // Null-terminate the trimmed string
-    data[new_length] = '\0';
-    cstr_set_length(s, new_length);
-}
-
-/**
- * @brief Removes leading and trailing characters from the cstr in place based
- * on a set of characters.
- *
- * Removes characters specified in the 'chars' string from both the beginning
- * and the end of the string.
- *
- * @param s Pointer to the cstr (can be NULL).
- * @param chars C string containing characters to remove (can be NULL or empty).
- */
-void cstr_trim_chars(cstr* s, const char* chars) {
-    if (!s || !chars) {
-        return;
-    }
-
-    size_t length = cstr_get_length(s);
-    if (length == 0 || *chars == '\0') {
-        return;  // Nothing to trim
-    }
-    char* data = cstr_get_data(s);
-
-    // Remove leading characters
-    size_t start = 0;
-    while (start < length && strchr(chars, data[start])) {
-        start++;
-    }
-
-    // If all characters were removed
-    if (start == length) {
-        cstr_clear(s);
-        return;
-    }
-
-    // Remove trailing characters
-    size_t end = length - 1;
-    while (end > start && strchr(chars, data[end])) {
-        end--;  // move the pointer to the left
-    }
-
-    size_t len = (size_t)(end - start + 1);  // length of the remaining string
-    if (start > 0) {
-        memmove(data, data + start,
-                len);  // move the remaining string to the beginning
-    }
-    data[len] = '\0';
-    cstr_set_length(s, len);
-}
-
-/**
- * @brief Count the number of occurrences of a substring within the string.
- *
- * @param str Pointer to the cstr (can be NULL).
- * @param substr Substring to count (can be NULL).
- * @return Number of occurrences. Returns 0 on invalid input or if substring is
- * not found.
- */
-size_t cstr_count_substr(const cstr* str, const char* substr) {
-    if (!str || !substr) {
-        return 0;
-    }
-    size_t count = 0;
-    size_t sub_len = strlen(substr);
-    if (sub_len == 0) {
-        return 0;  // Cannot count empty substring occurrences
-    }
-
-    const char* p = cstr_get_data_const(str);
-    while ((p = strstr(p, substr))) {
-        count++;
-        p += sub_len;
-    }
-    return count;
-}
-
-// Remove characters in str from start index, up to start + length.
-void cstr_remove_substr(cstr* str, size_t start, size_t substr_length) {
-    if (!str) return;
-
-    size_t length = cstr_get_length(str);
-    if (start >= length) return;
-    if (substr_length == 0) return;  // Nothing to remove
-
-    // Calculate safe removal length
-    if (substr_length > length - start) {
-        substr_length = length - start;
-    }
-
-    char* data = cstr_get_data(str);
-    size_t bytes_to_move = length - start - substr_length;
-
-    // Move remaining characters (including null terminator)
-    if (bytes_to_move > 0) {
-        memmove(data + start, data + start + substr_length, bytes_to_move + 1);
-    } else {
-        // Special case when removing at end of string
-        data[start] = '\0';
-    }
-
-    cstr_set_length(str, length - substr_length);
-}
-
-/**
- * @brief Removes all occurrences of a character from the cstr.
- *
- * Removes all instances of the specified character from the string.
- *
- * @param s Pointer to the cstr (must not be NULL).
- * @param c Character to remove.
- */
-void cstr_remove_char(cstr* s, char c) {
-    if (!s || cstr_get_length(s) == 0) {
-        return;
-    }
-
-    char* data = cstr_get_data(s);
-    size_t len = cstr_get_length(s);
-    char* write_ptr = data;
-    char* read_ptr = data;
-
-    for (size_t i = 0; i < len; i++, read_ptr++) {
-        if (*read_ptr != c) {
-            *write_ptr++ = *read_ptr;
-        }
-    }
-    *write_ptr = '\0';  // Null-terminate the resulting string
-    cstr_set_length(s, (size_t)(write_ptr - data));
-}
-
-/**
- * @brief Extracts a substring from the cstr.
- *
- * Creates a new cstr containing a portion of the original string starting
- * at 'start' index with the specified 'length'. If 'start' is out of bounds
- * or 'start' + 'length' exceeds the original string's length, the substring
- * will be truncated accordingly.
- *
- * @param s Pointer to the cstr (can be NULL).
- * @param start Starting index of the substring (0-based).
- * @param length Length of the substring.
- * @return Pointer to the new cstr containing the substring, or NULL on invalid
- * input or allocation failure.
- */
-cstr* cstr_substr(const cstr* s, size_t start, size_t length) {
-    if (!s || start > cstr_get_length(s)) {
-        return NULL;
-    }
-
-    size_t s_len = cstr_get_length(s);
-    length = MIN(length, s_len - start);
-
-    if (length == 0) {
-        return cstr_new_arena(s->arena, "");  // Return an empty string if the substring length is 0
-    }
-
-    cstr* result = cstr_init_arena(s->arena, length + 1);
-    if (!result) {
-        return NULL;
-    }
-    char* data = cstr_get_data(result);
-    memcpy(data, cstr_get_data_const(s) + start, length);
-    data[length] = '\0';
-    cstr_set_length(result, length);
-    return result;
-}
-
-/**
- * @brief Replaces the first occurrence of a substring with another in the cstr.
- *
- * Creates a new cstr where the first occurrence of 'old_str' is replaced by
- * 'new_str'.
- *
- * @param s Pointer to the cstr (can be NULL).
- * @param old_str Substring to replace (can be NULL). Cannot be empty.
- * @param new_str Replacement substring (can be NULL).
- * @return Pointer to the new cstr with the first occurrence replaced, or NULL
- * on invalid input or allocation failure.
- */
-cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) {
-    if (!s || !old_str || !new_str) {
-        return NULL;
-    }
-
-    size_t old_len = strlen(old_str);
-    const char* s_data = cstr_get_data_const(s);
-    size_t s_len = cstr_get_length(s);
-
-    if (old_len == 0) {
-        // Cannot replace empty string, return a copy
-        return cstr_new_arena(s->arena, s_data);
-    }
-
-    const char* found = strstr(s_data, old_str);
-    if (!found) {
-        // No occurrence found, return a copy
-        return cstr_new_arena(s->arena, s_data);
-    }
-
-    size_t new_len = strlen(new_str);
-    size_t pos = (size_t)(found - s_data);
-    size_t remaining_len = s_len - pos - old_len;
-    size_t required_capacity = 0;
-
-    if (ckd_add(&required_capacity, (pos + new_len), (remaining_len + 1))) {
-        return NULL;
-    }
-
-    cstr* result = cstr_init_arena(s->arena, required_capacity);
-    if (!result) {
-        return NULL;
-    }
-
-    char* dest = cstr_get_data(result);
-
-    // Copy up to the found position
-    if (pos > 0) {
-        memcpy(dest, s_data, pos);
-    }
-    // Copy the new string
-    memcpy(dest + pos, new_str, new_len);
-    // Copy the remaining part of the original string
-    if (remaining_len > 0) {
-        memcpy(dest + pos + new_len, s_data + pos + old_len, remaining_len);
-    }
-    dest[required_capacity - 1] = '\0';  // Ensure null termination
-    cstr_set_length(result, required_capacity - 1);
-
-    return result;
-}
-
-/**
- * @brief Replaces all occurrences of a substring with another.
- *
- * Creates a new cstr where all non-overlapping occurrences of 'old_sub'
- * are replaced by 'new_sub'.
- *
- * @param s Pointer to the cstr (can be NULL).
- * @param old_sub Substring to replace (can be NULL). Cannot be empty.
- * @param new_sub Replacement substring (can be NULL).
- * @return Pointer to the new cstr with replacements, or NULL on invalid input
- * or allocation failure.
- */
-cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) {
-    if (!s || !old_sub || !new_sub) {
-        return NULL;
-    }
-
-    size_t old_len = strlen(old_sub);
-    const char* s_data = cstr_get_data_const(s);
-
-    if (old_len == 0) {
-        return cstr_new_arena(s->arena, s_data);  // Cannot replace empty string, return a copy
-    }
-
-    size_t new_len = strlen(new_sub);
-    size_t s_len = cstr_get_length(s);
-
-    // Count occurrences to estimate new size
-    size_t count = 0;
-    const char* p = s_data;
-    while ((p = strstr(p, old_sub))) {
-        count++;
-        p += old_len;
-    }
-
-    if (count == 0) {
-        return cstr_new_arena(s->arena, s_data);  // No occurrences found, return a copy
-    }
-
-    // Calculate estimated result length
-    size_t result_len_estimate = 0;
-    if (new_len > old_len) {
-        size_t delta = 0;
-        if (ckd_mul(&delta, count, new_len - old_len) || ckd_add(&result_len_estimate, s_len, delta)) {
-            return 0;  // Overflow detected
-        }
-    } else {
-        size_t delta = 0;
-        if (ckd_mul(&delta, count, old_len - new_len)) {
-            return 0;  // Overflow detected
-        }
-        result_len_estimate = s_len >= delta ? s_len - delta : 0;  // Prevent underflow
-    }
-
-    cstr* result = cstr_init_arena(s->arena, result_len_estimate + 1);
-    if (!result) {
-        return NULL;
-    }
-
-    char* dest = cstr_get_data(result);
-    p = s_data;
-    size_t pos = 0;
-
-    while (*p) {
-        // Check if the current position matches the old substring
-        if ((s_len - (size_t)(p - s_data)) >= old_len && strncmp(p, old_sub, old_len) == 0) {
-            // Append the new substring
-            if (!cstr_ensure_capacity(result, pos + new_len + (s_len - (size_t)(p - s_data) - old_len) + 1)) {
-                cstr_free(result);
-                return NULL;
-            }
-            dest = cstr_get_data(result);  // Re-get data pointer after potential realloc
-            memcpy(dest + pos, new_sub, new_len);
-            pos += new_len;
-            p += old_len;  // Move past the old substring
-        } else {
-            // Append the current character
-            if (!cstr_ensure_capacity(result, pos + (s_len - (size_t)(p - s_data)) + 1)) {
-                cstr_free(result);
-                return NULL;
-            }
-            dest = cstr_get_data(result);  // Re-get data pointer after potential realloc
-            dest[pos++] = *p++;
-        }
-    }
-    dest[pos] = '\0';
-    cstr_set_length(result, pos);
-    return result;
-}
-
-/**
- * @brief Splits the cstr into substrings based on a delimiter.
- *
- * Divides the string into an array of new cstr objects, using the delimiter
- * as the separator. Consecutive delimiters result in empty strings in the
- * output array.
- *
- * @param s Pointer to the cstr (can be NULL).
- * @param delim Delimiter string (can be NULL). If empty, returns an array
- * containing a copy of the original string.
- * @param count_out Pointer to store the number of resulting substrings (must
- * not be NULL).
- * @return Array of cstr pointers, or NULL on invalid input or allocation
- * failure. The caller is responsible for freeing the array and each cstr within
- * it.
- */
-cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
-    if (!s || !count_out) {
-        if (count_out) *count_out = 0;
-        return NULL;
-    }
-
-    const char* s_data = cstr_get_data_const(s);
-    size_t s_len = cstr_get_length(s);
-    *count_out = 0;
-
-    // Handle empty delimiter case
-    if (!delim || !*delim) {
-        cstr** result = malloc(sizeof(cstr*));
-        if (!result) return NULL;
-
-        result[0] = cstr_new_arena(s->arena, s_data);
-        if (!result[0]) {
-            free(result);
-            return NULL;
-        }
-        *count_out = 1;
-        return result;
-    }
-
-    size_t delim_len = strlen(delim);
-
-    // Estimate capacity (avoid scanning entire string)
-    size_t capacity = (s_len / (delim_len * 2)) + 4;
-    cstr** result = malloc(capacity * sizeof(cstr*));
-    if (!result) return NULL;
-
-    const char* start = s_data;
-    const char* end = s_data + s_len;
-    size_t count = 0;
-
-    while (1) {
-        const char* found = strstr(start, delim);
-        if (!found || found >= end) found = end;
-
-        // Grow array if needed
-        if (count >= capacity) {
-            capacity *= 2;
-            cstr** new_result = realloc(result, capacity * sizeof(cstr*));
-            if (!new_result) goto error;
-            result = new_result;
-        }
-
-        size_t token_len = (size_t)(found - start);
-        // Use s->arena for substrings
-        result[count] = cstr_init_arena(s->arena, token_len + 1);
-        if (!result[count]) goto error;
-
-        char* data = cstr_get_data(result[count]);
-        memcpy(data, start, token_len);
-        data[token_len] = '\0';
-        cstr_set_length(result[count], token_len);
-
-        count++;
-
-        if (found == end) break;
-        start = found + delim_len;
-    }
-
-    // Trim to exact size if we over-allocated significantly
-    if (capacity > count * 2 && count > 8) {
-        cstr** trimmed = realloc(result, count * sizeof(cstr*));
-        if (trimmed) result = trimmed;
-    }
-
-    *count_out = count;
-    return result;
-
-error:
-    for (size_t i = 0; i < count; i++) {
-        cstr_free(result[i]);
-    }
-    free(result);
-    *count_out = 0;
-    return NULL;
-}
-
-/**
- * @brief Joins multiple cstrs with a delimiter.
- *
- * Concatenates an array of cstrs into a single new cstr, separated by the
- * specified delimiter.
- *
- * @param strings Array of cstr pointers (can be NULL or empty). Each cstr
- * pointer must not be NULL.
- * @param count Number of cstrs in the array.
- * @param delim Delimiter string (can be NULL for no delimiter).
- * @return Pointer to the new cstr with joined strings, or NULL on invalid input
- * or allocation failure. Returns a new empty cstr if the input array is empty.
- */
-cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
-    if (!strings || count == 0) {
-        // Return empty string on heap by default, or use first arena if available?
-        // Without strings, we have no arena context. Default to malloc.
-        return cstr_new("");
-    }
-
-    size_t delim_len = delim ? strlen(delim) : 0;
-    size_t total_len = 0;
-    Arena* arena = NULL;
-
-    // Calculate total length needed and find arena
-    for (size_t i = 0; i < count; i++) {
-        // Invalid input array
-        if (!strings[i]) {
-            return NULL;
-        }
-
-        // Propagate arena from first string that has one
-        if (!arena && strings[i]->arena) {
-            arena = strings[i]->arena;
-        }
-
-        size_t string_len = cstr_get_length(strings[i]);
-        if (ckd_add(&total_len, total_len, string_len)) {
-            return NULL;
-        }
-
-        if (i < count - 1 && delim_len > 0) {
-            if (ckd_add(&total_len, total_len, delim_len)) {
-                return NULL;
-            }
-        }
-    }
-
-    // Check for overflow with null terminator
-    if (ckd_add(&total_len, total_len, 1)) {
-        return NULL;
-    }
-
-    cstr* result = cstr_init_arena(arena, total_len);
-    if (!result) {
-        return NULL;
-    }
-
-    char* dest = cstr_get_data(result);
-    size_t pos = 0;
-
-    for (size_t i = 0; i < count; i++) {
-        size_t len = cstr_get_length(strings[i]);
-        if (len > 0) {
-            memcpy(dest + pos, cstr_get_data_const(strings[i]), len);
-            pos += len;
-        }
-
-        if (delim_len > 0 && i < count - 1) {
-            memcpy(dest + pos, delim, delim_len);
-            pos += delim_len;
-        }
-    }
-    dest[pos] = '\0';
-    cstr_set_length(result, pos);
-    return result;
-}
-
-/**
- * @brief Creates a new cstr with the contents of the input cstr reversed.
- *
- * @param s Pointer to the cstr (can be NULL).
- * @return Pointer to the new reversed cstr, or NULL on invalid input or
- * allocation failure.
- */
-cstr* cstr_reverse(const cstr* s) {
-    if (!s) {
-        return NULL;
-    }
-    size_t len = cstr_get_length(s);
-    if (len == 0) {
-        return cstr_new_arena(s->arena, "");  // Return an empty string for an empty input
-    }
-
-    cstr* result = cstr_init_arena(s->arena, len + 1);
-    if (!result) {
-        return NULL;
-    }
-
-    char* dest = cstr_get_data(result);
-    const char* src = cstr_get_data_const(s);
-
-    for (size_t i = 0; i < len; i++) {
-        dest[i] = src[len - 1 - i];
-    }
-
-    dest[len] = '\0';
-    cstr_set_length(result, len);
-    return result;
-}
-
-/**
- * @brief Reverses the contents of the cstr in place.
- *
- * Reverses the string data within the existing cstr buffer.
- *
- * @param s Pointer to the cstr (can be NULL).
- */
-void cstr_reverse_inplace(cstr* s) {
-    if (!s) {
-        return;
-    }
-    size_t len = cstr_get_length(s);
-    if (len < 2) {
-        return;  // Nothing to reverse
-    }
-    char* data = cstr_get_data(s);
-    for (size_t i = 0; i < len / 2; i++) {
-        char temp = data[i];
-        data[i] = data[len - 1 - i];
-        data[len - 1 - i] = temp;
-    }
-}
-
-// ============================================
-// New Optimized cstr Input Functions
-// ============================================
-
-bool cstr_ends_with_cstr(const cstr* s, const cstr* suffix) {
-    if (!s || !suffix) return false;
-    size_t s_len = cstr_get_length(s);
-    size_t suffix_len = cstr_get_length(suffix);
-    if (suffix_len > s_len) return false;
-    if (suffix_len == 0) return true;
-    return memcmp(cstr_get_data_const(s) + s_len - suffix_len, cstr_get_data_const(suffix), suffix_len) == 0;
-}
-
-int cstr_find_cstr(const cstr* s, const cstr* substr) {
-    if (!s || !substr) return STR_NPOS;
-    size_t sub_len = cstr_get_length(substr);
-    if (sub_len == 0) return 0;
-
-    const char* found = strstr(cstr_get_data_const(s), cstr_get_data_const(substr));
-    return found ? (int)(found - cstr_get_data_const(s)) : STR_NPOS;
-}
-
-int cstr_rfind_cstr(const cstr* s, const cstr* substr) {
-    if (!s || !substr) return STR_NPOS;
-    size_t sub_len = cstr_get_length(substr);
-    size_t s_len = cstr_get_length(s);
-    if (sub_len > s_len) return STR_NPOS;
-    if (sub_len == 0) return (int)s_len;
-
-    const char* s_data = cstr_get_data_const(s);
-    const char* sub_data = cstr_get_data_const(substr);
-    const char* found = NULL;
-    const char* p = s_data;
-
-    while ((p = strstr(p, sub_data))) {
-        found = p;
-        p += 1;
-    }
-    return found ? (int)(found - s_data) : STR_NPOS;
-}
-
-bool cstr_contains(const cstr* s, const char* substr) { return cstr_find(s, substr) != STR_NPOS; }
-
-bool cstr_contains_cstr(const cstr* s, const cstr* substr) { return cstr_find_cstr(s, substr) != STR_NPOS; }
-
-bool cstr_starts_with_cstr(const cstr* s, const cstr* prefix) {
-    if (!s || !prefix) return false;
-    size_t pre_len = cstr_get_length(prefix);
-    size_t s_len = cstr_get_length(s);
-    if (pre_len > s_len) return false;
-    if (pre_len == 0) return true;
-    return memcmp(cstr_get_data_const(s), cstr_get_data_const(prefix), pre_len) == 0;
 }
 
 bool cstr_append_cstr(cstr* s, const cstr* append) {
-    if (!s || !append) return false;
-    size_t append_len = cstr_get_length(append);
-    if (append_len == 0) return true;
+    uint32_t n = append->length;
+    if (n == 0) return true;
 
-    size_t current_len = cstr_get_length(s);
-    size_t new_len = current_len + append_len;
+    uint32_t new_len = s->length + n;
+    if (CSTR_UNLIKELY(new_len < s->length)) return false; /* overflow */
+    if (CSTR_UNLIKELY(!cstr_ensure_cap(s, (size_t)new_len + 1))) return false;
 
-    if (!cstr_ensure_capacity(s, new_len + 1)) return false;
-
-    char* dest = cstr_get_data(s);
-    memcpy(dest + current_len, cstr_get_data_const(append), append_len);
-    dest[new_len] = '\0';
-    cstr_set_length(s, new_len);
+    memcpy(s->data + s->length, append->data, (size_t)n + 1);
+    s->length = new_len;
     return true;
 }
-
-bool cstr_cat(cstr* dest, const cstr* src) { return cstr_append_cstr(dest, src); }
 
 bool cstr_ncat(cstr* dest, const cstr* src, size_t n) {
-    if (!dest || !src) return false;
-    size_t src_len = cstr_get_length(src);
-    size_t append_len = (n < src_len) ? n : src_len;
-    if (append_len == 0) return true;
+    uint32_t copy_n = (n < (size_t)src->length) ? (uint32_t)n : src->length;
+    if (copy_n == 0) return true;
 
-    size_t current_len = cstr_get_length(dest);
-    size_t new_len = current_len + append_len;
+    uint32_t new_len = dest->length + copy_n;
+    if (CSTR_UNLIKELY(new_len < dest->length)) return false;
+    if (CSTR_UNLIKELY(!cstr_ensure_cap(dest, (size_t)new_len + 1))) return false;
 
-    if (!cstr_ensure_capacity(dest, new_len + 1)) return false;
-
-    char* d_ptr = cstr_get_data(dest);
-    memcpy(d_ptr + current_len, cstr_get_data_const(src), append_len);
-    d_ptr[new_len] = '\0';
-    cstr_set_length(dest, new_len);
+    memcpy(dest->data + dest->length, src->data, copy_n);
+    dest->data[new_len] = '\0';
+    dest->length = new_len;
     return true;
 }
 
-bool cstr_copy(cstr* dest, const cstr* src) {
-    if (!dest || !src) return false;
-    if (dest == src) return true;
-
-    size_t src_len = cstr_get_length(src);
-    if (!cstr_ensure_capacity(dest, src_len + 1)) return false;
-
-    memcpy(cstr_get_data(dest), cstr_get_data_const(src), src_len + 1);
-    cstr_set_length(dest, src_len);
+bool cstr_append_char(cstr* s, char c) {
+    uint32_t new_len = s->length + 1;
+    if (CSTR_UNLIKELY(!cstr_ensure_cap(s, (size_t)new_len + 1))) return false;
+    s->data[s->length] = c;
+    s->data[new_len] = '\0';
+    s->length = new_len;
     return true;
 }
 
-bool cstr_assign(cstr* dest, const cstr* src) { return cstr_copy(dest, src); }
+bool cstr_prepend(cstr* s, const char* prepend_str) {
+    size_t n = strlen(prepend_str);
+    if (n == 0) return true;
+
+    size_t new_len = (size_t)s->length + n;
+    if (CSTR_UNLIKELY(new_len > CSTR_MAX_SIZE)) return false;
+    if (CSTR_UNLIKELY(!cstr_ensure_cap(s, new_len + 1))) return false;
+
+    memmove(s->data + n, s->data, s->length + 1);
+    memcpy(s->data, prepend_str, n);
+    s->length = (uint32_t)new_len;
+    return true;
+}
 
 bool cstr_prepend_cstr(cstr* s, const cstr* prepend) {
-    if (!s || !prepend) return false;
-    size_t prepend_len = cstr_get_length(prepend);
-    if (prepend_len == 0) return true;
+    uint32_t n = prepend->length;
+    if (n == 0) return true;
 
-    size_t current_len = cstr_get_length(s);
-    size_t new_len = current_len + prepend_len;
+    uint32_t new_len = s->length + n;
+    if (CSTR_UNLIKELY(new_len < s->length)) return false;
+    if (CSTR_UNLIKELY(!cstr_ensure_cap(s, (size_t)new_len + 1))) return false;
 
-    if (!cstr_ensure_capacity(s, new_len + 1)) return false;
+    memmove(s->data + n, s->data, s->length + 1);
+    memcpy(s->data, prepend->data, n);
+    s->length = new_len;
+    return true;
+}
 
-    char* dest = cstr_get_data(s);
-    memmove(dest + prepend_len, dest, current_len + 1);
-    memcpy(dest, cstr_get_data_const(prepend), prepend_len);
-    cstr_set_length(s, new_len);
+bool cstr_prepend_fast(cstr* s, const char* prepend_str) {
+    size_t n = strlen(prepend_str);
+    if (n == 0) return true;
+    memmove(s->data + n, s->data, s->length + 1);
+    memcpy(s->data, prepend_str, n);
+    s->length += (uint32_t)n;
+    return true;
+}
+
+bool cstr_insert(cstr* s, size_t index, const char* insert_str) {
+    if (CSTR_UNLIKELY(index > (size_t)s->length)) return false;
+
+    size_t n = strlen(insert_str);
+    if (n == 0) return true;
+
+    size_t new_len = (size_t)s->length + n;
+    if (CSTR_UNLIKELY(new_len > CSTR_MAX_SIZE)) return false;
+    if (CSTR_UNLIKELY(!cstr_ensure_cap(s, new_len + 1))) return false;
+
+    char* pos = s->data + index;
+    memmove(pos + n, pos, s->length - index + 1);
+    memcpy(pos, insert_str, n);
+    s->length = (uint32_t)new_len;
     return true;
 }
 
 bool cstr_insert_cstr(cstr* s, size_t index, const cstr* insert) {
-    if (!s || !insert) return false;
-    size_t current_len = cstr_get_length(s);
-    if (index > current_len) return false;
+    if (CSTR_UNLIKELY(index > (size_t)s->length)) return false;
 
-    size_t insert_len = cstr_get_length(insert);
-    if (insert_len == 0) return true;
+    uint32_t n = insert->length;
+    if (n == 0) return true;
 
-    size_t new_len = current_len + insert_len;
-    if (!cstr_ensure_capacity(s, new_len + 1)) return false;
+    uint32_t new_len = s->length + n;
+    if (CSTR_UNLIKELY(new_len < s->length)) return false;
+    if (CSTR_UNLIKELY(!cstr_ensure_cap(s, (size_t)new_len + 1))) return false;
 
-    char* data = cstr_get_data(s);
-    memmove(data + index + insert_len, data + index, current_len - index + 1);
-    memcpy(data + index, cstr_get_data_const(insert), insert_len);
-    cstr_set_length(s, new_len);
+    char* pos = s->data + index;
+    memmove(pos + n, pos, s->length - index + 1);
+    memcpy(pos, insert->data, n);
+    s->length = new_len;
     return true;
 }
 
-size_t cstr_count_substr_cstr(const cstr* str, const cstr* substr) {
-    if (!str || !substr) return 0;
-    size_t sub_len = cstr_get_length(substr);
-    if (sub_len == 0) return 0;
+bool cstr_remove(cstr* s, size_t index, size_t count) {
+    uint32_t len = s->length;
+    if (CSTR_UNLIKELY(index > len)) return (index == len && count == 0);
 
-    size_t count = 0;
-    const char* p = cstr_get_data_const(str);
-    const char* sub_data = cstr_get_data_const(substr);
+    uint32_t idx = (uint32_t)index;
+    uint32_t cnt = (count > (size_t)(len - idx)) ? (len - idx) : (uint32_t)count;
+    if (cnt == 0) return true;
 
-    while ((p = strstr(p, sub_data))) {
-        count++;
-        p += sub_len;
+    memmove(s->data + idx, s->data + idx + cnt, len - idx - cnt + 1);
+    s->length = len - cnt;
+    return true;
+}
+
+/* -------------------------------------------------------------------------
+ * Printf-style helpers
+ * ---------------------------------------------------------------------- */
+
+cstr* cstr_format(const char* format, ...) {
+    if (CSTR_UNLIKELY(!format)) return NULL;
+
+    va_list a, a2;
+    va_start(a, format);
+    va_copy(a2, a);
+    int need = vsnprintf(NULL, 0, format, a2);
+    va_end(a2);
+
+    if (CSTR_UNLIKELY(need < 0 || (size_t)need > CSTR_MAX_SIZE)) {
+        va_end(a);
+        return NULL;
     }
+
+    cstr* s = cstr_init((size_t)need);
+    if (CSTR_UNLIKELY(!s)) {
+        va_end(a);
+        return NULL;
+    }
+
+    vsnprintf(s->data, (size_t)need + 1, format, a);
+    va_end(a);
+    s->length = (uint32_t)need;
+    return s;
+}
+
+bool cstr_append_fmt(cstr* s, const char* format, ...) {
+    va_list a, a2;
+    va_start(a, format);
+    va_copy(a2, a);
+    int n = vsnprintf(NULL, 0, format, a2);
+    va_end(a2);
+
+    if (CSTR_UNLIKELY(n < 0)) {
+        va_end(a);
+        return false;
+    }
+
+    uint32_t new_len = s->length + (uint32_t)n;
+    if (CSTR_UNLIKELY(!cstr_ensure_cap(s, (size_t)new_len + 1))) {
+        va_end(a);
+        return false;
+    }
+
+    vsnprintf(s->data + s->length, (size_t)n + 1, format, a);
+    va_end(a);
+    s->length = new_len;
+    return true;
+}
+
+/* -------------------------------------------------------------------------
+ * Copy / assign
+ * ---------------------------------------------------------------------- */
+
+bool cstr_copy(cstr* dest, const cstr* src) {
+    if (dest == src) return true;
+    uint32_t src_len = src->length;
+    if (CSTR_UNLIKELY(!cstr_ensure_cap(dest, (size_t)src_len + 1))) return false;
+    memcpy(dest->data, src->data, (size_t)src_len + 1);
+    dest->length = src_len;
+    return true;
+}
+
+/* -------------------------------------------------------------------------
+ * Remove helpers
+ * ---------------------------------------------------------------------- */
+
+size_t cstr_remove_all(cstr* s, const char* substr) {
+    if (!*substr) return 0;
+    size_t sub_len = strlen(substr);
+    char* d = s->data;
+    char *w = d, *r = d;
+    const char* end = d + s->length;
+    size_t count = 0;
+
+    while (r < end) {
+        size_t rem = (size_t)(end - r);
+        if (rem >= sub_len && memcmp(r, substr, sub_len) == 0) {
+            r += sub_len;
+            count++;
+        } else {
+            *w++ = *r++;
+        }
+    }
+    *w = '\0';
+    s->length = (uint32_t)(w - d);
     return count;
 }
 
 size_t cstr_remove_all_cstr(cstr* s, const cstr* substr) {
-    if (!s || !substr) return 0;
-    size_t sub_len = cstr_get_length(substr);
+    uint32_t sub_len = substr->length;
     if (sub_len == 0) return 0;
-
-    char* data = cstr_get_data(s);
-    char* write_ptr = data;
-    const char* read_ptr = data;
-    const char* end = data + cstr_get_length(s);
-    const char* sub_data = cstr_get_data_const(substr);
+    const char* sub = substr->data;
+    char* d = s->data;
+    char *w = d, *r = d;
+    const char* end = d + s->length;
     size_t count = 0;
 
-    while (read_ptr < end) {
-        if ((size_t)(end - read_ptr) >= sub_len && memcmp(read_ptr, sub_data, sub_len) == 0) {
-            read_ptr += sub_len;
+    while (r < end) {
+        size_t rem = (size_t)(end - r);
+        if ((uint32_t)rem >= sub_len && memcmp(r, sub, sub_len) == 0) {
+            r += sub_len;
             count++;
         } else {
-            *write_ptr++ = *read_ptr++;
+            *w++ = *r++;
         }
     }
-    *write_ptr = '\0';
-    cstr_set_length(s, (size_t)(write_ptr - data));
+    *w = '\0';
+    s->length = (uint32_t)(w - d);
     return count;
 }
 
-int cstr_cmp(const cstr* s1, const cstr* s2) { return cstr_compare(s1, s2); }
+void cstr_remove_char(cstr* s, char c) {
+    char* d = s->data;
+    char* w = d;
+    const char* end = d + s->length;
+    while (d < end) {
+        if (*d != c) *w++ = *d;
+        d++;
+    }
+    *w = '\0';
+    s->length = (uint32_t)(w - s->data);
+}
+
+void cstr_remove_substr(cstr* s, size_t start, size_t slen) {
+    uint32_t len = s->length;
+    if (CSTR_UNLIKELY(start >= len || slen == 0)) return;
+    if (slen > len - start) slen = len - start;
+    char* d = s->data;
+    size_t tail = len - start - slen;
+    if (tail > 0)
+        memmove(d + start, d + start + slen, tail + 1);
+    else
+        d[start] = '\0';
+    s->length = len - (uint32_t)slen;
+}
+
+/* -------------------------------------------------------------------------
+ * Search — fast needle-in-haystack without memmem
+ *
+ * Strategy:
+ *   needle_len == 0 → trivially found at 0
+ *   needle_len == 1 → memchr (branchless SIMD on any modern libc)
+ *   needle_len 2-8  → first-byte scan with memchr, then verify remainder
+ *   needle_len > 8  → Sunday (simplified Horspool) bad-character skip table
+ *
+ * This beats glibc memmem for short needles because:
+ *   - memmem does an internal strlen on the needle even if you know the length
+ *   - On older glibc, memmem isn't SIMD-accelerated for small haystacks
+ *   - Our memchr-scan path goes through glibc's optimised memchr for the
+ *     common first-byte scan and only does a memcmp on real candidates.
+ * ---------------------------------------------------------------------- */
+static const char* cstr_search(const char* hs, size_t hlen, const char* nd, size_t nlen) {
+    // Trivial cases
+    if (unlikely(nlen == 0)) return hs;
+    if (unlikely(hlen < nlen)) return NULL;
+
+    // Single char: Delegate to SIMD
+    if (nlen == 1) return (const char*)memchr(hs, (unsigned char)nd[0], hlen);
+
+    const char* cur = hs;
+    const char* end = hs + hlen - nlen;
+    unsigned char n_first = (unsigned char)nd[0];
+    unsigned char n_last = (unsigned char)nd[nlen - 1];
+
+    // Main Loop
+    while (cur <= end) {
+        // A. SIMD Scan for first char
+        // We calculate the remaining search space to be safe
+        cur = (const char*)memchr(cur, n_first, (size_t)(end - cur + 1));
+        if (unlikely(!cur)) return NULL;
+
+        // B. Guard Byte Check (Check the last char first)
+        if ((unsigned char)cur[nlen - 1] == n_last) {
+            // C. Small String Optimization
+            // For lengths 2-9, a tight unrolled loop is much faster than memcmp call overhead.
+            if (nlen <= 9) {
+                // We already checked [0] and [nlen-1]. Check the middle.
+                // Compiler will unroll this completely for small nlen.
+                const char* p_hay = cur + 1;
+                const char* p_nd = nd + 1;
+                size_t k = nlen - 2;
+
+                // Do a manual check.
+                // Note: We use a do-while or simple for.
+                // Since nlen >= 2, k can be 0.
+                size_t i = 0;
+                for (; i < k; i++) {
+                    if (p_hay[i] != p_nd[i]) goto next_iter;
+                }
+                return cur;  // Match found
+            } else {
+                // D. Long String: Fallback to memcmp
+                // We offset by 1 and subtract 2 because first/last are already verified.
+                if (memcmp(cur + 1, nd + 1, nlen - 2) == 0) return cur;
+            }
+        }
+
+    next_iter:
+        cur++;
+    }
+
+    return NULL;
+}
+
+/* -------------------------------------------------------------------------
+ * Public find / rfind
+ * ---------------------------------------------------------------------- */
+
+int cstr_find(const cstr* s, const char* substr) {
+    size_t nlen = strlen(substr);
+    const char* found = cstr_search(s->data, s->length, substr, nlen);
+    return found ? (int)(found - s->data) : CSTR_NPOS;
+}
+
+int cstr_find_cstr(const cstr* s, const cstr* sub) {
+    const char* found = cstr_search(s->data, s->length, sub->data, sub->length);
+    return found ? (int)(found - s->data) : CSTR_NPOS;
+}
+
+int cstr_rfind(const cstr* s, const char* substr) {
+    size_t nlen = strlen(substr);
+    if (nlen == 0 || nlen > s->length) return CSTR_NPOS;
+
+    const char* hs = s->data;
+    size_t hlen = s->length;
+    const char* last = NULL;
+    const char* p = hs;
+
+    /* Walk forward collecting last match — memchr makes each step fast. */
+    while ((p = cstr_search(p, hlen - (size_t)(p - hs), substr, nlen)) != NULL) {
+        last = p;
+        p++;
+        if ((size_t)(p - hs) + nlen > hlen) break;
+    }
+    return last ? (int)(last - hs) : CSTR_NPOS;
+}
+
+int cstr_rfind_cstr(const cstr* s, const cstr* sub) {
+    if (sub->length == 0) return (int)s->length;
+    if (sub->length > s->length) return CSTR_NPOS;
+
+    const char* hs = s->data;
+    size_t hlen = s->length;
+    const char* last = NULL;
+    const char* p = hs;
+
+    while ((p = cstr_search(p, hlen - (size_t)(p - hs), sub->data, sub->length)) != NULL) {
+        last = p;
+        p++;
+        if ((size_t)(p - hs) + sub->length > hlen) break;
+    }
+    return last ? (int)(last - hs) : CSTR_NPOS;
+}
+
+/* -------------------------------------------------------------------------
+ * Comparison
+ * ---------------------------------------------------------------------- */
+
+int cstr_cmp(const cstr* s1, const cstr* s2) {
+    if (!s1 && !s2) return 0;
+    if (!s1) return -1;
+    if (!s2) return 1;
+    return strcmp(s1->data, s2->data);
+}
 
 int cstr_ncmp(const cstr* s1, const cstr* s2, size_t n) {
     if (!s1 && !s2) return 0;
     if (!s1) return -1;
     if (!s2) return 1;
-    return strncmp(cstr_get_data_const(s1), cstr_get_data_const(s2), n);
+    return strncmp(s1->data, s2->data, n);
+}
+
+/* -------------------------------------------------------------------------
+ * starts_with / ends_with
+ * ---------------------------------------------------------------------- */
+
+bool cstr_starts_with(const cstr* s, const char* prefix) {
+    size_t plen = strlen(prefix);
+    if (plen == 0) return true;
+    if (plen > (size_t)s->length) return false;
+    return memcmp(s->data, prefix, plen) == 0;
+}
+
+bool cstr_starts_with_cstr(const cstr* s, const cstr* prefix) {
+    uint32_t plen = prefix->length;
+    if (plen == 0) return true;
+    if (plen > s->length) return false;
+    return memcmp(s->data, prefix->data, plen) == 0;
+}
+
+bool cstr_ends_with(const cstr* s, const char* suffix) {
+    size_t slen = strlen(suffix);
+    if (slen == 0) return true;
+    if (slen > (size_t)s->length) return false;
+    return memcmp(s->data + s->length - slen, suffix, slen) == 0;
+}
+
+bool cstr_ends_with_cstr(const cstr* s, const cstr* suffix) {
+    uint32_t slen = suffix->length;
+    if (slen == 0) return true;
+    if (slen > s->length) return false;
+    return memcmp(s->data + s->length - slen, suffix->data, slen) == 0;
+}
+
+/* -------------------------------------------------------------------------
+ * Count occurrences
+ * ---------------------------------------------------------------------- */
+
+size_t cstr_count_substr(const cstr* s, const char* substr) {
+    size_t nlen = strlen(substr);
+    if (nlen == 0 || nlen > s->length) return 0;
+
+    size_t count = 0;
+    const char* p = s->data;
+    size_t rem = s->length;
+
+    while ((p = cstr_search(p, rem, substr, nlen)) != NULL) {
+        count++;
+        p += nlen;
+        rem = s->length - (size_t)(p - s->data);
+        if (rem < nlen) break;
+    }
+    return count;
+}
+
+size_t cstr_count_substr_cstr(const cstr* s, const cstr* sub) {
+    if (sub->length == 0 || sub->length > s->length) return 0;
+    size_t nlen = sub->length;
+
+    size_t count = 0;
+    const char* p = s->data;
+    size_t rem = s->length;
+
+    while ((p = cstr_search(p, rem, sub->data, nlen)) != NULL) {
+        count++;
+        p += nlen;
+        rem = s->length - (size_t)(p - s->data);
+        if (rem < nlen) break;
+    }
+    return count;
+}
+
+/* -------------------------------------------------------------------------
+ * Case conversion
+ * ---------------------------------------------------------------------- */
+
+void cstr_lower(cstr* s) {
+    char* d = s->data;
+    for (uint32_t i = 0, n = s->length; i < n; i++) {
+        unsigned char c = (unsigned char)d[i];
+        /* Branch-free ASCII fast path: sets bit 5 for A-Z. */
+        if ((unsigned)(c - 'A') <= 25u) d[i] = (char)(c | 0x20u);
+    }
+}
+
+void cstr_upper(cstr* s) {
+    char* d = s->data;
+    for (uint32_t i = 0, n = s->length; i < n; i++) {
+        unsigned char c = (unsigned char)d[i];
+        /* Branch-free ASCII: clears bit 5 for a-z. */
+        if ((unsigned)(c - 'a') <= 25u) d[i] = (char)(c & ~0x20u);
+    }
+}
+
+bool cstr_snakecase(cstr* s) {
+    uint32_t orig = s->length;
+    if (orig == 0) return true;
+
+    /* Count how many underscores we'll need to insert. */
+    const char* d = s->data;
+    uint32_t extra = 0;
+    for (uint32_t i = 1; i < orig; i++) {
+        if ((unsigned)((unsigned char)d[i] - 'A') <= 25u) extra++;
+    }
+    if (extra == 0) {
+        cstr_lower(s);
+        return true;
+    }
+
+    uint32_t new_len = orig + extra;
+    if (CSTR_UNLIKELY(!cstr_ensure_cap(s, new_len + 1))) return false;
+
+    /* Right-to-left expansion (avoids second pass). */
+    d = s->data; /* pointer may have changed after ensure_cap */
+    char* w = s->data + new_len;
+    *w-- = '\0';
+
+    for (uint32_t i = orig; i > 0;) {
+        i--;
+        unsigned char c = (unsigned char)d[i];
+        if (i > 0 && (unsigned)(c - 'A') <= 25u) {
+            *w-- = (char)(c | 0x20u);
+            *w-- = '_';
+        } else {
+            *w-- = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
+        }
+    }
+    s->length = new_len;
+    return true;
+}
+
+void cstr_camelcase(cstr* s) {
+    uint32_t len = s->length;
+    if (len == 0) return;
+    char* d = s->data;
+    uint32_t r = 0, w = 0;
+
+    /* Skip leading separators; first real char → lower. */
+    while (r < len && (d[r] == '_' || isspace((unsigned char)d[r]))) r++;
+    if (r < len) {
+        unsigned char c = (unsigned char)d[r++];
+        d[w++] = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
+    }
+
+    bool cap = false;
+    while (r < len) {
+        unsigned char c = (unsigned char)d[r++];
+        if (c == '_' || isspace(c)) {
+            cap = true;
+            continue;
+        }
+        if (cap) {
+            d[w++] = (char)toupper(c);
+            cap = false;
+        } else {
+            d[w++] = (char)tolower(c);
+        }
+    }
+    d[w] = '\0';
+    s->length = w;
+}
+
+void cstr_pascalcase(cstr* s) {
+    uint32_t len = s->length;
+    if (len == 0) return;
+    char* d = s->data;
+    uint32_t r = 0, w = 0;
+
+    while (r < len && (d[r] == '_' || isspace((unsigned char)d[r]))) r++;
+
+    bool new_word = true;
+    while (r < len) {
+        unsigned char c = (unsigned char)d[r++];
+        if (c == '_' || isspace(c)) {
+            new_word = true;
+            continue;
+        }
+        d[w++] = new_word ? (char)toupper(c) : (char)tolower(c);
+        new_word = false;
+    }
+    d[w] = '\0';
+    s->length = w;
+}
+
+void cstr_titlecase(cstr* s) {
+    uint32_t len = s->length;
+    char* d = s->data;
+    bool cap = true;
+    for (uint32_t i = 0; i < len; i++) {
+        unsigned char c = (unsigned char)d[i];
+        if (isspace(c)) {
+            cap = true;
+        } else if (cap) {
+            d[i] = (char)toupper(c);
+            cap = false;
+        } else {
+            d[i] = (char)tolower(c);
+        }
+    }
+}
+
+/* -------------------------------------------------------------------------
+ * Trim
+ * ---------------------------------------------------------------------- */
+
+void cstr_trim(cstr* s) {
+    uint32_t len = s->length;
+    if (len == 0) return;
+    char* d = s->data;
+
+    uint32_t start = 0, end = len - 1;
+    while (start < len && isspace((unsigned char)d[start])) start++;
+    while (end > start && isspace((unsigned char)d[end])) end--;
+
+    uint32_t new_len = (start > end) ? 0 : (end - start + 1);
+    if (new_len && start) memmove(d, d + start, new_len);
+    d[new_len] = '\0';
+    s->length = new_len;
+}
+
+void cstr_rtrim(cstr* s) {
+    uint32_t len = s->length;
+    if (len == 0) return;
+    char* d = s->data;
+    uint32_t e = len;
+    while (e > 0 && isspace((unsigned char)d[e - 1])) e--;
+    d[e] = '\0';
+    s->length = e;
+}
+
+void cstr_ltrim(cstr* s) {
+    uint32_t len = s->length;
+    if (len == 0) return;
+    char* d = s->data;
+    uint32_t start = 0;
+    while (start < len && isspace((unsigned char)d[start])) start++;
+    if (start == 0) return;
+    uint32_t new_len = len - start;
+    memmove(d, d + start, new_len + 1);
+    s->length = new_len;
+}
+
+void cstr_trim_chars(cstr* s, const char* chars) {
+    uint32_t len = s->length;
+    if (len == 0 || *chars == '\0') return;
+    char* d = s->data;
+
+    uint32_t start = 0;
+    while (start < len && strchr(chars, d[start])) start++;
+    if (start == len) {
+        s->length = 0;
+        d[0] = '\0';
+        return;
+    }
+
+    uint32_t end = len - 1;
+    while (end > start && strchr(chars, d[end])) end--;
+
+    uint32_t new_len = end - start + 1;
+    if (start) memmove(d, d + start, new_len);
+    d[new_len] = '\0';
+    s->length = new_len;
+}
+
+/* -------------------------------------------------------------------------
+ * Substrings
+ * ---------------------------------------------------------------------- */
+
+cstr* cstr_substr(const cstr* s, size_t start, size_t length) {
+    uint32_t slen = s->length;
+    if (CSTR_UNLIKELY(start > slen)) return NULL;
+    uint32_t avail = slen - (uint32_t)start;
+    uint32_t copy = (length > avail) ? avail : (uint32_t)length;
+    return cstr_new_len(s->data + start, copy);
+}
+
+/* -------------------------------------------------------------------------
+ * Replace (first occurrence) — builds result in one allocation
+ * ---------------------------------------------------------------------- */
+
+cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) {
+    size_t old_len = strlen(old_str);
+    if (old_len == 0) return cstr_new_len(s->data, s->length);
+
+    const char* found = cstr_search(s->data, s->length, old_str, old_len);
+    if (!found) return cstr_new_len(s->data, s->length);
+
+    size_t new_len = strlen(new_str);
+    size_t prefix_len = (size_t)(found - s->data);
+    size_t suffix_len = s->length - prefix_len - old_len;
+    size_t result_len = prefix_len + new_len + suffix_len;
+
+    cstr* r = cstr_init(result_len);
+    if (CSTR_UNLIKELY(!r)) return NULL;
+
+    char* d = r->data;
+    memcpy(d, s->data, prefix_len);
+    memcpy(d + prefix_len, new_str, new_len);
+    memcpy(d + prefix_len + new_len, found + old_len, suffix_len);
+    d[result_len] = '\0';
+    r->length = (uint32_t)result_len;
+    return r;
+}
+
+/* -------------------------------------------------------------------------
+ * Replace all — stack-allocated offset table (heap fallback for > 64 hits)
+ * ---------------------------------------------------------------------- */
+
+#define RA_STACK_CAP 64
+
+cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) {
+    size_t old_len = strlen(old_sub);
+    if (old_len == 0) return cstr_new_len(s->data, s->length);
+
+    size_t new_len = strlen(new_sub);
+    const char* hs = s->data;
+    size_t hlen = s->length;
+
+    /* Collect match offsets. */
+    size_t stack_offs[RA_STACK_CAP];
+    size_t* offs = stack_offs;
+    size_t offs_cap = RA_STACK_CAP;
+    size_t count = 0;
+
+    const char* p = hs;
+    size_t rem = hlen;
+
+    while ((p = cstr_search(p, rem, old_sub, old_len)) != NULL) {
+        if (CSTR_UNLIKELY(count >= offs_cap)) {
+            /* FIX: Guard against integer overflow before multiplying. */
+            if (CSTR_UNLIKELY(offs_cap > SIZE_MAX / 2 / sizeof(size_t))) goto oom;
+
+            size_t new_cap = offs_cap * 2;
+            size_t* no;
+            if (offs == stack_offs) {
+                no = (size_t*)malloc(new_cap * sizeof(size_t));
+                if (CSTR_UNLIKELY(!no)) goto oom;
+                memcpy(no, stack_offs, count * sizeof(size_t));
+            } else {
+                no = (size_t*)realloc(offs, new_cap * sizeof(size_t));
+                if (CSTR_UNLIKELY(!no)) goto oom;
+            }
+            offs = no;
+            offs_cap = new_cap;
+        }
+        offs[count++] = (size_t)(p - hs);
+        p += old_len;
+        rem = hlen - (size_t)(p - hs);
+    }
+
+    if (count == 0) {
+        if (offs != stack_offs) free(offs);
+        return cstr_new_len(hs, hlen);
+    }
+
+    /* Compute exact output length. */
+    size_t result_len;
+    if (new_len >= old_len)
+        result_len = hlen + count * (new_len - old_len);
+    else
+        result_len = hlen - count * (old_len - new_len);
+
+    {
+        cstr* r = cstr_init(result_len);
+        if (CSTR_UNLIKELY(!r)) goto oom;
+
+        char* dst = r->data;
+        size_t write_pos = 0;
+        size_t src_pos = 0;
+
+        for (size_t i = 0; i < count; i++) {
+            size_t gap = offs[i] - src_pos;
+            if (gap) {
+                memcpy(dst + write_pos, hs + src_pos, gap);
+                write_pos += gap;
+            }
+            if (new_len) {
+                memcpy(dst + write_pos, new_sub, new_len);
+                write_pos += new_len;
+            }
+            src_pos = offs[i] + old_len;
+        }
+        size_t tail = hlen - src_pos;
+        if (tail) {
+            memcpy(dst + write_pos, hs + src_pos, tail);
+            write_pos += tail;
+        }
+
+        dst[write_pos] = '\0';
+        r->length = (uint32_t)write_pos;
+
+        if (offs != stack_offs) free(offs);
+        return r;
+    }
+
+oom:
+    if (offs != stack_offs) free(offs);
+    return NULL;
+}
+
+#undef RA_STACK_CAP
+
+/* -------------------------------------------------------------------------
+ * Split & join
+ * ---------------------------------------------------------------------- */
+
+cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
+    *count_out = 0;
+    if (!delim || !*delim) {
+        cstr** r = (cstr**)malloc(sizeof(cstr*));
+        if (!r) return NULL;
+        r[0] = cstr_new_len(s->data, s->length);
+        if (!r[0]) {
+            free(r);
+            return NULL;
+        }
+        *count_out = 1;
+        return r;
+    }
+
+    size_t dlen = strlen(delim);
+    size_t cap = 8;
+    cstr** result = (cstr**)malloc(cap * sizeof(cstr*));
+    if (!result) return NULL;
+
+    const char* start = s->data;
+    const char* end = s->data + s->length;
+    size_t count = 0;
+
+    while (1) {
+        const char* found = cstr_search(start, (size_t)(end - start), delim, dlen);
+        const char* tok_end = found ? found : end;
+
+        if (CSTR_UNLIKELY(count >= cap)) {
+            cap *= 2;
+            cstr** tmp = (cstr**)realloc(result, cap * sizeof(cstr*));
+            if (!tmp) goto split_err;
+            result = tmp;
+        }
+
+        result[count] = cstr_new_len(start, (size_t)(tok_end - start));
+        if (!result[count]) goto split_err;
+        count++;
+
+        if (!found) break;
+        start = found + dlen;
+    }
+
+    *count_out = count;
+    return result;
+
+split_err:
+    for (size_t i = 0; i < count; i++) cstr_free(result[i]);
+    free(result);
+    return NULL;
+}
+
+cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
+    if (!strings || count == 0) return cstr_new_len("", 0);
+
+    size_t dlen = delim ? strlen(delim) : 0;
+    size_t total = 0;
+    for (size_t i = 0; i < count; i++) {
+        if (CSTR_UNLIKELY(!strings[i])) return NULL;
+        total += strings[i]->length;
+        if (i + 1 < count) total += dlen;
+    }
+
+    cstr* r = cstr_init(total);
+    if (!r) return NULL;
+
+    char* d = r->data;
+    size_t pos = 0;
+    for (size_t i = 0; i < count; i++) {
+        uint32_t len = strings[i]->length;
+        if (len) {
+            memcpy(d + pos, strings[i]->data, len);
+            pos += len;
+        }
+        if (dlen && i + 1 < count) {
+            memcpy(d + pos, delim, dlen);
+            pos += dlen;
+        }
+    }
+    d[pos] = '\0';
+    r->length = (uint32_t)pos;
+    return r;
+}
+
+/* -------------------------------------------------------------------------
+ * Reverse
+ * ---------------------------------------------------------------------- */
+
+cstr* cstr_reverse(const cstr* s) {
+    uint32_t len = s->length;
+    cstr* r = cstr_init(len);
+    if (!r) return NULL;
+    char* dst = r->data;
+    const char* src = s->data;
+    for (uint32_t i = 0; i < len; i++) dst[i] = src[len - 1 - i];
+    dst[len] = '\0';
+    r->length = len;
+    return r;
+}
+
+void cstr_reverse_inplace(cstr* s) {
+    uint32_t len = s->length;
+    if (len < 2) return;
+    char* d = s->data;
+    for (uint32_t i = 0, j = len - 1; i < j; i++, j--) {
+        char t = d[i];
+        d[i] = d[j];
+        d[j] = t;
+    }
 }

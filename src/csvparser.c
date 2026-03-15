@@ -2,6 +2,7 @@
 
 #include "../include/arena.h"
 #include "../include/cstr.h"
+#include "../include/str_utils.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -350,8 +351,11 @@ static size_t get_num_fields(const char* line, char delim, char quote) {
     return numFields;
 }
 
-// Function to parse a CSV line and split it into fields
+/**
+ * Function to parse a CSV line and split it into fields
+ */
 static bool parse_csv_line(csv_line_params* args) {
+    // statically MUST be <= 4096 to prevent stack overflow
     char field[MAX_FIELD_SIZE] = {0};
     int insideQuotes = 0;
 
@@ -379,17 +383,25 @@ static bool parse_csv_line(csv_line_params* args) {
             row->count++;
             fieldIndex = 0;
         } else {
+            /* SECURITY: Prevent stack buffer overflow on oversized fields. */
+            if (fieldIndex >= MAX_FIELD_SIZE - 1) {
+                fprintf(stderr,
+                        "ERROR: field in row %zu exceeds MAX_FIELD_SIZE (%d), "
+                        "aborting parse\n",
+                        args->rowIndex, MAX_FIELD_SIZE - 1);
+                return false;
+            }
             field[fieldIndex++] = args->line[i];
         }
     }
 
-    // If inside quotes at the end of the line, the line is not terminated
+    /* If inside quotes at the end of the line, the line is not terminated */
     if (insideQuotes) {
         fprintf(stderr, "ERROR: unterminated quoted field:%s in line %zu\n", args->line, args->rowIndex);
         return false;
     }
 
-    // Add the last field with whitespace trimming
+    /* Add the last field with whitespace trimming */
     field[fieldIndex] = '\0';
     char* trimmed = trim_string(field);
     fields[row->count] = arena_strdup(args->arena, trimmed);
@@ -399,7 +411,7 @@ static bool parse_csv_line(csv_line_params* args) {
     }
     row->count++;
 
-    // validate the number of fields
+    /* Validate the number of fields */
     if (row->count != args->num_fields) {
         fprintf(stderr, "ERROR: invalid number of fields in line %zu\n", args->rowIndex);
         return false;

@@ -364,39 +364,56 @@ ssize_t file_pwrite(file_t* file, const void* buffer, size_t size, int64_t offse
 #endif
 }
 
-void* file_readall(const file_t* file, size_t* size_out) {
-    size_t size = file->attr.size;
-    if (size == 0) {
+void* file_readall(file_t* file, size_t* size_out) {
+    /* Save the caller's current stream position so we can restore it later. */
+    int64_t orig_pos = file_tell(file);
+
+    /* Seek to the end to get the actual, up-to-date byte count. */
+    if (fseek(file->stream, 0, SEEK_END) != 0) {
+        return NULL;
+    }
+
+    int64_t current_size = file_tell(file);
+    if (current_size < 0) {
+        /* Restore position on error and bail. */
+        if (orig_pos >= 0) fseek(file->stream, (long)orig_pos, SEEK_SET);
+        return NULL;
+    }
+
+    /* Rewind to the beginning before reading. */
+    if (fseek(file->stream, 0, SEEK_SET) != 0) {
+        if (orig_pos >= 0) fseek(file->stream, (long)orig_pos, SEEK_SET);
+        return NULL;
+    }
+
+    if (current_size == 0) {
         if (size_out) *size_out = 0;
-        // Return a valid pointer for zero-sized files
+        /* Return a valid non-NULL pointer for zero-sized files */
         return malloc(1);
     }
 
-    void* buffer = malloc((size_t)size);
+    void* buffer = malloc((size_t)current_size);
     if (!buffer) {
         errno = ENOMEM;
+        if (orig_pos >= 0) fseek(file->stream, (long)orig_pos, SEEK_SET);
         return NULL;
     }
 
-    // Save current position and seek to beginning
-    int64_t orig_pos = file_tell(file);
-    if (fseek(file->stream, 0, SEEK_SET) != 0) {
-        free(buffer);
-        return NULL;
-    }
+    size_t bytes_read = file_read(file, buffer, 1, (size_t)current_size);
 
-    size_t bytes_read = file_read(file, buffer, 1, (size_t)size);
-
-    // Restore original position (best effort)
+    /* Restore the original stream position (best-effort). */
     if (orig_pos >= 0) {
         fseek(file->stream, (long)orig_pos, SEEK_SET);
     }
 
-    if (bytes_read != (size_t)size) {
+    if (bytes_read != (size_t)current_size) {
         free(buffer);
-        errno = (ferror(file->stream)) ? EIO : EINVAL;
+        errno = ferror(file->stream) ? EIO : EINVAL;
         return NULL;
     }
+
+    // Update attrs.size with most recent size after reading, since file could have changed since open
+    file->attr.size = (size_t)current_size;
 
     if (size_out) {
         *size_out = bytes_read;

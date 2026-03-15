@@ -27,6 +27,11 @@ extern "C" {
 #define MAX_FIELD_SIZE 1024
 #endif
 
+// static assert to ensure MAX_FIELD_SIZE is reasonable for stack allocation
+#if MAX_FIELD_SIZE > 4096
+#error "MAX_FIELD_SIZE is too large for stack allocation. Please reduce it to 4096 or less."
+#endif
+
 /**
  * @brief Opaque structure representing a CSV parser.
  * Create a new CSV parser with csv_reader_new and free it with

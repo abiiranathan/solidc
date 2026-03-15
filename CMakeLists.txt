@@ -1,13 +1,14 @@
 cmake_minimum_required(VERSION 3.30.0)
-project(solidc VERSION 0.2.5 LANGUAGES C)
+project(solidc VERSION 0.2.5 LANGUAGES C CXX)
 
 # ==============================================================================
 # Global Settings
 # ==============================================================================
 set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
-
 
 if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
     set(CMAKE_INSTALL_LIBDIR "lib")
@@ -127,7 +128,6 @@ set(SOURCES
     src/prettytable.c
     src/ml.c
 )
-
 
 add_compile_definitions(_USE_MATH_DEFINES _GNU_SOURCE)
 

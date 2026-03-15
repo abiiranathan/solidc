@@ -793,22 +793,25 @@ static inline float simd_hmax(simd_vec_t v) {
 static inline float simd_dot3(simd_vec_t a, simd_vec_t b) {
 #if defined(SIMD_ARCH_X86)
 #ifdef SIMD_HAS_SSE41
-    return _mm_cvtss_f32(_mm_dp_ps(a, b, 0x71));  // mask: xxxx0111
+    return _mm_cvtss_f32(_mm_dp_ps(a, b, 0x71)); /* mask: xxxx0111 */
 #else
     __m128 mul = _mm_mul_ps(a, b);
 
     /*
-     * Fix: Use Multiplication to mask out W.
-     * Previous version incorrectly used _mm_and_ps with 1.0f, which corrupts bits.
+     * FIX: Zero the W lane with a bitwise AND instead of multiplication
+     * by 0.0f.  Multiplication propagates NaN/Inf; AND does not.
+     *
+     * Mask layout (little-endian lanes):  [~0, ~0, ~0,  0]
+     *                                       X    Y    Z   W
      */
-    __m128 mask = _mm_set_ps(0.0f, 1.0f, 1.0f, 1.0f);  // x=1, y=1, z=1, w=0
-    mul = _mm_mul_ps(mul, mask);                       // Multiply, don't AND
+    const __m128i imask = _mm_set_epi32(0, ~0, ~0, ~0);
+    mul = _mm_and_ps(mul, _mm_castsi128_ps(imask));
 
     return simd_hadd(mul);
 #endif
 #elif defined(SIMD_ARCH_ARM)
     simd_vec_t mul = vmulq_f32(a, b);
-    mul = vsetq_lane_f32(0.0f, mul, 3);  // Set W lane to 0
+    mul = vsetq_lane_f32(0.0f, mul, 3); /* zero W lane (no NaN risk: 0 literal) */
 #if defined(SIMD_ARCH_ARM64)
     return vaddvq_f32(mul);
 #else

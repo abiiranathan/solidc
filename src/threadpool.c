@@ -127,9 +127,12 @@ static int ringbuffer_pull_batch_optimized(TaskRingBuffer* rb, Task* tasks, size
     int yield_count = 0;
 
     while (1) {
-        // Single memory barrier for both loads
+        /*
+         * Both tail and head must be acquired so the consumer sees all task
+         * data written by the producer before it advanced head.
+         */
         uint32_t tail = atomic_load_explicit(&rb->tail, memory_order_acquire);
-        uint32_t head = atomic_load_explicit(&rb->head, memory_order_relaxed);  // relaxed since tail has acquire
+        uint32_t head = atomic_load_explicit(&rb->head, memory_order_acquire);
 
         if (head != tail) {
             // Calculate available tasks

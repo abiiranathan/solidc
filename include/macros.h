@@ -120,10 +120,12 @@
 #define STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
 #endif
 
+#ifndef PRINTF_FORMAT
 #if defined(__GNUC__) || defined(__clang__)
-#define PRINTF_FORMAT(fmt_idx, arg_idx) __attribute__((format(printf, fmt_idx, arg_idx)))
+#define PRINTF_FORMAT(fmt, va) __attribute__((format(printf, fmt, va)))
 #else
-#define PRINTF_FORMAT(fmt_idx, arg_idx)
+#define PRINTF_FORMAT(fmt, va)
+#endif
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)

@@ -2,6 +2,7 @@
 #include "aligned_alloc.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -10,104 +11,123 @@
 #include <unistd.h>
 #endif
 
-Arena* arena_create(size_t reserve_size) {
-    // If reserve_size is zero, use default size of 1GB Virtual address space.
-    if (reserve_size == 0) {
-        reserve_size = ARENA_DEFAULT_SIZE;
-    }
+#define STATIC_BUFFER_SIZE (1024 * 1024)
 
-    // Allocate the arena metadata header
-    Arena* a = (Arena*)aligned_alloc_xp(64, sizeof(Arena));
-    if (!a) return NULL;
+static _Thread_local char static_buffer[STATIC_BUFFER_SIZE] ARENA_ALIGNED(64);
+static _Thread_local bool static_buffer_in_use = false;
 
-    // Reserve Virtual Address Space
+static ARENA_INLINE size_t get_page_size(void) {
 #if defined(_WIN32)
     SYSTEM_INFO si;
     GetSystemInfo(&si);
-    a->page_size = si.dwPageSize;
-    // Reserve address space (no RAM used)
-    a->base = (char*)VirtualAlloc(NULL, reserve_size, MEM_RESERVE, PAGE_NOACCESS);
+    return si.dwPageSize;
 #else
-    a->page_size = (size_t)sysconf(_SC_PAGESIZE);
-    // Reserve address space (no RAM used)
-    a->base = (char*)mmap(NULL, reserve_size, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
-    if (a->base == MAP_FAILED) a->base = NULL;
+    return (size_t)sysconf(_SC_PAGESIZE);
 #endif
+}
 
-    if (!a->base) {
-        aligned_free_xp(a);
-        return NULL;
+void arena_init(Arena* restrict a, void* restrict buf, size_t size) {
+    memset(a, 0, sizeof(Arena));
+    a->page_size = get_page_size();
+    a->heap_allocated = false;
+
+    a->first_block.base = (char*)buf;
+    a->first_block.end = (char*)buf + size;
+    a->first_block.is_static = true;
+    a->first_block.next = NULL;
+
+    a->head = &a->first_block;
+    a->current_block = a->head;
+    a->curr = a->head->base;
+    a->end = a->head->end;
+    a->total_committed = size;
+}
+
+Arena* arena_create(size_t reserve_size) {
+    Arena* a = (Arena*)aligned_alloc_xp(64, sizeof(Arena));
+    if (!a) return NULL;
+
+    if (!static_buffer_in_use && reserve_size <= STATIC_BUFFER_SIZE) {
+        arena_init(a, static_buffer, STATIC_BUFFER_SIZE);
+        static_buffer_in_use = true;
+    } else {
+        size_t initial_size = reserve_size > 0 ? reserve_size : ARENA_MIN_BLOCK_SIZE;
+        initial_size = (initial_size + get_page_size() - 1) & ~(get_page_size() - 1);
+
+        char* buf = (char*)aligned_alloc_xp(64, initial_size);
+        if (!buf) {
+            aligned_free_xp(a);
+            return NULL;
+        }
+        arena_init(a, buf, initial_size);
+        a->first_block.is_static = false;  // We own this buffer; arena_destroy must free it.
     }
 
-    a->curr = a->base;
-    a->end = a->base;  // Will be updated after commit
-    a->reserve_end = a->base + reserve_size;
-
-    // Pre-commit the first page to eliminate initial allocation latency
-    // This ensures the first few allocations are instant with no page faults
-#if defined(_WIN32)
-    void* committed = VirtualAlloc(a->base, a->page_size, MEM_COMMIT, PAGE_READWRITE);
-    if (!committed) {
-        VirtualFree(a->base, 0, MEM_RELEASE);
-        aligned_free_xp(a);
-        return NULL;
-    }
-#else
-    if (mprotect(a->base, a->page_size, PROT_READ | PROT_WRITE) != 0) {
-        munmap(a->base, reserve_size);
-        aligned_free_xp(a);
-        return NULL;
-    }
-#endif
-
-    // Update end pointer to reflect committed memory
-    a->end = a->base + a->page_size;
+    a->heap_allocated = true;
     return a;
 }
 
-void* _arena_alloc_slow(Arena* a, size_t size, size_t align) {
-    uintptr_t curr = (uintptr_t)a->curr;
-    uintptr_t mask = (uintptr_t)align - 1;
-    uintptr_t aligned_curr = (curr + mask) & ~mask;
-    uintptr_t needed = aligned_curr + size;
-
-    if (needed > (uintptr_t)a->reserve_end) {
-        return NULL;  // Absolute OOM
+void* _arena_alloc_slow(Arena* restrict a, size_t size, size_t alignment) {
+    // Try the next cached block before allocating a new one.
+    ArenaBlock* next = a->current_block->next;
+    if (next) {
+        uintptr_t aligned = ((uintptr_t)next->base + alignment - 1) & ~(alignment - 1);
+        if (aligned + size <= (uintptr_t)next->end) {
+            a->current_block = next;
+            a->curr = (char*)(aligned + size);
+            a->end = next->end;
+            return (void*)aligned;
+        }
     }
 
-    // Calculate how many more pages we need to commit
-    // We commit in chunks of at least 64KB to reduce syscall frequency
-    size_t chunk_size = 64 * 1024;
-    size_t to_commit = needed - (uintptr_t)a->end;
-    if (to_commit < chunk_size) to_commit = chunk_size;
+    // Allocate a new block. The ArenaBlock header lives at the start of the
+    // allocation itself, eliminating the separate malloc() call.
+    size_t current_size = (size_t)(a->current_block->end - a->current_block->base);
+    size_t needed = sizeof(ArenaBlock) + alignment + size;
+    size_t next_size = current_size * 2;
 
-    // Round to page boundary
-    to_commit = (to_commit + a->page_size - 1) & ~(a->page_size - 1);
+    if (next_size < needed) next_size = needed;
+    if (next_size < ARENA_MIN_BLOCK_SIZE) next_size = ARENA_MIN_BLOCK_SIZE;
+    next_size = (next_size + a->page_size - 1) & ~(a->page_size - 1);
 
-    // Safety check for reserve boundary
-    if ((char*)a->end + to_commit > a->reserve_end) {
-        to_commit = (size_t)(a->reserve_end - a->end);
-    }
+    // Single allocation: header at [ptr], usable memory at [ptr + sizeof(ArenaBlock)].
+    char* ptr = (char*)aligned_alloc_xp(64, next_size);
+    if (!ptr) return NULL;
 
-    // Commit the memory.
-#if defined(_WIN32)
-    if (!VirtualAlloc(a->end, to_commit, MEM_COMMIT, PAGE_READWRITE)) return NULL;
-#else
-    if (mprotect(a->end, to_commit, PROT_READ | PROT_WRITE) != 0) return NULL;
-#endif
+    ArenaBlock* block = (ArenaBlock*)ptr;
+    block->base = (char*)(((uintptr_t)(ptr + sizeof(ArenaBlock)) + alignment - 1) & ~(alignment - 1));
+    block->end = ptr + next_size;
+    block->is_static = false;
+    block->next = a->current_block->next;
 
-    a->end += to_commit;
+    a->current_block->next = block;
+    a->current_block = block;
+    a->total_committed += next_size;
 
-    a->curr = (char*)needed;
-    return (void*)aligned_curr;
+    uintptr_t aligned = ((uintptr_t)block->base + alignment - 1) & ~(alignment - 1);
+    a->curr = (char*)(aligned + size);
+    a->end = block->end;
+
+    return (void*)aligned;
 }
 
-void arena_destroy(Arena* a) {
+void arena_destroy(Arena* restrict a) {
     if (!a) return;
-#if defined(_WIN32)
-    VirtualFree(a->base, 0, MEM_RELEASE);
-#else
-    munmap(a->base, (size_t)(a->reserve_end - a->base));
-#endif
-    aligned_free_xp(a);
+
+    ArenaBlock* block = a->head;
+
+    // Free the first block's buffer if we heap-allocated it.
+    if (block && !block->is_static) aligned_free_xp(block->base);
+
+    // Walk overflow blocks. Each was allocated as a single slab where the
+    // ArenaBlock header lives at the start of the pointer returned by
+    // aligned_alloc_xp, so we free the block pointer itself (not block->base).
+    block = block ? block->next : NULL;
+    while (block) {
+        ArenaBlock* temp = block;
+        block = block->next;
+        aligned_free_xp(temp);  // frees the whole slab (header + data)
+    }
+
+    if (a->heap_allocated) aligned_free_xp(a);
 }
