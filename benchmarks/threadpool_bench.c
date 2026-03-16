@@ -29,7 +29,7 @@ void dummy_task(void* arg) {
     volatile uint64_t result = 0;
 
     // Simulate light computation
-    for (uint64_t i = 0; i < 16; i++) {
+    for (uint64_t i = 0; i < 1000; i++) {
         result = fast_hash(result + i);
     }
 }
