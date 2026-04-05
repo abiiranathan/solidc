@@ -1,0 +1,5 @@
+<map id="cstr_reserve" name="cstr_reserve">
+<area shape="rect" id="Node000001" title="Ensure at least capacity usable bytes are available (NUL extra)." alt="" coords="145,5,248,31"/>
+<area shape="rect" id="Node000002" href="$cstr_8h.html#a2637360a98af491be7a248a7b3012438" title=" " alt="" coords="5,5,97,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="131,21,98,21,98,15,131,15"/>
+</map>

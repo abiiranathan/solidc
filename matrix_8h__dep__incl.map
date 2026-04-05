@@ -1,0 +1,12 @@
+<map id="include/matrix.h" name="include/matrix.h">
+<area shape="rect" id="Node000001" title="Matrix operations and mathematical utilities." alt="" coords="128,5,256,31"/>
+<area shape="rect" id="Node000002" href="$linear__alg_8h.html" title="Linear algebra operations and utilities." alt="" coords="5,79,155,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="164,40,100,81,97,76,161,36"/>
+<area shape="rect" id="Node000003" href="$solidc_8h.html" title="Master header file that includes all SolidC library modules." alt="" coords="59,152,181,177"/>
+<area shape="poly" id="edge5_Node000001_Node000003" title=" " alt="" coords="190,45,182,74,169,105,151,132,133,154,129,150,147,129,164,103,177,73,185,44"/>
+<area shape="rect" id="Node000004" href="$ml_8h.html" title="Simple Machine Learning library using 4x4 Matrices and Vectors." alt="" coords="230,79,333,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="219,37,268,76,265,81,215,41"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="96,115,116,151,111,153,91,118"/>
+<area shape="rect" id="Node000005" href="$ml_8c_source.html" title=" " alt="" coords="245,152,318,177"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="284,118,284,152,279,152,279,118"/>
+</map>

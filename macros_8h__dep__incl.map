@@ -1,0 +1,25 @@
+<map id="include/macros.h" name="include/macros.h">
+<area shape="rect" id="Node000001" title="Collection of utility macros for assertions, memory management, math, and debugging." alt="" coords="23,5,157,31"/>
+<area shape="rect" id="Node000002" href="$cstr_8h.html" title="High&#45;performance C string with Small String Optimization (SSO)." alt="" coords="372,79,480,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="158,31,372,76,371,81,157,36"/>
+<area shape="rect" id="Node000004" href="$solidc_8h.html" title="Master header file that includes all SolidC library modules." alt="" coords="182,225,305,251"/>
+<area shape="poly" id="edge13_Node000001_Node000004" title=" " alt="" coords="54,40,30,57,12,80,9,105,15,134,25,161,35,176,67,200,105,216,145,226,182,232,181,237,144,232,104,221,65,204,31,179,20,163,9,136,3,105,8,78,26,53,50,35"/>
+<area shape="rect" id="Node000009" href="$filepath_8h.html" title="Cross&#45;platform file path manipulation and directory traversal utilities." alt="" coords="23,79,157,104"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="93,44,93,79,87,79,87,44"/>
+<area shape="rect" id="Node000003" href="$flags_8h.html" title="Command&#45;line flag parsing library." alt="" coords="185,152,301,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="385,111,274,154,272,149,383,106"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="490,105,524,118,553,134,563,144,569,154,568,167,561,179,544,193,519,204,452,221,375,231,305,237,305,231,375,226,451,216,517,199,541,188,557,176,563,165,563,156,559,147,550,138,522,123,488,110"/>
+<area shape="rect" id="Node000005" href="$stdstreams_8h.html" title="Standard stream handling utilities." alt="" coords="623,152,781,177"/>
+<area shape="poly" id="edge5_Node000002_Node000005" title=" " alt="" coords="484,105,658,149,657,154,483,110"/>
+<area shape="rect" id="Node000007" href="$cstr_8c.html" title="Implementation of high&#45;performance C string with SSO." alt="" coords="325,152,404,177"/>
+<area shape="poly" id="edge8_Node000002_Node000007" title=" " alt="" coords="409,116,377,154,373,150,405,113"/>
+<area shape="rect" id="Node000008" href="$csvparser_8c_source.html" title=" " alt="" coords="428,152,547,177"/>
+<area shape="poly" id="edge9_Node000002_Node000008" title=" " alt="" coords="447,113,479,150,475,154,443,116"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="246,191,246,225,241,225,241,191"/>
+<area shape="poly" id="edge6_Node000005_Node000004" title=" " alt="" coords="615,182,305,230,304,225,614,177"/>
+<area shape="rect" id="Node000006" href="$stdstreams_8c_source.html" title=" " alt="" coords="637,225,767,251"/>
+<area shape="poly" id="edge7_Node000005_Node000006" title=" " alt="" coords="705,191,705,225,699,225,699,191"/>
+<area shape="poly" id="edge11_Node000009_Node000004" title=" " alt="" coords="68,115,45,146,42,161,47,176,74,202,109,219,146,229,182,234,181,239,145,234,107,224,71,206,42,179,36,162,40,144,63,112"/>
+<area shape="rect" id="Node000010" href="$filepath_8c_source.html" title=" " alt="" coords="56,152,161,177"/>
+<area shape="poly" id="edge12_Node000009_Node000010" title=" " alt="" coords="99,117,108,151,103,153,94,118"/>
+</map>

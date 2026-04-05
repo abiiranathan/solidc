@@ -1,0 +1,26 @@
+<map id="utf8_split" name="utf8_split">
+<area shape="rect" id="Node000001" title="Splits a UTF&#45;8 string into parts using a delimiter." alt="" coords="5,155,88,180"/>
+<area shape="poly" id="edge13_Node000001_Node000001" title=" " alt="" coords="21,156,15,146,18,137,29,130,47,128,68,131,77,140,73,144,66,136,47,133,31,135,22,140,20,146,25,153"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#aadba4a5c759cfb7674c3dfe42351e952" title="Determines the byte length of a UTF&#45;8 character from its first byte." alt="" coords="136,29,267,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="56,153,88,114,134,72,155,59,158,63,138,76,92,118,60,156"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#a0b46c6da59494b8d0042d1557f77b6fe" title="Counts the number of Unicode codepoints in a UTF&#45;8 string." alt="" coords="315,55,484,80"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="65,152,97,133,135,116,218,91,300,76,301,81,220,97,137,120,100,138,68,157"/>
+<area shape="rect" id="Node000004" href="$unicode_8c.html#ac8dd740b9cf9558c3b5bd89f91857d08" title="Creates a new utf8_string object from a C string." alt="" coords="160,155,243,180"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="88,165,146,165,146,170,88,170"/>
+<area shape="rect" id="Node000006" href="$unicode_8c.html#a37b529eaefb2e43c5f2a7eda74138c13" title="Counts the number of valid UTF&#45;8 bytes in a string." alt="" coords="532,204,699,229"/>
+<area shape="poly" id="edge17_Node000001_Node000006" title=" " alt="" coords="89,177,136,189,237,203,340,211,518,216,518,221,339,217,237,208,136,194,88,183"/>
+<area shape="rect" id="Node000007" href="$unicode_8c.html#ae86895dd5a7ff70ecb5da034bb91b032" title="Checks if a string starts with a given prefix." alt="" coords="336,304,463,329"/>
+<area shape="poly" id="edge14_Node000001_Node000007" title=" " alt="" coords="59,179,90,219,112,241,137,258,183,279,231,294,323,310,322,315,229,299,181,284,135,263,109,245,86,223,54,182"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="175,31,170,21,173,11,184,5,201,3,223,6,232,15,228,19,220,11,201,8,185,10,177,15,175,20,180,28"/>
+<area shape="poly" id="edge4_Node000003_Node000003" title=" " alt="" coords="367,56,360,46,363,36,377,30,399,28,426,32,438,40,434,45,424,36,399,33,378,35,367,40,365,46,371,53"/>
+<area shape="poly" id="edge10_Node000004_Node000003" title=" " alt="" coords="216,152,259,121,313,89,330,82,332,87,316,94,262,125,220,157"/>
+<area shape="poly" id="edge11_Node000004_Node000004" title=" " alt="" coords="175,156,170,146,173,137,184,130,201,128,223,131,232,140,228,144,220,136,201,133,185,135,177,140,175,146,180,153"/>
+<area shape="rect" id="Node000005" href="$unicode_8c.html#a3619b219411d41dbdd9197a4d9f378a3" title="Creates a copy of a UTF&#45;8 string containing only valid UTF&#45;8 sequences." alt="" coords="356,128,443,153"/>
+<area shape="poly" id="edge6_Node000004_Node000005" title=" " alt="" coords="243,159,342,146,343,151,244,164"/>
+<area shape="poly" id="edge12_Node000004_Node000006" title=" " alt="" coords="243,170,519,203,518,208,243,175"/>
+<area shape="poly" id="edge7_Node000005_Node000005" title=" " alt="" coords="367,129,360,120,363,110,377,104,399,101,426,105,438,114,434,118,424,110,399,107,378,109,367,113,365,119,371,126"/>
+<area shape="poly" id="edge8_Node000005_Node000006" title=" " alt="" coords="437,151,566,197,565,202,435,156"/>
+<area shape="poly" id="edge9_Node000006_Node000006" title=" " alt="" coords="580,206,572,196,576,186,591,180,615,177,645,181,657,190,654,194,643,186,615,183,592,185,580,190,578,195,584,202"/>
+<area shape="poly" id="edge16_Node000007_Node000006" title=" " alt="" coords="427,301,573,233,575,238,429,306"/>
+<area shape="poly" id="edge15_Node000007_Node000007" title=" " alt="" coords="367,305,360,296,363,286,377,280,399,277,426,281,438,290,434,294,424,286,399,283,378,285,367,289,365,295,371,302"/>
+</map>

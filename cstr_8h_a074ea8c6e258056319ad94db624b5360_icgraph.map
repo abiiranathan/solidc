@@ -1,0 +1,9 @@
+<map id="cstr_heap_cap" name="cstr_heap_cap">
+<area shape="rect" id="Node000001" title=" " alt="" coords="187,55,301,80"/>
+<area shape="rect" id="Node000002" href="$cstr_8h.html#aaee799b13da4e7fc4a2cc10db9775f0b" title="Current storage capacity (bytes available before reallocation). For SSO strings this is CSTR_SSO_CAP ..." alt="" coords="18,5,126,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="186,53,117,33,118,28,187,48"/>
+<area shape="rect" id="Node000003" href="$cstr_8c.html#a502782ea6c7a22c7032b34526b3b6e29" title="Print debug information about a cstr to stderr." alt="" coords="25,55,119,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="173,70,119,70,119,65,173,65"/>
+<area shape="rect" id="Node000004" href="$cstr_8c.html#aaaffc7231bda5e82e146df5ad9584b8d" title="Shrink heap allocation to fit the current length (frees wasted memory)." alt="" coords="5,104,139,129"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="187,86,118,106,117,101,186,81"/>
+</map>

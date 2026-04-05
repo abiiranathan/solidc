@@ -1,0 +1,7 @@
+<map id="include/hash.h" name="include/hash.h">
+<area shape="rect" id="Node000001" title="Collection of fast, non&#45;cryptographic hash functions for general&#45;purpose hashing." alt="" coords="73,5,189,31"/>
+<area shape="rect" id="Node000002" href="$solidc_8h.html" title="Master header file that includes all SolidC library modules." alt="" coords="5,79,128,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="113,43,79,80,75,77,109,39"/>
+<area shape="rect" id="Node000003" href="$hash_8c_source.html" title=" " alt="" coords="153,79,239,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="153,39,187,77,183,80,149,43"/>
+</map>

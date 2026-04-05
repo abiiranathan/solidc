@@ -1,0 +1,11 @@
+<map id="include/aligned_alloc.h" name="include/aligned_alloc.h">
+<area shape="rect" id="Node000001" title="Aligned memory allocation functions for cross&#45;platform support." alt="" coords="172,5,343,31"/>
+<area shape="rect" id="Node000002" href="$solidc_8h.html" title="Master header file that includes all SolidC library modules." alt="" coords="5,79,128,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="215,38,99,81,97,76,213,33"/>
+<area shape="rect" id="Node000003" href="$arena_8c_source.html" title=" " alt="" coords="152,79,245,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="241,43,210,80,206,77,237,40"/>
+<area shape="rect" id="Node000004" href="$cache_8c_source.html" title=" " alt="" coords="270,79,365,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="278,40,310,77,306,80,274,43"/>
+<area shape="rect" id="Node000005" href="$threadpool_8c_source.html" title=" " alt="" coords="389,79,515,104"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="302,33,421,76,419,81,300,38"/>
+</map>
