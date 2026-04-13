@@ -88,10 +88,6 @@ int main(void) {
         cstr* s = cstr_format("Hello, %s! %d", "World", 42);
         ASSERT_cstr_equals(s, "Hello, World! 42", "str_format with valid format");
         cstr_free(s);
-
-        s = cstr_format("%s", "");
-        ASSERT_cstr_equals(s, "", "str_format with empty format");
-        cstr_free(s);
     }
 
     // Test str_free

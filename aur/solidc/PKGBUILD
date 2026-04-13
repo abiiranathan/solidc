@@ -19,11 +19,20 @@ build() {
   cd "${pkgname}-${pkgver}"
   cmake -B build \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=/usr
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DBUILD_TESTS=ON \
+    -DBUILD_BENCHMARKS=OFF \
+    -DBUILD_SHARED_LIBS=OFF
   cmake --build build
 }
 
 package() {
   cd "${pkgname}-${pkgver}"
   DESTDIR="${pkgdir}" cmake --install build
+}
+
+# Run the tests after building but before packaging
+check() {
+  cd "${pkgname}-${pkgver}"
+  ctest --test-dir build --output-on-failure
 }
