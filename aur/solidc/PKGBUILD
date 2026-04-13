@@ -1,0 +1,29 @@
+# Maintainer: Dr. Abiira Nathan <nabiira2by2@gmail.com>
+# Contributor: Dr. Abiira Nathan <nabiira2by2@gmail.com>
+
+pkgname=solidc
+pkgver=1.10.1
+pkgrel=1
+pkgdesc="A robust C library for data structures, concurrency, and utilities."
+arch=('x86_64' 'aarch64')
+url="https://github.com/abiiranathan/solidc"
+license=('MIT')
+depends=()
+makedepends=('cmake' 'git' 'make' 'gcc')
+provides=('solidc')
+conflicts=('solidc')
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/abiiranathan/${pkgname}/archive/refs/tags/v${pkgver}.tar.gz")
+b2sums=('SKIP')
+
+build() {
+  cd "${pkgname}-${pkgver}"
+  cmake -B build \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr
+  cmake --build build
+}
+
+package() {
+  cd "${pkgname}-${pkgver}"
+  DESTDIR="${pkgdir}" cmake --install build
+}

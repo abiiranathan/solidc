@@ -242,7 +242,9 @@ else()
 
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
         target_compile_options(solidc PRIVATE 
-            -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE -fPIC
+            -fstack-protector-strong 
+            -fPIE 
+            -fPIC
         )
     endif()
 endif()
