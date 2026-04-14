@@ -432,7 +432,7 @@ unsigned long io_copy(stream_t writer, stream_t reader) {
 
     /* L1/L2 cache tuned 16 KiB buffer chunking limits vtable dispatch overhead */
     char buf[16384];
-    ssize_t nread;
+    ssize_t nread = 0;
     unsigned long total = 0;
 
     while ((nread = reader->read(reader->handle, buf, sizeof(buf))) > 0) {
@@ -453,7 +453,7 @@ unsigned long io_copy_n(stream_t writer, stream_t reader, size_t n) {
 
     // L1/L2 cache tuned 16 KiB buffer chunking limits vtable dispatch overhead
     char buf[16384];
-    ssize_t nread;
+    ssize_t nread = 0;
     unsigned long total = 0;
 
     while (n > 0) {

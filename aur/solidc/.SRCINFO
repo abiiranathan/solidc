@@ -1,6 +1,6 @@
-pkgbase = solidc
+pkgbase = solidc-git
 	pkgdesc = A robust C library for data structures, concurrency, and utilities.
-	pkgver = 1.10.3
+	pkgver = 1.10.3.r0.gca5e38b
 	pkgrel = 1
 	url = https://github.com/abiiranathan/solidc
 	arch = x86_64
@@ -12,7 +12,7 @@ pkgbase = solidc
 	makedepends = gcc
 	provides = solidc
 	conflicts = solidc
-	source = solidc-1.10.3.tar.gz::https://github.com/abiiranathan/solidc/archive/refs/tags/v1.10.3.tar.gz
+	source = solidc::git+https://github.com/abiiranathan/solidc.git
 	b2sums = SKIP
 
-pkgname = solidc
+pkgname = solidc-git

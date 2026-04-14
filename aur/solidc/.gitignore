@@ -7,4 +7,4 @@ build/
 *.src.tar.xz
 *.src.tar.zst
 pkg/
-solidc-*
+solidc*
