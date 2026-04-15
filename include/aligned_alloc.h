@@ -6,6 +6,8 @@
 #ifndef ALIGNED_ALLOC_H
 #define ALIGNED_ALLOC_H
 
+#include <stdalign.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 #ifdef __cplusplus

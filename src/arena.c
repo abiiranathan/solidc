@@ -13,7 +13,8 @@
 #endif
 
 #define STATIC_BUFFER_SIZE (1024 * 1024)
-static THREAD_LOCAL char static_buffer[STATIC_BUFFER_SIZE] ARENA_ALIGNED(64);
+
+static alignas(64) THREAD_LOCAL char static_buffer[STATIC_BUFFER_SIZE];
 static THREAD_LOCAL bool static_buffer_in_use = false;
 
 static ARENA_INLINE size_t get_page_size(void) {

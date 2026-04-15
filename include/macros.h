@@ -102,13 +102,6 @@ extern "C" {
 /** UNUSED — silence "unused variable/parameter" warnings. */
 #define UNUSED(x) ((void)(x))
 
-/* =========================================================================
- * THREAD-LOCAL STORAGE
- *
- * Usage:
- *   static THREAD_LOCAL int counter = 0;
- * ========================================================================= */
-
 #if SOLIDC_MSVC
 #define THREAD_LOCAL __declspec(thread)
 #elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
