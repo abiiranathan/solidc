@@ -358,7 +358,7 @@ ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size)
         // memchr is often optimized with SIMD instructions for large buffers
         const char* match = memchr(p, delim, check_len);
 
-        size_t copy_len;
+        size_t copy_len = 0;
         if (match) {
             copy_len = (size_t)(match - p);
             memcpy(buffer, p, copy_len);
@@ -375,7 +375,7 @@ ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size)
 
     /* --- Standard fallback for traditional FILE_STREAM --- */
     ssize_t bytes = 0;
-    int ch;
+    int ch = 0;
     while (bytes < (ssize_t)(buffer_size - 1)) {
         ch = stream->read_char(stream->handle);
         if (ch == EOF || ch == delim) break;
