@@ -1,4 +1,5 @@
 #include "../include/xtime.h"
+#include "../include/macros.h"
 
 #include <ctype.h>   // for isdigit
 #include <errno.h>   // for errno

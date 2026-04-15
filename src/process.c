@@ -5,6 +5,7 @@
 
 #include "../include/process.h"
 #include "../include/file.h"  // Required for INVALID_NATIVE_HANDLE
+#include "../include/macros.h"
 
 #include <errno.h>
 #include <stddef.h>
@@ -19,8 +20,6 @@
 
 #define PATH_SEP ";"   // Windows uses semicolon
 #define DIR_SEP  "\\"  // Windows directory separator
-// #define strtok_r strtok_s  // MSVC equivalent (this line caused issues on POSIX)
-
 #else
 #include <unistd.h>  // for access
 #define ACCESS   access

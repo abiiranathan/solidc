@@ -96,7 +96,6 @@ set(HEADERS
     include/platform.h
     include/str_utils.h
     include/prettytable.h
-    include/ml.h
 )
 
 # Source files
@@ -126,7 +125,6 @@ set(SOURCES
     src/trie.c
     src/flags.c
     src/prettytable.c
-    src/ml.c
 )
 
 add_compile_definitions(_USE_MATH_DEFINES _GNU_SOURCE)
@@ -183,6 +181,11 @@ if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
     endif()
 
     if(MSVC)
+        # W4: Enable high warning level
+        # wd4201: nonstandard extension used: nameless struct/union
+        # wd5105: macro expansion producing 'defined' has undefined behavior
+        # wd4324: structure was padded due to alignment specifier
+        # experimental:c11atomics: Enable C11 atomics support in MSVC
         target_compile_options(solidc PRIVATE
             /W4 /wd4201 /wd5105 /wd4324 /experimental:c11atomics 
         )

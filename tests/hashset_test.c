@@ -69,7 +69,7 @@ static void test_hashset_destroy_null(void) {
 
 static void test_hashset_add_single_element(void) {
     hashset_t* set = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(set != NULL, "");
+    LOG_ASSERT(set != NULL, "hashset_create failed");
 
     int value = 42;
     LOG_ASSERT(hashset_add(set, &value) == true, "Failed to add element");
@@ -81,7 +81,7 @@ static void test_hashset_add_single_element(void) {
 
 static void test_hashset_add_multiple_elements(void) {
     hashset_t* set = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(set != NULL, "");
+    LOG_ASSERT(set != NULL, "hashset_create failed");
 
     int values[] = {1, 2, 3, 4, 5, 10, 20, 30, 40, 50};
     size_t count = sizeof(values) / sizeof(values[0]);
@@ -101,11 +101,11 @@ static void test_hashset_add_multiple_elements(void) {
 
 static void test_hashset_add_duplicate(void) {
     hashset_t* set = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(set != NULL, "");
+    LOG_ASSERT(set != NULL, "hashset_create failed");
 
     int value = 100;
     LOG_ASSERT(hashset_add(set, &value) == true, "Failed to add element");
-    LOG_ASSERT(hashset_size(set) == 1, "");
+    LOG_ASSERT(hashset_size(set) == 1, "Size should be 1");
 
     // Add duplicate - should succeed but not increase size
     LOG_ASSERT(hashset_add(set, &value) == true, "Add duplicate should succeed");
@@ -116,7 +116,7 @@ static void test_hashset_add_duplicate(void) {
 
 static void test_hashset_add_null_params(void) {
     hashset_t* set = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(set != NULL, "");
+    LOG_ASSERT(set != NULL, "hashset_create failed");
 
     int value = 42;
     LOG_ASSERT(hashset_add(NULL, &value) == false, "Should fail with null set");
@@ -127,7 +127,7 @@ static void test_hashset_add_null_params(void) {
 
 static void test_hashset_contains_not_found(void) {
     hashset_t* set = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(set != NULL, "");
+    LOG_ASSERT(set != NULL, "hashset_create failed");
 
     int values[] = {1, 2, 3};
     for (size_t i = 0; i < 3; i++) {
@@ -146,7 +146,7 @@ static void test_hashset_contains_not_found(void) {
 
 static void test_hashset_remove_existing(void) {
     hashset_t* set = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(set != NULL, "");
+    LOG_ASSERT(set != NULL, "hashset_create failed");
 
     int values[] = {10, 20, 30, 40, 50};
     for (size_t i = 0; i < 5; i++) {
@@ -167,7 +167,7 @@ static void test_hashset_remove_existing(void) {
 
 static void test_hashset_remove_nonexistent(void) {
     hashset_t* set = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(set != NULL, "");
+    LOG_ASSERT(set != NULL, "hashset_create failed");
 
     int value = 42;
     hashset_add(set, &value);
@@ -181,7 +181,7 @@ static void test_hashset_remove_nonexistent(void) {
 
 static void test_hashset_remove_all(void) {
     hashset_t* set = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(set != NULL, "");
+    LOG_ASSERT(set != NULL, "hashset_create failed");
 
     int values[] = {1, 2, 3, 4, 5};
     for (size_t i = 0; i < 5; i++) {
@@ -204,14 +204,14 @@ static void test_hashset_remove_all(void) {
 
 static void test_hashset_clear(void) {
     hashset_t* set = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(set != NULL, "");
+    LOG_ASSERT(set != NULL, "hashset_create failed");
 
     int values[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     for (size_t i = 0; i < 10; i++) {
         hashset_add(set, &values[i]);
     }
 
-    LOG_ASSERT(hashset_size(set) == 10, "");
+    LOG_ASSERT(hashset_size(set) == 10, "Size should be 10");
 
     hashset_clear(set);
 
@@ -237,7 +237,7 @@ static void test_hashset_clear(void) {
 static void test_hashset_rehash_on_load(void) {
     // Start with small capacity to force rehash
     hashset_t* set = hashset_create(sizeof(int), 4, NULL, NULL);
-    LOG_ASSERT(set != NULL, "");
+    LOG_ASSERT(set != NULL, "hashset_create failed");
 
     size_t initial_capacity = hashset_capacity(set);
 
@@ -264,7 +264,7 @@ static void test_hashset_rehash_on_load(void) {
 static void test_hashset_union(void) {
     hashset_t* setA = hashset_create(sizeof(int), 0, NULL, NULL);
     hashset_t* setB = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(setA != NULL && setB != NULL, "");
+    LOG_ASSERT(setA != NULL && setB != NULL, "hashset_create failed");
 
     int valuesA[] = {1, 2, 3, 4, 5};
     int valuesB[] = {4, 5, 6, 7, 8};
@@ -280,8 +280,8 @@ static void test_hashset_union(void) {
 
     // Check all elements from both sets
     for (size_t i = 0; i < 5; i++) {
-        LOG_ASSERT(hashset_contains(union_set, &valuesA[i]) == true, "");
-        LOG_ASSERT(hashset_contains(union_set, &valuesB[i]) == true, "");
+        LOG_ASSERT(hashset_contains(union_set, &valuesA[i]) == true, "valuesA[%zu] should be in union", i);
+        LOG_ASSERT(hashset_contains(union_set, &valuesB[i]) == true, "valuesB[%zu] should be in union", i);
     }
 
     hashset_destroy(setA);
@@ -292,7 +292,7 @@ static void test_hashset_union(void) {
 static void test_hashset_intersection(void) {
     hashset_t* setA = hashset_create(sizeof(int), 0, NULL, NULL);
     hashset_t* setB = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(setA != NULL && setB != NULL, "");
+    LOG_ASSERT(setA != NULL && setB != NULL, "hashset_create failed");
 
     int valuesA[] = {1, 2, 3, 4, 5};
     int valuesB[] = {3, 4, 5, 6, 7};
@@ -320,7 +320,7 @@ static void test_hashset_intersection(void) {
 static void test_hashset_difference(void) {
     hashset_t* setA = hashset_create(sizeof(int), 0, NULL, NULL);
     hashset_t* setB = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(setA != NULL && setB != NULL, "");
+    LOG_ASSERT(setA != NULL && setB != NULL, "hashset_create failed");
 
     int valuesA[] = {1, 2, 3, 4, 5};
     int valuesB[] = {3, 4, 5, 6, 7};
@@ -354,7 +354,7 @@ static void test_hashset_difference(void) {
 static void test_hashset_symmetric_difference(void) {
     hashset_t* setA = hashset_create(sizeof(int), 0, NULL, NULL);
     hashset_t* setB = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(setA != NULL && setB != NULL, "");
+    LOG_ASSERT(setA != NULL && setB != NULL, "hashset_create failed");
 
     int valuesA[] = {1, 2, 3, 4, 5};
     int valuesB[] = {4, 5, 6, 7, 8};
@@ -392,7 +392,7 @@ static void test_hashset_symmetric_difference(void) {
 static void test_hashset_is_subset_true(void) {
     hashset_t* setA = hashset_create(sizeof(int), 0, NULL, NULL);
     hashset_t* setB = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(setA != NULL && setB != NULL, "");
+    LOG_ASSERT(setA != NULL && setB != NULL, "hashset_create failed");
 
     int valuesA[] = {2, 3, 4};
     int valuesB[] = {1, 2, 3, 4, 5};
@@ -414,7 +414,7 @@ static void test_hashset_is_subset_true(void) {
 static void test_hashset_is_subset_equal_sets(void) {
     hashset_t* setA = hashset_create(sizeof(int), 0, NULL, NULL);
     hashset_t* setB = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(setA != NULL && setB != NULL, "");
+    LOG_ASSERT(setA != NULL && setB != NULL, "hashset_create failed");
 
     int values[] = {1, 2, 3, 4, 5};
     for (size_t i = 0; i < 5; i++) {
@@ -433,7 +433,7 @@ static void test_hashset_is_subset_equal_sets(void) {
 static void test_hashset_is_proper_subset(void) {
     hashset_t* setA = hashset_create(sizeof(int), 0, NULL, NULL);
     hashset_t* setB = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(setA != NULL && setB != NULL, "");
+    LOG_ASSERT(setA != NULL && setB != NULL, "hashset_create failed");
 
     int valuesA[] = {2, 3, 4};
     int valuesB[] = {1, 2, 3, 4, 5};
@@ -455,7 +455,7 @@ static void test_hashset_is_proper_subset(void) {
 static void test_hashset_is_proper_subset_equal_sets(void) {
     hashset_t* setA = hashset_create(sizeof(int), 0, NULL, NULL);
     hashset_t* setB = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(setA != NULL && setB != NULL, "");
+    LOG_ASSERT(setA != NULL && setB != NULL, "hashset_create failed");
 
     int values[] = {1, 2, 3};
     for (size_t i = 0; i < 3; i++) {
@@ -496,7 +496,7 @@ static bool string_equals(const void* a, const void* b, size_t key_size) {
 
 static void test_hashset_custom_string_hash(void) {
     hashset_t* set = hashset_create(sizeof(char*), 0, string_hash, string_equals);
-    LOG_ASSERT(set != NULL, "");
+    LOG_ASSERT(set != NULL, "hashset_create failed");
 
     const char* strings[] = {"hello", "world", "foo", "bar", "baz"};
 
@@ -522,7 +522,7 @@ static void test_hashset_custom_string_hash(void) {
 
 static void test_hashset_large_dataset(void) {
     hashset_t* set = hashset_create(sizeof(int), 0, NULL, NULL);
-    LOG_ASSERT(set != NULL, "");
+    LOG_ASSERT(set != NULL, "hashset_create failed");
 
     const size_t COUNT = 10000;
 
@@ -554,7 +554,7 @@ static void test_hashset_large_dataset(void) {
 static void test_hashset_collision_handling(void) {
     // Use very small capacity to force many collisions
     hashset_t* set = hashset_create(sizeof(int), 2, NULL, NULL);
-    LOG_ASSERT(set != NULL, "");
+    LOG_ASSERT(set != NULL, "hashset_create failed");
 
     int values[] = {1, 3, 5, 7, 9, 11, 13, 15, 17, 19};
 

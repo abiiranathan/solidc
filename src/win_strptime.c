@@ -2,18 +2,11 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "../include/macros.h"
 #include "../include/win_strptime.h"
 
 // Windows does not have gmtime_r & localtime_r and completely lacks strptime.
 #if defined(_MSC_VER)
-static inline struct tm* gmtime_r(const time_t* timer, struct tm* buf) {
-    return (gmtime_s(buf, timer) == 0) ? buf : NULL;
-}
-
-static inline struct tm* localtime_r(const time_t* timer, struct tm* buf) {
-    return (localtime_s(buf, timer) == 0) ? buf : NULL;
-}
-
 /**
  * Helper function to check if a year is a leap year
  */

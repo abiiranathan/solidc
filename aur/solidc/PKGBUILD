@@ -24,6 +24,10 @@ pkgver() {
 
 build() {
   cd solidc
+  # Ensure we have both LTO bytecode and machine code
+  export CFLAGS="$CFLAGS -ffat-lto-objects"
+  export CXXFLAGS="$CXXFLAGS -ffat-lto-objects"
+
   cmake -B build \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/usr \

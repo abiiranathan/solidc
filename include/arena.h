@@ -200,18 +200,25 @@ static ARENA_INLINE void* arena_alloc_unaligned(Arena* restrict arena, size_t si
     ((type*)arena_alloc_align((arena), sizeof(type) * (count), _Alignof(type)))
 
 /** Allocates a zero-initialized object. Returns NULL on failure. */
-#define ARENA_ALLOC_ZERO(arena, type)                         \
-    ({                                                        \
-        type* _ptr = ARENA_ALLOC((arena), type);              \
-        (_ptr) ? (type*)memset(_ptr, 0, sizeof(type)) : NULL; \
-    })
+static ARENA_INLINE void* arena_alloc_zero(Arena* restrict arena, size_t size, size_t alignment) {
+    void* ptr = arena_alloc_align(arena, size, alignment);
+    if (ptr) memset(ptr, 0, size);
+    return ptr;
+}
 
 /** Allocates a zero-initialized array. Returns NULL on failure. */
-#define ARENA_ALLOC_ARRAY_ZERO(arena, type, count)                      \
-    ({                                                                  \
-        type* _ptr = ARENA_ALLOC_ARRAY((arena), type, (count));         \
-        (_ptr) ? (type*)memset(_ptr, 0, sizeof(type) * (count)) : NULL; \
-    })
+static ARENA_INLINE void* arena_alloc_array_zero(Arena* restrict arena, size_t size, size_t alignment, size_t count) {
+    void* ptr = arena_alloc_align(arena, size * count, alignment);
+    if (ptr) memset(ptr, 0, size * count);
+    return ptr;
+}
+
+/** Allocates a zero-initialized single object with its natural alignment. */
+#define ARENA_ALLOC_ZERO(arena, type) ((type*)arena_alloc_zero((arena), sizeof(type), _Alignof(type)))
+
+/** Allocates a zero-initialized array with the type's natural alignment. */
+#define ARENA_ALLOC_ARRAY_ZERO(arena, type, count) \
+    ((type*)arena_alloc_array_zero((arena), sizeof(type), _Alignof(type), (count)))
 
 /**
  * Allocates `count` blocks in a single contiguous region, each aligned to
