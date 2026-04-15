@@ -18,6 +18,13 @@ else()
     include(GNUInstallDirs)
 endif()
 
+if(MSVC)
+    # Strip the default warning level (/W1, /W2, /W3, or /W4) from global flags
+    # This prevents the D9025 overriding warning when we set custom target warnings.
+    string(REGEX REPLACE "/W[0-4]" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+    string(REGEX REPLACE "/W[0-4]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+endif()
+
 
 if(UNIX AND NOT APPLE)
     set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
@@ -329,6 +336,7 @@ if(BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
-if(BUILD_BENCHMARKS)
+# Only build benchmarks on Linux(X86_64)
+if(BUILD_BENCHMARKS AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
     add_subdirectory(benchmarks)
 endif()

@@ -39,7 +39,16 @@ void dummy_task(void* arg) {
     for (uint64_t i = 0; i < 1000; i++) {
         result = fast_hash(result + i);
     }
-    __asm__ volatile("" : : "r"(result) :);
+
+    // Cross-platform optimizer defeat
+#if defined(__GNUC__) || defined(__clang__)
+    __asm__ volatile("" : : "r"(result) : "memory");
+#else
+    // MSVC: Force evaluation by assigning to a local volatile.
+    // The overhead is a single stack write after the loop, which is negligible.
+    volatile uint64_t compiler_sink = result;
+    (void)compiler_sink;  // Silence "unused variable" warning
+#endif
 }
 
 typedef struct {
