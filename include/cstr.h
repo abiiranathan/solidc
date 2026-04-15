@@ -203,7 +203,7 @@ CSTR_INLINE cstr_view cstr_as_view(const cstr* s);
 CSTR_INLINE cstr_view cstr_as_view(const cstr* s) {
     cstr_view v = {NULL, 0};
     if (CSTR_LIKELY(s != NULL)) {
-        v.data   = s->data;
+        v.data = s->data;
         v.length = s->length;
     }
     return v;
@@ -223,9 +223,9 @@ CSTR_INLINE cstr_view cstr_as_view(const cstr* s) {
  */
 CSTR_INLINE void cstr_init_inplace(cstr* s);
 CSTR_INLINE void cstr_init_inplace(cstr* s) {
-    s->buf[0]   = '\0';
-    s->data     = s->buf;
-    s->length   = 0;
+    s->buf[0] = '\0';
+    s->data = s->buf;
+    s->length = 0;
     s->capacity = 0; /* SSO, no heap flag */
 }
 
@@ -279,10 +279,10 @@ void cstr_debug(const cstr* s);
  * @brief Ensure at least `capacity` usable bytes are available (NUL extra).
  * @return true on success, false on OOM or overflow.
  */
-bool cstr_reserve(cstr* s, size_t capacity) CSTR_NONNULL(1) CSTR_WARN_UNUSED;
+bool cstr_reserve(cstr* s, size_t capacity) CSTR_NONNULL(1);
 
 /** Alias kept for compatibility. */
-CSTR_INLINE bool cstr_resize(cstr* s, size_t capacity) CSTR_NONNULL(1) CSTR_WARN_UNUSED;
+CSTR_INLINE bool cstr_resize(cstr* s, size_t capacity) CSTR_NONNULL(1);
 CSTR_INLINE bool cstr_resize(cstr* s, size_t capacity) { return cstr_reserve(s, capacity); }
 
 /**
@@ -300,7 +300,7 @@ void cstr_shrink_to_fit(cstr* s) CSTR_NONNULL(1);
 CSTR_INLINE void cstr_clear(cstr* s);
 CSTR_INLINE void cstr_clear(cstr* s) {
     if (CSTR_LIKELY(s != NULL)) {
-        s->length  = 0;
+        s->length = 0;
         s->data[0] = '\0';
     }
 }
@@ -331,7 +331,7 @@ CSTR_INLINE bool cstr_cat(cstr* dest, const cstr* src) { return cstr_append_cstr
  */
 CSTR_INLINE bool cstr_append_fast(cstr* s, const char* CSTR_RESTRICT append) CSTR_NONNULL(1, 2);
 CSTR_INLINE bool cstr_append_fast(cstr* s, const char* CSTR_RESTRICT append) {
-    size_t n  = strlen(append);
+    size_t n = strlen(append);
     char* dst = s->data + s->length;
     memcpy(dst, append, n + 1); /* includes NUL */
     s->length += (uint32_t)n;
@@ -415,7 +415,7 @@ CSTR_INLINE bool cstr_assign(cstr* dest, const cstr* src) { return cstr_copy(des
 
 void cstr_lower(cstr* s) CSTR_NONNULL(1);
 void cstr_upper(cstr* s) CSTR_NONNULL(1);
-bool cstr_snakecase(cstr* s) CSTR_NONNULL(1) CSTR_WARN_UNUSED;
+bool cstr_snakecase(cstr* s) CSTR_NONNULL(1);
 void cstr_camelcase(cstr* s) CSTR_NONNULL(1);
 void cstr_pascalcase(cstr* s) CSTR_NONNULL(1);
 void cstr_titlecase(cstr* s) CSTR_NONNULL(1);

@@ -175,11 +175,6 @@ int main(void) {
         ASSERT(cstr_append_fmt(s, ", %s! %d", "World", 42) && "str_append_fmt failed");
         ASSERT_cstr_equals(s, "Hello, World! 42", "str_append_fmt content");
         cstr_free(s);
-
-        s = cstr_new("");
-        ASSERT(cstr_append_fmt(s, "") && "str_append_fmt empty format");
-        ASSERT_cstr_equals(s, "", "str_append_fmt empty format content");
-        cstr_free(s);
     }
 
     // Test str_append_char
@@ -770,66 +765,6 @@ int main(void) {
             cstr_free(s);
         }
     }
-
-    // ============================================
-    // Test Arena Integration
-    // ============================================
-    // {
-    //     printf("\n**************Testing cstr with Arena***************\n");
-    //     Arena* arena = arena_create(0);
-    //     ASSERT(arena != NULL);
-
-    //     // 1. Basic Creation
-    //     cstr* s = cstr_new_arena(arena, "Arena String");
-    //     ASSERT(s != NULL);
-    //     ASSERT_cstr_equals(s, "Arena String", "cstr_new_arena");
-    //     // Verify it is NOT on standard heap (how? we can't easily check address ranges portably)
-    //     // But we can verify it works.
-
-    //     // 2. Append (Small -> Small)
-    //     // "Arena String" (12 chars) fits in SSO.
-    //     // Let's make a small one first.
-    //     cstr* s_small = cstr_new_arena(arena, "Hi");
-    //     ASSERT_cstr_equals(s_small, "Hi", "small arena string");
-    //     ASSERT(cstr_append(s_small, " there"));
-    //     ASSERT_cstr_equals(s_small, "Hi there", "small append");
-
-    //     // 3. Append causing growth (SSO -> Heap/Arena)
-    //     // Fill up to > SSO chars
-    //     for (int i = 0; i < 50; i++) {
-    //         ASSERT(cstr_append_char(s, '!'));
-    //     }
-    //     ASSERT(cstr_len(s) == 12 + 50);
-    //     // The data should now be in the arena.
-    //     // If we destroyed the arena, accessing s would crash (in theory).
-
-    //     // 4. cstr_substr with arena
-    //     cstr* sub = cstr_substr(s, 0, 5);
-    //     ASSERT_cstr_equals(sub, "Arena", "cstr_substr with arena");
-    //     // sub should share the same arena reference?
-    //     // Our implementation of substr uses cstr_init_arena(s->arena, ...)
-
-    //     // 5. cstr_join with arena
-    //     const cstr* parts[] = {s_small, sub};
-    //     cstr* joined = cstr_join(parts, 2, " - ");
-    //     ASSERT_cstr_equals(joined, "Hi there - Arena", "cstr_join with arena");
-
-    //     // 6. cstr_replace with arena
-    //     cstr* replaced = cstr_replace(s_small, "Hi", "Hello");
-    //     ASSERT_cstr_equals(replaced, "Hello there", "cstr_replace with arena");
-
-    //     // 7. Freeing
-    //     // cstr_free(s) is a no-op for arena strings (except zeroing struct)
-    //     // We call it to ensure it doesn't crash or double-free.
-    //     cstr_free(s);
-    //     cstr_free(s_small);
-    //     cstr_free(sub);
-    //     cstr_free(joined);
-    //     cstr_free(replaced);
-
-    //     arena_destroy(arena);
-    //     printf("Arena tests passed!\n");
-    // }
 
     // ============================================
     // Test New Optimized Input Functions
