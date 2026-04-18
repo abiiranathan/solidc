@@ -104,6 +104,7 @@ set(HEADERS
     include/env.h
     include/platform.h
     include/prettytable.h
+    include/str_slice.h
     include/regex.h
 )
 
