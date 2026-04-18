@@ -1,0 +1,24 @@
+<map id="utf8_trim" name="utf8_trim">
+<area shape="rect" id="Node000001" title="Removes leading and trailing whitespace from a UTF&#45;8 string in&#45;place." alt="" coords="5,103,88,128"/>
+<area shape="poly" id="edge15_Node000001_Node000001" title=" " alt="" coords="24,104,20,94,22,85,31,78,47,76,65,79,73,88,69,91,62,84,47,81,33,83,26,88,25,94,29,101"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a358a6ddb4231f045fa1996354bb69b56" title="Removes leading whitespace from a UTF&#45;8 string in&#45;place." alt="" coords="136,65,223,91"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="87,101,122,91,123,96,89,106"/>
+<area shape="rect" id="Node000007" href="$unicode_8c.html#a673ecb04bcd3fc52c6222a67233a8ce1" title="Removes trailing whitespace from a UTF&#45;8 string in&#45;place." alt="" coords="136,139,223,164"/>
+<area shape="poly" id="edge11_Node000001_Node000007" title=" " alt="" coords="89,124,123,133,122,139,87,129"/>
+<area shape="poly" id="edge10_Node000002_Node000002" title=" " alt="" coords="157,66,152,57,155,47,164,41,179,39,197,42,205,50,201,54,195,47,179,44,166,46,159,50,158,56,162,64"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#ad7d24e5bc418ae563b5afc21c6898e10" title="Checks if a UTF&#45;8 character represents whitespace." alt="" coords="271,65,417,91"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="223,75,257,75,257,81,223,81"/>
+<area shape="rect" id="Node000006" href="$unicode_8c.html#aadba4a5c759cfb7674c3dfe42351e952" title="Determines the byte length of a UTF&#45;8 character from its first byte." alt="" coords="279,139,409,164"/>
+<area shape="poly" id="edge8_Node000002_Node000006" title=" " alt="" coords="210,88,303,131,301,135,208,93"/>
+<area shape="poly" id="edge5_Node000003_Node000003" title=" " alt="" coords="317,67,311,57,314,47,325,41,344,39,366,42,376,51,372,55,364,47,344,44,327,46,318,51,316,56,321,64"/>
+<area shape="rect" id="Node000004" href="$unicode_8c.html#a5ae688f76f23047d722b9884a106bf09" title="Checks if a codepoint represents whitespace." alt="" coords="465,29,651,55"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="417,63,468,54,469,60,418,68"/>
+<area shape="rect" id="Node000005" href="$unicode_8c.html#a0075f88c12df63dda852af0ff5c41f92" title="Decodes a UTF&#45;8 byte sequence to its Unicode codepoint." alt="" coords="489,103,627,128"/>
+<area shape="poly" id="edge6_Node000003_Node000005" title=" " alt="" coords="418,88,475,98,474,104,417,93"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="523,31,516,21,519,11,534,5,558,3,588,6,599,15,596,20,586,11,558,8,535,10,523,15,521,20,527,28"/>
+<area shape="poly" id="edge7_Node000005_Node000005" title=" " alt="" coords="523,104,516,94,519,84,534,78,558,76,588,80,599,89,596,93,586,85,558,81,535,83,523,88,521,94,527,101"/>
+<area shape="poly" id="edge9_Node000006_Node000006" title=" " alt="" coords="317,140,311,130,314,121,325,114,344,112,366,115,376,124,372,128,364,120,344,117,327,119,318,124,316,130,321,137"/>
+<area shape="poly" id="edge12_Node000007_Node000003" title=" " alt="" coords="200,136,270,100,287,93,289,98,272,104,203,141"/>
+<area shape="poly" id="edge13_Node000007_Node000006" title=" " alt="" coords="223,149,264,149,264,154,223,154"/>
+<area shape="poly" id="edge14_Node000007_Node000007" title=" " alt="" coords="157,140,152,130,155,121,164,114,179,112,197,115,205,124,201,127,195,120,179,117,166,119,159,124,158,130,162,137"/>
+</map>

@@ -1,0 +1,23 @@
+<map id="include/macros.h" name="include/macros.h">
+<area shape="rect" id="Node000001" title="Portable utility macros for assertions, memory, math, iteration, timing, and platform compatibility." alt="" coords="547,5,681,31"/>
+<area shape="rect" id="Node000002" href="$cstr_8h.html" title="High&#45;performance C string with Small String Optimization (SSO)." alt="" coords="187,79,295,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="541,36,296,82,295,77,540,31"/>
+<area shape="rect" id="Node000006" href="$filepath_8h.html" title="Cross&#45;platform file path manipulation and directory traversal utilities." alt="" coords="347,79,481,104"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="570,38,448,81,446,76,568,33"/>
+<area shape="rect" id="Node000008" href="$arena_8c_source.html" title=" " alt="" coords="506,79,599,104"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="597,43,565,80,561,77,593,40"/>
+<area shape="rect" id="Node000009" href="$process_8c.html" title="Implementation of the process management API." alt="" coords="623,79,730,104"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="635,39,669,77,665,80,631,43"/>
+<area shape="rect" id="Node000010" href="$win__strptime_8c_source.html" title=" " alt="" coords="754,79,895,104"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="661,32,791,76,790,81,660,37"/>
+<area shape="rect" id="Node000011" href="$xtime_8c_source.html" title=" " alt="" coords="920,79,1015,104"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="685,31,920,78,919,83,684,36"/>
+<area shape="rect" id="Node000003" href="$flags_8h.html" title="Command&#45;line flag parsing library." alt="" coords="5,152,121,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="200,112,93,154,91,149,198,107"/>
+<area shape="rect" id="Node000004" href="$cstr_8c.html" title="Implementation of high&#45;performance C string with SSO." alt="" coords="145,152,224,177"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="225,117,196,154,192,150,221,113"/>
+<area shape="rect" id="Node000005" href="$csvparser_8c_source.html" title=" " alt="" coords="248,152,367,177"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="263,113,298,150,295,154,259,116"/>
+<area shape="rect" id="Node000007" href="$filepath_8c_source.html" title=" " alt="" coords="391,152,496,177"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="427,116,441,151,436,153,422,118"/>
+</map>
