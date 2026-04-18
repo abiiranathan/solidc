@@ -98,53 +98,6 @@ typedef uintptr_t uptr;
 typedef uint8_t byte;
 #endif
 
-// ── Slices / Views (Modern C Foundation) ─────────────────────────────────────
-// Passing pointer + length is safer and faster than null-terminated strings or
-// naked buffer pointers. These structs are passed by value in registers.
-
-/** Read-only string view. Does NOT guarantee null-termination. */
-typedef struct {
-    const char* data;
-    usize len;
-} str_view;
-
-/** Read-only binary data slice. */
-typedef struct {
-    const byte* data;
-    usize len;
-} byte_view;
-
-/** Mutable binary data slice. */
-typedef struct {
-    byte* data;
-    usize len;
-} byte_mut_view;
-
-// Helpers to quickly construct views from static arrays/strings
-#if defined(__GNUC__) || defined(__clang__)
-
-// 1. Checks if the argument is an array (returns 1) or a pointer (returns 0)
-#define SOLIDC_IS_ARRAY(arg) (!__builtin_types_compatible_p(__typeof__(arg), __typeof__(&(arg)[0])))
-
-// 2. Evaluates to 0 if it's an array, but throws a readable compile error if it's a pointer.
-// We use a struct with a conditionally negative array size inside sizeof() to trigger the error.
-#define SOLIDC_MUST_BE_ARRAY(arg) \
-    (0 * sizeof(struct { int ERROR_MUST_BE_AN_ARRAY_NOT_A_POINTER[SOLIDC_IS_ARRAY(arg) ? 1 : -1]; }))
-
-#define STR_LIT(literal) ((str_view){.data = (literal), .len = sizeof(literal) - 1 + SOLIDC_MUST_BE_ARRAY(literal)})
-
-#define BYTE_VIEW(array) ((byte_view){.data = (const byte*)(array), .len = sizeof(array) + SOLIDC_MUST_BE_ARRAY(array)})
-
-#define BYTE_MUT_VIEW(array) \
-    ((byte_mut_view){.data = (byte*)(array), .len = sizeof(array) + SOLIDC_MUST_BE_ARRAY(array)})
-
-#else
-// Fallback for MSVC / standard C. Relies on the user reading the name "LIT"
-#define STR_LIT(literal)     ((str_view){.data = (literal), .len = sizeof(literal) - 1})
-#define BYTE_VIEW(array)     ((byte_view){.data = (const byte*)(array), .len = sizeof(array)})
-#define BYTE_MUT_VIEW(array) ((byte_mut_view){.data = (byte*)(array), .len = sizeof(array)})
-#endif
-
 // ── Atomic variants ──────────────────────────────────────────────────────────
 // Gated behind C11 and a non-MSVC check:
 // out entirely (useful for embedded or C99 targets).

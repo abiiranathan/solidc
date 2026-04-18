@@ -16,9 +16,9 @@
 #include "../include/thread.h"
 
 // Test configuration
-#define MAX_THREADS         16
-#define MAX_TASKS           10000
-#define STRESS_DURATION_SEC 5
+#define MAX_THREADS         4
+#define MAX_TASKS           100000
+#define STRESS_DURATION_SEC 1
 
 // Global test state
 static atomic_int test_counter = 0;

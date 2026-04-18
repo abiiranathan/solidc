@@ -2,6 +2,8 @@
 set(TEST_MODULES
     arena
     cstr
+    str
+    str_slice
     file
     filepath
     lock

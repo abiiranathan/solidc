@@ -16,7 +16,7 @@
 
 #include "../include/flags.h"
 #include "../include/arena.h"
-#include "../include/str_utils.h"
+#include "../include/str.h"
 
 #define INITIAL_CAPACITY  64
 #define ERR_BUF_SIZE      128

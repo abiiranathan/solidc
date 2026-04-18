@@ -1,6 +1,5 @@
 #include "../include/dotenv.h"
-
-#include "../include/str_utils.h"
+#include "../include/str.h"
 
 #include <ctype.h>   // for isspace
 #include <errno.h>   // for errno
@@ -122,14 +121,13 @@ static bool process_env_pair(char* key, char* value) {
     }
 
     // Trim key
-    key = trim_string(key);
+    str_trim(key);
     if (*key == '\0') {
-        fprintf(stderr, "Error: Empty key\n");
         return false;
     }
 
     // Trim and unquote value
-    value = trim_string(value);
+    str_trim(value);
     value = remove_quotes(value);
 
     // Check if interpolation is needed
@@ -177,25 +175,24 @@ bool load_dotenv(const char* path) {
         if (len > 0 && line[len - 1] == '\n') {
             line[len - 1] = '\0';
         }
-
-        char* trimmed = trim_string(line);
+        str_trim(line);
 
         // Skip empty lines and comments
-        if (*trimmed == '\0' || *trimmed == '#') {
+        if (*line == '\0' || *line == '#') {
             continue;
         }
 
         // Find the '=' separator
-        char* equals = strchr(trimmed, '=');
+        char* equals = strchr(line, '=');
         if (equals == NULL) {
-            fprintf(stderr, "Warning: Invalid line %zu (no '=' found): %s\n", line_number, trimmed);
+            fprintf(stderr, "Warning: Invalid line %zu (no '=' found): %s\n", line_number, line);
             had_errors = true;
             continue;
         }
 
         // Split into key and value
         *equals = '\0';
-        char* key = trimmed;
+        char* key = line;
         char* value = equals + 1;
 
         if (!process_env_pair(key, value)) {

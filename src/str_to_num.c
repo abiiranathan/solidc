@@ -1,6 +1,5 @@
 #include "../include/str_to_num.h"
-
-#include "../include/str_utils.h"
+#include "../include/str.h"
 
 #include <errno.h>     // for errno, ERANGE
 #include <float.h>     // for FLT_EPSILON, DBL_EPSILON, FLT_MAX, DBL_MAX

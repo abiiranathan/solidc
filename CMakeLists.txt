@@ -63,6 +63,7 @@ set(HEADERS
     include/arena.h
     include/cmp.h
     include/cstr.h
+    include/str.h
     include/csvparser.h
     include/defer.h
     include/file.h
@@ -91,7 +92,6 @@ set(HEADERS
     include/cache.h
     include/dynarray.h
     include/dotenv.h
-    include/solidc.h
     include/xtime.h
     include/hashset.h
     include/trie.h
@@ -101,7 +101,6 @@ set(HEADERS
     include/linear_alg.h
     include/env.h
     include/platform.h
-    include/str_utils.h
     include/prettytable.h
 )
 

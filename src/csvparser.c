@@ -2,7 +2,7 @@
 
 #include "../include/arena.h"
 #include "../include/cstr.h"
-#include "../include/str_utils.h"
+#include "../include/str.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -375,8 +375,8 @@ static bool parse_csv_line(csv_line_params* args) {
             insideQuotes = !insideQuotes;
         } else if (args->line[i] == args->delim && !insideQuotes) {
             field[fieldIndex] = '\0';
-            char* trimmed = trim_string(field);
-            fields[row->count] = arena_strdup(args->arena, trimmed);
+            str_trim(field);
+            fields[row->count] = arena_strdup(args->arena, field);
             if (!fields[row->count]) {
                 return false;
             }
@@ -403,8 +403,8 @@ static bool parse_csv_line(csv_line_params* args) {
 
     /* Add the last field with whitespace trimming */
     field[fieldIndex] = '\0';
-    char* trimmed = trim_string(field);
-    fields[row->count] = arena_strdup(args->arena, trimmed);
+    str_trim(field);
+    fields[row->count] = arena_strdup(args->arena, field);
     if (!fields[row->count]) {
         fprintf(stderr, "ERROR: unable to allocate memory for fields[%zu]\n", row->count);
         return false;
@@ -416,7 +416,6 @@ static bool parse_csv_line(csv_line_params* args) {
         fprintf(stderr, "ERROR: invalid number of fields in line %zu\n", args->rowIndex);
         return false;
     }
-
     return true;
 }
 
