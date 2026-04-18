@@ -10,6 +10,8 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
+include(FetchContent)
+
 if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
     set(CMAKE_INSTALL_LIBDIR "lib")
     set(CMAKE_INSTALL_BINDIR "bin")
@@ -40,6 +42,8 @@ option(BUILD_TESTS "Build the tests" ON)
 option(BUILD_BENCHMARKS "Build the benchmarks" ON)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
+find_package(PCRE2 QUIET COMPONENTS 8BIT)
+
 # ==============================================================================
 # Dependencies (Local)
 # ==============================================================================
@@ -54,8 +58,6 @@ target_compile_options(xxHash_obj PRIVATE
     $<$<NOT:$<C_COMPILER_ID:MSVC>>:-w>
 )
 set_target_properties(xxHash_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-# ==============================================================================
 
 # Header files
 set(HEADERS 
@@ -102,6 +104,7 @@ set(HEADERS
     include/env.h
     include/platform.h
     include/prettytable.h
+    include/regex.h
 )
 
 # Source files
@@ -131,6 +134,7 @@ set(SOURCES
     src/trie.c
     src/flags.c
     src/prettytable.c
+    src/regex.c
 )
 
 add_compile_definitions(_USE_MATH_DEFINES _GNU_SOURCE)
@@ -258,6 +262,35 @@ else()
     endif()
 endif()
 
+# ================== PCRE2 REGEX SUPPORT ==================
+set(FETCHCONTENT_QUIET OFF)
+if(NOT PCRE2_FOUND)
+    message(STATUS "PCRE2 not found, fetching...")
+    set(PCRE2_BUILD_TESTS     OFF CACHE BOOL "" FORCE)
+    set(PCRE2_BUILD_PCRE2GREP OFF CACHE BOOL "" FORCE)
+    set(PCRE2_SUPPORT_JIT     ON  CACHE BOOL "" FORCE)
+    set(PCRE2_INSTALL         OFF CACHE BOOL "" FORCE)
+    fetchcontent_declare(
+        pcre2
+        GIT_REPOSITORY https://github.com/PCRE2Project/pcre2.git
+        GIT_TAG        pcre2-10.47
+        GIT_SHALLOW       TRUE
+    )
+    fetchcontent_makeavailable(pcre2)
+
+    # Link via file path, not target — keeps pcre2-8-static out of the export graph.
+    # add_dependencies ensures pcre2 is built before solidc.
+    add_dependencies(solidc pcre2-8-static)
+    target_include_directories(solidc PRIVATE
+        $<TARGET_PROPERTY:pcre2-8-static,INCLUDE_DIRECTORIES>
+    )
+    target_link_libraries(solidc PUBLIC $<TARGET_FILE:pcre2-8-static>)
+    set(SOLIDC_PCRE2_BUNDLED TRUE)
+else()
+    target_link_libraries(solidc PUBLIC PCRE2::8BIT)
+    set(SOLIDC_PCRE2_BUNDLED FALSE)
+endif()
+
 # ==============================================================================
 # SIMD Configuration
 # ==============================================================================
@@ -286,12 +319,28 @@ enable_testing()
 # ==============================================================================
 # Installation
 # ==============================================================================
-install(TARGETS solidc
-    EXPORT solidc_export
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
+
+if(SOLIDC_PCRE2_BUNDLED)
+    # solidc goes into the export set; pcre2 is installed separately as a plain archive.
+    # Its imported target is recreated for consumers inside solidcConfig.cmake.in.
+    install(TARGETS solidc pcre2-8-static
+        EXPORT solidc_export
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+    install(TARGETS pcre2-8-static
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
+else()
+    install(TARGETS solidc
+        EXPORT solidc_export
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+endif()
+
 
 install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/solidc)
 

@@ -31,6 +31,7 @@ set(TEST_MODULES
     linear_alg
     prettytable
     defer
+    regex
 )
 
 

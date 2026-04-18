@@ -9,6 +9,15 @@ if(UNIX AND NOT APPLE)
     find_dependency(Threads)
 endif()
 
+# If solidc was built with a bundled PCRE2, recreate the imported target
+# so consumers don't need PCRE2 installed on their system.
+if(NOT TARGET pcre2-8-static)
+    add_library(pcre2-8-static STATIC IMPORTED)
+    set_target_properties(pcre2-8-static PROPERTIES
+        IMPORTED_LOCATION "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_LIBDIR@/libpcre2-8.a"
+    )
+endif()
+
 # Include the targets file
 include("${CMAKE_CURRENT_LIST_DIR}/solidcTargets.cmake")
 
