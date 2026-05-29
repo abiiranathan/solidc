@@ -106,6 +106,7 @@ set(HEADERS
     include/prettytable.h
     include/str_slice.h
     include/regex.h
+    include/strsim.h
 )
 
 # Source files
@@ -136,6 +137,7 @@ set(SOURCES
     src/flags.c
     src/prettytable.c
     src/regex.c
+    src/strsim.c
 )
 
 add_compile_definitions(_USE_MATH_DEFINES _GNU_SOURCE)

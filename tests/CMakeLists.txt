@@ -32,6 +32,7 @@ set(TEST_MODULES
     prettytable
     defer
     regex
+    strsim
 )
 
 
