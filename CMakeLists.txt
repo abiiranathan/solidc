@@ -10,8 +10,6 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
-include(FetchContent)
-
 if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
     set(CMAKE_INSTALL_LIBDIR "lib")
     set(CMAKE_INSTALL_BINDIR "bin")
@@ -266,33 +264,14 @@ else()
 endif()
 
 # ================== PCRE2 REGEX SUPPORT ==================
-set(FETCHCONTENT_QUIET OFF)
-if(NOT PCRE2_FOUND)
-    message(STATUS "PCRE2 not found, fetching...")
-    set(PCRE2_BUILD_TESTS     OFF CACHE BOOL "" FORCE)
-    set(PCRE2_BUILD_PCRE2GREP OFF CACHE BOOL "" FORCE)
-    set(PCRE2_SUPPORT_JIT     ON  CACHE BOOL "" FORCE)
-    set(PCRE2_INSTALL         OFF CACHE BOOL "" FORCE)
-    fetchcontent_declare(
-        pcre2
-        GIT_REPOSITORY https://github.com/PCRE2Project/pcre2.git
-        GIT_TAG        pcre2-10.47
-        GIT_SHALLOW       TRUE
-    )
-    fetchcontent_makeavailable(pcre2)
+set(PCRE2_BUILD_TESTS     OFF CACHE BOOL "" FORCE)
+set(PCRE2_BUILD_PCRE2GREP OFF CACHE BOOL "" FORCE)
+set(PCRE2_SUPPORT_JIT     ON  CACHE BOOL "" FORCE)
+set(PCRE2_INSTALL         ON CACHE BOOL "" FORCE)
 
-    # Link via file path, not target — keeps pcre2-8-static out of the export graph.
-    # add_dependencies ensures pcre2 is built before solidc.
-    add_dependencies(solidc pcre2-8-static)
-    target_include_directories(solidc PRIVATE
-        $<TARGET_PROPERTY:pcre2-8-static,INCLUDE_DIRECTORIES>
-    )
-    target_link_libraries(solidc PUBLIC $<TARGET_FILE:pcre2-8-static>)
-    set(SOLIDC_PCRE2_BUNDLED TRUE)
-else()
-    target_link_libraries(solidc PUBLIC PCRE2::8BIT)
-    set(SOLIDC_PCRE2_BUNDLED FALSE)
-endif()
+# Add vendored PCRE2 inside deps/pcre2-10.47 folder
+add_subdirectory(deps/pcre2-10.47 EXCLUDE_FROM_ALL)
+target_link_libraries(solidc PUBLIC pcre2-8-static)
 
 # ==============================================================================
 # SIMD Configuration
@@ -323,29 +302,20 @@ enable_testing()
 # Installation
 # ==============================================================================
 
-if(SOLIDC_PCRE2_BUNDLED)
-    # solidc goes into the export set; pcre2 is installed separately as a plain archive.
-    # Its imported target is recreated for consumers inside solidcConfig.cmake.in.
-    install(TARGETS solidc pcre2-8-static
-        EXPORT solidc_export
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    )
-    install(TARGETS pcre2-8-static
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    )
-else()
-    install(TARGETS solidc
-        EXPORT solidc_export
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    )
-endif()
-
+install(TARGETS solidc pcre2-8-static
+    EXPORT solidc_export
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
 
 install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/solidc)
+
+install(EXPORT solidc_export
+    FILE solidcTargets.cmake
+    NAMESPACE solidc::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/solidc
+)
 
 include(CMakePackageConfigHelpers)
 
@@ -367,11 +337,6 @@ install(FILES
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/solidc
 )
 
-install(EXPORT solidc_export
-    FILE solidcTargets.cmake
-    NAMESPACE solidc::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/solidc
-)
 
 if(NOT WIN32)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/solidc.pc.in

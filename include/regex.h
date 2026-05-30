@@ -370,6 +370,53 @@ static inline regex_ctx_t* regex_ctx_must_create(void) {
     return ctx;
 }
 
+/**
+ * Prints a regex match result to stdout.
+ *
+ * Prints the full match (group 0) followed by each numbered capture group.
+ * Capture groups that were present in the pattern but did not participate in
+ * the match (PCRE2_UNSET offsets) are silently skipped.
+ *
+ * @param subject The original subject string passed to the match function.
+ * @param match   The populated match result to display. Must not be NULL.
+ */
+void regex_print_match(const char* subject, const regex_match_t* match);
+
+/**
+ * Allocates and returns a null-terminated copy of a capture group substring.
+ *
+ * Use this when the caller needs to own the extracted string beyond the
+ * lifetime of the subject buffer. The returned pointer must be freed with
+ * free().
+ *
+ * @param subject   The original subject string passed to the match function.
+ * @param match     The populated match result. Must not be NULL.
+ * @param group_num Capture group index; 0 is the full match, 1+ are subgroups.
+ * @return A newly allocated, null-terminated string on success, or NULL if
+ *         any argument is invalid, the group did not participate in the match,
+ *         or memory allocation fails.
+ * @note Caller is responsible for freeing the returned string.
+ */
+char* regex_group_dup(const char* subject, const regex_match_t* match, uint32_t group_num);
+
+/**
+ * Copies a capture group substring into a caller-supplied buffer.
+ *
+ * Prefer this over regex_group_dup() in hot paths or when the caller already
+ * has a suitably-sized buffer, as it avoids a heap allocation.
+ *
+ * @param subject   The original subject string passed to the match function.
+ * @param match     The populated match result. Must not be NULL.
+ * @param group_num Capture group index; 0 is the full match, 1+ are subgroups.
+ * @param buf       Destination buffer. Must not be NULL.
+ * @param buf_len   Capacity of buf in bytes, including space for the null
+ *                  terminator. Must be at least (group length + 1).
+ * @return buf on success, or NULL if any argument is invalid, the group did
+ *         not participate in the match, or buf is too small.
+ */
+char* regex_group_copy(const char* subject, const regex_match_t* match, uint32_t group_num,
+                       char* buf, size_t buf_len);
+
 #ifdef __cplusplus
 }
 #endif

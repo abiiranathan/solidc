@@ -136,9 +136,17 @@ gcc -Wall -Wextra -pedantic -o walkhome walkhome.c -lsolidc
 ./walkhome
 ```
 
+If you must link regex.h manually, you need to link to pcre2-8 manually:
+
+```bash
+gcc -Wall -Wextra -pedantic re_finder.c -lsolid -lpcre2-8
+```
+
 ---
 
 ## 🛠️ Linking with CMake
+If you're using CMake, simply find the package and link against the `solidc` target:
+Make sure to use the `solidc::solidc` target to ensure proper dependency management and include directories.
 
 ```cmake
 find_package(solidc REQUIRED)

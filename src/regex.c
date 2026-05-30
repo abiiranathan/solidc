@@ -1,6 +1,7 @@
 #include "../include/regex.h"
 
 #include <assert.h>   /* for assert */
+#include <inttypes.h> /* PRIu32 */
 #include <stdatomic.h>/* for atomic_fetch_add, atomic_fetch_sub */
 #include <stdio.h>    /* for snprintf */
 #include <stdlib.h>   /* for malloc, free */
@@ -10,30 +11,33 @@
  * Internal representation of a compiled regular expression.
  * The public API exposes only the opaque regex_t alias.
  */
-struct regex_s {
-    pcre2_code* code;     /**< PCRE2 compiled code object.             */
-    char* pattern;        /**< Copy of the original pattern string.    */
-    uint32_t group_count; /**< Number of capture groups (excl. g0).    */
-    atomic_int refcount;  /**< Reference count; freed when it hits 0.  */
+struct regex_s
+{
+    pcre2_code* code;        /**< PCRE2 compiled code object.             */
+    char*       pattern;     /**< Copy of the original pattern string.    */
+    uint32_t    group_count; /**< Number of capture groups (excl. g0).    */
+    atomic_int  refcount;    /**< Reference count; freed when it hits 0.  */
 };
 
 /**
  * Per-thread execution context.  Wraps a PCRE2 match-data block that is
  * pre-allocated to REGEX_MAX_GROUPS pairs so we avoid per-call allocation.
  */
-struct regex_ctx_s {
+struct regex_ctx_s
+{
     pcre2_match_data* match_data; /**< Pre-allocated PCRE2 match-data block. */
 };
 
 /**
  * State for the non-overlapping-match iterator.
  */
-struct regex_iter_s {
-    regex_t* re;         /**< Retained reference to the compiled pattern.   */
-    regex_ctx_t* ctx;    /**< Borrowed reference; caller must keep alive.   */
-    const char* subject; /**< Borrowed pointer; caller must keep alive.     */
-    size_t len;          /**< Byte length of subject.                       */
-    size_t offset;       /**< Current byte offset into subject.             */
+struct regex_iter_s
+{
+    regex_t*     re;      /**< Retained reference to the compiled pattern.   */
+    regex_ctx_t* ctx;     /**< Borrowed reference; caller must keep alive.   */
+    const char*  subject; /**< Borrowed pointer; caller must keep alive.     */
+    size_t       len;     /**< Byte length of subject.                       */
+    size_t       offset;  /**< Current byte offset into subject.             */
 };
 
 /* ---------------------------------------------------------------------------
@@ -47,7 +51,8 @@ struct regex_iter_s {
  * @param buf       Destination buffer.
  * @param buf_len   Capacity of buf.
  */
-static void pcre2_err_message(int errcode, char* buf, size_t buf_len) {
+static void pcre2_err_message(int errcode, char* buf, size_t buf_len)
+{
     PCRE2_UCHAR8 tmp[256];
     if (pcre2_get_error_message(errcode, tmp, sizeof(tmp)) < 0) {
         snprintf(buf, buf_len, "PCRE2 error %d (no message available)", errcode);
@@ -65,7 +70,8 @@ static void pcre2_err_message(int errcode, char* buf, size_t buf_len) {
  *                   captured pairs filled in the ovector).
  * @param match      Output structure to populate.
  */
-static void fill_match(const regex_t* re, pcre2_match_data* md, int rc, regex_match_t* match) {
+static void fill_match(const regex_t* re, pcre2_match_data* md, int rc, regex_match_t* match)
+{
     const PCRE2_SIZE* ov = pcre2_get_ovector_pointer(md);
 
     /* The match count from pcre2_match is the number of *filled* pairs;
@@ -78,36 +84,39 @@ static void fill_match(const regex_t* re, pcre2_match_data* md, int rc, regex_ma
 
     for (uint32_t i = 0; i < total; i++) {
         match->group[i].start = ov[2 * i];
-        match->group[i].end = ov[2 * i + 1];
+        match->group[i].end   = ov[2 * i + 1];
     }
 
     /* Zero out any trailing slots not covered by this match. */
     for (uint32_t i = total; i < REGEX_MAX_GROUPS; i++) {
         match->group[i].start = 0;
-        match->group[i].end = 0;
+        match->group[i].end   = 0;
     }
 
     (void)rc; /* rc is used implicitly via the ovector; suppress unused warning */
 }
 
-regex_status_t regex_compile(const char* pattern, regex_flags_t flags, regex_t** out, char* errbuf, size_t errbuf_len) {
+regex_status_t regex_compile(const char* pattern, regex_flags_t flags, regex_t** out, char* errbuf,
+                             size_t errbuf_len)
+{
     if (pattern == NULL || out == NULL) {
         return REGEX_ERROR_ARGS;
     }
     *out = NULL;
 
     /* Compile via PCRE2. */
-    int errcode = 0;
+    int        errcode   = 0;
     PCRE2_SIZE erroffset = 0;
 
-    pcre2_code* code = pcre2_compile((PCRE2_SPTR8)pattern, PCRE2_ZERO_TERMINATED, (uint32_t)flags, &errcode, &erroffset,
-                                     NULL /* use default compile context */);
+    pcre2_code* code = pcre2_compile((PCRE2_SPTR8)pattern, PCRE2_ZERO_TERMINATED, (uint32_t)flags,
+                                     &errcode, &erroffset, NULL /* use default compile context */);
 
     if (code == NULL) {
         if (errbuf != NULL && errbuf_len > 0) {
             PCRE2_UCHAR8 tmp[256];
             pcre2_get_error_message(errcode, tmp, sizeof(tmp));
-            snprintf(errbuf, errbuf_len, "pattern error at offset %zu: %s", (size_t)erroffset, (const char*)tmp);
+            snprintf(errbuf, errbuf_len, "pattern error at offset %zu: %s", (size_t)erroffset,
+                     (const char*)tmp);
         }
         return REGEX_ERROR;
     }
@@ -145,8 +154,8 @@ regex_status_t regex_compile(const char* pattern, regex_flags_t flags, regex_t**
     }
 
     *re = (regex_t){
-        .code = code,
-        .pattern = pat_dup,
+        .code        = code,
+        .pattern     = pat_dup,
         .group_count = group_count,
         /* refcount initialised below via atomic store */
     };
@@ -156,14 +165,16 @@ regex_status_t regex_compile(const char* pattern, regex_flags_t flags, regex_t**
     return REGEX_OK;
 }
 
-regex_t* regex_retain(regex_t* re) {
+regex_t* regex_retain(regex_t* re)
+{
     if (re != NULL) {
         atomic_fetch_add(&re->refcount, 1);
     }
     return re;
 }
 
-void regex_free(regex_t* re) {
+void regex_free(regex_t* re)
+{
     if (re == NULL) {
         return;
     }
@@ -180,7 +191,8 @@ void regex_free(regex_t* re) {
  * Execution context
  * ------------------------------------------------------------------------- */
 
-regex_status_t regex_ctx_create(regex_ctx_t** out) {
+regex_status_t regex_ctx_create(regex_ctx_t** out)
+{
     if (out == NULL) {
         return REGEX_ERROR_ARGS;
     }
@@ -205,7 +217,8 @@ regex_status_t regex_ctx_create(regex_ctx_t** out) {
     return REGEX_OK;
 }
 
-void regex_ctx_free(regex_ctx_t* ctx) {
+void regex_ctx_free(regex_ctx_t* ctx)
+{
     if (ctx == NULL) {
         return;
     }
@@ -217,8 +230,9 @@ void regex_ctx_free(regex_ctx_t* ctx) {
  * Matching
  * ------------------------------------------------------------------------- */
 
-regex_status_t regex_exec(const regex_t* re, regex_ctx_t* ctx, const char* subject, size_t len, size_t offset,
-                          regex_match_t* match) {
+regex_status_t regex_exec(const regex_t* re, regex_ctx_t* ctx, const char* subject, size_t len,
+                          size_t offset, regex_match_t* match)
+{
     if (re == NULL || ctx == NULL || subject == NULL || match == NULL) {
         return REGEX_ERROR_ARGS;
     }
@@ -226,8 +240,9 @@ regex_status_t regex_exec(const regex_t* re, regex_ctx_t* ctx, const char* subje
         return REGEX_ERROR_ARGS;
     }
 
-    int rc = pcre2_match(re->code, (PCRE2_SPTR8)subject, (PCRE2_SIZE)len, (PCRE2_SIZE)offset, 0 /* no extra flags */,
-                         ctx->match_data, NULL /* use default match context */);
+    int rc =
+        pcre2_match(re->code, (PCRE2_SPTR8)subject, (PCRE2_SIZE)len, (PCRE2_SIZE)offset,
+                    0 /* no extra flags */, ctx->match_data, NULL /* use default match context */);
 
     if (rc == PCRE2_ERROR_NOMATCH) {
         return REGEX_NO_MATCH;
@@ -240,19 +255,23 @@ regex_status_t regex_exec(const regex_t* re, regex_ctx_t* ctx, const char* subje
     return REGEX_OK;
 }
 
-regex_status_t regex_match(const regex_t* re, regex_ctx_t* ctx, const char* subject, regex_match_t* match) {
+regex_status_t regex_match(const regex_t* re, regex_ctx_t* ctx, const char* subject,
+                           regex_match_t* match)
+{
     if (subject == NULL) {
         return REGEX_ERROR_ARGS;
     }
     return regex_exec(re, ctx, subject, strlen(subject), 0, match);
 }
 
-bool regex_is_match(const regex_t* re, regex_ctx_t* ctx, const char* subject, size_t len) {
+bool regex_is_match(const regex_t* re, regex_ctx_t* ctx, const char* subject, size_t len)
+{
     if (re == NULL || ctx == NULL || subject == NULL) {
         return false;
     }
 
-    int rc = pcre2_match(re->code, (PCRE2_SPTR8)subject, (PCRE2_SIZE)len, 0, 0, ctx->match_data, NULL);
+    int rc =
+        pcre2_match(re->code, (PCRE2_SPTR8)subject, (PCRE2_SIZE)len, 0, 0, ctx->match_data, NULL);
 
     return rc > 0;
 }
@@ -261,7 +280,9 @@ bool regex_is_match(const regex_t* re, regex_ctx_t* ctx, const char* subject, si
  * Iterator
  * ------------------------------------------------------------------------- */
 
-regex_status_t regex_iter_init(regex_t* re, regex_ctx_t* ctx, const char* subject, size_t len, regex_iter_t** out) {
+regex_status_t regex_iter_init(regex_t* re, regex_ctx_t* ctx, const char* subject, size_t len,
+                               regex_iter_t** out)
+{
     if (re == NULL || ctx == NULL || subject == NULL || out == NULL) {
         return REGEX_ERROR_ARGS;
     }
@@ -273,18 +294,19 @@ regex_status_t regex_iter_init(regex_t* re, regex_ctx_t* ctx, const char* subjec
     }
 
     *iter = (regex_iter_t){
-        .re = regex_retain(re),
-        .ctx = ctx,
+        .re      = regex_retain(re),
+        .ctx     = ctx,
         .subject = subject,
-        .len = len,
-        .offset = 0,
+        .len     = len,
+        .offset  = 0,
     };
 
     *out = iter;
     return REGEX_OK;
 }
 
-regex_status_t regex_iter_next(regex_iter_t* iter, regex_match_t* match) {
+regex_status_t regex_iter_next(regex_iter_t* iter, regex_match_t* match)
+{
     if (iter == NULL || match == NULL) {
         return REGEX_ERROR_ARGS;
     }
@@ -292,8 +314,8 @@ regex_status_t regex_iter_next(regex_iter_t* iter, regex_match_t* match) {
         return REGEX_NO_MATCH;
     }
 
-    int rc = pcre2_match(iter->re->code, (PCRE2_SPTR8)iter->subject, (PCRE2_SIZE)iter->len, (PCRE2_SIZE)iter->offset, 0,
-                         iter->ctx->match_data, NULL);
+    int rc = pcre2_match(iter->re->code, (PCRE2_SPTR8)iter->subject, (PCRE2_SIZE)iter->len,
+                         (PCRE2_SIZE)iter->offset, 0, iter->ctx->match_data, NULL);
 
     if (rc == PCRE2_ERROR_NOMATCH) {
         return REGEX_NO_MATCH;
@@ -318,7 +340,8 @@ regex_status_t regex_iter_next(regex_iter_t* iter, regex_match_t* match) {
     return REGEX_OK;
 }
 
-void regex_iter_free(regex_iter_t* iter) {
+void regex_iter_free(regex_iter_t* iter)
+{
     if (iter == NULL) {
         return;
     }
@@ -334,17 +357,21 @@ void regex_iter_free(regex_iter_t* iter) {
  * Shared body for regex_sub and regex_gsub; differs only in the PCRE2
  * substitute flags.
  */
-static regex_status_t sub_impl(const regex_t* re, regex_ctx_t* ctx, const char* subject, size_t subject_len,
-                               const char* replacement, char* out_buf, size_t* out_len, uint32_t pcre2_flags) {
-    if (re == NULL || ctx == NULL || subject == NULL || replacement == NULL || out_buf == NULL || out_len == NULL) {
+static regex_status_t sub_impl(const regex_t* re, regex_ctx_t* ctx, const char* subject,
+                               size_t subject_len, const char* replacement, char* out_buf,
+                               size_t* out_len, uint32_t pcre2_flags)
+{
+    if (re == NULL || ctx == NULL || subject == NULL || replacement == NULL || out_buf == NULL ||
+        out_len == NULL) {
         return REGEX_ERROR_ARGS;
     }
 
     PCRE2_SIZE result_len = (PCRE2_SIZE)*out_len;
 
-    int rc = pcre2_substitute(re->code, (PCRE2_SPTR8)subject, (PCRE2_SIZE)subject_len, 0 /* start offset */,
-                              pcre2_flags | PCRE2_SUBSTITUTE_EXTENDED, ctx->match_data, NULL /* match context */,
-                              (PCRE2_SPTR8)replacement, PCRE2_ZERO_TERMINATED, (PCRE2_UCHAR8*)out_buf, &result_len);
+    int rc = pcre2_substitute(re->code, (PCRE2_SPTR8)subject, (PCRE2_SIZE)subject_len,
+                              0 /* start offset */, pcre2_flags | PCRE2_SUBSTITUTE_EXTENDED,
+                              ctx->match_data, NULL /* match context */, (PCRE2_SPTR8)replacement,
+                              PCRE2_ZERO_TERMINATED, (PCRE2_UCHAR8*)out_buf, &result_len);
 
     if (rc == PCRE2_ERROR_NOMATCH || rc == 0) {
         return REGEX_NO_MATCH;
@@ -363,35 +390,43 @@ static regex_status_t sub_impl(const regex_t* re, regex_ctx_t* ctx, const char* 
     return REGEX_OK;
 }
 
-regex_status_t regex_sub(const regex_t* re, regex_ctx_t* ctx, const char* subject, size_t subject_len,
-                         const char* replacement, char* out_buf, size_t* out_len) {
-    return sub_impl(re, ctx, subject, subject_len, replacement, out_buf, out_len, 0 /* replace first match only */);
+regex_status_t regex_sub(const regex_t* re, regex_ctx_t* ctx, const char* subject,
+                         size_t subject_len, const char* replacement, char* out_buf, size_t* out_len)
+{
+    return sub_impl(re, ctx, subject, subject_len, replacement, out_buf, out_len,
+                    0 /* replace first match only */);
 }
 
-regex_status_t regex_gsub(const regex_t* re, regex_ctx_t* ctx, const char* subject, size_t subject_len,
-                          const char* replacement, char* out_buf, size_t* out_len) {
-    return sub_impl(re, ctx, subject, subject_len, replacement, out_buf, out_len, PCRE2_SUBSTITUTE_GLOBAL);
+regex_status_t regex_gsub(const regex_t* re, regex_ctx_t* ctx, const char* subject,
+                          size_t subject_len, const char* replacement, char* out_buf,
+                          size_t* out_len)
+{
+    return sub_impl(re, ctx, subject, subject_len, replacement, out_buf, out_len,
+                    PCRE2_SUBSTITUTE_GLOBAL);
 }
 
 /* ---------------------------------------------------------------------------
  * Introspection
  * ------------------------------------------------------------------------- */
 
-uint32_t regex_group_count(const regex_t* re) {
+uint32_t regex_group_count(const regex_t* re)
+{
     if (re == NULL) {
         return 0;
     }
     return re->group_count;
 }
 
-const char* regex_pattern(const regex_t* re) {
+const char* regex_pattern(const regex_t* re)
+{
     if (re == NULL) {
         return "";
     }
     return re->pattern;
 }
 
-void regex_strerror(regex_status_t status, char* buf, size_t buf_len) {
+void regex_strerror(regex_status_t status, char* buf, size_t buf_len)
+{
     if (buf == NULL || buf_len == 0) {
         return;
     }
@@ -420,4 +455,87 @@ void regex_strerror(regex_status_t status, char* buf, size_t buf_len) {
             break;
     }
     snprintf(buf, buf_len, "%s", msg);
+}
+
+// ============ HELPERS FROM EXTRACTING MATCH GROUPS ============
+
+void regex_print_match(const char* subject, const regex_match_t* match)
+{
+    if (!subject || !match) {
+        fprintf(stderr, "regex_print_match: NULL subject or match\n");
+        return;
+    }
+
+    if (match->count == 0) {
+        printf("No match\n");
+        return;
+    }
+
+    printf("Full match: '%.*s'\n", (int)(match->group[0].end - match->group[0].start),
+           subject + match->group[0].start);
+
+    for (uint32_t i = 1; i < match->count; i++) {
+        size_t start = match->group[i].start;
+        size_t end   = match->group[i].end;
+
+        /* Groups in the pattern that did not participate have PCRE2_UNSET offsets. */
+        if (start == PCRE2_UNSET || end == PCRE2_UNSET) {
+            continue;
+        }
+
+        printf("Group %" PRIu32 ": '%.*s'\n", i, (int)(end - start), subject + start);
+    }
+}
+
+char* regex_group_dup(const char* subject, const regex_match_t* match, uint32_t group_num)
+{
+    if (!subject || !match || group_num >= match->count) {
+        return NULL;
+    }
+
+    size_t start = match->group[group_num].start;
+    size_t end   = match->group[group_num].end;
+
+    /* A group present in the pattern but not reached during matching carries
+     * PCRE2_UNSET (~(size_t)0) in both offsets. */
+    if (start == PCRE2_UNSET || end == PCRE2_UNSET) {
+        return NULL;
+    }
+
+    size_t len    = end - start;
+    char*  result = malloc(len + 1);
+    if (!result) {
+        return NULL;
+    }
+
+    /* Length is exact; memcpy is correct and avoids strncpy's padding overhead. */
+    memcpy(result, subject + start, len);
+    result[len] = '\0';
+    return result;
+}
+
+char* regex_group_copy(const char* subject, const regex_match_t* match, uint32_t group_num,
+                       char* buf, size_t buf_len)
+{
+    if (!subject || !match || !buf || buf_len == 0 || group_num >= match->count) {
+        return NULL;
+    }
+
+    size_t start = match->group[group_num].start;
+    size_t end   = match->group[group_num].end;
+
+    if (start == PCRE2_UNSET || end == PCRE2_UNSET) {
+        return NULL;
+    }
+
+    size_t len = end - start;
+
+    /* buf_len must accommodate the text and its null terminator. */
+    if (len >= buf_len) {
+        return NULL;
+    }
+
+    memcpy(buf, subject + start, len);
+    buf[len] = '\0';
+    return buf;
 }
