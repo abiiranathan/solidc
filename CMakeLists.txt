@@ -25,14 +25,21 @@ if(MSVC)
     string(REGEX REPLACE "/W[0-4]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 endif()
 
-
 if(UNIX AND NOT APPLE)
     set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+endif()
+
+if(APPLE)
+    set(CMAKE_MACOSX_RPATH TRUE)
 endif()
 
 if(BUILD_SHARED_LIBS AND (WIN32 OR MINGW))
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
+
+# Thread hints for clang/gcc; ignored on MSVC where the CRT provides threading.
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -41,6 +48,7 @@ option(BUILD_BENCHMARKS "Build the benchmarks" ON)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
 find_package(PCRE2 QUIET COMPONENTS 8BIT)
+find_package(Threads REQUIRED)
 
 # ==============================================================================
 # Dependencies (Local)
@@ -51,14 +59,14 @@ set(xxhash_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/xxhash")
 
 add_library(xxHash_obj OBJECT ${xxhash_SOURCE_DIR}/xxhash.c)
 target_include_directories(xxHash_obj PUBLIC ${xxhash_SOURCE_DIR})
-target_compile_options(xxHash_obj PRIVATE 
+target_compile_options(xxHash_obj PRIVATE
     $<$<C_COMPILER_ID:MSVC>:/w>
     $<$<NOT:$<C_COMPILER_ID:MSVC>>:-w>
 )
 set_target_properties(xxHash_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Header files
-set(HEADERS 
+set(HEADERS
     include/aligned_alloc.h
     include/arena.h
     include/cmp.h
@@ -98,7 +106,6 @@ set(HEADERS
     include/flags.h
     include/align.h
     include/simd.h
-    include/linear_alg.h
     include/env.h
     include/platform.h
     include/prettytable.h
@@ -138,7 +145,7 @@ set(SOURCES
     src/strsim.c
 )
 
-add_compile_definitions(_USE_MATH_DEFINES _GNU_SOURCE)
+add_compile_definitions(_USE_MATH_DEFINES)
 
 # Create the library
 add_library(solidc STATIC ${SOURCES} $<TARGET_OBJECTS:xxHash_obj>)
@@ -155,12 +162,14 @@ target_include_directories(solidc PUBLIC
 )
 target_include_directories(solidc PRIVATE ${xxhash_SOURCE_DIR})
 
+# Threads::Threads is linked unconditionally so Windows (MinGW/MSVC) consumers
+# also get the correct threading interface target.
+target_link_libraries(solidc PUBLIC Threads::Threads)
 
 # ==============================================================================
 # Platform-Specific Configuration
 # ==============================================================================
 
-# Platform-specific compile definitions
 if(WIN32)
     target_compile_definitions(solidc PUBLIC _WIN32_WINNT=0x0602)  # Windows 8+
 endif()
@@ -171,7 +180,7 @@ if(APPLE)
         _DARWIN_C_SOURCE
     )
 else()
-    target_compile_definitions(solidc PRIVATE _GNU_SOURCE)
+    target_compile_definitions(solidc PUBLIC _GNU_SOURCE)
 endif()
 
 if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
@@ -186,64 +195,33 @@ if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
     )
 
     target_link_libraries(solidc PUBLIC ws2_32 advapi32 kernel32)
-    
+
     if(MINGW)
         target_link_libraries(solidc PUBLIC m)
     endif()
 
     if(MSVC)
-        # W4: Enable high warning level
-        # wd4201: nonstandard extension used: nameless struct/union
-        # wd5105: macro expansion producing 'defined' has undefined behavior
-        # wd4324: structure was padded due to alignment specifier
-        # experimental:c11atomics: Enable C11 atomics support in MSVC
         target_compile_options(solidc PRIVATE
-            /W4 /wd4201 /wd5105 /wd4324 /experimental:c11atomics 
+            /W4 /wd4201 /wd5105 /wd4324 /experimental:c11atomics
+            /wd4146 /wd4244 /wd4267 /wd4245 /wd4018 /wd4996
         )
-
-        target_compile_options(${PROJECT_NAME} PRIVATE
-        # C4146: unary minus operator applied to unsigned type
-        # (Standard practice in hashing algorithms, safe to ignore)
-        /wd4146
-
-        # C4244: conversion from 'type1' to 'type2', possible loss of data
-        /wd4244
-
-        # C4267: conversion from 'size_t' to 'type', possible loss of data
-        # (Common when assigning size_t len to int variables)
-        /wd4267
-        
-        # C4245: signed/unsigned mismatch
-        /wd4245
-        
-        # C4018: signed/unsigned mismatch (variation)
-        /wd4018
-        
-        # C4996: 'function': The POSIX name for this item is deprecated
-        # (Fixes warnings about strdup, stricmp, etc.)
-        /wd4996
-        )
-    
-        # Define CRT security logic to stop warnings about fopen, strcpy, etc.
         add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
     else()
+        # MinGW GCC: -Werror is omitted intentionally; the suppressed MSVC
+        # diagnostics above have GCC equivalents that would need matching
+        # -Wno- flags before promoting warnings to errors is safe here.
         target_compile_options(solidc PRIVATE -Wall -Wextra -Wno-unused-function)
     endif()
 else()
-    # Unix-like systems
-    target_compile_options(solidc PRIVATE 
+    # Unix-like systems (Linux, macOS, BSDs)
+    target_compile_options(solidc PRIVATE
         -Wall -Wextra -Werror -Wno-unused-function
     )
-    
-    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        find_package(Threads REQUIRED)
-        target_link_libraries(solidc PUBLIC Threads::Threads)
-    endif()
-    
+
     target_link_libraries(solidc PUBLIC m)
-    
+
     if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
-        target_compile_options(solidc PRIVATE 
+        target_compile_options(solidc PRIVATE
             -Wno-gnu-zero-variadic-macro-arguments -fblocks
         )
         if(NOT APPLE)
@@ -255,9 +233,9 @@ else()
     endif()
 
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        target_compile_options(solidc PRIVATE 
-            -fstack-protector-strong 
-            -fPIE 
+        target_compile_options(solidc PRIVATE
+            -fstack-protector-strong
+            -fPIE
             -fPIC
         )
     endif()
@@ -267,7 +245,7 @@ endif()
 set(PCRE2_BUILD_TESTS     OFF CACHE BOOL "" FORCE)
 set(PCRE2_BUILD_PCRE2GREP OFF CACHE BOOL "" FORCE)
 set(PCRE2_SUPPORT_JIT     ON  CACHE BOOL "" FORCE)
-set(PCRE2_INSTALL         ON CACHE BOOL "" FORCE)
+set(PCRE2_INSTALL         ON  CACHE BOOL "" FORCE)
 
 # Add vendored PCRE2 inside deps/pcre2-10.47 folder
 add_subdirectory(deps/pcre2-10.47 EXCLUDE_FROM_ALL)
@@ -279,20 +257,20 @@ target_link_libraries(solidc PUBLIC pcre2-8-static)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
     # x86-64: SSE4.1
     if(NOT MSVC)
-        # GCC/Clang need explicit flag
+        # GCC/Clang need explicit flag; MSVC enables SSE4.1 implicitly on x64.
         target_compile_options(solidc PUBLIC -msse4.1)
     endif()
-    # MSVC: SSE4.1 is always enabled on x64, no flag needed
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64|arm64")
-    # ARM64: NEON is always available, no flags needed
+    # ARM64: NEON is always available, no flags needed.
     # (NEON intrinsics work by default on aarch64)
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
-    # ARM32: NEON is optional, enable explicitly
+    # ARM32: NEON is optional, enable explicitly.
     if(NOT MSVC)
         target_compile_options(solidc PUBLIC -mfpu=neon)
     endif()
 endif()
 
+# ==============================================================================
 # Project Configuration
 # ==============================================================================
 include(CTest)
@@ -337,8 +315,8 @@ install(FILES
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/solidc
 )
 
-
-if(NOT WIN32)
+# pkg-config is useful under MinGW too, so only skip it for MSVC builds.
+if(NOT MSVC)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/solidc.pc.in
         ${CMAKE_CURRENT_BINARY_DIR}/solidc.pc @ONLY)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/solidc.pc
@@ -352,7 +330,7 @@ if(BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
-# Only build benchmarks on Linux(X86_64)
+# Only build benchmarks on Linux (x86_64)
 if(BUILD_BENCHMARKS AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
     add_subdirectory(benchmarks)
 endif()
