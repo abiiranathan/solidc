@@ -148,7 +148,7 @@ set(SOURCES
 add_compile_definitions(_USE_MATH_DEFINES)
 
 # Create the library
-add_library(solidc STATIC ${SOURCES} $<TARGET_OBJECTS:xxHash_obj>)
+add_library(solidc ${SOURCES} $<TARGET_OBJECTS:xxHash_obj>)
 if(WIN32)
     target_sources(solidc PRIVATE src/win_strptime.c)
 endif()
@@ -201,7 +201,7 @@ if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
     endif()
 
     if(MSVC)
-        target_compile_options(solidc PRIVATE
+        target_compile_options(solidc PUBLIC
             /W4 /wd4201 /wd5105 /wd4324 /experimental:c11atomics
             /wd4146 /wd4244 /wd4267 /wd4245 /wd4018 /wd4996
         )
@@ -221,7 +221,7 @@ else()
     target_link_libraries(solidc PUBLIC m)
 
     if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
-        target_compile_options(solidc PRIVATE
+        target_compile_options(solidc PUBLIC
             -Wno-gnu-zero-variadic-macro-arguments -fblocks
         )
         if(NOT APPLE)
@@ -233,7 +233,7 @@ else()
     endif()
 
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        target_compile_options(solidc PRIVATE
+        target_compile_options(solidc PUBLIC
             -fstack-protector-strong
             -fPIE
             -fPIC
