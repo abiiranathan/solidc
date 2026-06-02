@@ -1,3 +1,5 @@
+#include <math.h>
+#include <solidc/defer.h>
 #include <solidc/regex.h>
 #include <solidc/str_slice.h>
 
@@ -6,21 +8,31 @@ static StrSlice ss_from_span(const char* base, regex_span_t span) {
 }
 
 int main() {
-    regex_t* re = regex_must_compile("hello (\\w+)", REGEX_FLAG_NONE);
+    regex_t* re      = regex_must_compile("hello (\\w+)", REGEX_FLAG_NONE);
     regex_ctx_t* ctx = regex_ctx_must_create();
+
+    defer {
+        regex_free(re);
+        regex_ctx_free(ctx);
+    };
+
     StrSlice ss;
 
     if (re && ctx) {
-        const char* subj = "hello world";
-        regex_match_t m = {0};
+        const char* subj  = "hello world";
+        regex_match_t m   = {0};
         regex_status_t st = regex_exec(re, ctx, subj, strlen(subj), 0, &m);
         if (st == REGEX_OK) {
             // The whole match is in m.group[0], and the first capture group is in m.group[1].
             regex_span_t group1 = m.group[1]; /* first capture group */
-            ss = ss_from_span(subj, group1);
+            ss                  = ss_from_span(subj, group1);
             printf("Matched group 1: '%.*s'\n", (int)ss.len, ss.data);
         } else {
             printf("No match\n");
         }
     }
+
+    // Test math library linkage.
+    float result = cosf(0.5f);  // Just to test that math functions are working.
+    printf("cos(0.5) = %f\n", result);
 }

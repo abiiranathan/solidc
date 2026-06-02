@@ -1,9 +1,20 @@
 @PACKAGE_INIT@
-
 include(CMakeFindDependencyMacro)
-
 find_dependency(Threads)
-
 include("${CMAKE_CURRENT_LIST_DIR}/solidcTargets.cmake")
+
+# Re-check the compiler on the consumer's machine and reattach flags.
+# This runs when a downstream project calls find_package(solidc).
+if (CMAKE_C_COMPILER_ID STREQUAL "Clang")
+    if (NOT TARGET BlocksRuntime)
+        find_library(BlocksRuntime_LIB BlocksRuntime REQUIRED)
+        add_library(BlocksRuntime UNKNOWN IMPORTED)
+        set_target_properties(BlocksRuntime PROPERTIES
+            IMPORTED_LOCATION "${BlocksRuntime_LIB}"
+        )
+    endif()
+    target_compile_options(solidc::solidc INTERFACE -fblocks)
+    target_link_libraries(solidc::solidc INTERFACE BlocksRuntime)
+endif()
 
 check_required_components(solidc)

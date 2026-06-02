@@ -221,13 +221,13 @@ else()
     target_link_libraries(solidc PUBLIC m)
 
     if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
-        target_compile_options(solidc PUBLIC
+        target_compile_options(solidc INTERFACE
             -Wno-gnu-zero-variadic-macro-arguments -fblocks
         )
         if(NOT APPLE)
             find_library(BLOCKSRUNTIME_LIB BlocksRuntime)
             if(BLOCKSRUNTIME_LIB)
-                target_link_libraries(solidc PUBLIC ${BLOCKSRUNTIME_LIB})
+                target_link_libraries(solidc INTERFACE ${BLOCKSRUNTIME_LIB})
             endif()
         endif()
     endif()
@@ -317,8 +317,17 @@ install(FILES
 
 # pkg-config is useful under MinGW too, so only skip it for MSVC builds.
 if(NOT MSVC)
+    if (CMAKE_C_COMPILER_ID STREQUAL "Clang")
+        set(SOLIDC_PKG_EXTRA_LIBS "-lBlocksRuntime")
+        set(SOLIDC_PKG_EXTRA_CFLAGS "-fblocks")
+    else()
+        set(SOLIDC_PKG_EXTRA_LIBS "")
+        set(SOLIDC_PKG_EXTRA_CFLAGS "")
+    endif()
+
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/solidc.pc.in
         ${CMAKE_CURRENT_BINARY_DIR}/solidc.pc @ONLY)
+        
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/solidc.pc
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 endif()
