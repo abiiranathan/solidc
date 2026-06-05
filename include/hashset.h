@@ -69,9 +69,9 @@ typedef struct {
  * ========================================================================= */
 
 static inline uint64_t hashset_default_hash(const void* key, size_t key_size) {
-    const uint64_t FNV_OFFSET = 14695981039346656037ULL;
-    const uint64_t FNV_PRIME = 1099511628211ULL;
-    uint64_t hash = FNV_OFFSET;
+    const uint64_t FNV_OFFSET  = 14695981039346656037ULL;
+    const uint64_t FNV_PRIME   = 1099511628211ULL;
+    uint64_t hash              = FNV_OFFSET;
     const unsigned char* bytes = (const unsigned char*)key;
     for (size_t i = 0; i < key_size; i++) {
         hash ^= bytes[i];
@@ -80,13 +80,19 @@ static inline uint64_t hashset_default_hash(const void* key, size_t key_size) {
     return hash;
 }
 
-static inline bool hashset_default_equals(const void* a, const void* b, size_t ks) { return memcmp(a, b, ks) == 0; }
+static inline bool hashset_default_equals(const void* a, const void* b, size_t ks) {
+    return memcmp(a, b, ks) == 0;
+}
 
 /* Return slot index for probe step i starting from base. */
-static inline size_t _hs_slot(size_t base, size_t i, size_t mask) { return (base + i) & mask; }
+static inline size_t _hs_slot(size_t base, size_t i, size_t mask) {
+    return (base + i) & mask;
+}
 
 /* Pointer to key stored in slot idx. */
-static inline void* _hs_key(const hashset_t* s, size_t idx) { return (void*)(s->keys + idx * s->key_size); }
+static inline void* _hs_key(const hashset_t* s, size_t idx) {
+    return (void*)(s->keys + idx * s->key_size);
+}
 
 static inline hashset_t* hashset_create(size_t key_size, size_t initial_capacity,
                                         uint64_t (*hash_fn)(const void*, size_t),
@@ -95,7 +101,8 @@ static inline hashset_t* hashset_create(size_t key_size, size_t initial_capacity
 
     /* Round up to next power-of-two. */
     size_t cap = HASHSET_DEFAULT_CAPACITY;
-    while (cap < initial_capacity) cap <<= 1;
+    while (cap < initial_capacity)
+        cap <<= 1;
 
     hashset_t* set = (hashset_t*)malloc(sizeof(hashset_t));
     if (!set) return NULL;
@@ -110,10 +117,10 @@ static inline hashset_t* hashset_create(size_t key_size, size_t initial_capacity
         return NULL;
     }
 
-    set->capacity = cap;
-    set->size = 0;
-    set->key_size = key_size;
-    set->hash_fn = hash_fn ? hash_fn : hashset_default_hash;
+    set->capacity  = cap;
+    set->size      = 0;
+    set->key_size  = key_size;
+    set->hash_fn   = hash_fn ? hash_fn : hashset_default_hash;
     set->equals_fn = equals_fn ? equals_fn : hashset_default_equals;
     return set;
 }
@@ -136,9 +143,9 @@ static inline bool hashset_contains(const hashset_t* set, const void* key) {
     if (!set || !key) return false;
 
     const uint64_t hash = set->hash_fn(key, set->key_size);
-    const size_t mask = set->capacity - 1;
-    const uint8_t fp = _HS_FINGERPRINT(hash);
-    size_t idx = (size_t)(hash & mask);
+    const size_t mask   = set->capacity - 1;
+    const uint8_t fp    = _HS_FINGERPRINT(hash);
+    size_t idx          = (size_t)(hash & mask);
 
     for (size_t i = 0; i < set->capacity; i++) {
         const uint8_t m = set->meta[idx];
@@ -147,7 +154,8 @@ static inline bool hashset_contains(const hashset_t* set, const void* key) {
 
         /* Skip DELETED slots — back-shift avoids them but rehash edge cases
          * can leave one; probing must continue past them. */
-        if (m != _HS_DELETED && m == fp && set->equals_fn(_hs_key(set, idx), key, set->key_size)) return true;
+        if (m != _HS_DELETED && m == fp && set->equals_fn(_hs_key(set, idx), key, set->key_size))
+            return true;
 
         idx = _hs_slot(idx, 1, mask);
     }
@@ -160,7 +168,7 @@ static inline bool hashset_contains(const hashset_t* set, const void* key) {
 
 static inline bool _hs_rehash(hashset_t* set, size_t new_cap) {
     uint8_t* new_meta = (uint8_t*)calloc(new_cap, sizeof(uint8_t));
-    char* new_keys = (char*)malloc(new_cap * set->key_size);
+    char* new_keys    = (char*)malloc(new_cap * set->key_size);
     if (!new_meta || !new_keys) {
         free(new_meta);
         free(new_keys);
@@ -172,13 +180,14 @@ static inline bool _hs_rehash(hashset_t* set, size_t new_cap) {
     for (size_t i = 0; i < set->capacity; i++) {
         if (set->meta[i] < 0x02u) continue; /* EMPTY or DELETED */
 
-        const void* k = _hs_key(set, i);
+        const void* k    = _hs_key(set, i);
         const uint64_t h = set->hash_fn(k, set->key_size);
         const uint8_t fp = _HS_FINGERPRINT(h);
-        size_t idx = (size_t)(h & mask);
+        size_t idx       = (size_t)(h & mask);
 
         /* Linear probe in new table (no deletions yet, so no DELETED slots). */
-        while (new_meta[idx] != _HS_EMPTY) idx = (idx + 1) & mask;
+        while (new_meta[idx] != _HS_EMPTY)
+            idx = (idx + 1) & mask;
 
         new_meta[idx] = fp;
         memcpy(new_keys + idx * set->key_size, k, set->key_size);
@@ -186,8 +195,8 @@ static inline bool _hs_rehash(hashset_t* set, size_t new_cap) {
 
     free(set->meta);
     free(set->keys);
-    set->meta = new_meta;
-    set->keys = new_keys;
+    set->meta     = new_meta;
+    set->keys     = new_keys;
     set->capacity = new_cap;
     return true;
 }
@@ -205,17 +214,17 @@ static inline bool hashset_add(hashset_t* set, const void* key) {
     }
 
     const uint64_t hash = set->hash_fn(key, set->key_size);
-    const size_t mask = set->capacity - 1;
-    const uint8_t fp = _HS_FINGERPRINT(hash);
-    size_t idx = (size_t)(hash & mask);
-    size_t first_del = SIZE_MAX; /* first DELETED slot seen */
+    const size_t mask   = set->capacity - 1;
+    const uint8_t fp    = _HS_FINGERPRINT(hash);
+    size_t idx          = (size_t)(hash & mask);
+    size_t first_del    = SIZE_MAX; /* first DELETED slot seen */
 
     for (size_t i = 0; i < set->capacity; i++) {
         const uint8_t m = set->meta[idx];
 
         if (m == _HS_EMPTY) {
             /* Use earlier DELETED slot if one was found. */
-            size_t ins = (first_del != SIZE_MAX) ? first_del : idx;
+            size_t ins     = (first_del != SIZE_MAX) ? first_del : idx;
             set->meta[ins] = fp;
             memcpy(_hs_key(set, ins), key, set->key_size);
             set->size++;
@@ -253,9 +262,9 @@ static inline bool hashset_remove(hashset_t* set, const void* key) {
     if (!set || !key) return false;
 
     const uint64_t hash = set->hash_fn(key, set->key_size);
-    const size_t mask = set->capacity - 1;
-    const uint8_t fp = _HS_FINGERPRINT(hash);
-    size_t idx = (size_t)(hash & mask);
+    const size_t mask   = set->capacity - 1;
+    const uint8_t fp    = _HS_FINGERPRINT(hash);
+    size_t idx          = (size_t)(hash & mask);
 
     /* Locate the element, skipping DELETED slots. */
     size_t pos = SIZE_MAX;
@@ -302,8 +311,8 @@ static inline bool hashset_remove(hashset_t* set, const void* key) {
     for (size_t i = 0; i < set->capacity - 1; i++, scan = (scan + 1) & mask) {
         if (set->meta[scan] < 0x02u) break; /* EMPTY or DELETED: cluster ends */
 
-        uint64_t sh = set->hash_fn(_hs_key(set, scan), set->key_size);
-        size_t s_nat = (size_t)(sh & mask);
+        uint64_t sh   = set->hash_fn(_hs_key(set, scan), set->key_size);
+        size_t s_nat  = (size_t)(sh & mask);
         size_t d_scan = (scan - s_nat) & mask;
         size_t d_hole = (hole - s_nat) & mask;
 
@@ -324,9 +333,15 @@ static inline bool hashset_remove(hashset_t* set, const void* key) {
  * Accessors
  * ========================================================================= */
 
-static inline size_t hashset_size(const hashset_t* s) { return s ? s->size : 0; }
-static inline size_t hashset_capacity(const hashset_t* s) { return s ? s->capacity : 0; }
-static inline bool hashset_isempty(const hashset_t* s) { return !s || s->size == 0; }
+static inline size_t hashset_size(const hashset_t* s) {
+    return s ? s->size : 0;
+}
+static inline size_t hashset_capacity(const hashset_t* s) {
+    return s ? s->capacity : 0;
+}
+static inline bool hashset_isempty(const hashset_t* s) {
+    return !s || s->size == 0;
+}
 
 static inline void hashset_clear(hashset_t* set) {
     if (!set) return;
@@ -353,10 +368,11 @@ static inline hashset_t* hashset_intersection(const hashset_t* A, const hashset_
     if (!A || !B || A->key_size != B->key_size) return NULL;
     const hashset_t* small = A->size <= B->size ? A : B;
     const hashset_t* large = A->size <= B->size ? B : A;
-    hashset_t* r = hashset_create(A->key_size, small->size, A->hash_fn, A->equals_fn);
+    hashset_t* r           = hashset_create(A->key_size, small->size, A->hash_fn, A->equals_fn);
     if (!r) return NULL;
     for (size_t i = 0; i < small->capacity; i++)
-        if (small->meta[i] >= 0x02u && hashset_contains(large, _hs_key(small, i))) hashset_add(r, _hs_key(small, i));
+        if (small->meta[i] >= 0x02u && hashset_contains(large, _hs_key(small, i)))
+            hashset_add(r, _hs_key(small, i));
     return r;
 }
 
@@ -365,7 +381,8 @@ static inline hashset_t* hashset_difference(const hashset_t* A, const hashset_t*
     hashset_t* r = hashset_create(A->key_size, A->size, A->hash_fn, A->equals_fn);
     if (!r) return NULL;
     for (size_t i = 0; i < A->capacity; i++)
-        if (A->meta[i] >= 0x02u && !hashset_contains(B, _hs_key(A, i))) hashset_add(r, _hs_key(A, i));
+        if (A->meta[i] >= 0x02u && !hashset_contains(B, _hs_key(A, i)))
+            hashset_add(r, _hs_key(A, i));
     return r;
 }
 
@@ -374,9 +391,11 @@ static inline hashset_t* hashset_symmetric_difference(const hashset_t* A, const 
     hashset_t* r = hashset_create(A->key_size, A->size + B->size, A->hash_fn, A->equals_fn);
     if (!r) return NULL;
     for (size_t i = 0; i < A->capacity; i++)
-        if (A->meta[i] >= 0x02u && !hashset_contains(B, _hs_key(A, i))) hashset_add(r, _hs_key(A, i));
+        if (A->meta[i] >= 0x02u && !hashset_contains(B, _hs_key(A, i)))
+            hashset_add(r, _hs_key(A, i));
     for (size_t i = 0; i < B->capacity; i++)
-        if (B->meta[i] >= 0x02u && !hashset_contains(A, _hs_key(B, i))) hashset_add(r, _hs_key(B, i));
+        if (B->meta[i] >= 0x02u && !hashset_contains(A, _hs_key(B, i)))
+            hashset_add(r, _hs_key(B, i));
     return r;
 }
 

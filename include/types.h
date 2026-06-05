@@ -9,7 +9,8 @@
 #define C_VERSION_89 (198900L)  // C89/C90 (same value for both)
 #define C_VERSION_99 (199901L)  // C99
 #define C_VERSION_11 (201112L)  // C11
-#define C_VERSION_17 (201710L)  // C17 (technically a bugfix release, but often treated as a separate version)
+#define C_VERSION_17 \
+    (201710L)  // C17 (technically a bugfix release, but often treated as a separate version)
 #define C_VERSION_23 (202311L)  // C23
 
 // Check for C11 compiler support.

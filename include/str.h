@@ -73,10 +73,10 @@ static inline const char* str_search_impl(const char* hs, size_t hlen, const cha
     if (hlen < nlen) return NULL;
     if (nlen == 1) return (const char*)memchr(hs, (unsigned char)nd[0], hlen);
 
-    const char* cur = hs;
-    const char* end = hs + hlen - nlen;
+    const char* cur     = hs;
+    const char* end     = hs + hlen - nlen;
     unsigned char first = (unsigned char)nd[0];
-    unsigned char last = (unsigned char)nd[nlen - 1];
+    unsigned char last  = (unsigned char)nd[nlen - 1];
 
     while (cur <= end) {
         cur = (const char*)memchr(cur, first, (size_t)(end - cur + 1));
@@ -113,7 +113,9 @@ static inline const char* str_search_impl(const char* hs, size_t hlen, const cha
  * @param str  String to test (may be NULL).
  * @return     @c true  if @p str == NULL or @p str[0] == '\\0'.
  */
-static inline bool str_is_empty(const char* str) { return !str || str[0] == '\0'; }
+static inline bool str_is_empty(const char* str) {
+    return !str || str[0] == '\0';
+}
 
 /**
  * @brief Returns @c true when @p str is NULL, empty, or contains only
@@ -303,8 +305,8 @@ static inline bool str_ends_with(const char* str, const char* suffix) {
  */
 static inline int str_find(const char* str, const char* substr) {
     if (!str || !substr) return -1;
-    size_t hlen = strlen(str);
-    size_t nlen = strlen(substr);
+    size_t hlen       = strlen(str);
+    size_t nlen       = strlen(substr);
     const char* found = str_search_impl(str, hlen, substr, nlen);
     return found ? (int)(found - str) : -1;
 }
@@ -327,7 +329,7 @@ static inline int str_rfind(const char* str, const char* substr) {
     if (nlen == 0 || nlen > hlen) return -1;
 
     const char* last = NULL;
-    const char* p = str;
+    const char* p    = str;
 
     while ((p = str_search_impl(p, hlen - (size_t)(p - str), substr, nlen)) != NULL) {
         last = p++;
@@ -354,9 +356,9 @@ static inline size_t str_count_substr(const char* str, const char* substr) {
     size_t hlen = strlen(str);
     if (nlen == 0 || nlen > hlen) return 0;
 
-    size_t count = 0;
+    size_t count  = 0;
     const char* p = str;
-    size_t rem = hlen;
+    size_t rem    = hlen;
 
     while ((p = str_search_impl(p, rem, substr, nlen)) != NULL) {
         count++;
@@ -440,7 +442,8 @@ static inline void str_capitalize(char* str) {
     if (!str || !*str) return;
     *str = (char)toupper((unsigned char)*str);
     str++;
-    for (; *str; str++) *str = (char)tolower((unsigned char)*str);
+    for (; *str; str++)
+        *str = (char)tolower((unsigned char)*str);
 }
 
 /**
@@ -456,17 +459,18 @@ static inline void str_capitalize(char* str) {
 static inline void str_camelcase(char* str) {
     if (!str || !*str) return;
 
-    size_t r = 0;
-    size_t w = 0;
+    size_t r   = 0;
+    size_t w   = 0;
     size_t len = strlen(str);
 
     /* Skip leading underscores / spaces */
-    while (r < len && (str[r] == '_' || isspace((unsigned char)str[r]))) r++;
+    while (r < len && (str[r] == '_' || isspace((unsigned char)str[r])))
+        r++;
 
     /* First character is lowercased */
     if (r < len) {
         unsigned char c = (unsigned char)str[r++];
-        str[w++] = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
+        str[w++]        = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
     }
 
     bool cap = false;
@@ -476,7 +480,7 @@ static inline void str_camelcase(char* str) {
             cap = true;
         } else if (cap) {
             str[w++] = (char)toupper(c);
-            cap = false;
+            cap      = false;
         } else {
             str[w++] = (char)tolower(c);
         }
@@ -495,12 +499,13 @@ static inline void str_camelcase(char* str) {
 static inline void str_pascalcase(char* str) {
     if (!str || !*str) return;
 
-    size_t r = 0;
-    size_t w = 0;
+    size_t r   = 0;
+    size_t w   = 0;
     size_t len = strlen(str);
 
     /* Skip leading underscores / spaces */
-    while (r < len && (str[r] == '_' || isspace((unsigned char)str[r]))) r++;
+    while (r < len && (str[r] == '_' || isspace((unsigned char)str[r])))
+        r++;
 
     bool new_word = true;
     while (r < len) {
@@ -534,7 +539,7 @@ static inline void str_titlecase(char* str) {
             cap = true;
         } else if (cap) {
             *str = (char)toupper(c);
-            cap = false;
+            cap  = false;
         } else {
             *str = (char)tolower(c);
         }
@@ -555,9 +560,10 @@ static inline void str_titlecase(char* str) {
  */
 static inline void str_ltrim(char* str) {
     if (!str || !*str) return;
-    size_t len = strlen(str);
+    size_t len   = strlen(str);
     size_t start = 0;
-    while (start < len && isspace((unsigned char)str[start])) start++;
+    while (start < len && isspace((unsigned char)str[start]))
+        start++;
     if (start == 0) return;
     memmove(str, str + start, len - start + 1);
 }
@@ -571,7 +577,8 @@ static inline void str_ltrim(char* str) {
 static inline void str_rtrim(char* str) {
     if (!str || !*str) return;
     size_t len = strlen(str);
-    while (len > 0 && isspace((unsigned char)str[len - 1])) len--;
+    while (len > 0 && isspace((unsigned char)str[len - 1]))
+        len--;
     str[len] = '\0';
 }
 
@@ -600,17 +607,19 @@ static inline void str_trim(char* str) {
  */
 static inline void str_trim_chars(char* str, const char* chars) {
     if (!str || !chars || !*chars) return;
-    size_t len = strlen(str);
+    size_t len   = strlen(str);
     size_t start = 0;
 
-    while (start < len && strchr(chars, str[start])) start++;
+    while (start < len && strchr(chars, str[start]))
+        start++;
     if (start == len) {
         str[0] = '\0';
         return;
     }
 
     size_t end = len - 1;
-    while (end > start && strchr(chars, str[end])) end--;
+    while (end > start && strchr(chars, str[end]))
+        end--;
 
     size_t new_len = end - start + 1;
     if (start) memmove(str, str + start, new_len);
@@ -676,9 +685,9 @@ static inline void str_remove_char(char* str, char c) {
 static inline size_t str_remove_all(char* str, const char* substr) {
     if (!str || !substr || !*substr) return 0;
     size_t sub_len = strlen(substr);
-    char* w = str;
-    char* r = str;
-    size_t count = 0;
+    char* w        = str;
+    char* r        = str;
+    size_t count   = 0;
 
     while (*r) {
         if (strncmp(r, substr, sub_len) == 0) {
@@ -734,7 +743,7 @@ static inline void str_remove_substr(char* str, size_t start, size_t slen) {
 static inline char* str_dup(const char* str) {
     if (!str) return NULL;
     size_t len = strlen(str) + 1;
-    char* r = (char*)malloc(len);
+    char* r    = (char*)malloc(len);
     if (r) memcpy(r, str, len);
     return r;
 }
@@ -780,7 +789,7 @@ static inline char* str_substr(const char* str, size_t start, size_t length) {
     if (start > len) return NULL;
 
     size_t avail = len - start;
-    size_t copy = (length > avail) ? avail : length;
+    size_t copy  = (length > avail) ? avail : length;
 
     char* r = (char*)malloc(copy + 1);
     if (!r) return NULL;
@@ -802,13 +811,14 @@ static inline char* str_substr(const char* str, size_t start, size_t length) {
  */
 static inline char* str_repeat(const char* str, size_t n) {
     if (!str) return NULL;
-    size_t slen = strlen(str);
+    size_t slen   = strlen(str);
     size_t result = slen * n; /* 0 when n == 0 */
 
     char* r = (char*)malloc(result + 1);
     if (!r) return NULL;
 
-    for (size_t i = 0; i < n; i++) memcpy(r + i * slen, str, slen);
+    for (size_t i = 0; i < n; i++)
+        memcpy(r + i * slen, str, slen);
     r[result] = '\0';
     return r;
 }
@@ -831,7 +841,7 @@ static inline char* str_pad_left(const char* str, size_t width, char pad_char) {
     if (len >= width) return str_dup(str);
 
     size_t pad = width - len;
-    char* r = (char*)malloc(width + 1);
+    char* r    = (char*)malloc(width + 1);
     if (!r) return NULL;
 
     memset(r, (unsigned char)pad_char, pad);
@@ -858,7 +868,7 @@ static inline char* str_pad_right(const char* str, size_t width, char pad_char) 
     if (len >= width) return str_dup(str);
 
     size_t pad = width - len;
-    char* r = (char*)malloc(width + 1);
+    char* r    = (char*)malloc(width + 1);
     if (!r) return NULL;
 
     memcpy(r, str, len);
@@ -886,7 +896,7 @@ static inline char* str_center(const char* str, size_t width, char pad_char) {
     if (len >= width) return str_dup(str);
 
     size_t total_pad = width - len;
-    size_t left_pad = total_pad / 2;
+    size_t left_pad  = total_pad / 2;
     size_t right_pad = total_pad - left_pad;
 
     char* r = (char*)malloc(width + 1);
@@ -960,7 +970,7 @@ static inline char* str_to_snakecase(const char* str) {
             }
             r[w++] = (char)(c | 0x20u);  // Convert to lowercase
         } else {
-            r[w++] = (char)c;  // Keep as is
+            r[w++] = (char)c;            // Keep as is
         }
     }
     r[w] = '\0';
@@ -983,14 +993,14 @@ static inline char* str_replace(const char* str, const char* old_str, const char
     if (!str) return NULL;
     if (!old_str || !new_str) return str_dup(str);
 
-    size_t hlen = strlen(str);
+    size_t hlen    = strlen(str);
     size_t old_len = strlen(old_str);
     if (old_len == 0) return str_dup(str);
 
     const char* found = str_search_impl(str, hlen, old_str, old_len);
     if (!found) return str_dup(str);
 
-    size_t new_len = strlen(new_str);
+    size_t new_len    = strlen(new_str);
     size_t prefix_len = (size_t)(found - str);
     size_t suffix_len = hlen - prefix_len - old_len;
     size_t result_len = prefix_len + new_len + suffix_len;
@@ -1030,12 +1040,12 @@ static inline char* str_replace_all(const char* str, const char* old_sub, const 
 
 #define STR_RA_STACK_CAP 64
     size_t stack_offs[STR_RA_STACK_CAP];
-    size_t* offs = stack_offs;
+    size_t* offs    = stack_offs;
     size_t offs_cap = STR_RA_STACK_CAP;
-    size_t count = 0;
+    size_t count    = 0;
 
     const char* p = str;
-    size_t rem = hlen;
+    size_t rem    = hlen;
 
     /* Pass 1 – collect match offsets */
     while ((p = str_search_impl(p, rem, old_sub, old_len)) != NULL) {
@@ -1051,7 +1061,7 @@ static inline char* str_replace_all(const char* str, const char* old_sub, const 
                 no = (size_t*)realloc(offs, new_cap * sizeof(size_t));
                 if (!no) goto oom;
             }
-            offs = no;
+            offs     = no;
             offs_cap = new_cap;
         }
         offs[count++] = (size_t)(p - str);
@@ -1135,22 +1145,22 @@ static inline char** str_split(const char* str, const char* delim, size_t* count
             free(r);
             return NULL;
         }
-        r[1] = NULL;
+        r[1]       = NULL;
         *count_out = 1;
         return r;
     }
 
-    size_t dlen = strlen(delim);
-    size_t cap = 8;
+    size_t dlen   = strlen(delim);
+    size_t cap    = 8;
     char** result = (char**)malloc(cap * sizeof(char*));
     if (!result) return NULL;
 
     const char* start = str;
-    const char* end = str + strlen(str);
-    size_t count = 0;
+    const char* end   = str + strlen(str);
+    size_t count      = 0;
 
     for (;;) {
-        const char* found = str_search_impl(start, (size_t)(end - start), delim, dlen);
+        const char* found   = str_search_impl(start, (size_t)(end - start), delim, dlen);
         const char* tok_end = found ? found : end;
 
         /* Keep one extra slot for the NULL terminator */
@@ -1162,7 +1172,7 @@ static inline char** str_split(const char* str, const char* delim, size_t* count
         }
 
         size_t tok_len = (size_t)(tok_end - start);
-        result[count] = (char*)malloc(tok_len + 1);
+        result[count]  = (char*)malloc(tok_len + 1);
         if (!result[count]) goto split_err;
         memcpy(result[count], start, tok_len);
         result[count][tok_len] = '\0';
@@ -1173,11 +1183,12 @@ static inline char** str_split(const char* str, const char* delim, size_t* count
     }
 
     result[count] = NULL;
-    *count_out = count;
+    *count_out    = count;
     return result;
 
 split_err:
-    for (size_t i = 0; i < count; i++) free(result[i]);
+    for (size_t i = 0; i < count; i++)
+        free(result[i]);
     free(result);
     return NULL;
 }
@@ -1192,7 +1203,8 @@ split_err:
  */
 static inline void str_free_split(char** parts) {
     if (!parts) return;
-    for (size_t i = 0; parts[i]; i++) free(parts[i]);
+    for (size_t i = 0; parts[i]; i++)
+        free(parts[i]);
     free(parts);
 }
 
@@ -1215,7 +1227,7 @@ static inline char* str_join(const char** strings, size_t count, const char* del
         return empty;
     }
 
-    size_t dlen = delim ? strlen(delim) : 0;
+    size_t dlen  = delim ? strlen(delim) : 0;
     size_t total = 0;
     for (size_t i = 0; i < count; i++) {
         if (!strings[i]) return NULL;

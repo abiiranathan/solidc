@@ -51,9 +51,9 @@ bool dynarray_init(dynarray_t* arr, size_t element_size, size_t initial_capacity
     }
 
     *arr = (dynarray_t){
-        .data = data,
-        .size = 0,
-        .capacity = initial_capacity,
+        .data         = data,
+        .size         = 0,
+        .capacity     = initial_capacity,
         .element_size = element_size,
     };
 
@@ -108,7 +108,8 @@ bool dynarray_pop(dynarray_t* arr, void* out_element) {
     }
 
     // Shrink if usage drops below threshold and we have significant unused capacity
-    if (arr->capacity > DYNARRAY_INITIAL_CAPACITY && arr->size < arr->capacity / DYNARRAY_SHRINK_THRESHOLD) {
+    if (arr->capacity > DYNARRAY_INITIAL_CAPACITY &&
+        arr->size < arr->capacity / DYNARRAY_SHRINK_THRESHOLD) {
         size_t new_capacity = arr->capacity / DYNARRAY_GROWTH_DENOMINATOR;
         if (new_capacity < DYNARRAY_INITIAL_CAPACITY) {
             new_capacity = DYNARRAY_INITIAL_CAPACITY;
@@ -164,7 +165,7 @@ bool dynarray_reserve(dynarray_t* arr, size_t new_capacity) {
         return false;
     }
 
-    arr->data = new_data;
+    arr->data     = new_data;
     arr->capacity = new_capacity;
 
     return true;
@@ -176,7 +177,8 @@ bool dynarray_shrink_to_fit(dynarray_t* arr) {
     }
 
     // Ensure we keep at least the initial capacity to avoid degenerate behavior
-    size_t target_capacity = arr->size > DYNARRAY_INITIAL_CAPACITY ? arr->size : DYNARRAY_INITIAL_CAPACITY;
+    size_t target_capacity =
+        arr->size > DYNARRAY_INITIAL_CAPACITY ? arr->size : DYNARRAY_INITIAL_CAPACITY;
 
     return dynarray_reserve(arr, target_capacity);
 }

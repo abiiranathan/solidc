@@ -43,18 +43,19 @@ static bool interpolate(const char* value, char* result, size_t result_size) {
     }
 
     size_t result_len = 0;
-    const char* ptr = value;
+    const char* ptr   = value;
     memset(result, 0, result_size);
 
     while (*ptr && result_len < result_size - 1) {
         // Look for variable interpolation pattern: ${VAR_NAME}
         if (*ptr == '$' && *(ptr + 1) == '{') {
             const char* start = ptr + 2;
-            const char* end = strchr(start, '}');
+            const char* end   = strchr(start, '}');
 
             if (end == NULL) {
                 // Malformed interpolation - copy literal characters
-                fprintf(stderr, "Warning: Unclosed variable reference starting at position %td\n", ptr - value);
+                fprintf(stderr, "Warning: Unclosed variable reference starting at position %td\n",
+                        ptr - value);
                 result[result_len++] = *ptr++;
                 continue;
             }
@@ -89,7 +90,8 @@ static bool interpolate(const char* value, char* result, size_t result_size) {
                 memcpy(result + result_len, var_value, var_value_len);
                 result_len += var_value_len;
             } else {
-                fprintf(stderr, "Warning: Environment variable '%s' not found, skipping\n", var_name);
+                fprintf(stderr, "Warning: Environment variable '%s' not found, skipping\n",
+                        var_name);
             }
 
             ptr = end + 1;
@@ -139,12 +141,14 @@ static bool process_env_pair(char* key, char* value) {
         }
 
         if (SETENV(key, interpolated_value, 1) != 0) {
-            fprintf(stderr, "Error: Failed to set environment variable '%s': %s\n", key, strerror(errno));
+            fprintf(stderr, "Error: Failed to set environment variable '%s': %s\n", key,
+                    strerror(errno));
             return false;
         }
     } else {
         if (SETENV(key, value, 1) != 0) {
-            fprintf(stderr, "Error: Failed to set environment variable '%s': %s\n", key, strerror(errno));
+            fprintf(stderr, "Error: Failed to set environment variable '%s': %s\n", key,
+                    strerror(errno));
             return false;
         }
     }
@@ -164,8 +168,8 @@ bool load_dotenv(const char* path) {
     }
 
     char line[MAX_LINE_LENGTH] = {0};
-    size_t line_number = 0;
-    bool had_errors = false;
+    size_t line_number         = 0;
+    bool had_errors            = false;
 
     while (fgets(line, sizeof(line), file) != NULL) {
         line_number++;
@@ -191,8 +195,8 @@ bool load_dotenv(const char* path) {
         }
 
         // Split into key and value
-        *equals = '\0';
-        char* key = line;
+        *equals     = '\0';
+        char* key   = line;
         char* value = equals + 1;
 
         if (!process_env_pair(key, value)) {

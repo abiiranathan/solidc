@@ -59,11 +59,11 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
         return NULL;
     }
 
-    const char* s = buf;
-    const char* f = fmt;
-    bool is_pm = false;
-    bool has_ampm = false;
-    int century = -1;  // For %C handling
+    const char* s             = buf;
+    const char* f             = fmt;
+    bool is_pm                = false;
+    bool has_ampm             = false;
+    int century               = -1;  // For %C handling
     bool need_date_validation = false;
 
     // Initialize tm structure to safe defaults (POSIX requirement)
@@ -76,8 +76,10 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
     while (*f != '\0') {
         // Handle whitespace: any whitespace in format matches zero or more in input
         if (isspace((unsigned char)*f)) {
-            while (isspace((unsigned char)*f)) f++;
-            while (isspace((unsigned char)*s)) s++;
+            while (isspace((unsigned char)*f))
+                f++;
+            while (isspace((unsigned char)*s))
+                s++;
             continue;
         }
 
@@ -110,11 +112,12 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
 
         switch (*f) {
             case 'Y': {  // 4-digit year
-                if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1]) || !isdigit((unsigned char)s[2]) ||
-                    !isdigit((unsigned char)s[3])) {
+                if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1]) ||
+                    !isdigit((unsigned char)s[2]) || !isdigit((unsigned char)s[3])) {
                     return NULL;
                 }
-                int year = (s[0] - '0') * 1000 + (s[1] - '0') * 100 + (s[2] - '0') * 10 + (s[3] - '0');
+                int year =
+                    (s[0] - '0') * 1000 + (s[1] - '0') * 100 + (s[2] - '0') * 10 + (s[3] - '0');
                 tm->tm_year = year - 1900;
                 s += 4;
                 break;
@@ -152,7 +155,7 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
                 if (month < 1 || month > 12) {
                     return NULL;
                 }
-                tm->tm_mon = month - 1;
+                tm->tm_mon           = month - 1;
                 need_date_validation = true;
                 s += 2;
                 break;
@@ -166,7 +169,7 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
                 if (day < 1 || day > 31) {
                     return NULL;
                 }
-                tm->tm_mday = day;
+                tm->tm_mday          = day;
                 need_date_validation = true;
                 s += 2;
                 break;
@@ -189,7 +192,7 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
                 if (day < 1 || day > 31) {
                     return NULL;
                 }
-                tm->tm_mday = day;
+                tm->tm_mday          = day;
                 need_date_validation = true;
                 break;
             }
@@ -288,11 +291,11 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
 
             case 'p': {  // AM/PM (case-insensitive per POSIX)
                 if ((s[0] == 'A' || s[0] == 'a') && (s[1] == 'M' || s[1] == 'm')) {
-                    is_pm = false;
+                    is_pm    = false;
                     has_ampm = true;
                     s += 2;
                 } else if ((s[0] == 'P' || s[0] == 'p') && (s[1] == 'M' || s[1] == 'm')) {
-                    is_pm = true;
+                    is_pm    = true;
                     has_ampm = true;
                     s += 2;
                 } else {
@@ -306,7 +309,7 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
                 if (result == NULL) {
                     return NULL;
                 }
-                s = result;
+                s        = result;
                 has_ampm = true;  // Mark that AM/PM was handled
                 break;
             }
@@ -350,8 +353,9 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
             case 'b':    // Abbreviated month name
             case 'h':    // Same as %b
             case 'B': {  // Full month name
-                static const char* months[] = {"january", "february", "march",     "april",   "may",      "june",
-                                               "july",    "august",   "september", "october", "november", "december"};
+                static const char* months[] = {"january",   "february", "march",    "april",
+                                               "may",       "june",     "july",     "august",
+                                               "september", "october",  "november", "december"};
                 static const char* abbr_months[] = {"jan", "feb", "mar", "apr", "may", "jun",
                                                     "jul", "aug", "sep", "oct", "nov", "dec"};
 
@@ -360,8 +364,8 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
                 for (int i = 0; i < 12; i++) {
                     const char* full = months[i];
                     const char* abbr = abbr_months[i];
-                    size_t full_len = strlen(full);
-                    size_t abbr_len = 3;
+                    size_t full_len  = strlen(full);
+                    size_t abbr_len  = 3;
 
                     // For %B, match full name; for %b/%h, match abbreviation
                     if (*f == 'B') {
@@ -389,16 +393,17 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
 
             case 'a':    // Abbreviated weekday name
             case 'A': {  // Full weekday name
-                static const char* weekdays[] = {"sunday",   "monday", "tuesday", "wednesday",
-                                                 "thursday", "friday", "saturday"};
-                static const char* abbr_weekdays[] = {"sun", "mon", "tue", "wed", "thu", "fri", "sat"};
+                static const char* weekdays[]      = {"sunday",   "monday", "tuesday", "wednesday",
+                                                      "thursday", "friday", "saturday"};
+                static const char* abbr_weekdays[] = {"sun", "mon", "tue", "wed",
+                                                      "thu", "fri", "sat"};
 
                 bool found = false;
                 for (int i = 0; i < 7; i++) {
                     const char* full = weekdays[i];
                     const char* abbr = abbr_weekdays[i];
-                    size_t full_len = strlen(full);
-                    size_t abbr_len = 3;
+                    size_t full_len  = strlen(full);
+                    size_t abbr_len  = 3;
 
                     if (*f == 'A') {
                         if (_strnicmp(s, full, full_len) == 0) {
@@ -423,7 +428,8 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
             }
 
             case 'j': {  // Day of year (001-366) - zero-padded, 3 digits
-                if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1]) || !isdigit((unsigned char)s[2])) {
+                if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1]) ||
+                    !isdigit((unsigned char)s[2])) {
                     return NULL;
                 }
                 int yday = (s[0] - '0') * 100 + (s[1] - '0') * 10 + (s[2] - '0');

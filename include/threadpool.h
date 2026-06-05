@@ -217,7 +217,8 @@ bool threadpool_submit(Threadpool* pool, void (*function)(void*), void* arg);
  * O(@p count / @c GLOBAL_Q_SIZE) mutex acquisitions for external threads;
  * O(@p count) deque stores (lock-free) for worker threads.
  */
-size_t threadpool_submit_batch(Threadpool* pool, void (**functions)(void*), void** args, size_t count);
+size_t threadpool_submit_batch(Threadpool* pool, void (**functions)(void*), void** args,
+                               size_t count);
 
 /**
  * @brief Block until all currently submitted tasks have completed.

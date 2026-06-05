@@ -54,15 +54,15 @@ extern "C" {
 
 /** File attribute flags bitmask */
 typedef enum FileAttrFlags {
-    FATTR_NONE = 0,            /**< No attributes set */
-    FATTR_FILE = 1 << 0,       /**< Regular file */
-    FATTR_DIR = 1 << 1,        /**< Directory */
-    FATTR_SYMLINK = 1 << 2,    /**< Symbolic link */
-    FATTR_CHARDEV = 1 << 3,    /**< Character device */
-    FATTR_BLOCKDEV = 1 << 4,   /**< Block device */
-    FATTR_FIFO = 1 << 5,       /**< Named pipe (FIFO) */
-    FATTR_SOCKET = 1 << 6,     /**< Socket */
-    FATTR_HIDDEN = 1 << 7,     /**< Hidden file (starts with '.') */
+    FATTR_NONE       = 0,      /**< No attributes set */
+    FATTR_FILE       = 1 << 0, /**< Regular file */
+    FATTR_DIR        = 1 << 1, /**< Directory */
+    FATTR_SYMLINK    = 1 << 2, /**< Symbolic link */
+    FATTR_CHARDEV    = 1 << 3, /**< Character device */
+    FATTR_BLOCKDEV   = 1 << 4, /**< Block device */
+    FATTR_FIFO       = 1 << 5, /**< Named pipe (FIFO) */
+    FATTR_SOCKET     = 1 << 6, /**< Socket */
+    FATTR_HIDDEN     = 1 << 7, /**< Hidden file (starts with '.') */
     FATTR_EXECUTABLE = 1 << 8, /**< This is an executable file */
 } FileAttrFlags;
 
@@ -84,28 +84,36 @@ typedef struct FileAttributes {
  * @param flag The flag to check (from FileAttrFlags).
  * @return true if the flag is set, false otherwise.
  */
-static inline bool fattr_has(const FileAttributes* attr, FileAttrFlags flag) { return (attr->attrs & flag) != 0; }
+static inline bool fattr_has(const FileAttributes* attr, FileAttrFlags flag) {
+    return (attr->attrs & flag) != 0;
+}
 
 /**
  * Checks if the file is a regular file.
  * @param attr File attributes structure.
  * @return true if file is a regular file, false otherwise.
  */
-static inline bool fattr_is_file(const FileAttributes* attr) { return (attr->attrs & FATTR_FILE) != 0; }
+static inline bool fattr_is_file(const FileAttributes* attr) {
+    return (attr->attrs & FATTR_FILE) != 0;
+}
 
 /**
  * Checks if the file is a directory.
  * @param attr File attributes structure.
  * @return true if file is a directory, false otherwise.
  */
-static inline bool fattr_is_dir(const FileAttributes* attr) { return (attr->attrs & FATTR_DIR) != 0; }
+static inline bool fattr_is_dir(const FileAttributes* attr) {
+    return (attr->attrs & FATTR_DIR) != 0;
+}
 
 /**
  * Checks if the file is a symbolic link.
  * @param attr File attributes structure.
  * @return true if file is a symbolic link, false otherwise.
  */
-static inline bool fattr_is_symlink(const FileAttributes* attr) { return (attr->attrs & FATTR_SYMLINK) != 0; }
+static inline bool fattr_is_symlink(const FileAttributes* attr) {
+    return (attr->attrs & FATTR_SYMLINK) != 0;
+}
 
 /**
  * Checks if the file is an I/O device (character or block device).

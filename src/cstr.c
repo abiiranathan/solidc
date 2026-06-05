@@ -96,11 +96,11 @@ static bool cstr_ensure_cap(cstr* s, size_t need) {
         if (need32 <= CSTR_SSO_CAP) return true;
 
         uint32_t cap = cstr_grow_cap(CSTR_SSO_CAP, need32);
-        char* mem = (char*)malloc(cap);
+        char* mem    = (char*)malloc(cap);
         if (CSTR_UNLIKELY(!mem)) return false;
 
         memcpy(mem, s->buf, s->length + 1);
-        s->data = mem;
+        s->data     = mem;
         s->capacity = CSTR_HEAP_FLAG | cap;
         return true;
     }
@@ -115,7 +115,7 @@ static bool cstr_ensure_cap(cstr* s, size_t need) {
     char* mem = (char*)realloc(s->data, new_cap);
     if (CSTR_UNLIKELY(!mem)) return false;
 
-    s->data = mem;
+    s->data     = mem;
     s->capacity = CSTR_HEAP_FLAG | new_cap;
     return true;
 }
@@ -162,7 +162,7 @@ cstr* cstr_new_len(const char* data, size_t length) {
         }
         memcpy(s->data, data, length);
         s->data[length] = '\0';
-        s->length = (uint32_t)length;
+        s->length       = (uint32_t)length;
     }
     return s;
 }
@@ -194,7 +194,8 @@ void cstr_debug(const cstr* s) {
     fprintf(stderr,
             "cstr { data=%p, length=%u, capacity=%u, mode=%s }\n"
             "  content: \"%.*s\"\n",
-            (const void*)s->data, s->length, (unsigned)(cstr_is_heap(s) ? cstr_heap_cap(s) : CSTR_SSO_CAP - 1u),
+            (const void*)s->data, s->length,
+            (unsigned)(cstr_is_heap(s) ? cstr_heap_cap(s) : CSTR_SSO_CAP - 1u),
             cstr_is_heap(s) ? "heap" : "sso", (int)s->length, s->data);
 }
 
@@ -202,7 +203,9 @@ void cstr_debug(const cstr* s) {
  * Capacity management
  * ---------------------------------------------------------------------- */
 
-bool cstr_reserve(cstr* s, size_t capacity) { return cstr_ensure_cap(s, capacity + 1); }
+bool cstr_reserve(cstr* s, size_t capacity) {
+    return cstr_ensure_cap(s, capacity + 1);
+}
 
 void cstr_shrink_to_fit(cstr* s) {
     if (!cstr_is_heap(s)) return;
@@ -211,7 +214,7 @@ void cstr_shrink_to_fit(cstr* s) {
 
     char* mem = (char*)realloc(s->data, needed);
     if (mem) {
-        s->data = mem;
+        s->data     = mem;
         s->capacity = CSTR_HEAP_FLAG | needed;
     }
     /* Failure is non-fatal — we just stay oversized. */
@@ -257,7 +260,7 @@ bool cstr_ncat(cstr* dest, const cstr* src, size_t n) {
 
     memcpy(dest->data + dest->length, src->data, copy_n);
     dest->data[new_len] = '\0';
-    dest->length = new_len;
+    dest->length        = new_len;
     return true;
 }
 
@@ -265,8 +268,8 @@ bool cstr_append_char(cstr* s, char c) {
     uint32_t new_len = s->length + 1;
     if (CSTR_UNLIKELY(!cstr_ensure_cap(s, (size_t)new_len + 1))) return false;
     s->data[s->length] = c;
-    s->data[new_len] = '\0';
-    s->length = new_len;
+    s->data[new_len]   = '\0';
+    s->length          = new_len;
     return true;
 }
 
@@ -428,10 +431,10 @@ bool cstr_copy(cstr* dest, const cstr* src) {
 size_t cstr_remove_all(cstr* s, const char* substr) {
     if (!*substr) return 0;
     size_t sub_len = strlen(substr);
-    char* d = s->data;
+    char* d        = s->data;
     char *w = d, *r = d;
     const char* end = d + s->length;
-    size_t count = 0;
+    size_t count    = 0;
 
     while (r < end) {
         size_t rem = (size_t)(end - r);
@@ -442,7 +445,7 @@ size_t cstr_remove_all(cstr* s, const char* substr) {
             *w++ = *r++;
         }
     }
-    *w = '\0';
+    *w        = '\0';
     s->length = (uint32_t)(w - d);
     return count;
 }
@@ -451,10 +454,10 @@ size_t cstr_remove_all_cstr(cstr* s, const cstr* substr) {
     uint32_t sub_len = substr->length;
     if (sub_len == 0) return 0;
     const char* sub = substr->data;
-    char* d = s->data;
+    char* d         = s->data;
     char *w = d, *r = d;
     const char* end = d + s->length;
-    size_t count = 0;
+    size_t count    = 0;
 
     while (r < end) {
         size_t rem = (size_t)(end - r);
@@ -465,20 +468,20 @@ size_t cstr_remove_all_cstr(cstr* s, const cstr* substr) {
             *w++ = *r++;
         }
     }
-    *w = '\0';
+    *w        = '\0';
     s->length = (uint32_t)(w - d);
     return count;
 }
 
 void cstr_remove_char(cstr* s, char c) {
-    char* d = s->data;
-    char* w = d;
+    char* d         = s->data;
+    char* w         = d;
     const char* end = d + s->length;
     while (d < end) {
         if (*d != c) *w++ = *d;
         d++;
     }
-    *w = '\0';
+    *w        = '\0';
     s->length = (uint32_t)(w - s->data);
 }
 
@@ -486,7 +489,7 @@ void cstr_remove_substr(cstr* s, size_t start, size_t slen) {
     uint32_t len = s->length;
     if (CSTR_UNLIKELY(start >= len || slen == 0)) return;
     if (slen > len - start) slen = len - start;
-    char* d = s->data;
+    char* d     = s->data;
     size_t tail = len - start - slen;
     if (tail > 0)
         memmove(d + start, d + start + slen, tail + 1);
@@ -518,10 +521,10 @@ static const char* cstr_search(const char* hs, size_t hlen, const char* nd, size
     // Single char: Delegate to SIMD
     if (nlen == 1) return (const char*)memchr(hs, (unsigned char)nd[0], hlen);
 
-    const char* cur = hs;
-    const char* end = hs + hlen - nlen;
+    const char* cur       = hs;
+    const char* end       = hs + hlen - nlen;
     unsigned char n_first = (unsigned char)nd[0];
-    unsigned char n_last = (unsigned char)nd[nlen - 1];
+    unsigned char n_last  = (unsigned char)nd[nlen - 1];
 
     // Main Loop
     while (cur <= end) {
@@ -538,8 +541,8 @@ static const char* cstr_search(const char* hs, size_t hlen, const char* nd, size
                 // We already checked [0] and [nlen-1]. Check the middle.
                 // Compiler will unroll this completely for small nlen.
                 const char* p_hay = cur + 1;
-                const char* p_nd = nd + 1;
-                size_t k = nlen - 2;
+                const char* p_nd  = nd + 1;
+                size_t k          = nlen - 2;
 
                 // Do a manual check.
                 // Note: We use a do-while or simple for.
@@ -568,7 +571,7 @@ static const char* cstr_search(const char* hs, size_t hlen, const char* nd, size
  * ---------------------------------------------------------------------- */
 
 int cstr_find(const cstr* s, const char* substr) {
-    size_t nlen = strlen(substr);
+    size_t nlen       = strlen(substr);
     const char* found = cstr_search(s->data, s->length, substr, nlen);
     return found ? (int)(found - s->data) : CSTR_NPOS;
 }
@@ -582,10 +585,10 @@ int cstr_rfind(const cstr* s, const char* substr) {
     size_t nlen = strlen(substr);
     if (nlen == 0 || nlen > s->length) return CSTR_NPOS;
 
-    const char* hs = s->data;
-    size_t hlen = s->length;
+    const char* hs   = s->data;
+    size_t hlen      = s->length;
     const char* last = NULL;
-    const char* p = hs;
+    const char* p    = hs;
 
     /* Walk forward collecting last match — memchr makes each step fast. */
     while ((p = cstr_search(p, hlen - (size_t)(p - hs), substr, nlen)) != NULL) {
@@ -600,10 +603,10 @@ int cstr_rfind_cstr(const cstr* s, const cstr* sub) {
     if (sub->length == 0) return (int)s->length;
     if (sub->length > s->length) return CSTR_NPOS;
 
-    const char* hs = s->data;
-    size_t hlen = s->length;
+    const char* hs   = s->data;
+    size_t hlen      = s->length;
     const char* last = NULL;
-    const char* p = hs;
+    const char* p    = hs;
 
     while ((p = cstr_search(p, hlen - (size_t)(p - hs), sub->data, sub->length)) != NULL) {
         last = p;
@@ -671,9 +674,9 @@ size_t cstr_count_substr(const cstr* s, const char* substr) {
     size_t nlen = strlen(substr);
     if (nlen == 0 || nlen > s->length) return 0;
 
-    size_t count = 0;
+    size_t count  = 0;
     const char* p = s->data;
-    size_t rem = s->length;
+    size_t rem    = s->length;
 
     while ((p = cstr_search(p, rem, substr, nlen)) != NULL) {
         count++;
@@ -688,9 +691,9 @@ size_t cstr_count_substr_cstr(const cstr* s, const cstr* sub) {
     if (sub->length == 0 || sub->length > s->length) return 0;
     size_t nlen = sub->length;
 
-    size_t count = 0;
+    size_t count  = 0;
     const char* p = s->data;
-    size_t rem = s->length;
+    size_t rem    = s->length;
 
     while ((p = cstr_search(p, rem, sub->data, nlen)) != NULL) {
         count++;
@@ -728,7 +731,7 @@ bool cstr_snakecase(cstr* s) {
     if (orig == 0) return true;
 
     /* Count how many underscores we'll need to insert. */
-    const char* d = s->data;
+    const char* d  = s->data;
     uint32_t extra = 0;
     for (uint32_t i = 1; i < orig; i++) {
         if ((unsigned)((unsigned char)d[i] - 'A') <= 25u) extra++;
@@ -742,9 +745,9 @@ bool cstr_snakecase(cstr* s) {
     if (CSTR_UNLIKELY(!cstr_ensure_cap(s, new_len + 1))) return false;
 
     /* Right-to-left expansion (avoids second pass). */
-    d = s->data; /* pointer may have changed after ensure_cap */
+    d       = s->data; /* pointer may have changed after ensure_cap */
     char* w = s->data + new_len;
-    *w-- = '\0';
+    *w--    = '\0';
 
     for (uint32_t i = orig; i > 0;) {
         i--;
@@ -763,14 +766,15 @@ bool cstr_snakecase(cstr* s) {
 void cstr_camelcase(cstr* s) {
     uint32_t len = s->length;
     if (len == 0) return;
-    char* d = s->data;
+    char* d    = s->data;
     uint32_t r = 0, w = 0;
 
     /* Skip leading separators; first real char → lower. */
-    while (r < len && (d[r] == '_' || isspace((unsigned char)d[r]))) r++;
+    while (r < len && (d[r] == '_' || isspace((unsigned char)d[r])))
+        r++;
     if (r < len) {
         unsigned char c = (unsigned char)d[r++];
-        d[w++] = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
+        d[w++]          = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
     }
 
     bool cap = false;
@@ -782,22 +786,23 @@ void cstr_camelcase(cstr* s) {
         }
         if (cap) {
             d[w++] = (char)toupper(c);
-            cap = false;
+            cap    = false;
         } else {
             d[w++] = (char)tolower(c);
         }
     }
-    d[w] = '\0';
+    d[w]      = '\0';
     s->length = w;
 }
 
 void cstr_pascalcase(cstr* s) {
     uint32_t len = s->length;
     if (len == 0) return;
-    char* d = s->data;
+    char* d    = s->data;
     uint32_t r = 0, w = 0;
 
-    while (r < len && (d[r] == '_' || isspace((unsigned char)d[r]))) r++;
+    while (r < len && (d[r] == '_' || isspace((unsigned char)d[r])))
+        r++;
 
     bool new_word = true;
     while (r < len) {
@@ -806,24 +811,24 @@ void cstr_pascalcase(cstr* s) {
             new_word = true;
             continue;
         }
-        d[w++] = new_word ? (char)toupper(c) : (char)tolower(c);
+        d[w++]   = new_word ? (char)toupper(c) : (char)tolower(c);
         new_word = false;
     }
-    d[w] = '\0';
+    d[w]      = '\0';
     s->length = w;
 }
 
 void cstr_titlecase(cstr* s) {
     uint32_t len = s->length;
-    char* d = s->data;
-    bool cap = true;
+    char* d      = s->data;
+    bool cap     = true;
     for (uint32_t i = 0; i < len; i++) {
         unsigned char c = (unsigned char)d[i];
         if (isspace(c)) {
             cap = true;
         } else if (cap) {
             d[i] = (char)toupper(c);
-            cap = false;
+            cap  = false;
         } else {
             d[i] = (char)tolower(c);
         }
@@ -840,31 +845,35 @@ void cstr_trim(cstr* s) {
     char* d = s->data;
 
     uint32_t start = 0, end = len - 1;
-    while (start < len && isspace((unsigned char)d[start])) start++;
-    while (end > start && isspace((unsigned char)d[end])) end--;
+    while (start < len && isspace((unsigned char)d[start]))
+        start++;
+    while (end > start && isspace((unsigned char)d[end]))
+        end--;
 
     uint32_t new_len = (start > end) ? 0 : (end - start + 1);
     if (new_len && start) memmove(d, d + start, new_len);
     d[new_len] = '\0';
-    s->length = new_len;
+    s->length  = new_len;
 }
 
 void cstr_rtrim(cstr* s) {
     uint32_t len = s->length;
     if (len == 0) return;
-    char* d = s->data;
+    char* d    = s->data;
     uint32_t e = len;
-    while (e > 0 && isspace((unsigned char)d[e - 1])) e--;
-    d[e] = '\0';
+    while (e > 0 && isspace((unsigned char)d[e - 1]))
+        e--;
+    d[e]      = '\0';
     s->length = e;
 }
 
 void cstr_ltrim(cstr* s) {
     uint32_t len = s->length;
     if (len == 0) return;
-    char* d = s->data;
+    char* d        = s->data;
     uint32_t start = 0;
-    while (start < len && isspace((unsigned char)d[start])) start++;
+    while (start < len && isspace((unsigned char)d[start]))
+        start++;
     if (start == 0) return;
     uint32_t new_len = len - start;
     memmove(d, d + start, new_len + 1);
@@ -877,20 +886,22 @@ void cstr_trim_chars(cstr* s, const char* chars) {
     char* d = s->data;
 
     uint32_t start = 0;
-    while (start < len && strchr(chars, d[start])) start++;
+    while (start < len && strchr(chars, d[start]))
+        start++;
     if (start == len) {
         s->length = 0;
-        d[0] = '\0';
+        d[0]      = '\0';
         return;
     }
 
     uint32_t end = len - 1;
-    while (end > start && strchr(chars, d[end])) end--;
+    while (end > start && strchr(chars, d[end]))
+        end--;
 
     uint32_t new_len = end - start + 1;
     if (start) memmove(d, d + start, new_len);
     d[new_len] = '\0';
-    s->length = new_len;
+    s->length  = new_len;
 }
 
 /* -------------------------------------------------------------------------
@@ -901,7 +912,7 @@ cstr* cstr_substr(const cstr* s, size_t start, size_t length) {
     uint32_t slen = s->length;
     if (CSTR_UNLIKELY(start > slen)) return NULL;
     uint32_t avail = slen - (uint32_t)start;
-    uint32_t copy = (length > avail) ? avail : (uint32_t)length;
+    uint32_t copy  = (length > avail) ? avail : (uint32_t)length;
     return cstr_new_len(s->data + start, copy);
 }
 
@@ -916,7 +927,7 @@ cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) {
     const char* found = cstr_search(s->data, s->length, old_str, old_len);
     if (!found) return cstr_new_len(s->data, s->length);
 
-    size_t new_len = strlen(new_str);
+    size_t new_len    = strlen(new_str);
     size_t prefix_len = (size_t)(found - s->data);
     size_t suffix_len = s->length - prefix_len - old_len;
     size_t result_len = prefix_len + new_len + suffix_len;
@@ -929,7 +940,7 @@ cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) {
     memcpy(d + prefix_len, new_str, new_len);
     memcpy(d + prefix_len + new_len, found + old_len, suffix_len);
     d[result_len] = '\0';
-    r->length = (uint32_t)result_len;
+    r->length     = (uint32_t)result_len;
     return r;
 }
 
@@ -945,16 +956,16 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
 
     size_t new_len = strlen(new_sub);
     const char* hs = s->data;
-    size_t hlen = s->length;
+    size_t hlen    = s->length;
 
     /* Collect match offsets. */
     size_t stack_offs[RA_STACK_CAP];
-    size_t* offs = stack_offs;
+    size_t* offs    = stack_offs;
     size_t offs_cap = RA_STACK_CAP;
-    size_t count = 0;
+    size_t count    = 0;
 
     const char* p = hs;
-    size_t rem = hlen;
+    size_t rem    = hlen;
 
     while ((p = cstr_search(p, rem, old_sub, old_len)) != NULL) {
         if (CSTR_UNLIKELY(count >= offs_cap)) {
@@ -971,7 +982,7 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
                 no = (size_t*)realloc(offs, new_cap * sizeof(size_t));
                 if (CSTR_UNLIKELY(!no)) goto oom;
             }
-            offs = no;
+            offs     = no;
             offs_cap = new_cap;
         }
         offs[count++] = (size_t)(p - hs);
@@ -995,9 +1006,9 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
         cstr* r = cstr_init(result_len);
         if (CSTR_UNLIKELY(!r)) goto oom;
 
-        char* dst = r->data;
+        char* dst        = r->data;
         size_t write_pos = 0;
-        size_t src_pos = 0;
+        size_t src_pos   = 0;
 
         for (size_t i = 0; i < count; i++) {
             size_t gap = offs[i] - src_pos;
@@ -1018,7 +1029,7 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
         }
 
         dst[write_pos] = '\0';
-        r->length = (uint32_t)write_pos;
+        r->length      = (uint32_t)write_pos;
 
         if (offs != stack_offs) free(offs);
         return r;
@@ -1049,17 +1060,17 @@ cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
         return r;
     }
 
-    size_t dlen = strlen(delim);
-    size_t cap = 8;
+    size_t dlen   = strlen(delim);
+    size_t cap    = 8;
     cstr** result = (cstr**)malloc(cap * sizeof(cstr*));
     if (!result) return NULL;
 
     const char* start = s->data;
-    const char* end = s->data + s->length;
-    size_t count = 0;
+    const char* end   = s->data + s->length;
+    size_t count      = 0;
 
     while (1) {
-        const char* found = cstr_search(start, (size_t)(end - start), delim, dlen);
+        const char* found   = cstr_search(start, (size_t)(end - start), delim, dlen);
         const char* tok_end = found ? found : end;
 
         if (CSTR_UNLIKELY(count >= cap)) {
@@ -1081,7 +1092,8 @@ cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
     return result;
 
 split_err:
-    for (size_t i = 0; i < count; i++) cstr_free(result[i]);
+    for (size_t i = 0; i < count; i++)
+        cstr_free(result[i]);
     free(result);
     return NULL;
 }
@@ -1089,7 +1101,7 @@ split_err:
 cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
     if (!strings || count == 0) return cstr_new_len("", 0);
 
-    size_t dlen = delim ? strlen(delim) : 0;
+    size_t dlen  = delim ? strlen(delim) : 0;
     size_t total = 0;
     for (size_t i = 0; i < count; i++) {
         if (CSTR_UNLIKELY(!strings[i])) return NULL;
@@ -1100,7 +1112,7 @@ cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
     cstr* r = cstr_init(total);
     if (!r) return NULL;
 
-    char* d = r->data;
+    char* d    = r->data;
     size_t pos = 0;
     for (size_t i = 0; i < count; i++) {
         uint32_t len = strings[i]->length;
@@ -1113,7 +1125,7 @@ cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
             pos += dlen;
         }
     }
-    d[pos] = '\0';
+    d[pos]    = '\0';
     r->length = (uint32_t)pos;
     return r;
 }
@@ -1124,12 +1136,13 @@ cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
 
 cstr* cstr_reverse(const cstr* s) {
     uint32_t len = s->length;
-    cstr* r = cstr_init(len);
+    cstr* r      = cstr_init(len);
     if (!r) return NULL;
-    char* dst = r->data;
+    char* dst       = r->data;
     const char* src = s->data;
-    for (uint32_t i = 0; i < len; i++) dst[i] = src[len - 1 - i];
-    dst[len] = '\0';
+    for (uint32_t i = 0; i < len; i++)
+        dst[i] = src[len - 1 - i];
+    dst[len]  = '\0';
     r->length = len;
     return r;
 }
@@ -1140,7 +1153,7 @@ void cstr_reverse_inplace(cstr* s) {
     char* d = s->data;
     for (uint32_t i = 0, j = len - 1; i < j; i++, j--) {
         char t = d[i];
-        d[i] = d[j];
-        d[j] = t;
+        d[i]   = d[j];
+        d[j]   = t;
     }
 }

@@ -9,7 +9,7 @@
  */
 uint32_t solidc_djb2_hash(const void* key) {
     const unsigned char* str = (const unsigned char*)key;
-    uint32_t hash = 5381;
+    uint32_t hash            = 5381;
     int c;
 
     while ((c = *str++) != '\0') {
@@ -25,7 +25,7 @@ uint32_t solidc_djb2_hash(const void* key) {
  */
 uint32_t solidc_djb2a_hash(const void* key) {
     const unsigned char* str = (const unsigned char*)key;
-    uint32_t hash = 5381;
+    uint32_t hash            = 5381;
     int c;
 
     while ((c = *str++) != '\0') {
@@ -41,7 +41,7 @@ uint32_t solidc_djb2a_hash(const void* key) {
  */
 uint32_t solidc_fnv1a_hash(const void* key) {
     const unsigned char* str = (const unsigned char*)key;
-    uint32_t hash = 2166136261u;  // FNV offset basis
+    uint32_t hash            = 2166136261u;  // FNV offset basis
 
     while (*str) {
         hash ^= (uint32_t)(*str++);
@@ -57,7 +57,7 @@ uint32_t solidc_fnv1a_hash(const void* key) {
  */
 uint64_t solidc_fnv1a_hash64(const void* key) {
     const unsigned char* str = (const unsigned char*)key;
-    uint64_t hash = 14695981039346656037ULL;  // FNV offset basis
+    uint64_t hash            = 14695981039346656037ULL;  // FNV offset basis
 
     while (*str) {
         hash ^= (uint64_t)(*str++);
@@ -73,12 +73,12 @@ uint64_t solidc_fnv1a_hash64(const void* key) {
  */
 uint32_t solidc_elf_hash(const void* key) {
     const unsigned char* str = (const unsigned char*)key;
-    uint32_t hash = 0;
-    uint32_t x = 0;
+    uint32_t hash            = 0;
+    uint32_t x               = 0;
 
     while (*str) {
         hash = (hash << 4) + (*str++);
-        x = hash & 0xF0000000UL;
+        x    = hash & 0xF0000000UL;
         if (x != 0) {
             hash ^= (x >> 24);
         }
@@ -94,7 +94,7 @@ uint32_t solidc_elf_hash(const void* key) {
  */
 uint32_t solidc_sdbm_hash(const void* key) {
     const unsigned char* str = (const unsigned char*)key;
-    uint32_t hash = 0;
+    uint32_t hash            = 0;
     int c;
 
     while ((c = *str++) != '\0') {
@@ -109,7 +109,7 @@ uint32_t solidc_sdbm_hash(const void* key) {
  */
 uint32_t solidc_crc32_hash(const void* key, size_t len) {
     const unsigned char* data = (const unsigned char*)key;
-    uint32_t crc = 0xFFFFFFFF;
+    uint32_t crc              = 0xFFFFFFFF;
 
     while (len--) {
         crc ^= *data++;
@@ -127,7 +127,7 @@ uint32_t solidc_crc32_hash(const void* key, size_t len) {
  */
 uint32_t solidc_murmur_hash(const char* key, uint32_t len, uint32_t seed) {
     const uint8_t* data = (const uint8_t*)key;
-    const int nblocks = len / 4;
+    const int nblocks   = len / 4;
 
     uint32_t h1 = seed;
 
@@ -151,7 +151,7 @@ uint32_t solidc_murmur_hash(const char* key, uint32_t len, uint32_t seed) {
 
     // Tail: process remaining bytes
     const uint8_t* tail = (const uint8_t*)(data + nblocks * 4);
-    uint32_t k1 = 0;
+    uint32_t k1         = 0;
 
     switch (len & 3) {
         case 3:

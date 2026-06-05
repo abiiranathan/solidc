@@ -135,54 +135,57 @@ extern "C" {
 #ifndef NDEBUG
 
 /** ASSERT(cond) — abort if cond is false. */
-#define ASSERT(cond)                                                                                      \
-    do {                                                                                                  \
-        if (UNLIKELY(!(cond))) {                                                                          \
-            fprintf(stderr, "%s:%d [%s]: Assertion '%s' failed.\n", __FILE__, __LINE__, __func__, #cond); \
-            exit(1);                                                                                      \
-        }                                                                                                 \
+#define ASSERT(cond)                                                                              \
+    do {                                                                                          \
+        if (UNLIKELY(!(cond))) {                                                                  \
+            fprintf(stderr, "%s:%d [%s]: Assertion '%s' failed.\n", __FILE__, __LINE__, __func__, \
+                    #cond);                                                                       \
+            exit(1);                                                                              \
+        }                                                                                         \
     } while (0)
 
 /** ASSERT_TRUE(cond) — alias for ASSERT; documents boolean intent. */
 #define ASSERT_TRUE(cond) ASSERT(cond)
 
 /** ASSERT_NULL(ptr) — abort if ptr is not NULL. */
-#define ASSERT_NULL(ptr)                                                                                    \
-    do {                                                                                                    \
-        if (UNLIKELY((ptr) != NULL)) {                                                                      \
-            fprintf(stderr, "%s:%d [%s]: Expected '%s' to be NULL.\n", __FILE__, __LINE__, __func__, #ptr); \
-            exit(1);                                                                                        \
-        }                                                                                                   \
+#define ASSERT_NULL(ptr)                                                                   \
+    do {                                                                                   \
+        if (UNLIKELY((ptr) != NULL)) {                                                     \
+            fprintf(stderr, "%s:%d [%s]: Expected '%s' to be NULL.\n", __FILE__, __LINE__, \
+                    __func__, #ptr);                                                       \
+            exit(1);                                                                       \
+        }                                                                                  \
     } while (0)
 
 /** ASSERT_NOT_NULL(ptr) — abort if ptr is NULL. */
-#define ASSERT_NOT_NULL(ptr)                                                                                    \
-    do {                                                                                                        \
-        if (UNLIKELY((ptr) == NULL)) {                                                                          \
-            fprintf(stderr, "%s:%d [%s]: Expected '%s' to not be NULL.\n", __FILE__, __LINE__, __func__, #ptr); \
-            exit(1);                                                                                            \
-        }                                                                                                       \
+#define ASSERT_NOT_NULL(ptr)                                                                   \
+    do {                                                                                       \
+        if (UNLIKELY((ptr) == NULL)) {                                                         \
+            fprintf(stderr, "%s:%d [%s]: Expected '%s' to not be NULL.\n", __FILE__, __LINE__, \
+                    __func__, #ptr);                                                           \
+            exit(1);                                                                           \
+        }                                                                                      \
     } while (0)
 
 /**
  * ASSERT_STR_EQ(a, b) — abort if two C strings are not equal.
  * Handles NULL on either side gracefully.
  */
-#define ASSERT_STR_EQ(a, b)                                                                                          \
-    do {                                                                                                             \
-        const char* _ase_a = (a);                                                                                    \
-        const char* _ase_b = (b);                                                                                    \
-        if (_ase_a == NULL || _ase_b == NULL) {                                                                      \
-            if (_ase_a != _ase_b) {                                                                                  \
-                fprintf(stderr, "%s:%d [%s]: '%s == %s' failed (one is NULL).\n", __FILE__, __LINE__, __func__, #a,  \
-                        #b);                                                                                         \
-                exit(1);                                                                                             \
-            }                                                                                                        \
-        } else if (strcmp(_ase_a, _ase_b) != 0) {                                                                    \
-            fprintf(stderr, "%s:%d [%s]: '%s == %s' failed (\"%s\" != \"%s\").\n", __FILE__, __LINE__, __func__, #a, \
-                    #b, _ase_a, _ase_b);                                                                             \
-            exit(1);                                                                                                 \
-        }                                                                                                            \
+#define ASSERT_STR_EQ(a, b)                                                                  \
+    do {                                                                                     \
+        const char* _ase_a = (a);                                                            \
+        const char* _ase_b = (b);                                                            \
+        if (_ase_a == NULL || _ase_b == NULL) {                                              \
+            if (_ase_a != _ase_b) {                                                          \
+                fprintf(stderr, "%s:%d [%s]: '%s == %s' failed (one is NULL).\n", __FILE__,  \
+                        __LINE__, __func__, #a, #b);                                         \
+                exit(1);                                                                     \
+            }                                                                                \
+        } else if (strcmp(_ase_a, _ase_b) != 0) {                                            \
+            fprintf(stderr, "%s:%d [%s]: '%s == %s' failed (\"%s\" != \"%s\").\n", __FILE__, \
+                    __LINE__, __func__, #a, #b, _ase_a, _ase_b);                             \
+            exit(1);                                                                         \
+        }                                                                                    \
     } while (0)
 
 /**
@@ -191,10 +194,10 @@ extern "C" {
  */
 #define ASSERT_FLOAT_EQ(a, b, epsilon)                                               \
     do {                                                                             \
-        double _afe_a = (double)(a);                                                 \
-        double _afe_b = (double)(b);                                                 \
+        double _afe_a   = (double)(a);                                               \
+        double _afe_b   = (double)(b);                                               \
         double _afe_eps = (double)(epsilon);                                         \
-        double _afe_d = _afe_a - _afe_b;                                             \
+        double _afe_d   = _afe_a - _afe_b;                                           \
         /* Use manual abs to avoid pulling in <math.h> for fabs. */                  \
         if ((_afe_d > _afe_eps) || (-_afe_d > _afe_eps)) {                           \
             fprintf(stderr,                                                          \
@@ -245,16 +248,16 @@ extern "C" {
     } while (0)
 
 /** ASSERT_RANGE(val, min, max) — abort if val is outside [min, max]. */
-#define ASSERT_RANGE(val, min, max)                                                                        \
-    do {                                                                                                   \
-        __typeof__(val) _ar_v = (val);                                                                     \
-        __typeof__(min) _ar_min = (min);                                                                   \
-        __typeof__(max) _ar_max = (max);                                                                   \
-        if (UNLIKELY(_ar_v < _ar_min || _ar_v > _ar_max)) {                                                \
-            fprintf(stderr, "%s:%d [%s]: %s=%td not in [%td, %td].\n", __FILE__, __LINE__, __func__, #val, \
-                    (ptrdiff_t)_ar_v, (ptrdiff_t)_ar_min, (ptrdiff_t)_ar_max);                             \
-            exit(1);                                                                                       \
-        }                                                                                                  \
+#define ASSERT_RANGE(val, min, max)                                                            \
+    do {                                                                                       \
+        __typeof__(val) _ar_v   = (val);                                                       \
+        __typeof__(min) _ar_min = (min);                                                       \
+        __typeof__(max) _ar_max = (max);                                                       \
+        if (UNLIKELY(_ar_v < _ar_min || _ar_v > _ar_max)) {                                    \
+            fprintf(stderr, "%s:%d [%s]: %s=%td not in [%td, %td].\n", __FILE__, __LINE__,     \
+                    __func__, #val, (ptrdiff_t)_ar_v, (ptrdiff_t)_ar_min, (ptrdiff_t)_ar_max); \
+            exit(1);                                                                           \
+        }                                                                                      \
     } while (0)
 
 #else /* MSVC or unknown — typeof unavailable */
@@ -285,21 +288,21 @@ extern "C" {
         }                                                          \
     } while (0)
 
-#define ASSERT_RANGE(val, min, max)                                                                               \
-    do {                                                                                                          \
-        intptr_t _ar_v = (intptr_t)(val);                                                                         \
-        intptr_t _ar_min = (intptr_t)(min);                                                                       \
-        intptr_t _ar_max = (intptr_t)(max);                                                                       \
-        if (UNLIKELY(_ar_v < _ar_min || _ar_v > _ar_max)) {                                                       \
-            fprintf(stderr, "%s:%d [%s]: %s=%td not in [%td, %td].\n", __FILE__, __LINE__, __func__, #val, _ar_v, \
-                    _ar_min, _ar_max);                                                                            \
-            exit(1);                                                                                              \
-        }                                                                                                         \
+#define ASSERT_RANGE(val, min, max)                                                        \
+    do {                                                                                   \
+        intptr_t _ar_v   = (intptr_t)(val);                                                \
+        intptr_t _ar_min = (intptr_t)(min);                                                \
+        intptr_t _ar_max = (intptr_t)(max);                                                \
+        if (UNLIKELY(_ar_v < _ar_min || _ar_v > _ar_max)) {                                \
+            fprintf(stderr, "%s:%d [%s]: %s=%td not in [%td, %td].\n", __FILE__, __LINE__, \
+                    __func__, #val, _ar_v, _ar_min, _ar_max);                              \
+            exit(1);                                                                       \
+        }                                                                                  \
     } while (0)
 
 #endif /* SOLIDC_GCC || SOLIDC_CLANG */
 
-#else /* NDEBUG — strip all runtime assertions */
+#else  /* NDEBUG — strip all runtime assertions */
 
 #define ASSERT(cond)             UNUSED(cond)
 #define ASSERT_TRUE(cond)        UNUSED(cond)
@@ -450,10 +453,12 @@ static inline uint32_t round_up_pow2_u32(uint32_t x) {
 #define DEBUG_PRINT(fmt, ...) printf("[DEBUG] %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 
 /** DEBUG_VAR(var) — print a scalar variable's name and value as a signed integer. */
-#define DEBUG_VAR(var) printf("[DEBUG] %s:%d: %s = %td\n", __FILE__, __LINE__, #var, (ptrdiff_t)(var))
+#define DEBUG_VAR(var) \
+    printf("[DEBUG] %s:%d: %s = %td\n", __FILE__, __LINE__, #var, (ptrdiff_t)(var))
 
 /** DEBUG_STR(str) — print a string variable's name and value, handling NULL. */
-#define DEBUG_STR(str) printf("[DEBUG] %s:%d: %s = \"%s\"\n", __FILE__, __LINE__, #str, (str) ? (str) : "(null)")
+#define DEBUG_STR(str) \
+    printf("[DEBUG] %s:%d: %s = \"%s\"\n", __FILE__, __LINE__, #str, (str) ? (str) : "(null)")
 
 #else /* NDEBUG */
 
@@ -468,10 +473,12 @@ static inline uint32_t round_up_pow2_u32(uint32_t x) {
     fprintf(stderr, "[ERROR] %s:%d [%s]: " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
 /** LOG_WARN(fmt, ...) — print a warning to stderr (always active). */
-#define LOG_WARN(fmt, ...) fprintf(stderr, "[WARN]  %s:%d [%s]: " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+#define LOG_WARN(fmt, ...) \
+    fprintf(stderr, "[WARN]  %s:%d [%s]: " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
 /** LOG_INFO(fmt, ...) — print an informational message to stdout (always active). */
-#define LOG_INFO(fmt, ...) printf("[INFO]  %s:%d [%s]: " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+#define LOG_INFO(fmt, ...) \
+    printf("[INFO]  %s:%d [%s]: " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
 /* =========================================================================
  * CONTAINER ITERATION
@@ -491,8 +498,9 @@ static inline uint32_t round_up_pow2_u32(uint32_t x) {
  *   int nums[] = {1, 2, 3};
  *   FOR_EACH_ARRAY(n, nums) { printf("%d\n", *n); }
  */
-#define FOR_EACH_ARRAY(item, array) \
-    for (__typeof__(&(array)[0]) item = (array), _fea_end = (array) + ARRAY_SIZE(array); item < _fea_end; ++item)
+#define FOR_EACH_ARRAY(item, array)                                                      \
+    for (__typeof__(&(array)[0]) item = (array), _fea_end = (array) + ARRAY_SIZE(array); \
+         item < _fea_end; ++item)
 
 /**
  * FOR_EACH_RANGE(var, start, end) — iterate var over [start, end).
@@ -513,11 +521,12 @@ static inline uint32_t round_up_pow2_u32(uint32_t x) {
  *
  * Prefer the three-argument variant when element size is not obvious.
  */
-#define FOR_EACH_ARRAY(item, array)                                                                         \
-    for (void *item = (void*)(array), *_fea_end = (void*)((char*)(array) + sizeof(array)); item < _fea_end; \
-         item = (char*)item + (sizeof((array)[0])))
+#define FOR_EACH_ARRAY(item, array)                                                        \
+    for (void *item = (void*)(array), *_fea_end = (void*)((char*)(array) + sizeof(array)); \
+         item < _fea_end; item = (char*)item + (sizeof((array)[0])))
 
-#define FOR_EACH_RANGE(var, start, end) for (ptrdiff_t var = (ptrdiff_t)(start); var < (ptrdiff_t)(end); ++var)
+#define FOR_EACH_RANGE(var, start, end) \
+    for (ptrdiff_t var = (ptrdiff_t)(start); var < (ptrdiff_t)(end); ++var)
 
 #endif /* SOLIDC_GCC || SOLIDC_CLANG */
 
@@ -547,13 +556,15 @@ static inline uint32_t round_up_pow2_u32(uint32_t x) {
  * TIME_DIFF(start, end, freq) — elapsed seconds between two LARGE_INTEGER
  * timestamps captured with QueryPerformanceCounter.
  */
-#define TIME_DIFF(start, end, freq) ((double)((end).QuadPart - (start).QuadPart) / (double)(freq).QuadPart)
+#define TIME_DIFF(start, end, freq) \
+    ((double)((end).QuadPart - (start).QuadPart) / (double)(freq).QuadPart)
 
 /**
  * TIME_DIFF_MS(start, end, freq) — elapsed milliseconds between two
  * LARGE_INTEGER timestamps captured with QueryPerformanceCounter.
  */
-#define TIME_DIFF_MS(start, end, freq) ((double)((end).QuadPart - (start).QuadPart) * 1000.0 / (double)(freq).QuadPart)
+#define TIME_DIFF_MS(start, end, freq) \
+    ((double)((end).QuadPart - (start).QuadPart) * 1000.0 / (double)(freq).QuadPart)
 
 #define TIME_BLOCK(name, block)                                           \
     do {                                                                  \
@@ -585,8 +596,9 @@ static inline uint32_t round_up_pow2_u32(uint32_t x) {
  * TIME_DIFF_MS(start, end) — elapsed milliseconds between two struct timespec
  * values.
  */
-#define TIME_DIFF_MS(start, end) \
-    ((double)((end).tv_sec - (start).tv_sec) * 1000.0 + (double)((end).tv_nsec - (start).tv_nsec) / 1.0e6)
+#define TIME_DIFF_MS(start, end)                        \
+    ((double)((end).tv_sec - (start).tv_sec) * 1000.0 + \
+     (double)((end).tv_nsec - (start).tv_nsec) / 1.0e6)
 
 #define TIME_BLOCK(name, block)                                    \
     do {                                                           \
@@ -621,9 +633,10 @@ static inline uint64_t get_time_ns(void) {
     QueryPerformanceFrequency(&freq);
     QueryPerformanceCounter(&counter);
     /* Split into whole seconds and remainder to avoid 64-bit overflow. */
-    uint64_t seconds = (uint64_t)counter.QuadPart / (uint64_t)freq.QuadPart;
+    uint64_t seconds   = (uint64_t)counter.QuadPart / (uint64_t)freq.QuadPart;
     uint64_t remainder = (uint64_t)counter.QuadPart % (uint64_t)freq.QuadPart;
-    return seconds * UINT64_C(1000000000) + (remainder * UINT64_C(1000000000)) / (uint64_t)freq.QuadPart;
+    return seconds * UINT64_C(1000000000) +
+           (remainder * UINT64_C(1000000000)) / (uint64_t)freq.QuadPart;
 #else
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);

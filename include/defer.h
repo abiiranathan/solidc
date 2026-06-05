@@ -90,7 +90,7 @@ struct Deferrer {
     F f;
     Deferrer(F&& func) : f(std::forward<F>(func)) {}
     ~Deferrer() { f(); }
-    Deferrer(const Deferrer&) = delete;
+    Deferrer(const Deferrer&)            = delete;
     Deferrer& operator=(const Deferrer&) = delete;
 };
 
@@ -220,8 +220,10 @@ static inline void __defer_cleanup(defer_block* ptr) {
  * the surrounding scope. The block is executed automatically when
  * the defer variable goes out of scope.
  */
-#define defer \
-    __attribute__((cleanup(__defer_cleanup))) ATTR_UNUSED defer_block _DEFER_CONCAT(__defer_var_, __COUNTER__) = ^
+#define defer                                                                                      \
+    __attribute__((cleanup(__defer_cleanup))) ATTR_UNUSED defer_block _DEFER_CONCAT(__defer_var_,  \
+                                                                                    __COUNTER__) = \
+        ^
 
 //******************************************************************************
 //*                                                                            *

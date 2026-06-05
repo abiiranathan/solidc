@@ -164,11 +164,11 @@ csvwriter_free(writer);
 typedef struct CsvWriter CsvWriter;
 
 #define CsvWriterConfigure(writer, ...)                               \
-    csvwriter_setconfig(writer, (CsvWriterConfig){.delim = ',',       \
-                                                  .quote = '"',       \
-                                                  .newline = '\n',    \
+    csvwriter_setconfig(writer, (CsvWriterConfig){.delim     = ',',   \
+                                                  .quote     = '"',   \
+                                                  .newline   = '\n',  \
                                                   .quote_all = false, \
-                                                  .flush = false,     \
+                                                  .flush     = false, \
                                                   .first_row = false, \
                                                   __VA_ARGS__})
 

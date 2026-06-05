@@ -29,18 +29,18 @@ static ARENA_INLINE size_t get_page_size(void) {
 
 void arena_init(Arena* restrict a, void* restrict buf, size_t size) {
     memset(a, 0, sizeof(Arena));
-    a->page_size = get_page_size();
+    a->page_size      = get_page_size();
     a->heap_allocated = false;
 
-    a->first_block.base = (char*)buf;
-    a->first_block.end = (char*)buf + size;
+    a->first_block.base      = (char*)buf;
+    a->first_block.end       = (char*)buf + size;
     a->first_block.is_static = true;
-    a->first_block.next = NULL;
+    a->first_block.next      = NULL;
 
-    a->head = &a->first_block;
-    a->current_block = a->head;
-    a->curr = a->head->base;
-    a->end = a->head->end;
+    a->head            = &a->first_block;
+    a->current_block   = a->head;
+    a->curr            = a->head->base;
+    a->end             = a->head->end;
     a->total_committed = size;
 }
 
@@ -53,7 +53,7 @@ Arena* arena_create(size_t reserve_size) {
         static_buffer_in_use = true;
     } else {
         size_t initial_size = reserve_size > 0 ? reserve_size : ARENA_MIN_BLOCK_SIZE;
-        initial_size = (initial_size + get_page_size() - 1) & ~(get_page_size() - 1);
+        initial_size        = (initial_size + get_page_size() - 1) & ~(get_page_size() - 1);
 
         char* buf = (char*)aligned_alloc_xp(64, initial_size);
         if (!buf) {
@@ -75,8 +75,8 @@ void* _arena_alloc_slow(Arena* restrict a, size_t size, size_t alignment) {
         uintptr_t aligned = ((uintptr_t)next->base + alignment - 1) & ~(alignment - 1);
         if (aligned + size <= (uintptr_t)next->end) {
             a->current_block = next;
-            a->curr = (char*)(aligned + size);
-            a->end = next->end;
+            a->curr          = (char*)(aligned + size);
+            a->end           = next->end;
             return (void*)aligned;
         }
     }
@@ -84,8 +84,8 @@ void* _arena_alloc_slow(Arena* restrict a, size_t size, size_t alignment) {
     // Allocate a new block. The ArenaBlock header lives at the start of the
     // allocation itself, eliminating the separate malloc() call.
     size_t current_size = (size_t)(a->current_block->end - a->current_block->base);
-    size_t needed = sizeof(ArenaBlock) + alignment + size;
-    size_t next_size = current_size * 2;
+    size_t needed       = sizeof(ArenaBlock) + alignment + size;
+    size_t next_size    = current_size * 2;
 
     if (next_size < needed) next_size = needed;
     if (next_size < ARENA_MIN_BLOCK_SIZE) next_size = ARENA_MIN_BLOCK_SIZE;
@@ -96,18 +96,19 @@ void* _arena_alloc_slow(Arena* restrict a, size_t size, size_t alignment) {
     if (!ptr) return NULL;
 
     ArenaBlock* block = (ArenaBlock*)ptr;
-    block->base = (char*)(((uintptr_t)(ptr + sizeof(ArenaBlock)) + alignment - 1) & ~(alignment - 1));
-    block->end = ptr + next_size;
+    block->base =
+        (char*)(((uintptr_t)(ptr + sizeof(ArenaBlock)) + alignment - 1) & ~(alignment - 1));
+    block->end       = ptr + next_size;
     block->is_static = false;
-    block->next = a->current_block->next;
+    block->next      = a->current_block->next;
 
     a->current_block->next = block;
-    a->current_block = block;
+    a->current_block       = block;
     a->total_committed += next_size;
 
     uintptr_t aligned = ((uintptr_t)block->base + alignment - 1) & ~(alignment - 1);
-    a->curr = (char*)(aligned + size);
-    a->end = block->end;
+    a->curr           = (char*)(aligned + size);
+    a->end            = block->end;
 
     return (void*)aligned;
 }
@@ -126,7 +127,7 @@ void arena_destroy(Arena* restrict a) {
     block = block ? block->next : NULL;
     while (block) {
         ArenaBlock* temp = block;
-        block = block->next;
+        block            = block->next;
         aligned_free_xp(temp);  // frees the whole slab (header + data)
     }
 

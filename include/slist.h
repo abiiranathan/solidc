@@ -189,7 +189,8 @@ void slist_print_aschar(const slist* list);
  * @param list Pointer to the list to iterate over.
  * @param node Name of the slist_node_t* variable to use in the loop body.
  */
-#define SLIST_FOR_EACH(list, node) for (slist_node_t * (node) = (list)->head; (node); (node) = (node)->next)
+#define SLIST_FOR_EACH(list, node) \
+    for (slist_node_t * (node) = (list)->head; (node); (node) = (node)->next)
 
 #if defined(__cplusplus)
 }

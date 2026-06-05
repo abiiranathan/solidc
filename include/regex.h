@@ -45,11 +45,11 @@ extern "C" {
 
 /** Result codes returned by all regex_* functions. */
 typedef enum {
-    REGEX_OK = 0,           /**< Operation succeeded.                        */
-    REGEX_NO_MATCH = 1,     /**< Pattern did not match the subject.           */
-    REGEX_ERROR = -1,       /**< General / PCRE2 internal error.              */
+    REGEX_OK          = 0,  /**< Operation succeeded.                        */
+    REGEX_NO_MATCH    = 1,  /**< Pattern did not match the subject.           */
+    REGEX_ERROR       = -1, /**< General / PCRE2 internal error.              */
     REGEX_ERROR_NOMEM = -2, /**< Memory allocation failed.                   */
-    REGEX_ERROR_ARGS = -3,  /**< Invalid arguments supplied by the caller.   */
+    REGEX_ERROR_ARGS  = -3, /**< Invalid arguments supplied by the caller.   */
     REGEX_ERROR_LIMIT = -4, /**< Pattern has more groups than REGEX_MAX_GROUPS. */
 } regex_status_t;
 
@@ -141,7 +141,8 @@ typedef struct regex_iter_s regex_iter_t;
  *         REGEX_ERROR_NOMEM on allocation failure,
  *         REGEX_ERROR_ARGS if pattern or out is NULL.
  */
-regex_status_t regex_compile(const char* pattern, regex_flags_t flags, regex_t** out, char* errbuf, size_t errbuf_len);
+regex_status_t regex_compile(const char* pattern, regex_flags_t flags, regex_t** out, char* errbuf,
+                             size_t errbuf_len);
 
 /**
  * Increments the reference count of a compiled regex.
@@ -200,8 +201,8 @@ void regex_ctx_free(regex_ctx_t* ctx);
  *         REGEX_ERROR on a PCRE2 internal error,
  *         REGEX_ERROR_ARGS if any pointer argument is NULL or offset > len.
  */
-regex_status_t regex_exec(const regex_t* re, regex_ctx_t* ctx, const char* subject, size_t len, size_t offset,
-                          regex_match_t* match);
+regex_status_t regex_exec(const regex_t* re, regex_ctx_t* ctx, const char* subject, size_t len,
+                          size_t offset, regex_match_t* match);
 
 /**
  * Convenience wrapper: match a NUL-terminated string from its beginning.
@@ -214,7 +215,8 @@ regex_status_t regex_exec(const regex_t* re, regex_ctx_t* ctx, const char* subje
  * @param match    Receives match spans on success.  Must not be NULL.
  * @return Same status codes as regex_exec.
  */
-regex_status_t regex_match(const regex_t* re, regex_ctx_t* ctx, const char* subject, regex_match_t* match);
+regex_status_t regex_match(const regex_t* re, regex_ctx_t* ctx, const char* subject,
+                           regex_match_t* match);
 
 /**
  * Returns true if the pattern matches anywhere within the subject string.
@@ -247,7 +249,8 @@ bool regex_is_match(const regex_t* re, regex_ctx_t* ctx, const char* subject, si
  * @param out      Written with the new iterator on success.  Must not be NULL.
  * @return REGEX_OK or REGEX_ERROR_NOMEM.
  */
-regex_status_t regex_iter_init(regex_t* re, regex_ctx_t* ctx, const char* subject, size_t len, regex_iter_t** out);
+regex_status_t regex_iter_init(regex_t* re, regex_ctx_t* ctx, const char* subject, size_t len,
+                               regex_iter_t** out);
 
 /**
  * Advances the iterator and writes the next match into match.
@@ -290,8 +293,9 @@ void regex_iter_free(regex_iter_t* iter);
  *         REGEX_ERROR on failure (check out_len for required capacity),
  *         REGEX_ERROR_ARGS on invalid arguments.
  */
-regex_status_t regex_sub(const regex_t* re, regex_ctx_t* ctx, const char* subject, size_t subject_len,
-                         const char* replacement, char* out_buf, size_t* out_len);
+regex_status_t regex_sub(const regex_t* re, regex_ctx_t* ctx, const char* subject,
+                         size_t subject_len, const char* replacement, char* out_buf,
+                         size_t* out_len);
 
 /**
  * Replaces all non-overlapping matches of re in subject with replacement.
@@ -308,8 +312,9 @@ regex_status_t regex_sub(const regex_t* re, regex_ctx_t* ctx, const char* subjec
  * @return REGEX_OK on success, REGEX_NO_MATCH if no substitution occurred,
  *         REGEX_ERROR on failure, REGEX_ERROR_ARGS on invalid arguments.
  */
-regex_status_t regex_gsub(const regex_t* re, regex_ctx_t* ctx, const char* subject, size_t subject_len,
-                          const char* replacement, char* out_buf, size_t* out_len);
+regex_status_t regex_gsub(const regex_t* re, regex_ctx_t* ctx, const char* subject,
+                          size_t subject_len, const char* replacement, char* out_buf,
+                          size_t* out_len);
 
 /* ---------------------------------------------------------------------------
  * Introspection
@@ -348,10 +353,11 @@ void regex_strerror(regex_status_t status, char* buf, size_t buf_len);
  */
 static inline regex_t* regex_must_compile(const char* pattern, regex_flags_t flags) {
     char errbuf[256];
-    regex_t* re = NULL;
+    regex_t* re       = NULL;
     regex_status_t st = regex_compile(pattern, flags, &re, errbuf, sizeof(errbuf));
     if (st != REGEX_OK) {
-        fprintf(stderr, "%s:%d: regex_compile(\"%s\") failed: %s\n", __FILE__, __LINE__, pattern, errbuf);
+        fprintf(stderr, "%s:%d: regex_compile(\"%s\") failed: %s\n", __FILE__, __LINE__, pattern,
+                errbuf);
         exit(1);
     }
     return re;
@@ -361,7 +367,7 @@ static inline regex_t* regex_must_compile(const char* pattern, regex_flags_t fla
  * Creates an execution context; calls fail_at and returns NULL on error.
  */
 static inline regex_ctx_t* regex_ctx_must_create(void) {
-    regex_ctx_t* ctx = NULL;
+    regex_ctx_t* ctx  = NULL;
     regex_status_t st = regex_ctx_create(&ctx);
     if (st != REGEX_OK) {
         fprintf(stderr, "%s:%d: regex_ctx_create failed\n", __FILE__, __LINE__);

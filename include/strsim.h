@@ -45,7 +45,7 @@ extern "C" {
  *
  * @note Thread-safe.  No heap allocation is performed.
  */
-int strsim_cosine(const char *a, const char *b, double *out_similarity);
+int strsim_cosine(const char* a, const char* b, double* out_similarity);
 
 /* -------------------------------------------------------------------------
  * Levenshtein (edit) distance
@@ -71,7 +71,7 @@ int strsim_cosine(const char *a, const char *b, double *out_similarity);
  *
  * @note Thread-safe.  Allocates O(min(|a|, |b|)) bytes on the heap.
  */
-int strsim_levenshtein(const char *a, const char *b, size_t *out_distance);
+int strsim_levenshtein(const char* a, const char* b, size_t* out_distance);
 
 /* -------------------------------------------------------------------------
  * Damerau-Levenshtein distance
@@ -100,8 +100,7 @@ int strsim_levenshtein(const char *a, const char *b, size_t *out_distance);
  *
  * @note Thread-safe.  Allocates O(|a| * |b|) bytes on the heap.
  */
-int strsim_damerau_levenshtein(const char *a, const char *b,
-                               size_t *out_distance);
+int strsim_damerau_levenshtein(const char* a, const char* b, size_t* out_distance);
 
 /* -------------------------------------------------------------------------
  * Jaro-Winkler similarity
@@ -140,7 +139,7 @@ int strsim_damerau_levenshtein(const char *a, const char *b,
  *
  * @note Thread-safe.
  */
-int strsim_jaro_winkler(const char *a, const char *b, double *out_similarity);
+int strsim_jaro_winkler(const char* a, const char* b, double* out_similarity);
 
 /* -------------------------------------------------------------------------
  * Jaccard similarity on character bigrams
@@ -173,7 +172,7 @@ int strsim_jaro_winkler(const char *a, const char *b, double *out_similarity);
  *
  * @note Thread-safe.
  */
-int strsim_jaccard_bigram(const char *a, const char *b, double *out_similarity);
+int strsim_jaccard_bigram(const char* a, const char* b, double* out_similarity);
 
 #ifdef __cplusplus
 }

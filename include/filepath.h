@@ -62,7 +62,7 @@ extern "C" {
  * @note Must be closed with dir_close() to prevent resource leaks.
  */
 typedef struct {
-    char* path; /**< Directory path being traversed. */
+    char* path;                 /**< Directory path being traversed. */
 #ifdef _WIN32
     HANDLE handle;              /**< Windows directory search handle. */
     WIN32_FIND_DATAW find_data; /**< Current directory entry data. */
@@ -260,7 +260,8 @@ typedef enum WalkDirOption {
  * @return WalkDirOption to control traversal behavior.
  * @note Callback must not call dir_walk on the same path to avoid infinite recursion.
  */
-typedef WalkDirOption (*WalkDirCallback)(const FileAttributes* attr, const char* path, const char* name, void* data);
+typedef WalkDirOption (*WalkDirCallback)(const FileAttributes* attr, const char* path,
+                                         const char* name, void* data);
 
 /**
  * Walks a directory tree in breadth-first order.

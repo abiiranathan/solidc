@@ -160,7 +160,9 @@ uint32_t solidc_murmur_hash(const char* key, uint32_t len, uint32_t seed);
  * @note This function delegates to XXH32() from the system xxhash library.
  * @see https://github.com/Cyan4973/xxHash
  */
-static inline uint32_t solidc_XXH32(const void* input, size_t len, uint32_t seed) { return XXH32(input, len, seed); }
+static inline uint32_t solidc_XXH32(const void* input, size_t len, uint32_t seed) {
+    return XXH32(input, len, seed);
+}
 
 #ifdef __cplusplus
 }

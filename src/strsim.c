@@ -34,8 +34,7 @@
  * @param s   NUL-terminated input string.
  * @param tf  Output array of length ALPHABET_SIZE, zeroed by the caller.
  */
-static void build_tf(const char* s, uint64_t tf[ALPHABET_SIZE])
-{
+static void build_tf(const char* s, uint64_t tf[ALPHABET_SIZE]) {
     for (; *s != '\0'; ++s) {
         /* Cast to unsigned char before widening to avoid sign-extension on
          * platforms where char is signed. */
@@ -44,20 +43,17 @@ static void build_tf(const char* s, uint64_t tf[ALPHABET_SIZE])
 }
 
 /** Returns the smaller of two size_t values. */
-static inline size_t min2(size_t a, size_t b)
-{
+static inline size_t min2(size_t a, size_t b) {
     return (a < b) ? a : b;
 }
 
 /** Returns the larger of two size_t values. */
-static inline size_t max2(size_t a, size_t b)
-{
+static inline size_t max2(size_t a, size_t b) {
     return (a > b) ? a : b;
 }
 
 /** Returns the smallest of three size_t values. */
-static inline size_t min3(size_t a, size_t b, size_t c)
-{
+static inline size_t min3(size_t a, size_t b, size_t c) {
     return min2(a, min2(b, c));
 }
 
@@ -65,8 +61,7 @@ static inline size_t min3(size_t a, size_t b, size_t c)
  * Cosine similarity
  * ------------------------------------------------------------------------- */
 
-int strsim_cosine(const char* a, const char* b, double* out_similarity)
-{
+int strsim_cosine(const char* a, const char* b, double* out_similarity) {
     if (a == NULL || b == NULL || out_similarity == NULL) {
         return -1;
     }
@@ -104,8 +99,7 @@ int strsim_cosine(const char* a, const char* b, double* out_similarity)
  * Levenshtein distance
  * ------------------------------------------------------------------------- */
 
-int strsim_levenshtein(const char* a, const char* b, size_t* out_distance)
-{
+int strsim_levenshtein(const char* a, const char* b, size_t* out_distance) {
     if (a == NULL || b == NULL || out_distance == NULL) {
         return -1;
     }
@@ -132,8 +126,8 @@ int strsim_levenshtein(const char* a, const char* b, size_t* out_distance)
      * Single allocation backing two rows of length (len_a + 1).
      * prev and curr are pointers into the buffer, swapped each iteration.
      */
-    size_t  row_len = len_a + 1;
-    size_t* buf     = malloc(2 * row_len * sizeof(*buf));
+    size_t row_len = len_a + 1;
+    size_t* buf    = malloc(2 * row_len * sizeof(*buf));
     if (buf == NULL) {
         errno = ENOMEM;
         return -2;
@@ -166,8 +160,7 @@ int strsim_levenshtein(const char* a, const char* b, size_t* out_distance)
  * Damerau-Levenshtein distance
  * ------------------------------------------------------------------------- */
 
-int strsim_damerau_levenshtein(const char* a, const char* b, size_t* out_distance)
-{
+int strsim_damerau_levenshtein(const char* a, const char* b, size_t* out_distance) {
     if (a == NULL || b == NULL || out_distance == NULL) {
         return -1;
     }
@@ -282,8 +275,7 @@ int strsim_damerau_levenshtein(const char* a, const char* b, size_t* out_distanc
  * Jaro-Winkler similarity
  * ------------------------------------------------------------------------- */
 
-int strsim_jaro_winkler(const char* a, const char* b, double* out_similarity)
-{
+int strsim_jaro_winkler(const char* a, const char* b, double* out_similarity) {
     if (a == NULL || b == NULL || out_similarity == NULL) {
         return -1;
     }
@@ -390,8 +382,7 @@ int strsim_jaro_winkler(const char* a, const char* b, double* out_similarity)
  * Jaccard similarity on character bigrams
  * ------------------------------------------------------------------------- */
 
-int strsim_jaccard_bigram(const char* a, const char* b, double* out_similarity)
-{
+int strsim_jaccard_bigram(const char* a, const char* b, double* out_similarity) {
     if (a == NULL || b == NULL || out_similarity == NULL) {
         return -1;
     }

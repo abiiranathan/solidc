@@ -45,7 +45,8 @@ bool readline(const char* prompt, char* buffer, size_t buffer_len) {
     /* Drain any overflow that didn't fit tightly in the buffer. */
     if (strlen(buffer) >= buffer_len - 1) {
         int c;
-        while ((c = getchar()) != EOF && c != '\n');
+        while ((c = getchar()) != EOF && c != '\n')
+            ;
     }
     return true;
 }
@@ -101,8 +102,9 @@ int getpassword(const char* prompt, char* buffer, size_t buffer_len) {
 
 enum stream_type {
     INVALID_STREAM = -1,  // Internal use only — indicates uninitialized or error state
-    FILE_STREAM = 0,      // Standard file stream wrapper around FILE*
-    STRING_STREAM = 1,    // In-memory string stream with dynamic resizing and null-termination guarantees
+    FILE_STREAM    = 0,   // Standard file stream wrapper around FILE*
+    STRING_STREAM =
+        1,  // In-memory string stream with dynamic resizing and null-termination guarantees
 };
 
 struct stream {
@@ -147,14 +149,14 @@ stream_t create_file_stream(FILE* fp) {
     stream_t s = malloc(sizeof(struct stream));
     if (!s) return NULL;
 
-    s->read = file_read_impl;
-    s->write = file_write_impl;
-    s->flush = (int (*)(void*))fflush;
-    s->seek = (int (*)(void*, long, int))fseek;
-    s->eof = (int (*)(void*))feof;
+    s->read      = file_read_impl;
+    s->write     = file_write_impl;
+    s->flush     = (int (*)(void*))fflush;
+    s->seek      = (int (*)(void*, long, int))fseek;
+    s->eof       = (int (*)(void*))feof;
     s->read_char = (int (*)(void*))fgetc;
-    s->handle = fp;
-    s->type = FILE_STREAM;
+    s->handle    = fp;
+    s->type      = FILE_STREAM;
     return s;
 }
 
@@ -180,7 +182,7 @@ static bool string_stream_ensure_capacity(string_stream* ss, size_t needed) {
     char* new_data = (char*)realloc(ss->data, new_cap);
     if (!new_data) return false;
 
-    ss->data = new_data;
+    ss->data     = new_data;
     ss->capacity = new_cap;
     return true;
 }
@@ -272,7 +274,7 @@ int string_stream_write(stream_t stream, const char* str) {
     STREAM_ASSERT(stream && stream->type == STRING_STREAM);
 
     string_stream* ss = (string_stream*)stream->handle;
-    size_t len = strlen(str);
+    size_t len        = strlen(str);
     size_t needed_cap = ss->size + len + 1;  // +1 explicitly limits NUL constraint breach
 
     if (!string_stream_ensure_capacity(ss, needed_cap)) return -1;
@@ -314,26 +316,26 @@ stream_t create_string_stream(size_t initial_capacity) {
     string_stream* ss = (string_stream*)(s + 1);
 
     size_t cap = initial_capacity > 0 ? initial_capacity : 1;
-    ss->data = malloc(cap);
+    ss->data   = malloc(cap);
     if (!ss->data) {
         free(s);
         return NULL;
     }
 
-    ss->data[0] = '\0';
-    ss->size = 0;
+    ss->data[0]  = '\0';
+    ss->size     = 0;
     ss->capacity = cap;
-    ss->pos = 0;
+    ss->pos      = 0;
 
-    s->read = string_read_impl;
-    s->write = string_write_impl;
-    s->flush = string_flush_impl;
+    s->read      = string_read_impl;
+    s->write     = string_write_impl;
+    s->flush     = string_flush_impl;
     s->read_char = string_read_char_impl;
-    s->eof = string_eof_impl;
-    s->seek = string_seek_impl;
+    s->eof       = string_eof_impl;
+    s->seek      = string_seek_impl;
 
     s->handle = ss;
-    s->type = STRING_STREAM;
+    s->type   = STRING_STREAM;
     return s;
 }
 
@@ -349,8 +351,8 @@ ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size)
         string_stream* ss = (string_stream*)stream->handle;
         if (UNLIKELY(ss->pos >= ss->size)) return -1;
 
-        size_t avail = ss->size - ss->pos;
-        size_t max_read = buffer_size - 1;
+        size_t avail     = ss->size - ss->pos;
+        size_t max_read  = buffer_size - 1;
         size_t check_len = avail < max_read ? avail : max_read;
 
         const char* p = ss->data + ss->pos;
@@ -375,7 +377,7 @@ ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size)
 
     /* --- Standard fallback for traditional FILE_STREAM --- */
     ssize_t bytes = 0;
-    int ch = 0;
+    int ch        = 0;
     while (bytes < (ssize_t)(buffer_size - 1)) {
         ch = stream->read_char(stream->handle);
         if (ch == EOF || ch == delim) break;
@@ -400,7 +402,7 @@ unsigned long string_stream_copy_fast(stream_t dst, stream_t src) {
 
     if (s->pos >= s->size) return 0; /* nothing to copy */
 
-    size_t n = s->size - s->pos;
+    size_t n          = s->size - s->pos;
     size_t needed_cap = d->pos + n + 1;  // Protect NUL requirement constraints
 
     /* Grow destination securely caching exponential capacity checks. */
@@ -428,11 +430,12 @@ unsigned long io_copy(stream_t writer, stream_t reader) {
     STREAM_ASSERT(writer && reader);
 
     /* ---- FAST PATH: Native String → String bypass ---- */
-    if (writer->type == STRING_STREAM && reader->type == STRING_STREAM) return string_stream_copy_fast(writer, reader);
+    if (writer->type == STRING_STREAM && reader->type == STRING_STREAM)
+        return string_stream_copy_fast(writer, reader);
 
     /* L1/L2 cache tuned 16 KiB buffer chunking limits vtable dispatch overhead */
     char buf[16384];
-    ssize_t nread = 0;
+    ssize_t nread       = 0;
     unsigned long total = 0;
 
     while ((nread = reader->read(reader->handle, buf, sizeof(buf))) > 0) {
@@ -453,12 +456,12 @@ unsigned long io_copy_n(stream_t writer, stream_t reader, size_t n) {
 
     // L1/L2 cache tuned 16 KiB buffer chunking limits vtable dispatch overhead
     char buf[16384];
-    ssize_t nread = 0;
+    ssize_t nread       = 0;
     unsigned long total = 0;
 
     while (n > 0) {
         size_t want = n < sizeof(buf) ? n : sizeof(buf);
-        nread = reader->read(reader->handle, buf, want);
+        nread       = reader->read(reader->handle, buf, want);
         if (nread <= 0) break;
 
         STREAM_ASSERT((size_t)nread <= sizeof(buf));

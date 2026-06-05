@@ -87,7 +87,9 @@
 #define _RH_EMPTY(m, i) ((m)->keys_values[(i) * 2] == NULL)
 
 /* Compute slot index using capacity bitmask (capacity is always power-of-two). */
-static inline size_t _rh_slot(size_t hash, size_t offset, size_t cap_mask) { return (hash + offset) & cap_mask; }
+static inline size_t _rh_slot(size_t hash, size_t offset, size_t cap_mask) {
+    return (hash + offset) & cap_mask;
+}
 
 // Optimized map structure with better memory layout
 typedef struct hash_map {
@@ -154,7 +156,9 @@ static inline size_t calculate_new_capacity(size_t current) {
 }
 
 // Wrapper to match HashFunction signature
-static inline size_t xxhash_wrapper(const void* key, size_t len) { return (size_t)xxhash(key, (size_t)len); }
+static inline size_t xxhash_wrapper(const void* key, size_t len) {
+    return (size_t)xxhash(key, (size_t)len);
+}
 
 // Map creation with better error handling and memory optimization
 HashMap* map_create(const MapConfig* config) {
@@ -162,8 +166,9 @@ HashMap* map_create(const MapConfig* config) {
         return NULL;
     }
 
-    size_t capacity = MAX(
-        MIN_CAPACITY, config->initial_capacity > 0 ? next_power_of_two(config->initial_capacity) : INITIAL_MAP_SIZE);
+    size_t capacity =
+        MAX(MIN_CAPACITY, config->initial_capacity > 0 ? next_power_of_two(config->initial_capacity)
+                                                       : INITIAL_MAP_SIZE);
 
     if (capacity > SIZE_MAX / 2) {
         return NULL;
@@ -202,10 +207,14 @@ HashMap* map_create(const MapConfig* config) {
 }
 
 // Helper to get key pointer from interleaved array
-static inline void** get_key_ptr(HashMap* m, size_t index) { return &m->keys_values[index * 2]; }
+static inline void** get_key_ptr(HashMap* m, size_t index) {
+    return &m->keys_values[index * 2];
+}
 
 // Helper to get value pointer from interleaved array
-static inline void** get_value_ptr(HashMap* m, size_t index) { return &m->keys_values[index * 2 + 1]; }
+static inline void** get_value_ptr(HashMap* m, size_t index) {
+    return &m->keys_values[index * 2 + 1];
+}
 
 // Resize the map with optimized rehashing and error handling
 static bool map_resize(HashMap* m, size_t new_capacity, size_t key_len) {
@@ -292,7 +301,9 @@ static bool map_resize(HashMap* m, size_t new_capacity, size_t key_len) {
     return true;
 }
 
-size_t map_length(HashMap* m) { return m->size; }
+size_t map_length(HashMap* m) {
+    return m->size;
+}
 
 // Set a key-value pair with optimizations and better error handling
 bool map_set(HashMap* m, void* key, size_t key_len, void* value) {

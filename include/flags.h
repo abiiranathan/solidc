@@ -8,7 +8,7 @@
 #ifndef FLAGS_H
 #define FLAGS_H
 
-#include "cstr.h"  // String comparison
+#include "cstr.h"      // String comparison
 
 #include <errno.h>     // errno
 #include <inttypes.h>  // Printing int types
@@ -107,7 +107,8 @@ void flag_add_completion_cmd(FlagParser* fp);
  * @param user_data User data pointer passed to both callbacks.
  * @return true if a subcommand was invoked, false if none was active.
  */
-bool flag_invoke_subcommand(FlagParser* parser, void (*pre_invoke)(void* user_data), void* user_data);
+bool flag_invoke_subcommand(FlagParser* parser, void (*pre_invoke)(void* user_data),
+                            void* user_data);
 
 /**
  * Set a pre-invocation callback that runs before any subcommand handler.
@@ -121,8 +122,8 @@ void flag_set_pre_invoke(FlagParser* parser, void (*pre_invoke)(void* user_data)
  * Core function to register a flag.
  * Use the macros (flag_int, flag_bool) instead of calling this directly.
  */
-Flag* flag_add(FlagParser* parser, FlagDataType type, const char* name, char short_name, const char* desc,
-               void* value_ptr, bool required);
+Flag* flag_add(FlagParser* parser, FlagDataType type, const char* name, char short_name,
+               const char* desc, void* value_ptr, bool required);
 
 // --- Type Macros (Optional Flags) ---
 #define flag_bool(parser, name, short_name, desc, value) \
@@ -200,7 +201,8 @@ Flag* flag_add(FlagParser* parser, FlagDataType type, const char* name, char sho
     flag_add(parser, TYPE_DOUBLE, name, short_name, desc, value, true)
 
 /** Register a subcommand. Returns the child parser. */
-FlagParser* flag_add_subcommand(FlagParser* parser, const char* name, const char* desc, void (*handler)(void* data));
+FlagParser* flag_add_subcommand(FlagParser* parser, const char* name, const char* desc,
+                                void (*handler)(void* data));
 
 /** Attach a custom validator to a specific flag. */
 void flag_set_validator(Flag* flag, FlagValidator validator);

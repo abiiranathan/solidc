@@ -3,7 +3,7 @@
  * @brief Trie data structure implementation for efficient string storage and retrieval.
  */
 
-#include "arena.h"  // Include the Arena library
+#include "arena.h"    // Include the Arena library
 
 #include <stdbool.h>  // for bool type
 #include <stdint.h>   // for uint32_t
@@ -103,5 +103,5 @@ bool trie_is_empty(const trie_t* trie);
  * @return Array of suggestion strings (allocated in arena), or NULL on error/not found.
  * @note The returned array and strings are owned by the Arena and freed when arena_destroy is called.
  */
-const char** trie_autocomplete(const trie_t* trie, const char* prefix, size_t max_suggestions, size_t* out_count,
-                               Arena* arena);
+const char** trie_autocomplete(const trie_t* trie, const char* prefix, size_t max_suggestions,
+                               size_t* out_count, Arena* arena);

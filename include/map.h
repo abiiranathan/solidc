@@ -123,18 +123,22 @@ size_t map_length(HashMap* m);
 // Get the capacity of the map
 size_t map_capacity(HashMap* m);
 
-static inline bool key_compare_int(const void* a, const void* b) { return a && b && *(const int*)a == *(const int*)b; }
+static inline bool key_compare_int(const void* a, const void* b) {
+    return a && b && *(const int*)a == *(const int*)b;
+}
 
 static inline bool key_compare_char_ptr(const void* a, const void* b) {
     return a && b && strcmp((const char*)a, (const char*)b) == 0;
 }
 
 static inline bool key_compare_float(const void* a, const void* b) {
-    return a && b && cmp_float(*(const float*)a, *(const float*)b, (cmp_config_t){.epsilon = FLT_EPSILON});
+    return a && b &&
+           cmp_float(*(const float*)a, *(const float*)b, (cmp_config_t){.epsilon = FLT_EPSILON});
 }
 
 static inline bool key_compare_double(const void* a, const void* b) {
-    return a && b && cmp_double(*(const double*)a, *(const double*)b, (cmp_config_t){.epsilon = DBL_EPSILON});
+    return a && b &&
+           cmp_double(*(const double*)a, *(const double*)b, (cmp_config_t){.epsilon = DBL_EPSILON});
 }
 
 #if defined(__cplusplus)

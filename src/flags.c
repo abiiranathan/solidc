@@ -50,28 +50,28 @@ struct Flag {
  * their own flags and handlers.
  */
 struct FlagParser {
-    Arena* arena;      /**< Memory arena for all allocations */
-    char* name;        /**< Name of this parser/command */
-    char* description; /**< Description shown in help */
-    char* footer;      /**< Optional footer text for help */
+    Arena* arena;                        /**< Memory arena for all allocations */
+    char* name;                          /**< Name of this parser/command */
+    char* description;                   /**< Description shown in help */
+    char* footer;                        /**< Optional footer text for help */
 
-    Flag* flags;          /**< Dynamic array of registered flags */
-    size_t flag_count;    /**< Number of registered flags */
-    size_t flag_capacity; /**< Allocated capacity for flags array */
+    Flag* flags;                         /**< Dynamic array of registered flags */
+    size_t flag_count;                   /**< Number of registered flags */
+    size_t flag_capacity;                /**< Allocated capacity for flags array */
 
-    FlagParser** subcommands; /**< Dynamic array of subcommand parsers */
-    size_t cmd_count;         /**< Number of registered subcommands */
-    size_t cmd_capacity;      /**< Allocated capacity for subcommands array */
+    FlagParser** subcommands;            /**< Dynamic array of subcommand parsers */
+    size_t cmd_count;                    /**< Number of registered subcommands */
+    size_t cmd_capacity;                 /**< Allocated capacity for subcommands array */
 
     void (*handler)(void* user_data);    /**< Handler function for this command */
     void (*pre_invoke)(void* user_data); /**< Pre-invocation setup function */
 
-    char** positional_args; /**< Array of positional arguments */
-    size_t pos_count;       /**< Number of positional arguments */
-    size_t pos_capacity;    /**< Allocated capacity for positional args */
+    char** positional_args;              /**< Array of positional arguments */
+    size_t pos_count;                    /**< Number of positional arguments */
+    size_t pos_capacity;                 /**< Allocated capacity for positional args */
 
-    char last_error[ERR_BUF_SIZE]; /**< Last error message */
-    FlagParser* active_subcommand; /**< Active subcommand after parsing */
+    char last_error[ERR_BUF_SIZE];       /**< Last error message */
+    FlagParser* active_subcommand;       /**< Active subcommand after parsing */
 };
 
 // --- Memory Helpers ---
@@ -249,8 +249,8 @@ FlagParser* flag_parser_new(const char* name, const char* description) {
         exit(1);
     }
 
-    fp->arena = arena;
-    fp->name = arena_strdup(arena, name);
+    fp->arena       = arena;
+    fp->name        = arena_strdup(arena, name);
     fp->description = arena_strdup(arena, description);
     return fp;
 }
@@ -313,31 +313,31 @@ void flag_set_pre_invoke(FlagParser* fp, void (*pre_invoke)(void* user_data)) {
  * flag_set_validator(f, my_port_validator);
  * ```
  */
-Flag* flag_add(FlagParser* fp, FlagDataType type, const char* name, char short_name, const char* desc, void* value_ptr,
-               bool required) {
+Flag* flag_add(FlagParser* fp, FlagDataType type, const char* name, char short_name,
+               const char* desc, void* value_ptr, bool required) {
     if (!fp || !name || !value_ptr) return NULL;
 
     if (fp->flag_count >= fp->flag_capacity) {
-        size_t new_cap = (fp->flag_capacity == 0) ? INITIAL_CAPACITY : fp->flag_capacity * 2;
+        size_t new_cap  = (fp->flag_capacity == 0) ? INITIAL_CAPACITY : fp->flag_capacity * 2;
         Flag* new_flags = ARENA_ALLOC_ARRAY(fp->arena, Flag, new_cap);
         if (!new_flags) exit(1);
 
         if (fp->flags) {
             memcpy(new_flags, fp->flags, fp->flag_count * sizeof(Flag));
         }
-        fp->flags = new_flags;
+        fp->flags         = new_flags;
         fp->flag_capacity = new_cap;
     }
 
-    Flag* f = &fp->flags[fp->flag_count++];
-    f->type = type;
-    f->name = arena_strdup(fp->arena, name);
-    f->short_name = short_name;
+    Flag* f        = &fp->flags[fp->flag_count++];
+    f->type        = type;
+    f->name        = arena_strdup(fp->arena, name);
+    f->short_name  = short_name;
     f->description = arena_strdup(fp->arena, desc);
-    f->value_ptr = value_ptr;
-    f->required = required;
-    f->is_present = false;
-    f->validator = NULL;
+    f->value_ptr   = value_ptr;
+    f->required    = required;
+    f->is_present  = false;
+    f->validator   = NULL;
 
     // Copy the default value for display in help
     f->default_ptr = copy_default_value(fp->arena, type, value_ptr);
@@ -362,27 +362,28 @@ Flag* flag_add(FlagParser* fp, FlagDataType type, const char* name, char short_n
  * flag_add(commit, TYPE_STRING, "message", 'm', "Commit message", &msg, true);
  * ```
  */
-FlagParser* flag_add_subcommand(FlagParser* fp, const char* name, const char* desc, void (*handler)(void* data)) {
+FlagParser* flag_add_subcommand(FlagParser* fp, const char* name, const char* desc,
+                                void (*handler)(void* data)) {
     if (!fp || !name) return NULL;
     if (fp->cmd_count >= fp->cmd_capacity) {
-        size_t new_cap = (fp->cmd_capacity == 0) ? INITIAL_CAPACITY : fp->cmd_capacity * 2;
+        size_t new_cap        = (fp->cmd_capacity == 0) ? INITIAL_CAPACITY : fp->cmd_capacity * 2;
         FlagParser** new_cmds = ARENA_ALLOC_ARRAY(fp->arena, FlagParser*, new_cap);
         if (!new_cmds) exit(1);
 
         if (fp->subcommands) {
             memcpy(new_cmds, fp->subcommands, fp->cmd_count * sizeof(FlagParser*));
         }
-        fp->subcommands = new_cmds;
+        fp->subcommands  = new_cmds;
         fp->cmd_capacity = new_cap;
     }
 
     // Subcommands share the same arena as the root
-    FlagParser* sub = ARENA_ALLOC_ZERO(fp->arena, FlagParser);
-    sub->arena = fp->arena;
-    sub->name = arena_strdup(fp->arena, name);
-    sub->description = arena_strdup(fp->arena, desc);
-    sub->handler = handler;
-    sub->pre_invoke = NULL;
+    FlagParser* sub                  = ARENA_ALLOC_ZERO(fp->arena, FlagParser);
+    sub->arena                       = fp->arena;
+    sub->name                        = arena_strdup(fp->arena, name);
+    sub->description                 = arena_strdup(fp->arena, desc);
+    sub->handler                     = handler;
+    sub->pre_invoke                  = NULL;
     fp->subcommands[fp->cmd_count++] = sub;
     return sub;
 }
@@ -495,7 +496,9 @@ static Flag* find_flag_short(FlagParser* fp, char c) {
  * @param max Maximum allowed value
  * @return true if in range
  */
-static bool check_range_int(long long val, long long min, long long max) { return (val >= min && val <= max); }
+static bool check_range_int(long long val, long long min, long long max) {
+    return (val >= min && val <= max);
+}
 
 /**
  * @brief Check if unsigned integer is within range
@@ -503,7 +506,9 @@ static bool check_range_int(long long val, long long min, long long max) { retur
  * @param max Maximum allowed value
  * @return true if in range
  */
-static bool check_range_uint(unsigned long long val, unsigned long long max) { return (val <= max); }
+static bool check_range_uint(unsigned long long val, unsigned long long max) {
+    return (val <= max);
+}
 
 /**
  * @brief Parse a string value into a flag's data type
@@ -516,7 +521,7 @@ static bool check_range_uint(unsigned long long val, unsigned long long max) { r
 static FlagStatus parse_value(FlagParser* fp, Flag* flag, const char* str) {
     if (!str) return FLAG_ERROR_MISSING_VALUE;
     char* endptr = NULL;
-    errno = 0;
+    errno        = 0;
 
     switch (flag->type) {
         case TYPE_BOOL: {
@@ -543,9 +548,11 @@ static FlagStatus parse_value(FlagParser* fp, Flag* flag, const char* str) {
         case TYPE_INT32:
         case TYPE_INT64: {
             long long val = strtoll(str, &endptr, 10);
-            if (endptr == str || *endptr != '\0' || errno == ERANGE) return FLAG_ERROR_INVALID_NUMBER;
+            if (endptr == str || *endptr != '\0' || errno == ERANGE)
+                return FLAG_ERROR_INVALID_NUMBER;
 
-            if (flag->type == TYPE_INT8 && !check_range_int(val, INT8_MIN, INT8_MAX)) return FLAG_ERROR_INVALID_NUMBER;
+            if (flag->type == TYPE_INT8 && !check_range_int(val, INT8_MIN, INT8_MAX))
+                return FLAG_ERROR_INVALID_NUMBER;
             if (flag->type == TYPE_INT16 && !check_range_int(val, INT16_MIN, INT16_MAX))
                 return FLAG_ERROR_INVALID_NUMBER;
             if (flag->type == TYPE_INT32 && !check_range_int(val, INT32_MIN, INT32_MAX))
@@ -571,12 +578,17 @@ static FlagStatus parse_value(FlagParser* fp, Flag* flag, const char* str) {
         case TYPE_SIZE_T: {
             if (str[0] == '-') return FLAG_ERROR_INVALID_NUMBER;
             unsigned long long val = strtoull(str, &endptr, 10);
-            if (endptr == str || *endptr != '\0' || errno == ERANGE) return FLAG_ERROR_INVALID_NUMBER;
+            if (endptr == str || *endptr != '\0' || errno == ERANGE)
+                return FLAG_ERROR_INVALID_NUMBER;
 
-            if (flag->type == TYPE_UINT8 && !check_range_uint(val, UINT8_MAX)) return FLAG_ERROR_INVALID_NUMBER;
-            if (flag->type == TYPE_UINT16 && !check_range_uint(val, UINT16_MAX)) return FLAG_ERROR_INVALID_NUMBER;
-            if (flag->type == TYPE_UINT32 && !check_range_uint(val, UINT32_MAX)) return FLAG_ERROR_INVALID_NUMBER;
-            if (flag->type == TYPE_SIZE_T && !check_range_uint(val, SIZE_MAX)) return FLAG_ERROR_INVALID_NUMBER;
+            if (flag->type == TYPE_UINT8 && !check_range_uint(val, UINT8_MAX))
+                return FLAG_ERROR_INVALID_NUMBER;
+            if (flag->type == TYPE_UINT16 && !check_range_uint(val, UINT16_MAX))
+                return FLAG_ERROR_INVALID_NUMBER;
+            if (flag->type == TYPE_UINT32 && !check_range_uint(val, UINT32_MAX))
+                return FLAG_ERROR_INVALID_NUMBER;
+            if (flag->type == TYPE_SIZE_T && !check_range_uint(val, SIZE_MAX))
+                return FLAG_ERROR_INVALID_NUMBER;
 
             if (flag->type == TYPE_UINT8)
                 *(uint8_t*)flag->value_ptr = (uint8_t)val;
@@ -593,13 +605,15 @@ static FlagStatus parse_value(FlagParser* fp, Flag* flag, const char* str) {
 
         case TYPE_FLOAT: {
             float val = strtof(str, &endptr);
-            if (endptr == str || *endptr != '\0' || errno == ERANGE) return FLAG_ERROR_INVALID_NUMBER;
+            if (endptr == str || *endptr != '\0' || errno == ERANGE)
+                return FLAG_ERROR_INVALID_NUMBER;
             *(float*)flag->value_ptr = val;
             break;
         }
         case TYPE_DOUBLE: {
             double val = strtod(str, &endptr);
-            if (endptr == str || *endptr != '\0' || errno == ERANGE) return FLAG_ERROR_INVALID_NUMBER;
+            if (endptr == str || *endptr != '\0' || errno == ERANGE)
+                return FLAG_ERROR_INVALID_NUMBER;
             *(double*)flag->value_ptr = val;
             break;
         }
@@ -633,7 +647,7 @@ static FlagStatus parse_value(FlagParser* fp, Flag* flag, const char* str) {
 FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
     if (!fp || argc < 1) return FLAG_ERROR_INVALID_ARGUMENT;
 
-    int i = 1;
+    int i            = 1;
     bool end_of_opts = false;
 
     while (i < argc) {
@@ -669,7 +683,7 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
                     memcpy(new_pos, fp->positional_args, fp->pos_count * sizeof(char*));
                 }
                 fp->positional_args = new_pos;
-                fp->pos_capacity = new_cap;
+                fp->pos_capacity    = new_cap;
             }
             fp->positional_args[fp->pos_count++] = arg;
             i++;
@@ -686,7 +700,7 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
 
             char* eq = strchr(name_start, '=');
             char name_buf[MAX_FLAG_NAME_LEN];
-            const char* val_str = NULL;
+            const char* val_str     = NULL;
             const char* lookup_name = name_start;
 
             if (eq) {
@@ -694,8 +708,8 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
                 if (len >= MAX_FLAG_NAME_LEN) len = MAX_FLAG_NAME_LEN - 1;
                 strncpy(name_buf, name_start, len);
                 name_buf[len] = '\0';
-                lookup_name = name_buf;
-                val_str = eq + 1;
+                lookup_name   = name_buf;
+                val_str       = eq + 1;
             }
 
             Flag* f = find_flag_long(fp, lookup_name);
@@ -708,7 +722,8 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
 
             if (f->type == TYPE_BOOL) {
                 bool b = true;
-                if (val_str && (strcasecmp(val_str, "false") == 0 || strcmp(val_str, "0") == 0)) b = false;
+                if (val_str && (strcasecmp(val_str, "false") == 0 || strcmp(val_str, "0") == 0))
+                    b = false;
                 *(bool*)f->value_ptr = b;
             } else {
                 if (!val_str) {
@@ -721,7 +736,8 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
                 }
                 FlagStatus s = parse_value(fp, f, val_str);
                 if (s != FLAG_OK) {
-                    set_error(fp, "Invalid value for --%s: '%s' (Type mismatch or overflow)", f->name, val_str);
+                    set_error(fp, "Invalid value for --%s: '%s' (Type mismatch or overflow)",
+                              f->name, val_str);
                     return s;
                 }
             }
@@ -733,7 +749,7 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
         if (arg[0] == '-') {
             size_t len = strlen(arg);
             for (size_t k = 1; k < len; k++) {
-                char c = arg[k];
+                char c  = arg[k];
                 Flag* f = find_flag_short(fp, c);
                 if (!f) {
                     set_error(fp, "Unknown short flag: -%c", c);
@@ -756,10 +772,11 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
                         break;  // consumed rest
                     } else {
                         if (i + 1 < argc && argv[i + 1][0] != '-') {
-                            val_str = argv[++i];
+                            val_str      = argv[++i];
                             FlagStatus s = parse_value(fp, f, val_str);
                             if (s != FLAG_OK) {
-                                set_error(fp, "Invalid value for -%c (Type mismatch or overflow)", c);
+                                set_error(fp, "Invalid value for -%c (Type mismatch or overflow)",
+                                          c);
                                 return s;
                             }
                         } else {
@@ -1005,7 +1022,8 @@ static void print_help_internal(FlagParser* fp) {
 
         for (size_t i = 0; i < fp->cmd_count; i++) {
             FlagParser* sub = fp->subcommands[i];
-            printf("  %-*s%s\n", (int)(width - 2), sub->name, sub->description ? sub->description : "");
+            printf("  %-*s%s\n", (int)(width - 2), sub->name,
+                   sub->description ? sub->description : "");
         }
     }
 
@@ -1053,7 +1071,8 @@ const char* flag_get_error(FlagParser* fp) {
 
     if (root->active_subcommand) {
         root = fp->active_subcommand;
-        while (root->active_subcommand) root = root->active_subcommand;
+        while (root->active_subcommand)
+            root = root->active_subcommand;
     }
     return root->last_error;
 }
@@ -1072,7 +1091,9 @@ FlagParser* flag_active_subcommand(FlagParser* parser) {
  * @param fp Parser to query
  * @return Number of positional arguments
  */
-int flag_positional_count(FlagParser* fp) { return fp ? (int)fp->pos_count : 0; }
+int flag_positional_count(FlagParser* fp) {
+    return fp ? (int)fp->pos_count : 0;
+}
 
 /**
  * @brief Get positional argument at index
@@ -1173,9 +1194,10 @@ static void write_safe_str(FILE* f, const char* str, int quote_style) {
             // Escape special chars in double-quoted string
             fputc('\\', f);
             fputc(*p, f);
-        } else if (quote_style == 0 && (*p == ' ' || *p == '\t' || *p == '\n' || *p == '|' || *p == '&' || *p == ';' ||
-                                        *p == '<' || *p == '>' || *p == '(' || *p == ')' || *p == '$' || *p == '`' ||
-                                        *p == '\\' || *p == '"' || *p == '\'' || *p == '*' || *p == '?')) {
+        } else if (quote_style == 0 &&
+                   (*p == ' ' || *p == '\t' || *p == '\n' || *p == '|' || *p == '&' || *p == ';' ||
+                    *p == '<' || *p == '>' || *p == '(' || *p == ')' || *p == '$' || *p == '`' ||
+                    *p == '\\' || *p == '"' || *p == '\'' || *p == '*' || *p == '?')) {
             // Escape special shell chars when not quoted
             fputc('\\', f);
             fputc(*p, f);
@@ -1249,7 +1271,9 @@ static void write_bash_subcommand_cases(FILE* f, FlagParser* p, const char* pref
                     switch (flag->type) {
                         case TYPE_STRING:
                             fprintf(f, "                    # File/directory completion\n");
-                            fprintf(f, "                    COMPREPLY=( $(compgen -f -- \"$cur\") )\n");
+                            fprintf(f,
+                                    "                    COMPREPLY=( $(compgen -f -- \"$cur\") "
+                                    ")\n");
                             break;
                         default:
                             fprintf(f, "                    # Value expected\n");
@@ -1280,7 +1304,9 @@ static void write_bash_subcommand_cases(FILE* f, FlagParser* p, const char* pref
                 fprintf(f, " ");
             }
             fprintf(f, "\"\n");
-            fprintf(f, "            COMPREPLY=( $(compgen -W \"$flags $subcommands\" -- \"$cur\") )\n");
+            fprintf(f,
+                    "            COMPREPLY=( $(compgen -W \"$flags $subcommands\" -- \"$cur\") "
+                    ")\n");
         } else {
             fprintf(f, "            COMPREPLY=( $(compgen -W \"$flags\" -- \"$cur\") )\n");
         }
@@ -1392,7 +1418,9 @@ static void gen_bash_completion(FlagParser* fp, FILE* f) {
             fprintf(f, " ");
         }
         fprintf(f, "\"\n");
-        fprintf(f, "        COMPREPLY=( $(compgen -W \"$top_level_subs $global_flags\" -- \"$cur\") )\n");
+        fprintf(f,
+                "        COMPREPLY=( $(compgen -W \"$top_level_subs $global_flags\" -- \"$cur\") "
+                ")\n");
     } else {
         fprintf(f, "        COMPREPLY=( $(compgen -W \"$global_flags\" -- \"$cur\") )\n");
     }
@@ -1446,7 +1474,8 @@ static void write_zsh_args(FILE* f, FlagParser* p, int indent) {
         }
 
         // Print with proper indentation
-        for (int j = 0; j < indent; j++) fprintf(f, "    ");
+        for (int j = 0; j < indent; j++)
+            fprintf(f, "    ");
 
         // Determine if flag needs an argument
         if (flag->type == TYPE_BOOL) {
@@ -1506,11 +1535,13 @@ static void write_zsh_subcommand_cases(FILE* f, FlagParser* p, int depth) {
     for (size_t i = 0; i < p->cmd_count; i++) {
         FlagParser* sub = p->subcommands[i];
 
-        for (int j = 0; j < depth; j++) fprintf(f, "    ");
+        for (int j = 0; j < depth; j++)
+            fprintf(f, "    ");
         write_safe_str(f, sub->name, 0);
         fprintf(f, ")\n");
 
-        for (int j = 0; j < depth; j++) fprintf(f, "    ");
+        for (int j = 0; j < depth; j++)
+            fprintf(f, "    ");
         fprintf(f, "    _arguments -C \\\n");
 
         // Write flags for this subcommand
@@ -1518,7 +1549,8 @@ static void write_zsh_subcommand_cases(FILE* f, FlagParser* p, int depth) {
 
         // Add nested subcommands if any
         if (sub->cmd_count > 0) {
-            for (int j = 0; j < depth + 2; j++) fprintf(f, "    ");
+            for (int j = 0; j < depth + 2; j++)
+                fprintf(f, "    ");
             fprintf(f, "'1:command:((");
             for (size_t k = 0; k < sub->cmd_count; k++) {
                 if (k > 0) fprintf(f, " ");
@@ -1530,33 +1562,42 @@ static void write_zsh_subcommand_cases(FILE* f, FlagParser* p, int depth) {
             }
             fprintf(f, "))' \\\n");
 
-            for (int j = 0; j < depth + 2; j++) fprintf(f, "    ");
+            for (int j = 0; j < depth + 2; j++)
+                fprintf(f, "    ");
             fprintf(f, "'*::arg:->args' \\\n");
         }
 
-        for (int j = 0; j < depth; j++) fprintf(f, "    ");
+        for (int j = 0; j < depth; j++)
+            fprintf(f, "    ");
         fprintf(f, "        && ret=0\n");
 
         // Handle nested state
         if (sub->cmd_count > 0) {
-            for (int j = 0; j < depth; j++) fprintf(f, "    ");
+            for (int j = 0; j < depth; j++)
+                fprintf(f, "    ");
             fprintf(f, "    case $state in\n");
-            for (int j = 0; j < depth; j++) fprintf(f, "    ");
+            for (int j = 0; j < depth; j++)
+                fprintf(f, "    ");
             fprintf(f, "        args)\n");
-            for (int j = 0; j < depth; j++) fprintf(f, "    ");
+            for (int j = 0; j < depth; j++)
+                fprintf(f, "    ");
             fprintf(f, "            case $line[1] in\n");
 
             write_zsh_subcommand_cases(f, sub, depth + 4);
 
-            for (int j = 0; j < depth; j++) fprintf(f, "    ");
+            for (int j = 0; j < depth; j++)
+                fprintf(f, "    ");
             fprintf(f, "            esac\n");
-            for (int j = 0; j < depth; j++) fprintf(f, "    ");
+            for (int j = 0; j < depth; j++)
+                fprintf(f, "    ");
             fprintf(f, "            ;;\n");
-            for (int j = 0; j < depth; j++) fprintf(f, "    ");
+            for (int j = 0; j < depth; j++)
+                fprintf(f, "    ");
             fprintf(f, "    esac\n");
         }
 
-        for (int j = 0; j < depth; j++) fprintf(f, "    ");
+        for (int j = 0; j < depth; j++)
+            fprintf(f, "    ");
         fprintf(f, "    ;;\n");
     }
 }
@@ -1651,7 +1692,8 @@ static void completion_handler(void* user_data) {
     if (_comp_ctx.output && *_comp_ctx.output) {
         out = fopen(_comp_ctx.output, "w");
         if (!out) {
-            fprintf(stderr, "Error: Cannot open output file '%s': %s\n", _comp_ctx.output, strerror(errno));
+            fprintf(stderr, "Error: Cannot open output file '%s': %s\n", _comp_ctx.output,
+                    strerror(errno));
             exit(1);
         }
     }
@@ -1698,10 +1740,11 @@ void flag_add_completion_cmd(FlagParser* fp) {
     _comp_ctx.root = fp;
 
     // Ensure null initialization (defense in depth)
-    _comp_ctx.shell = NULL;
+    _comp_ctx.shell  = NULL;
     _comp_ctx.output = NULL;
 
-    FlagParser* cmd = flag_add_subcommand(fp, "completion", "Generate shell completion scripts", completion_handler);
+    FlagParser* cmd = flag_add_subcommand(fp, "completion", "Generate shell completion scripts",
+                                          completion_handler);
 
     if (!cmd) {
         fprintf(stderr, "Warning: Failed to add completion subcommand\n");
@@ -1710,5 +1753,6 @@ void flag_add_completion_cmd(FlagParser* fp) {
 
     // Add flags - use static context addresses
     flag_add(cmd, TYPE_STRING, "shell", 's', "Target shell (bash or zsh)", &_comp_ctx.shell, true);
-    flag_add(cmd, TYPE_STRING, "output", 'o', "Output file path (default: stdout)", &_comp_ctx.output, false);
+    flag_add(cmd, TYPE_STRING, "output", 'o', "Output file path (default: stdout)",
+             &_comp_ctx.output, false);
 }

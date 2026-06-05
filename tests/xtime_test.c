@@ -19,21 +19,21 @@
  * @brief Logs an error message.
  * Usage: LOG_ERROR("Message"); or LOG_ERROR("Value: %d", val);
  */
-#define LOG_ERROR(...)                                                                                                 \
-    do {                                                                                                               \
-        fprintf(stderr, COLOR_RED "[ERROR]: %s:%d:%s(): ", __FILE__, __LINE__, __func__);                              \
-        fprintf(stderr, __VA_ARGS__);                                                                                  \
-        fprintf(stderr, COLOR_RESET "\n");                                                                             \
+#define LOG_ERROR(...)                                                                    \
+    do {                                                                                  \
+        fprintf(stderr, COLOR_RED "[ERROR]: %s:%d:%s(): ", __FILE__, __LINE__, __func__); \
+        fprintf(stderr, __VA_ARGS__);                                                     \
+        fprintf(stderr, COLOR_RESET "\n");                                                \
     } while (0)
 
 /**
  * @brief Logs info message indented.
  */
-#define LOG_INFO(...)                                                                                                  \
-    do {                                                                                                               \
-        printf("    ");                                                                                                \
-        printf(__VA_ARGS__);                                                                                           \
-        printf("\n");                                                                                                  \
+#define LOG_INFO(...)        \
+    do {                     \
+        printf("    ");      \
+        printf(__VA_ARGS__); \
+        printf("\n");        \
     } while (0)
 
 /**
@@ -41,15 +41,15 @@
  * FIX: We pass #condition as a %s argument so that % characters inside the
  * code (like date formats) are not interpreted as printf specifiers.
  */
-#define LOG_ASSERT(condition, ...)                                                                                     \
-    do {                                                                                                               \
-        if (!(condition)) {                                                                                            \
-            fprintf(stderr, COLOR_RED "[ERROR]: %s:%d:%s(): Assertion failed: (%s) ", __FILE__, __LINE__, __func__,    \
-                    #condition);                                                                                       \
-            fprintf(stderr, __VA_ARGS__);                                                                              \
-            fprintf(stderr, COLOR_RESET "\n");                                                                         \
-            exit(EXIT_FAILURE);                                                                                        \
-        }                                                                                                              \
+#define LOG_ASSERT(condition, ...)                                                              \
+    do {                                                                                        \
+        if (!(condition)) {                                                                     \
+            fprintf(stderr, COLOR_RED "[ERROR]: %s:%d:%s(): Assertion failed: (%s) ", __FILE__, \
+                    __LINE__, __func__, #condition);                                            \
+            fprintf(stderr, __VA_ARGS__);                                                       \
+            fprintf(stderr, COLOR_RESET "\n");                                                  \
+            exit(EXIT_FAILURE);                                                                 \
+        }                                                                                       \
     } while (0)
 
 #define LOG_SECTION(name) printf("\n" COLOR_CYAN "=== %s ===" COLOR_RESET "\n", name)
@@ -57,12 +57,12 @@
 /**
  * @brief Macro to run a test function with automatic logging
  */
-#define RUN_TEST(test_func)                                                                                            \
-    do {                                                                                                               \
-        printf("  Running %-45s ... ", #test_func);                                                                    \
-        fflush(stdout);                                                                                                \
-        test_func();                                                                                                   \
-        printf(COLOR_GREEN "PASSED" COLOR_RESET "\n");                                                                 \
+#define RUN_TEST(test_func)                            \
+    do {                                               \
+        printf("  Running %-45s ... ", #test_func);    \
+        fflush(stdout);                                \
+        test_func();                                   \
+        printf(COLOR_GREEN "PASSED" COLOR_RESET "\n"); \
     } while (0)
 
 // ============================================================================
@@ -107,7 +107,8 @@ void test_unix_conversion(void) {
 
     // 4. Null checks
     LOG_ASSERT(xtime_to_unix(NULL) == -1, "Should return -1 for null input");
-    LOG_ASSERT(xtime_from_unix(100, NULL) == XTIME_ERR_INVALID_ARG, "Should return error for null pointer");
+    LOG_ASSERT(xtime_from_unix(100, NULL) == XTIME_ERR_INVALID_ARG,
+               "Should return error for null pointer");
 }
 
 void test_now(void) {
@@ -171,7 +172,8 @@ void test_parsing_invalid(void) {
                "Garbage string should fail");
 
     // 2. Format mismatch
-    LOG_ASSERT(xtime_parse("2023-01-01", "%H:%M:%S", &t) == XTIME_ERR_PARSE_FAILED, "Format mismatch should fail");
+    LOG_ASSERT(xtime_parse("2023-01-01", "%H:%M:%S", &t) == XTIME_ERR_PARSE_FAILED,
+               "Format mismatch should fail");
 
     // 3. Null args
     LOG_ASSERT(xtime_parse(NULL, "%s", &t) == XTIME_ERR_INVALID_ARG, "Null str");
@@ -256,7 +258,8 @@ void test_formatting(void) {
     LOG_ASSERT(strcmp(buf, "Mon, 01 Jan 2024 00:00:00") == 0, "RFC 2822 style failed. Got: %s", buf);
 
     xtime_format_utc(&t, "%A, %B %d, %Y %I:%M %p", buf, sizeof(buf));
-    LOG_ASSERT(strcmp(buf, "Monday, January 01, 2024 12:00 AM") == 0, "Long format failed. Got: %s", buf);
+    LOG_ASSERT(strcmp(buf, "Monday, January 01, 2024 12:00 AM") == 0, "Long format failed. Got: %s",
+               buf);
 
     // ============================================================================
     // 4. WEEKDAY FORMATS
@@ -361,19 +364,22 @@ void test_formatting(void) {
 
     // Full datetime with timezone
     xtime_format(&t, "%Y-%m-%d %H:%M:%S %z", buf, sizeof(buf));
-    LOG_ASSERT(strstr(buf, "2024-01-01 05:30:00") != NULL, "Datetime with TZ adjustment failed. Got: %s", buf);
+    LOG_ASSERT(strstr(buf, "2024-01-01 05:30:00") != NULL,
+               "Datetime with TZ adjustment failed. Got: %s", buf);
     LOG_ASSERT(strstr(buf, "+05:30") != NULL, "Timezone string not appended. Got: %s", buf);
 
     // Negative timezone offset
     t.tz_offset = -300;  // -05:00 (EST)
     xtime_format(&t, "%Y-%m-%d %H:%M %z", buf, sizeof(buf));
-    LOG_ASSERT(strstr(buf, "2023-12-31 19:00") != NULL, "Negative TZ adjustment failed. Got: %s", buf);
+    LOG_ASSERT(strstr(buf, "2023-12-31 19:00") != NULL, "Negative TZ adjustment failed. Got: %s",
+               buf);
     LOG_ASSERT(strstr(buf, "-05:00") != NULL, "Negative timezone string failed. Got: %s", buf);
 
     // UTC (zero offset)
     t.tz_offset = 0;
     xtime_format(&t, "%Y-%m-%d %H:%M:%S %z", buf, sizeof(buf));
-    LOG_ASSERT(strstr(buf, "2024-01-01 00:00:00") != NULL, "UTC (zero offset) adjustment failed. Got: %s", buf);
+    LOG_ASSERT(strstr(buf, "2024-01-01 00:00:00") != NULL,
+               "UTC (zero offset) adjustment failed. Got: %s", buf);
     LOG_ASSERT(strstr(buf, "+00:00") != NULL, "UTC timezone string failed. Got: %s", buf);
 
     // ============================================================================
@@ -394,7 +400,8 @@ void test_formatting(void) {
     LOG_ASSERT(strcmp(buf, "\t") == 0, "%%t (tab) failed. Got: %s", buf);
 
     xtime_format_utc(&t, "Date: %Y-%m-%d", buf, sizeof(buf));
-    LOG_ASSERT(strcmp(buf, "Date: 2024-01-01") == 0, "Format with literal text failed. Got: %s", buf);
+    LOG_ASSERT(strcmp(buf, "Date: 2024-01-01") == 0, "Format with literal text failed. Got: %s",
+               buf);
 
     // ============================================================================
     // 11. EDGE CASES
@@ -430,7 +437,8 @@ void test_formatting(void) {
 
     err = xtime_format_utc(&t, "%Y-%m-%d", small_buf, sizeof(small_buf));
     LOG_ASSERT(err == XTIME_OK, "Small buffer for short format should succeed");
-    LOG_ASSERT(strcmp(small_buf, "2024-01-01") == 0, "Small buffer content wrong. Got: %s", small_buf);
+    LOG_ASSERT(strcmp(small_buf, "2024-01-01") == 0, "Small buffer content wrong. Got: %s",
+               small_buf);
 
     err = xtime_format_utc(&t, "%Y-%m-%d %H:%M:%S", small_buf, sizeof(small_buf));
     LOG_ASSERT(err == XTIME_ERR_BUFFER_TOO_SMALL, "Small buffer should fail for long format");
@@ -445,16 +453,19 @@ void test_formatting(void) {
     t.has_tz      = false;
 
     xtime_to_json(&t, buf, sizeof(buf));
-    LOG_ASSERT(strcmp(buf, "2024-01-01T00:00:00.123456789Z") == 0, "JSON UTC format failed. Got: %s", buf);
+    LOG_ASSERT(strcmp(buf, "2024-01-01T00:00:00.123456789Z") == 0,
+               "JSON UTC format failed. Got: %s", buf);
 
     t.has_tz    = true;
     t.tz_offset = 330;  // +05:30
     xtime_to_json(&t, buf, sizeof(buf));
-    LOG_ASSERT(strcmp(buf, "2024-01-01T05:30:00.123456789+05:30") == 0, "JSON with timezone failed. Got: %s", buf);
+    LOG_ASSERT(strcmp(buf, "2024-01-01T05:30:00.123456789+05:30") == 0,
+               "JSON with timezone failed. Got: %s", buf);
 
     t.nanoseconds = 0;
     xtime_to_json(&t, buf, sizeof(buf));
-    LOG_ASSERT(strcmp(buf, "2024-01-01T05:30:00+05:30") == 0, "JSON without nanos failed. Got: %s", buf);
+    LOG_ASSERT(strcmp(buf, "2024-01-01T05:30:00+05:30") == 0, "JSON without nanos failed. Got: %s",
+               buf);
 
     // ============================================================================
     // 14. WEEK NUMBER
@@ -542,11 +553,13 @@ void test_diff(void) {
 
     // End - Start = 2.5 seconds
     xtime_diff(&end, &start, &diff);
-    LOG_ASSERT(fabs(diff - 2.5) < 0.000001, "Difference calculation incorrect. Expected 2.5, got %f", diff);
+    LOG_ASSERT(fabs(diff - 2.5) < 0.000001,
+               "Difference calculation incorrect. Expected 2.5, got %f", diff);
 
     // 2. Negative Difference
     xtime_diff(&start, &end, &diff);
-    LOG_ASSERT(fabs(diff - (-2.5)) < 0.000001, "Negative difference incorrect. Expected -2.5, got %f", diff);
+    LOG_ASSERT(fabs(diff - (-2.5)) < 0.000001,
+               "Negative difference incorrect. Expected -2.5, got %f", diff);
 }
 
 void test_timezone_parsing_logic(void) {
@@ -573,6 +586,22 @@ void test_timezone_parsing_logic(void) {
                "Base parse succeeds, but TZ invalid");
     // If TZ parsing fails, has_tz should remain false (initialized to false by xtime_init inside parse)
     LOG_ASSERT(t.has_tz == false, "Invalid TZ range should be ignored/fail silently in parser");
+
+    // PostgresQL timestamptz
+    LOG_ASSERT(xtime_parse("2024-10-02 12:13:25.175387+03", XTIME_FMT_POSTGRES_TZ, &t) == XTIME_OK,
+               "PostgreSQL timestamptz parsing failed");
+    LOG_ASSERT(t.tz_offset == 180, "PostgreSQL offset +03:00 should be 180 mins");
+    LOG_ASSERT(t.nanoseconds == 175387000, "PostgreSQL microseconds parsing failed");
+    LOG_ASSERT(t.has_tz == true, "PostgreSQL timestamptz should have tz flag set");
+    LOG_ASSERT(t.seconds == 1727860405, "PostgreSQL timestamptz seconds parsing failed");
+
+    // Lets print the parsed time to verify visually (not an assert, just for manual check)
+    char buf[64];
+    xtime_format(&t, XTIME_FMT_POSTGRES_TZ, buf, sizeof(buf));
+    LOG_ASSERT(strcmp(buf, "2024-10-02 12:13:25.175387+03:00") == 0,
+               "PostgreSQL timestamptz formatting mismatch.\nExpected: 2024-10-02 "
+               "12:13:25.175387+03:00\nGot:      %s",
+               buf);
 }
 
 void test_json_formatting(void) {
@@ -589,7 +618,8 @@ void test_json_formatting(void) {
     err = xtime_to_json(&t, buf, sizeof(buf));
     LOG_ASSERT(err == XTIME_OK, "JSON format UTC failed");
     // Expected: 2023-10-05T14:30:00.123456789Z
-    LOG_ASSERT(strcmp(buf, "2023-10-05T14:30:00.123456789Z") == 0, "JSON UTC mismatch. Got: %s", buf);
+    LOG_ASSERT(strcmp(buf, "2023-10-05T14:30:00.123456789Z") == 0, "JSON UTC mismatch. Got: %s",
+               buf);
 
     // 2. Test Timezone Offset (+05:30)
     t.has_tz    = true;
@@ -600,7 +630,8 @@ void test_json_formatting(void) {
     // Time shifts: 14:30 UTC + 5:30 = 20:00
     // Expected: 2023-10-05T20:00:00.123456789+05:30
     const char* expected_tz = "2023-10-05T20:00:00.123456789+05:30";
-    LOG_ASSERT(strcmp(buf, expected_tz) == 0, "JSON Offset mismatch.\nExpected: %s\nGot:      %s", expected_tz, buf);
+    LOG_ASSERT(strcmp(buf, expected_tz) == 0, "JSON Offset mismatch.\nExpected: %s\nGot:      %s",
+               expected_tz, buf);
 
     // 3. Test Buffer Too Small
     char small_buf[10];
@@ -611,21 +642,22 @@ void test_json_formatting(void) {
     t.nanoseconds = 0;
     t.has_tz      = false;
     xtime_to_json(&t, buf, sizeof(buf));
-    LOG_ASSERT(strcmp(buf, "2023-10-05T14:30:00Z") == 0, "JSON clean zero-nanos mismatch. Got: %s", buf);
+    LOG_ASSERT(strcmp(buf, "2023-10-05T14:30:00Z") == 0, "JSON clean zero-nanos mismatch. Got: %s",
+               buf);
 
     // 5. Test Africa/Kampala Offset (UTC+3)
     t.seconds     = 1696516200;  // Reset to 2023-10-05 14:30:00 UTC
     t.nanoseconds = 0;           // Clean seconds for this test
     t.has_tz      = true;
-    t.tz_offset   = 180;  // +3 hours * 60 minutes = 180 (Kampala/EAT)
+    t.tz_offset   = 180;         // +3 hours * 60 minutes = 180 (Kampala/EAT)
 
     err = xtime_to_json(&t, buf, sizeof(buf));
     LOG_ASSERT(err == XTIME_OK, "JSON format Kampala failed");
 
     // Calculation: 14:30 UTC + 3 hours = 17:30
     const char* expected_kampala = "2023-10-05T17:30:00+03:00";
-    LOG_ASSERT(strcmp(buf, expected_kampala) == 0, "JSON Kampala mismatch.\nExpected: %s\nGot:      %s",
-               expected_kampala, buf);
+    LOG_ASSERT(strcmp(buf, expected_kampala) == 0,
+               "JSON Kampala mismatch.\nExpected: %s\nGot:      %s", expected_kampala, buf);
 }
 
 void test_frontend_inputs(void) {
@@ -639,7 +671,8 @@ void test_frontend_inputs(void) {
     LOG_ASSERT(err == XTIME_OK, "Failed to parse JS Date");
 
     // Check nanoseconds (456ms = 456,000,000ns)
-    LOG_ASSERT(t.nanoseconds == 456000000, "Frontend Milliseconds failed. Expected 456000000, got %u", t.nanoseconds);
+    LOG_ASSERT(t.nanoseconds == 456000000,
+               "Frontend Milliseconds failed. Expected 456000000, got %u", t.nanoseconds);
 
     // Check TZ
     LOG_ASSERT(t.has_tz == true && t.tz_offset == 0, "Failed to parse Z in JS Date");
@@ -688,7 +721,8 @@ void test_arithmetic_large_units(void) {
 
     // 1. Minutes
     xtime_add_minutes(&t, 60);  // +1 hour
-    LOG_ASSERT(t.seconds == 4600, "Add minutes failed. Expected 4600, got %lld", (long long)t.seconds);
+    LOG_ASSERT(t.seconds == 4600, "Add minutes failed. Expected 4600, got %lld",
+               (long long)t.seconds);
 
     // 2. Hours
     xtime_add_hours(&t, -1);  // Back to 1000

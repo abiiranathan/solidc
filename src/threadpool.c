@@ -199,7 +199,7 @@ static bool gq_push(GlobalQueue* gq, Task task) {
         cond_wait(&gq->not_full, &gq->mutex);
     }
 
-    uint32_t h = atomic_load_explicit(&gq->head, memory_order_relaxed);
+    uint32_t h   = atomic_load_explicit(&gq->head, memory_order_relaxed);
     gq->tasks[h] = task;
     atomic_store_explicit(&gq->head, (h + 1) & GLOBAL_Q_MASK, memory_order_release);
     lock_release(&gq->mutex);
@@ -240,11 +240,11 @@ static size_t gq_push_batch(GlobalQueue* gq, Task* tasks, size_t count) {
          * free_slots = GLOBAL_Q_SIZE - 1 - current occupancy (one slot
          * wasted as the full/empty sentinel).
          */
-        uint32_t h = atomic_load_explicit(&gq->head, memory_order_relaxed);
-        uint32_t t = atomic_load_explicit(&gq->tail, memory_order_relaxed);
+        uint32_t h  = atomic_load_explicit(&gq->head, memory_order_relaxed);
+        uint32_t t  = atomic_load_explicit(&gq->tail, memory_order_relaxed);
         size_t free = (GLOBAL_Q_SIZE - 1) - ((h - t) & GLOBAL_Q_MASK);
         size_t todo = count - pushed;
-        size_t n = todo < free ? todo : free;
+        size_t n    = todo < free ? todo : free;
 
         for (size_t i = 0; i < n; i++) {
             gq->tasks[(h + i) & GLOBAL_Q_MASK] = tasks[pushed + i];
@@ -282,7 +282,7 @@ static int gq_pull_batch(GlobalQueue* gq, Task* out, size_t max) {
     }
 
     size_t available = (h - t) & GLOBAL_Q_MASK;
-    size_t to_take = available < max ? available : max;
+    size_t to_take   = available < max ? available : max;
 
     for (size_t i = 0; i < to_take; i++) {
         out[i] = gq->tasks[(t + i) & GLOBAL_Q_MASK];
@@ -353,10 +353,11 @@ static bool deque_pop_bottom(WorkStealDeque* dq, Task* out) {
 
     if (b == t) {
         /* Exactly one item: race with at most one thief via CAS. */
-        *out = dq->tasks[b & DEQUE_MASK];
+        *out            = dq->tasks[b & DEQUE_MASK];
         size_t expected = t;
-        bool won = atomic_compare_exchange_strong_explicit(&dq->top, &expected, t + 1, memory_order_seq_cst,
-                                                           memory_order_relaxed);
+        bool won =
+            atomic_compare_exchange_strong_explicit(&dq->top, &expected, t + 1,
+                                                    memory_order_seq_cst, memory_order_relaxed);
         /* Restore bottom to a consistent empty state regardless of outcome. */
         atomic_store_explicit(&dq->bottom, b + 1, memory_order_relaxed);
         return won;
@@ -376,7 +377,8 @@ static StealResult deque_steal_top(WorkStealDeque* dq, Task* out) {
 
     *out = dq->tasks[t & DEQUE_MASK];
 
-    if (!atomic_compare_exchange_strong_explicit(&dq->top, &t, t + 1, memory_order_seq_cst, memory_order_relaxed)) {
+    if (!atomic_compare_exchange_strong_explicit(&dq->top, &t, t + 1, memory_order_seq_cst,
+                                                 memory_order_relaxed)) {
         return STEAL_ABORT;
     }
     return STEAL_SUCCESS;
@@ -448,7 +450,7 @@ static inline void unpark_all(Threadpool* pool) {
  */
 static bool try_steal(worker* self, Task* out) {
     Threadpool* pool = self->pool;
-    size_t n = pool->num_workers;
+    size_t n         = pool->num_workers;
 
     /* xorshift64: register-local, zero synchronisation cost. */
     static _Thread_local uint64_t rng = 0;
@@ -498,7 +500,7 @@ static bool try_steal(worker* self, Task* out) {
 }
 
 static void* worker_thread(void* arg) {
-    worker* self = (worker*)arg;
+    worker* self     = (worker*)arg;
     Threadpool* pool = self->pool;
     Task task;
     int spin = 0;
@@ -553,7 +555,8 @@ static void* worker_thread(void* arg) {
                 if (h != t) any_work = true;
             }
             for (size_t i = 0; i < pool->num_workers && !any_work; i++) {
-                size_t b = atomic_load_explicit(&pool->workers[i]->deque.bottom, memory_order_relaxed);
+                size_t b =
+                    atomic_load_explicit(&pool->workers[i]->deque.bottom, memory_order_relaxed);
                 size_t t = atomic_load_explicit(&pool->workers[i]->deque.top, memory_order_relaxed);
                 if ((ptrdiff_t)(b - t) > 0) any_work = true;
             }
@@ -584,7 +587,7 @@ static void* worker_thread(void* arg) {
 static int worker_init(Threadpool* pool, worker** w, size_t index) {
     *w = (worker*)ALIGNED_ALLOC(CACHE_LINE_SIZE, sizeof(worker));
     if (!*w) return -1;
-    (*w)->pool = pool;
+    (*w)->pool  = pool;
     (*w)->index = index;
     deque_init(&(*w)->deque);
     return thread_create(&(*w)->pthread, worker_thread, *w);
@@ -622,7 +625,8 @@ Threadpool* threadpool_create(size_t num_threads) {
     }
 
     /* Zero array before spawning; see Bug #3 fix. */
-    for (size_t i = 0; i < num_threads; i++) pool->workers[i] = NULL;
+    for (size_t i = 0; i < num_threads; i++)
+        pool->workers[i] = NULL;
 
     for (size_t i = 0; i < num_threads; i++) {
         if (worker_init(pool, &pool->workers[i], i) != 0) {
@@ -687,7 +691,8 @@ bool threadpool_submit(Threadpool* pool, void (*function)(void*), void* arg) {
  * Returns the number of tasks successfully submitted.  On shutdown this may
  * be less than count; the caller should treat a short return as an error.
  */
-size_t threadpool_submit_batch(Threadpool* pool, void (**functions)(void*), void** args, size_t count) {
+size_t threadpool_submit_batch(Threadpool* pool, void (**functions)(void*), void** args,
+                               size_t count) {
     if (!pool || !functions || count == 0) return 0;
 
     if (tls_worker_index != SIZE_MAX) {
@@ -760,7 +765,8 @@ void threadpool_wait(Threadpool* pool) {
                 if (h != t) any_work = true;
             }
             for (size_t i = 0; i < pool->num_workers && !any_work; i++) {
-                size_t b = atomic_load_explicit(&pool->workers[i]->deque.bottom, memory_order_acquire);
+                size_t b =
+                    atomic_load_explicit(&pool->workers[i]->deque.bottom, memory_order_acquire);
                 size_t t = atomic_load_explicit(&pool->workers[i]->deque.top, memory_order_acquire);
                 if ((ptrdiff_t)(b - t) > 0) any_work = true;
             }

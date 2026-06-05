@@ -23,18 +23,20 @@ typedef struct {
 
 // Typed result — never use errno for slice ops.
 typedef enum {
-    SS_OK = 0,
-    SS_NULL = 1,       // null data pointer
-    SS_BOUNDS = 2,     // out-of-range indices
+    SS_OK        = 0,
+    SS_NULL      = 1,  // null data pointer
+    SS_BOUNDS    = 2,  // out-of-range indices
     SS_NOT_FOUND = 3,  // substring not found
-    SS_OVERFLOW = 4,   // value exceeds the target type's range
-    SS_INVALID = 5,    // malformed input (e.g. "1.2.3", bare "e", "maybe")
+    SS_OVERFLOW  = 4,  // value exceeds the target type's range
+    SS_INVALID   = 5,  // malformed input (e.g. "1.2.3", bare "e", "maybe")
 } StrSliceErr;
 
 // ─── Construction ─────────────────────────────────────────────────────────────
 
 // Wrap a pointer + explicit length. Does NOT check for null terminator.
-static inline StrSlice ss_from(const char* data, size_t len) { return (StrSlice){.data = data, .len = len}; }
+static inline StrSlice ss_from(const char* data, size_t len) {
+    return (StrSlice){.data = data, .len = len};
+}
 
 // Wrap a null-terminated C string (measures with strlen at call time).
 static inline StrSlice ss_from_cstr(const char* cstr) {
@@ -47,7 +49,9 @@ static inline StrSlice ss_from_cstr(const char* cstr) {
 #define SS_LIT(literal) ((StrSlice){.data = (literal), .len = sizeof(literal) - 1})
 
 // Empty slice (len == 0, data may be NULL).
-static inline StrSlice ss_empty(void) { return (StrSlice){0}; }
+static inline StrSlice ss_empty(void) {
+    return (StrSlice){0};
+}
 
 // Print a slice to stdout (for debugging).
 static inline void ss_print(StrSlice s) {
@@ -69,7 +73,9 @@ static inline bool ss_is_valid(StrSlice s) {
 }
 
 // A slice is empty if its length is zero, regardless of the data pointer.
-static inline bool ss_is_empty(StrSlice s) { return s.len == 0; }
+static inline bool ss_is_empty(StrSlice s) {
+    return s.len == 0;
+}
 
 // Convert to a NUL-terminated owned string. Caller must free() the result.
 // Returns NULL if the slice is invalid (e.g. non-null pointer with positive length).
@@ -145,7 +151,9 @@ static inline size_t ss_find(StrSlice haystack, StrSlice needle) {
     return (size_t)-1;
 }
 
-static inline bool ss_contains(StrSlice s, StrSlice needle) { return ss_find(s, needle) != (size_t)-1; }
+static inline bool ss_contains(StrSlice s, StrSlice needle) {
+    return ss_find(s, needle) != (size_t)-1;
+}
 
 // Split at the first occurrence of `sep`.
 // On success: *head = everything before sep, *tail = everything after sep.
@@ -160,12 +168,16 @@ static inline StrSliceErr ss_split_on(StrSlice s, StrSlice sep, StrSlice* head, 
 
 // ─── Trimming ─────────────────────────────────────────────────────────────────
 
-static inline bool _ss_is_space(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
+static inline bool _ss_is_space(char c) {
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+}
 
 static inline StrSlice ss_trim(StrSlice s) {
     size_t lo = 0, hi = s.len;
-    while (lo < hi && _ss_is_space(s.data[lo])) ++lo;
-    while (hi > lo && _ss_is_space(s.data[hi - 1])) --hi;
+    while (lo < hi && _ss_is_space(s.data[lo]))
+        ++lo;
+    while (hi > lo && _ss_is_space(s.data[hi - 1]))
+        --hi;
     return (StrSlice){.data = s.data + lo, .len = hi - lo};
 }
 
@@ -258,10 +270,10 @@ static inline StrSliceErr ss_to_double(StrSlice s, double* out) {
     }
 
     uint64_t mantissa = 0;
-    int dec_shift = 0;  // net decimal places (positive = divide)
-    bool seen_dot = false;
-    bool has_digits = false;
-    bool saturated = false;  // mantissa too wide; extra digits are dropped
+    int dec_shift     = 0;  // net decimal places (positive = divide)
+    bool seen_dot     = false;
+    bool has_digits   = false;
+    bool saturated    = false;  // mantissa too wide; extra digits are dropped
 
     for (; i < s.len; ++i) {
         char c = s.data[i];
@@ -327,10 +339,11 @@ static inline StrSliceErr ss_to_double(StrSlice s, double* out) {
         if (abs_exp > 308) abs_exp = 308;  // clamp; IEEE will give ±inf / 0
         double scale = (abs_exp <= 22) ? _p10[abs_exp] : ({
             double str = 1.0;
-            for (int j = 0; j < abs_exp; ++j) str *= 10.0;
+            for (int j = 0; j < abs_exp; ++j)
+                str *= 10.0;
             str;
         });
-        result = (total_exp < 0) ? result / scale : result * scale;
+        result       = (total_exp < 0) ? result / scale : result * scale;
     }
 
     *out = neg ? -result : result;
@@ -349,14 +362,14 @@ static inline StrSliceErr ss_to_double(StrSlice s, double* out) {
 static inline StrSliceErr ss_to_bool(StrSlice s, bool* out) {
     if (!out) return SS_NULL;
 
-    if (ss_equal_nocase(s, SS_LIT("true")) || ss_equal_nocase(s, SS_LIT("yes")) || ss_equal_nocase(s, SS_LIT("on")) ||
-        ss_equal(s, SS_LIT("1"))) {
+    if (ss_equal_nocase(s, SS_LIT("true")) || ss_equal_nocase(s, SS_LIT("yes")) ||
+        ss_equal_nocase(s, SS_LIT("on")) || ss_equal(s, SS_LIT("1"))) {
         *out = true;
         return SS_OK;
     }
 
-    if (ss_equal_nocase(s, SS_LIT("false")) || ss_equal_nocase(s, SS_LIT("no")) || ss_equal_nocase(s, SS_LIT("off")) ||
-        ss_equal(s, SS_LIT("0"))) {
+    if (ss_equal_nocase(s, SS_LIT("false")) || ss_equal_nocase(s, SS_LIT("no")) ||
+        ss_equal_nocase(s, SS_LIT("off")) || ss_equal(s, SS_LIT("0"))) {
         *out = false;
         return SS_OK;
     }

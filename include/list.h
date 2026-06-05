@@ -173,7 +173,8 @@ void list_insert_before(list_t* list, void* elem, void* before);
  * @param list Pointer to the list to iterate over.
  * @param node Name of the list_node_t* variable to use in the loop body.
  */
-#define LIST_FOR_EACH(list, node) for (list_node_t * (node) = (list)->head; (node); (node) = (node)->next)
+#define LIST_FOR_EACH(list, node) \
+    for (list_node_t * (node) = (list)->head; (node); (node) = (node)->next)
 
 /**
  * Reverse iteration macro for traversing all nodes in a list.
@@ -182,7 +183,8 @@ void list_insert_before(list_t* list, void* elem, void* before);
  * @param list Pointer to the list to iterate over.
  * @param node Name of the list_node_t* variable to use in the loop body.
  */
-#define LIST_FOR_EACH_REVERSE(list, node) for (list_node_t * (node) = (list)->tail; (node); (node) = (node)->prev)
+#define LIST_FOR_EACH_REVERSE(list, node) \
+    for (list_node_t * (node) = (list)->tail; (node); (node) = (node)->prev)
 
 #if defined(__cplusplus)
 }

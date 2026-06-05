@@ -37,7 +37,8 @@ static trie_node* node_create(void) {
 /* Recursively free a node subtree. */
 static void node_destroy(trie_node* n) {
     if (!n) return;
-    for (uint8_t i = 0; i < n->nchildren; i++) node_destroy(n->children[i]);
+    for (uint8_t i = 0; i < n->nchildren; i++)
+        node_destroy(n->children[i]);
     free(n->chars);
     free(n->children);
     free(n);
@@ -79,7 +80,7 @@ static trie_node* child_find_or_create(trie_node* n, uint8_t c) {
         uint8_t new_alloc = n->nalloc == 0 ? 2 : (uint8_t)(n->nalloc * 2);
         if (new_alloc < n->nalloc) new_alloc = 255; /* overflow guard */
 
-        uint8_t* nc = (uint8_t*)realloc(n->chars, new_alloc * sizeof(uint8_t));
+        uint8_t* nc    = (uint8_t*)realloc(n->chars, new_alloc * sizeof(uint8_t));
         trie_node** np = (trie_node**)realloc(n->children, new_alloc * sizeof(trie_node*));
 
         if (!nc || !np) {
@@ -88,15 +89,15 @@ static trie_node* child_find_or_create(trie_node* n, uint8_t c) {
             return NULL;
         }
 
-        n->chars = nc;
+        n->chars    = nc;
         n->children = np;
-        n->nalloc = new_alloc;
+        n->nalloc   = new_alloc;
     }
 
     /* Insertion sort: find where `c` belongs, shift right. */
     int8_t pos = (int8_t)n->nchildren;
     while (pos > 0 && n->chars[pos - 1] > c) {
-        n->chars[pos] = n->chars[pos - 1];
+        n->chars[pos]    = n->chars[pos - 1];
         n->children[pos] = n->children[pos - 1];
         pos--;
     }
@@ -104,7 +105,7 @@ static trie_node* child_find_or_create(trie_node* n, uint8_t c) {
     trie_node* child = node_create();
     if (!child) return NULL;
 
-    n->chars[pos] = c;
+    n->chars[pos]    = c;
     n->children[pos] = child;
     n->nchildren++;
     return child;
@@ -185,7 +186,7 @@ bool trie_delete(trie_t* t, const char* word) {
 
     if (!cur->is_end_of_word) return false;
     ((trie_node*)cur)->is_end_of_word = false;
-    ((trie_node*)cur)->frequency = 0;
+    ((trie_node*)cur)->frequency      = 0;
     t->word_count--;
     return true;
 }
@@ -202,8 +203,12 @@ uint32_t trie_get_frequency(const trie_t* t, const char* word) {
     return cur->is_end_of_word ? cur->frequency : 0;
 }
 
-size_t trie_get_word_count(const trie_t* t) { return t ? t->word_count : 0; }
-bool trie_is_empty(const trie_t* t) { return !t || t->word_count == 0; }
+size_t trie_get_word_count(const trie_t* t) {
+    return t ? t->word_count : 0;
+}
+bool trie_is_empty(const trie_t* t) {
+    return !t || t->word_count == 0;
+}
 
 /* =========================================================================
  * Autocomplete (DFS with arena allocation — same API as original)
@@ -216,12 +221,13 @@ typedef struct {
     size_t limit;
 } _collector;
 
-static void _collect(const trie_node* node, char* buf, size_t depth, size_t buf_max, _collector* c, Arena* arena) {
+static void _collect(const trie_node* node, char* buf, size_t depth, size_t buf_max, _collector* c,
+                     Arena* arena) {
     if (!node || c->count >= c->limit) return;
 
     if (node->is_end_of_word) {
         buf[depth] = '\0';
-        char* dup = arena_strdup(arena, buf);
+        char* dup  = arena_strdup(arena, buf);
         if (dup) c->suggestions[c->count++] = dup;
     }
 
@@ -232,8 +238,8 @@ static void _collect(const trie_node* node, char* buf, size_t depth, size_t buf_
     }
 }
 
-const char** trie_autocomplete(const trie_t* t, const char* prefix, size_t max_suggestions, size_t* out_count,
-                               Arena* arena) {
+const char** trie_autocomplete(const trie_t* t, const char* prefix, size_t max_suggestions,
+                               size_t* out_count, Arena* arena) {
     if (out_count) *out_count = 0;
     if (!t || !prefix || !out_count || max_suggestions == 0 || !arena) return NULL;
 
@@ -250,14 +256,17 @@ const char** trie_autocomplete(const trie_t* t, const char* prefix, size_t max_s
     if (!suggestions) return NULL;
 
     const size_t buf_max = 1024;
-    char* buf = (char*)arena_alloc(arena, buf_max);
+    char* buf            = (char*)arena_alloc(arena, buf_max);
     if (!buf) return NULL;
 
     size_t prefix_len = strlen(prefix);
     if (prefix_len >= buf_max) return NULL;
     memcpy(buf, prefix, prefix_len);
 
-    _collector c = {.suggestions = suggestions, .count = 0, .capacity = max_suggestions, .limit = max_suggestions};
+    _collector c = {.suggestions = suggestions,
+                    .count       = 0,
+                    .capacity    = max_suggestions,
+                    .limit       = max_suggestions};
 
     _collect(cur, buf, prefix_len, buf_max, &c, arena);
 

@@ -78,8 +78,8 @@ typedef struct ARENA_ALIGNED(64) Arena {
     ArenaBlock* head;          /** Head of the block chain.                          */
     size_t page_size;          /** OS page size (typically 4096).                    */
     size_t total_committed;
-    bool heap_allocated;    /** True when Arena struct was allocated by arena_create(). */
-    ArenaBlock first_block; /** Embedded header for the initial (static/stack) buffer.  */
+    bool heap_allocated;       /** True when Arena struct was allocated by arena_create(). */
+    ArenaBlock first_block;    /** Embedded header for the initial (static/stack) buffer.  */
 } Arena;
 
 /**
@@ -113,8 +113,8 @@ Arena* arena_create(size_t reserve_size);
 static ARENA_INLINE void arena_reset(Arena* restrict a) {
     if (!a || !a->head) return;
     a->current_block = a->head;
-    a->curr = a->head->base;
-    a->end = a->head->end;
+    a->curr          = a->head->base;
+    a->end           = a->head->end;
 }
 
 /**
@@ -125,7 +125,9 @@ static ARENA_INLINE void arena_reset(Arena* restrict a) {
 void arena_destroy(Arena* restrict arena);
 
 /** Returns total bytes committed across all blocks (physical RAM in use). */
-static ARENA_INLINE size_t arena_committed_size(const Arena* restrict a) { return a->total_committed; }
+static ARENA_INLINE size_t arena_committed_size(const Arena* restrict a) {
+    return a->total_committed;
+}
 
 /**
  * Returns bytes consumed by user allocations in the current arena state.
@@ -135,7 +137,7 @@ static ARENA_INLINE size_t arena_committed_size(const Arena* restrict a) { retur
 static ARENA_INLINE size_t arena_used_size(const Arena* restrict a) {
     if (!a || !a->current_block) return 0;
     size_t block_capacity = (size_t)(a->current_block->end - a->current_block->base);
-    size_t block_used = (size_t)(a->curr - a->current_block->base);
+    size_t block_used     = (size_t)(a->curr - a->current_block->base);
     return (a->total_committed - block_capacity) + block_used;
 }
 
@@ -155,7 +157,7 @@ static ARENA_INLINE void* arena_alloc_align(Arena* restrict arena, size_t size, 
     if (size == 0) return NULL;
 
     uintptr_t aligned = ((uintptr_t)arena->curr + alignment - 1) & ~(alignment - 1);
-    uintptr_t next = aligned + size;
+    uintptr_t next    = aligned + size;
 
     if (ARENA_LIKELY(next <= (uintptr_t)arena->end)) {
         arena->curr = (char*)next;
@@ -181,7 +183,7 @@ static ARENA_INLINE void* arena_alloc(Arena* restrict arena, size_t size) {
 static ARENA_INLINE void* arena_alloc_unaligned(Arena* restrict arena, size_t size) {
     if (size == 0) return NULL;
 
-    char* ptr = arena->curr;
+    char* ptr  = arena->curr;
     char* next = ptr + size;
 
     if (ARENA_LIKELY(next <= arena->end)) {
@@ -207,14 +209,16 @@ static ARENA_INLINE void* arena_alloc_zero(Arena* restrict arena, size_t size, s
 }
 
 /** Allocates a zero-initialized array. Returns NULL on failure. */
-static ARENA_INLINE void* arena_alloc_array_zero(Arena* restrict arena, size_t size, size_t alignment, size_t count) {
+static ARENA_INLINE void* arena_alloc_array_zero(Arena* restrict arena, size_t size,
+                                                 size_t alignment, size_t count) {
     void* ptr = arena_alloc_align(arena, size * count, alignment);
     if (ptr) memset(ptr, 0, size * count);
     return ptr;
 }
 
 /** Allocates a zero-initialized single object with its natural alignment. */
-#define ARENA_ALLOC_ZERO(arena, type) ((type*)arena_alloc_zero((arena), sizeof(type), _Alignof(type)))
+#define ARENA_ALLOC_ZERO(arena, type) \
+    ((type*)arena_alloc_zero((arena), sizeof(type), _Alignof(type)))
 
 /** Allocates a zero-initialized array with the type's natural alignment. */
 #define ARENA_ALLOC_ARRAY_ZERO(arena, type, count) \
@@ -229,12 +233,12 @@ static ARENA_INLINE void* arena_alloc_array_zero(Arena* restrict arena, size_t s
  * @param out_ptrs Array to receive the resulting pointers (length `count`).
  * @return true on success, false on failure or invalid arguments.
  */
-static ARENA_INLINE bool arena_alloc_batch(Arena* restrict arena, const size_t* restrict sizes, size_t count,
-                                           void** restrict out_ptrs) {
+static ARENA_INLINE bool arena_alloc_batch(Arena* restrict arena, const size_t* restrict sizes,
+                                           size_t count, void** restrict out_ptrs) {
     if (!arena || !sizes || !out_ptrs || count == 0) return false;
 
     const size_t mask = ARENA_DEFAULT_ALIGN - 1;
-    size_t total = 0;
+    size_t total      = 0;
     for (size_t i = 0; i < count; ++i) {
         total = (total + mask) & ~mask;
         total += sizes[i];
@@ -245,7 +249,7 @@ static ARENA_INLINE bool arena_alloc_batch(Arena* restrict arena, const size_t* 
 
     char* cur = base;
     for (size_t i = 0; i < count; ++i) {
-        cur = (char*)(((uintptr_t)cur + mask) & ~mask);
+        cur         = (char*)(((uintptr_t)cur + mask) & ~mask);
         out_ptrs[i] = cur;
         cur += sizes[i];
     }
@@ -260,7 +264,7 @@ static ARENA_INLINE bool arena_alloc_batch(Arena* restrict arena, const size_t* 
 static ARENA_INLINE char* arena_strdup(Arena* restrict arena, const char* restrict str) {
     if (!arena || !str) return NULL;
     size_t len = strlen(str);
-    char* dup = (char*)arena_alloc_unaligned(arena, len + 1);
+    char* dup  = (char*)arena_alloc_unaligned(arena, len + 1);
     if (!dup) return NULL;
     memcpy(dup, str, len + 1);
     return dup;
@@ -271,7 +275,8 @@ static ARENA_INLINE char* arena_strdup(Arena* restrict arena, const char* restri
  * Does not require `str` to be null-terminated.
  * Returns NULL if either pointer argument is NULL or allocation fails.
  */
-static ARENA_INLINE char* arena_strdupn(Arena* restrict arena, const char* restrict str, size_t length) {
+static ARENA_INLINE char* arena_strdupn(Arena* restrict arena, const char* restrict str,
+                                        size_t length) {
     if (!arena || !str) return NULL;
     char* dup = (char*)arena_alloc_unaligned(arena, length + 1);
     if (!dup) return NULL;
