@@ -27,12 +27,10 @@ void reset_test_state(void) {
 }
 
 void record_cleanup(int value) {
-    if (cleanup_index < 10) {
-        cleanup_order[cleanup_index++] = value;
-    }
+    if (cleanup_index < 10) { cleanup_order[cleanup_index++] = value; }
 }
 
-int verify_cleanup_order(const int *expected, int count) {
+int verify_cleanup_order(const int* expected, int count) {
     if (cleanup_index != count) {
         printf("FAIL: Expected %d cleanups, got %d\n", count, cleanup_index);
         return 0;
@@ -147,7 +145,7 @@ int test_variable_capture(void) {
 
     {
         int captured_value = 42;
-        void *ptr = malloc(100);
+        void* ptr = malloc(100);
 
         defer {
             printf("  Captured value: %d\n", captured_value);
@@ -226,7 +224,7 @@ int test_resource_cleanup(void) {
 
     {
         // Allocate multiple resources
-        void *mem1 = malloc(64);
+        void* mem1 = malloc(64);
         if (!mem1) return 0;
         defer {
             printf("  Freeing mem1\n");
@@ -234,7 +232,7 @@ int test_resource_cleanup(void) {
             record_cleanup(1);
         };
 
-        void *mem2 = malloc(128);
+        void* mem2 = malloc(128);
         if (!mem2) return 0;
         defer {
             printf("  Freeing mem2\n");
@@ -242,7 +240,7 @@ int test_resource_cleanup(void) {
             record_cleanup(2);
         };
 
-        void *mem3 = malloc(256);
+        void* mem3 = malloc(256);
         if (!mem3) return 0;
         defer {
             printf("  Freeing mem3\n");
