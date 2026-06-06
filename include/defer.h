@@ -55,12 +55,17 @@
  *          not be modified between the defer declaration and scope exit in
  *          ways that would invalidate the cleanup (e.g. do not reassign a
  *          pointer after defer_free-ing it without zeroing first).
- */
-
+ *=================================================================================*/
 #ifndef DEFER_H
 #define DEFER_H
 
-/* Shared helper: token-paste used by all backends. */
+#if defined(__clang__) && !defined(__cplusplus)
+#define DEFER_VAR __block
+#else
+#define DEFER_VAR
+#endif
+
+/* token-paste used by all backends. */
 #define _DEFER_CONCAT_IMPL(a, b) a##b
 #define _DEFER_CONCAT(a, b)      _DEFER_CONCAT_IMPL(a, b)
 
@@ -173,7 +178,7 @@ static inline void _defer_cleanup_block(_defer_block_t* blk) {
  * Expands to:
  *   __attribute__((cleanup(...))) _defer_block_t _defer_var_N = ^{ <user block> }
  *
- * The block literal (^{ }) captures surrounding locals automatically.
+ * The block literal (^{ }) captures surrounding locals by value automatically (unless __block type is specified)
  *   defer { cleanup(); };   ← trailing semicolon required
  */
 #define defer                                                                                            \
@@ -201,8 +206,8 @@ static inline void _defer_cleanup_block(_defer_block_t* blk) {
 #error "defer.h: unsupported compiler. Supported: GCC 4.9+, Clang (with -fblocks), MSVC, any C++ compiler."
 #endif
 
+// ================= DEFER WRAPPERS==============================================
 /**
- * @file defer_wrappers.h
  *
  * @brief Pre-built RAII cleanup wrappers built on top of defer.
  *
@@ -244,6 +249,22 @@ static inline void _defer_cleanup_block(_defer_block_t* blk) {
  * @warning Do NOT use 'return', 'break', 'goto', or 'continue' inside a
  *          deferred block. The behaviour is undefined in all backends.
  */
+
+/*=======================================================================================
+ * On Clang, blocks capture variables by value. To allow a deferred block
+ * to write back to the original variable (e.g. to NULL it after free),
+ * the variable must be declared with __block storage.
+ *
+ * Use DEFER_VAR to declare pointer variables that will be cleaned up by
+ * a nulling wrapper (defer_free, defer_fclose, defer_close, etc.).
+ *
+ * On GCC and C++, DEFER_VAR is a no-op — nested functions and lambdas
+ * already see the original variable directly.
+ *
+ * Example:
+ *   DEFER_VAR char *buf = malloc(256);
+ *   defer_free(buf);   // buf is reliably NULL'd on scope exit on all backends
+ *================================================================================================*/
 
 /* =========================================================================
  * §1  Platform detection
@@ -625,5 +646,67 @@ static inline void _defer_cleanup_block(_defer_block_t* blk) {
     }
 
 #endif /* DEFER_WIN32 */
+
+#ifdef DEFER_AUTOFREE
+/* =========================================================================
+ * §5  autofree — automatic free() on scope exit
+ *
+ * Attaches a free() cleanup to a pointer variable so that it is freed
+ * automatically when it goes out of scope. Analogous to GLib's g_autoptr
+ * but restricted to malloc-family pointers (use defer_fclose / defer_close
+ * for FILE* and file descriptors).
+ *
+ * Usage:
+ *   autofree char *buf = malloc(256);
+ *   autofree my_struct_t *obj = my_struct_create();
+ *   // Both are freed at scope exit — no manual free() needed.
+ *
+ * The macro is a declaration specifier, not a statement. Place it at the
+ * start of a pointer declaration. The variable must be a pointer type;
+ * applying autofree to a non-pointer produces a compile-time error.
+ *
+ * Platform support:
+ *   GCC 4.9+   — __attribute__((cleanup)) on the declared variable.
+ *   Clang      — same; __block not required because cleanup fires on the
+ *                variable directly, not inside a captured block.
+ *   MSVC       — not supported; the macro expands to nothing and emits a
+ *                #pragma message. Use defer_free() on MSVC instead.
+ *   C++        — not supported; use RAII types (std::unique_ptr) instead.
+ *                The macro expands to nothing with a diagnostic.
+ * ========================================================================= */
+
+#if defined(__cplusplus)
+/* C++: direct free() on a raw pointer is almost always wrong; push the
+ * caller toward std::unique_ptr or a custom deleter. */
+#pragma message("autofree is a no-op in C++; use std::unique_ptr instead.")
+#define autofree /* nothing */
+
+#elif defined(_MSC_VER)
+/* MSVC does not implement __attribute__((cleanup)). */
+#pragma message("autofree is a no-op on MSVC; use defer_free() instead.")
+#define autofree /* nothing */
+#else            /* GCC or Clang in C mode */
+
+/**
+ * @brief Cleanup handler invoked by __attribute__((cleanup)) when an
+ *        autofree-decorated pointer goes out of scope.
+ *
+ * @param ptr Pointer to the pointer variable being cleaned up.
+ *            The value is cast to void** so the function accepts any
+ *            pointer type without -Wincompatible-pointer-types warnings.
+ */
+static inline void _autofree_cleanup(void* ptr) {
+    /* ptr is &variable, so dereference to get the actual heap pointer. */
+    void* heap_ptr = *(void**)ptr;
+    if (heap_ptr) {
+        free(heap_ptr);
+        heap_ptr = NULL;
+    }
+}
+
+#define autofree __attribute__((cleanup(_autofree_cleanup)))
+
+#endif /* compiler dispatch */
+#endif
 
 #endif /* DEFER_H */

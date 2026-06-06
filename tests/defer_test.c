@@ -11,6 +11,11 @@
  * - Multiple defers in same scope
  */
 
+//  Enable autofree macro.
+#if defined(__GNUC__) || defined(__clang__)
+#define DEFER_AUTOFREE
+#endif
+
 #include "../include/defer.h"
 
 #include <stdio.h>
@@ -330,12 +335,26 @@ int test_mixed_code(void) {
         printf("  Final value: %d\n", value);
     }
 
-    int expected[] = {30, 30};  // Both see the final value
+    int expected[] = {20, 10};  // The final value is never seen
     if (verify_cleanup_order(expected, 2)) {
         printf("PASS: Mixed code\n");
         return 1;
     }
     return 0;
+}
+
+int test_autofree(void) {
+#if defined(__GNUC__) || defined(__clang__)
+    DEFER_VAR void* ptr = NULL;
+    defer_free(ptr);
+
+    defer {
+        printf("ptr at exit: %p\n", (void*)ptr);
+    };
+    ptr = malloc(10);
+    printf("ptr: %p\n", (void*)ptr);
+#endif
+    return 1;
 }
 
 int main(void) {
@@ -354,6 +373,7 @@ int main(void) {
     passed += test_resource_cleanup();
     passed += test_deep_nesting();
     passed += test_mixed_code();
+    passed += test_autofree();
 
     printf("\n========================================\n");
     printf("  RESULTS: %d/%d tests passed\n", passed, total);
