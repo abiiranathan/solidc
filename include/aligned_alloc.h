@@ -18,28 +18,64 @@ extern "C" {
 #include <malloc.h>  // _aligned_malloc and _aligned_free
 #endif
 
-// Cross-platform aligned memory allocation
+/**
+ * @brief Cross-platform aligned memory allocation.
+ *
+ * Allocates @p size bytes whose address is a multiple of @p alignment.
+ *
+ * Alignment requirements:
+ * - @p alignment must be a power of two.
+ * - @p alignment must be at least sizeof(void*).
+ *
+ * Platform implementation details:
+ * - Windows uses _aligned_malloc().
+ * - POSIX systems use either C11 aligned_alloc() or posix_memalign(),
+ *   depending on compiler and standard library support.
+ *
+ * @warning C11 aligned_alloc() requires that @p size be an exact multiple
+ * of @p alignment. Many Linux implementations silently accept non-multiple
+ * sizes, but other libc implementations (including those commonly used on
+ * macOS) may fail and return NULL.
+ *
+ * For example:
+ *
+ * @code
+ * void* p = aligned_alloc(64, 120);  // Undefined / may fail
+ * @endcode
+ *
+ * because 120 is not a multiple of 64.
+ *
+ * This portability difference can cause code that works on Linux to fail on
+ * macOS or other platforms. When using aligned_alloc(), callers should
+ * either:
+ *
+ * @code
+ * size = (size + alignment - 1) & ~(alignment - 1);
+ * @endcode
+ *
+ * to round the size up to a valid multiple, or prefer an implementation
+ * based on posix_memalign(), which does not impose this restriction.
+ *
+ * @param alignment Required alignment in bytes.
+ * @param size Number of bytes to allocate.
+ *
+ * @return Pointer to aligned storage on success, or NULL if:
+ * - alignment is invalid,
+ * - the allocation cannot be satisfied,
+ * - or the underlying platform rejects the request.
+ *
+ * @note The returned pointer must be released with
+ *       aligned_free_xp().
+ */
 static inline void* aligned_alloc_xp(size_t alignment, size_t size) {
-    // Alignment must be a power of two and at least sizeof(void*)
-    if ((alignment & (alignment - 1)) != 0 || alignment < sizeof(void*)) {
-        return NULL;
-    }
+    if ((alignment & (alignment - 1)) != 0 || alignment < sizeof(void*)) return NULL;
 
 #if defined(_WIN32) || defined(__CYGWIN__)
     return _aligned_malloc(size, alignment);
 #else
-
-// Use standard C11 aligned_alloc where available
-#if __STDC_VERSION__ >= 201112L
-    return aligned_alloc(alignment, size);
-#else
-    // Fallback for older C standards
     void* ptr = NULL;
-    if (posix_memalign(&ptr, alignment, size) != 0) {
-        return NULL;
-    }
+    if (posix_memalign(&ptr, alignment, size) != 0) return NULL;
     return ptr;
-#endif
 #endif
 }
 
