@@ -39,11 +39,11 @@ static size_t get_num_fields(const char* line, char delim, char quote);
 static bool parse_csv_line(csv_line_params* args);
 
 static inline void set_default_config(CsvReader* reader) {
-    reader->delim       = ',';
-    reader->comment     = '#';
-    reader->has_header  = true;
+    reader->delim = ',';
+    reader->comment = '#';
+    reader->has_header = true;
     reader->skip_header = false;
-    reader->quote       = '"';
+    reader->quote = '"';
 }
 
 CsvReader* csv_reader_new(const char* filename, size_t arena_memory) {
@@ -69,21 +69,18 @@ CsvReader* csv_reader_new(const char* filename, size_t arena_memory) {
         return NULL;
     }
 
-    reader->arena    = arena;
+    reader->arena = arena;
     reader->num_rows = 0;
-    reader->stream   = stream;
-    reader->rows     = NULL;
+    reader->stream = stream;
+    reader->rows = NULL;
     set_default_config(reader);
     return reader;
 }
 
 // Allocate memory for rows and set num_rows.
 static Row** csv_allocate_rows(Arena* arena, size_t num_rows) {
-    if (num_rows == 0) {
-        return NULL;
-    }
-
-    Row** rows = ARENA_ALLOC_ARRAY(arena, Row*, num_rows);
+    if (num_rows == 0) { return NULL; }
+    Row** rows = arena_alloc(arena, num_rows * sizeof(Row*));
     if (!rows) {
         fprintf(stderr, "csv_allocate_rows(): arena out of memory\n");
         return NULL;
@@ -110,25 +107,19 @@ static inline bool read_first_valid_line(CsvReader* reader, char* line, size_t l
         }
 
         // Skip empty lines
-        if (end == line) {
-            continue;
-        }
+        if (end == line) { continue; }
 
         end[1] = '\0';
 
         // Skip comment lines
-        if (line[0] == reader->comment) {
-            continue;
-        }
+        if (line[0] == reader->comment) { continue; }
 
         // This is a valid data/header line
         found_valid_line = true;
         break;
     }
 
-    if (!found_valid_line) {
-        return false;
-    }
+    if (!found_valid_line) { return false; }
 
     // Reset the file pointer to the beginning of the file
     fseek(reader->stream, 0, SEEK_SET);
@@ -137,12 +128,12 @@ static inline bool read_first_valid_line(CsvReader* reader, char* line, size_t l
 
 Row** csv_reader_parse(CsvReader* reader) {
     char line[MAX_FIELD_SIZE] = {0};
-    size_t rowIndex           = 0;
-    bool headerSkipped        = false;
+    size_t rowIndex = 0;
+    bool headerSkipped = false;
 
     // read num_rows and allocate them on heap.
     reader->num_rows = line_count(reader);
-    reader->rows     = csv_allocate_rows(reader->arena, reader->num_rows);
+    reader->rows = csv_allocate_rows(reader->arena, reader->num_rows);
     if (!reader->rows) {
         fclose(reader->stream);
         return NULL;
@@ -170,17 +161,13 @@ Row** csv_reader_parse(CsvReader* reader) {
         }
 
         // If the line is empty, skip it
-        if (end == line) {
-            continue;
-        }
+        if (end == line) { continue; }
 
         // Terminate the line with a null character
         end[1] = '\0';
 
         // skip comment lines
-        if (line[0] == reader->comment) {
-            continue;
-        }
+        if (line[0] == reader->comment) { continue; }
 
         if (reader->has_header && reader->skip_header && rowIndex == 0 && !headerSkipped) {
             headerSkipped = true;
@@ -188,19 +175,17 @@ Row** csv_reader_parse(CsvReader* reader) {
         }
 
         csv_line_params args = {
-            .arena      = reader->arena,
-            .line       = line,
-            .rowIndex   = rowIndex,
-            .row        = reader->rows[rowIndex],
-            .delim      = reader->delim,
-            .quote      = reader->quote,
+            .arena = reader->arena,
+            .line = line,
+            .rowIndex = rowIndex,
+            .row = reader->rows[rowIndex],
+            .delim = reader->delim,
+            .quote = reader->quote,
             .num_fields = num_fields,
         };
 
         parse_success = parse_csv_line(&args);
-        if (!parse_success) {
-            break;
-        }
+        if (!parse_success) { break; }
         rowIndex++;
     }
 
@@ -216,15 +201,15 @@ Row** csv_reader_parse(CsvReader* reader) {
 }
 
 void csv_reader_parse_async(CsvReader* reader, CsvRowCallback callback, size_t maxrows) {
-    size_t rowIndex           = 0;
-    bool headerSkipped        = false;
+    size_t rowIndex = 0;
+    bool headerSkipped = false;
     char line[MAX_FIELD_SIZE] = {0};
 
     reader->num_rows = line_count(reader);
 
     // Limit the number of rows to parse if maxrows is set
     reader->num_rows = (maxrows > 0 && maxrows < reader->num_rows) ? maxrows : reader->num_rows;
-    reader->rows     = csv_allocate_rows(reader->arena, reader->num_rows);
+    reader->rows = csv_allocate_rows(reader->arena, reader->num_rows);
     if (!reader->rows) {
         fclose(reader->stream);
         return;
@@ -251,17 +236,13 @@ void csv_reader_parse_async(CsvReader* reader, CsvRowCallback callback, size_t m
         }
 
         // If the line is empty, skip it
-        if (end == line) {
-            continue;
-        }
+        if (end == line) { continue; }
 
         // Terminate the line with a null character
         end[1] = '\0';
 
         // skip comment lines
-        if (line[0] == reader->comment) {
-            continue;
-        }
+        if (line[0] == reader->comment) { continue; }
 
         if (reader->has_header && reader->skip_header && rowIndex == 0 && !headerSkipped) {
             headerSkipped = true;
@@ -269,12 +250,12 @@ void csv_reader_parse_async(CsvReader* reader, CsvRowCallback callback, size_t m
         }
 
         csv_line_params args = {
-            .arena      = reader->arena,
-            .line       = line,
-            .rowIndex   = rowIndex,
-            .row        = reader->rows[rowIndex],
-            .delim      = reader->delim,
-            .quote      = reader->quote,
+            .arena = reader->arena,
+            .line = line,
+            .rowIndex = rowIndex,
+            .row = reader->rows[rowIndex],
+            .delim = reader->delim,
+            .quote = reader->quote,
             .num_fields = num_fields,
         };
 
@@ -306,29 +287,23 @@ void csv_reader_free(CsvReader* reader) {
 }
 
 void csv_reader_setconfig(CsvReader* reader, CsvReaderConfig config) {
-    if (config.delim != '\0') {
-        reader->delim = config.delim;
-    }
+    if (config.delim != '\0') { reader->delim = config.delim; }
 
-    if (config.quote != '\0') {
-        reader->quote = config.quote;
-    }
+    if (config.quote != '\0') { reader->quote = config.quote; }
 
-    if (config.comment != '\0') {
-        reader->comment = config.comment;
-    }
+    if (config.comment != '\0') { reader->comment = config.comment; }
 
-    reader->has_header  = config.has_header;
+    reader->has_header = config.has_header;
     reader->skip_header = config.skip_header;
 }
 
 CsvReaderConfig csv_reader_getconfig(CsvReader* reader) {
     CsvReaderConfig config = {
-        .comment     = reader->comment,
-        .delim       = reader->delim,
-        .has_header  = reader->has_header,
+        .comment = reader->comment,
+        .delim = reader->delim,
+        .has_header = reader->has_header,
         .skip_header = reader->skip_header,
-        .quote       = reader->quote,
+        .quote = reader->quote,
     };
     return config;
 }
@@ -347,9 +322,7 @@ static size_t get_num_fields(const char* line, char delim, char quote) {
     }
 
     // Add the last field if it is not empty
-    if (line[0] != '\0') {
-        numFields++;
-    }
+    if (line[0] != '\0') { numFields++; }
     return numFields;
 }
 
@@ -359,18 +332,18 @@ static size_t get_num_fields(const char* line, char delim, char quote) {
 static bool parse_csv_line(csv_line_params* args) {
     // statically MUST be <= 4096 to prevent stack overflow
     char field[MAX_FIELD_SIZE] = {0};
-    int insideQuotes           = 0;
+    int insideQuotes = 0;
 
-    Row* row    = args->row;
+    Row* row = args->row;
     row->fields = arena_alloc(args->arena, args->num_fields * sizeof(char*));
     if (!row->fields) {
         fprintf(stderr, "ERROR: unable to allocate memory for fields\n");
         return false;
     }
 
-    char** fields     = row->fields;
+    char** fields = row->fields;
     size_t fieldIndex = 0;
-    row->count        = 0;
+    row->count = 0;
 
     for (size_t i = 0; args->line[i] != '\0'; i++) {
         if (args->line[i] == args->quote) {
@@ -379,9 +352,7 @@ static bool parse_csv_line(csv_line_params* args) {
             field[fieldIndex] = '\0';
             str_trim(field);
             fields[row->count] = arena_strdup(args->arena, field);
-            if (!fields[row->count]) {
-                return false;
-            }
+            if (!fields[row->count]) { return false; }
             row->count++;
             fieldIndex = 0;
         } else {
@@ -399,8 +370,7 @@ static bool parse_csv_line(csv_line_params* args) {
 
     /* If inside quotes at the end of the line, the line is not terminated */
     if (insideQuotes) {
-        fprintf(stderr, "ERROR: unterminated quoted field:%s in line %zu\n", args->line,
-                args->rowIndex);
+        fprintf(stderr, "ERROR: unterminated quoted field:%s in line %zu\n", args->line, args->rowIndex);
         return false;
     }
 
@@ -427,11 +397,11 @@ static bool parse_csv_line(csv_line_params* args) {
 #define _CSV_READ_BUFSIZE (64u * 1024u) /* 64 KB — fits comfortably in L2 */
 
 static size_t line_count(CsvReader* reader) {
-    size_t lines         = 0;
-    bool headerSkipped   = false;
-    bool line_first_char = true;  /* first char of a new logical line?    */
-    bool skip_this_line  = false; /* skip remainder of current line       */
-    bool blank_line      = true;  /* is the current line blank?           */
+    size_t lines = 0;
+    bool headerSkipped = false;
+    bool line_first_char = true; /* first char of a new logical line?    */
+    bool skip_this_line = false; /* skip remainder of current line       */
+    bool blank_line = true;      /* is the current line blank?           */
 
     /* One stack buffer; we never hold a reference across a fread() call. */
     char buf[_CSV_READ_BUFSIZE];
@@ -440,12 +410,12 @@ static size_t line_count(CsvReader* reader) {
     rewind(reader->stream);
 
     while ((nread = fread(buf, 1, sizeof(buf), reader->stream)) > 0) {
-        const char* p   = buf;
+        const char* p = buf;
         const char* end = buf + nread;
 
         while (p < end) {
             /* Find the next newline in the remaining block. */
-            const char* nl        = (const char*)memchr(p, '\n', (size_t)(end - p));
+            const char* nl = (const char*)memchr(p, '\n', (size_t)(end - p));
             const char* chunk_end = nl ? nl + 1 : end;
 
             /* ---- process characters in [p, chunk_end) ---- */
@@ -454,16 +424,15 @@ static size_t line_count(CsvReader* reader) {
                     /* End of line: count it if it had real content. */
                     if (!skip_this_line && !blank_line) {
                         /* Header skip (only first real data line). */
-                        if (reader->has_header && reader->skip_header && !headerSkipped &&
-                            lines == 0) {
+                        if (reader->has_header && reader->skip_header && !headerSkipped && lines == 0) {
                             headerSkipped = true;
                         } else {
                             lines++;
                         }
                     }
                     /* Reset state for next line. */
-                    skip_this_line  = false;
-                    blank_line      = true;
+                    skip_this_line = false;
+                    blank_line = true;
                     line_first_char = true;
                     continue;
                 }
@@ -479,9 +448,7 @@ static size_t line_count(CsvReader* reader) {
                     }
                 }
 
-                if (*c != '\r' && (*c != ' ' && *c != '\t')) {
-                    blank_line = false;
-                }
+                if (*c != '\r' && (*c != ' ' && *c != '\t')) { blank_line = false; }
             }
 
             p = chunk_end;
@@ -524,11 +491,11 @@ CsvWriter* csvwriter_new(const char* filename) {
         return NULL;
     }
 
-    writer->delim     = ',';
-    writer->quote     = '"';
-    writer->newline   = '\n';
+    writer->delim = ',';
+    writer->quote = '"';
+    writer->newline = '\n';
     writer->quote_all = false;
-    writer->flush     = false;
+    writer->flush = false;
     return writer;
 }
 
@@ -542,8 +509,7 @@ CsvWriter* csvwriter_new(const char* filename) {
  */
 static inline bool field_needs_quoting(const char* field, char delim, char quote, char newline) {
     // Check for delimiter, quote character, or newline in the field
-    return (strchr(field, delim) != NULL || strchr(field, quote) != NULL ||
-            strchr(field, newline) != NULL);
+    return (strchr(field, delim) != NULL || strchr(field, quote) != NULL || strchr(field, newline) != NULL);
 }
 
 /**
@@ -555,28 +521,20 @@ static inline bool field_needs_quoting(const char* field, char delim, char quote
  */
 static bool write_quoted_field(FILE* fp, const char* field, char quote) {
     // Write opening quote
-    if (fputc(quote, fp) == EOF) {
-        return false;
-    }
+    if (fputc(quote, fp) == EOF) { return false; }
 
     // Write field content, escaping quotes by doubling them (CSV standard)
     for (const char* ptr = field; *ptr != '\0'; ptr++) {
         if (*ptr == quote) {
             // Escape quote by writing it twice
-            if (fputc(quote, fp) == EOF || fputc(quote, fp) == EOF) {
-                return false;
-            }
+            if (fputc(quote, fp) == EOF || fputc(quote, fp) == EOF) { return false; }
         } else {
-            if (fputc(*ptr, fp) == EOF) {
-                return false;
-            }
+            if (fputc(*ptr, fp) == EOF) { return false; }
         }
     }
 
     // Write closing quote
-    if (fputc(quote, fp) == EOF) {
-        return false;
-    }
+    if (fputc(quote, fp) == EOF) { return false; }
 
     return true;
 }
@@ -591,8 +549,7 @@ static bool write_quoted_field(FILE* fp, const char* field, char quote) {
  * @param newline The newline character.
  * @return true on success, false on I/O error.
  */
-static bool write_single_field(FILE* fp, const char* field, bool quote_all, char delim, char quote,
-                               char newline) {
+static bool write_single_field(FILE* fp, const char* field, bool quote_all, char delim, char quote, char newline) {
     if (field == NULL) {
         // Handle null field as empty string
         field = "";
@@ -629,46 +586,35 @@ bool csvwriter_write_row(CsvWriter* writer, const char** fields, size_t numfield
 
     if (numfields == 0) {
         // Writing empty row - just write newline
-        if (fputc(writer->newline, writer->stream) == EOF) {
-            return false;
-        }
+        if (fputc(writer->newline, writer->stream) == EOF) { return false; }
         goto flush_and_exit;
     }
 
     fp = writer->stream;
 
     // Check if stream is valid before proceeding
-    if (ferror(fp)) {
-        return false;
-    }
+    if (ferror(fp)) { return false; }
 
     // Write all fields with delimiters
     for (size_t i = 0; i < numfields; i++) {
         // Write delimiter before all fields except the first
         if (i > 0) {
-            if (fputc(writer->delim, fp) == EOF) {
-                return false;
-            }
+            if (fputc(writer->delim, fp) == EOF) { return false; }
         }
 
         // Write the field content
-        if (!write_single_field(fp, fields[i], writer->quote_all, writer->delim, writer->quote,
-                                writer->newline)) {
+        if (!write_single_field(fp, fields[i], writer->quote_all, writer->delim, writer->quote, writer->newline)) {
             return false;
         }
     }
 
     // Write row terminator
-    if (fputc(writer->newline, fp) == EOF) {
-        return false;
-    }
+    if (fputc(writer->newline, fp) == EOF) { return false; }
 
 flush_and_exit:
     // Flush if requested
     if (writer->flush && fp) {
-        if (fflush(fp) != 0) {
-            return false;
-        }
+        if (fflush(fp) != 0) { return false; }
     }
 
     // Final error check
@@ -683,14 +629,10 @@ void csvwriter_free(CsvWriter* writer) {
 
 // configure the csv writer
 void csvwriter_setconfig(CsvWriter* writer, CsvWriterConfig config) {
-    if (config.delim != '\0') {
-        writer->delim = config.delim;
-    }
+    if (config.delim != '\0') { writer->delim = config.delim; }
 
-    if (config.quote != '\0') {
-        writer->quote = config.quote;
-    }
+    if (config.quote != '\0') { writer->quote = config.quote; }
 
     writer->quote_all = config.quote_all;
-    writer->flush     = config.flush;
+    writer->flush = config.flush;
 }

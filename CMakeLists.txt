@@ -183,6 +183,9 @@ else()
     target_compile_definitions(solidc PUBLIC _GNU_SOURCE)
 endif()
 
+# Enable OOM on allocation failure in arena.
+target_compile_definitions(solidc PRIVATE ARENA_ABORT_ON_OOM)
+
 if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
     # Add the Windows-specific dirent implementation source
     list(APPEND HEADERS include/win32_dirent.h)

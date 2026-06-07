@@ -24,7 +24,9 @@ static void print_result(const char* name, int ok) {
     ok ? g_pass++ : g_fail++;
 }
 
-static void print_section(const char* name) { printf("\n%s\n", name); }
+static void print_section(const char* name) {
+    printf("\n%s\n", name);
+}
 
 static int validate_pattern(void* ptr, size_t size, unsigned char byte) {
     if (!ptr) return 0;
@@ -35,7 +37,9 @@ static int validate_pattern(void* ptr, size_t size, unsigned char byte) {
     return 1;
 }
 
-static int is_aligned(const void* ptr, size_t alignment) { return ((uintptr_t)ptr & (alignment - 1)) == 0; }
+static int is_aligned(const void* ptr, size_t alignment) {
+    return ((uintptr_t)ptr & (alignment - 1)) == 0;
+}
 
 // ============================================================================
 // Basic Allocations
@@ -303,25 +307,26 @@ static void test_macros(void) {
     ASSERT(a);
 
     // ARENA_ALLOC
-    TestStruct* obj = ARENA_ALLOC(a, TestStruct);
+    TestStruct* obj = arena_alloc(a, sizeof(TestStruct));
     print_result("ARENA_ALLOC non-NULL", obj != NULL);
     print_result("ARENA_ALLOC natural alignment", is_aligned(obj, _Alignof(TestStruct)));
 
     // ARENA_ALLOC_ZERO
-    TestStruct* zeroed = ARENA_ALLOC_ZERO(a, TestStruct);
+    TestStruct* zeroed = arena_alloc_zero(a, sizeof(TestStruct));
     print_result("ARENA_ALLOC_ZERO non-NULL", zeroed != NULL);
     print_result("ARENA_ALLOC_ZERO all bytes zero", zeroed && zeroed->x == 0 && zeroed->y == 0.0f && zeroed->z == 0.0);
 
     // ARENA_ALLOC_ARRAY
-    int* arr = ARENA_ALLOC_ARRAY(a, int, 64);
+    int* arr = arena_alloc(a, sizeof(int) * 64);
     print_result("ARENA_ALLOC_ARRAY non-NULL", arr != NULL);
     print_result("ARENA_ALLOC_ARRAY natural alignment", is_aligned(arr, _Alignof(int)));
 
     // ARENA_ALLOC_ARRAY_ZERO
-    int* zarr = ARENA_ALLOC_ARRAY_ZERO(a, int, 64);
+    int* zarr = arena_alloc_zero(a, sizeof(int) * 64);
     int all_zero = 1;
     if (zarr)
-        for (int i = 0; i < 64; i++) all_zero &= (zarr[i] == 0);
+        for (int i = 0; i < 64; i++)
+            all_zero &= (zarr[i] == 0);
     print_result("ARENA_ALLOC_ARRAY_ZERO all elements zero", zarr != NULL && all_zero);
 
     arena_destroy(a);
@@ -488,7 +493,8 @@ static void* thread_func(void* arg) {
         printf("  Thread %lu: array alloc failed\n", (unsigned long)thread_self());
         return NULL;
     }
-    for (int i = 0; i < 10; i++) numbers[i] = i;
+    for (int i = 0; i < 10; i++)
+        numbers[i] = i;
 
     return NULL;
 }
@@ -500,8 +506,10 @@ static void test_multithreaded(void) {
     ASSERT(a);
 
     Thread threads[NUM_THREADS] = {0};
-    for (int i = 0; i < NUM_THREADS; i++) thread_create(&threads[i], thread_func, a);
-    for (int i = 0; i < NUM_THREADS; i++) thread_join(threads[i], NULL);
+    for (int i = 0; i < NUM_THREADS; i++)
+        thread_create(&threads[i], thread_func, a);
+    for (int i = 0; i < NUM_THREADS; i++)
+        thread_join(threads[i], NULL);
 
     print_result("multithreaded allocs (no crash)", 1);
     arena_destroy(a);
@@ -571,12 +579,13 @@ int main(void) {
     printf("Results: %d passed, %d failed\n", g_pass, g_fail);
 
     TIME_BLOCK_MS("10M iteration loop", {
-        for (volatile int i = 0; i < 10000000; ++i) {
-        }
+        for (volatile int i = 0; i < 10000000; ++i) {}
     });
 
     int arr[] = {1, 2, 3, 4};
-    FOR_EACH_ARRAY(n, arr) { printf("  n=%d\n", *n); }
+    FOR_EACH_ARRAY(n, arr) {
+        printf("  n=%d\n", *n);
+    }
 
     return g_fail > 0 ? 1 : 0;
 }
