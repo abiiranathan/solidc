@@ -1,0 +1,7 @@
+<map id="utf8_starts_with" name="utf8_starts_with">
+<area shape="rect" id="Node000001" title="Checks if a string starts with a given prefix." alt="" coords="136,29,263,55"/>
+<area shape="poly" id="edge3_Node000001_Node000001" title=" " alt="" coords="226,19,218,11,199,8,184,10,175,15,174,20,178,28,174,31,168,21,171,11,182,5,199,3,220,6,229,15"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a283c63b93c8d578ec05102ff6533ae5b" title="Splits a UTF&#45;8 string into parts using a delimiter." alt="" coords="5,29,88,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="122,45,88,45,88,39,122,39"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="73,19,65,11,47,8,31,10,23,15,21,20,26,28,21,31,16,21,18,11,29,5,47,3,68,6,77,15"/>
+</map>

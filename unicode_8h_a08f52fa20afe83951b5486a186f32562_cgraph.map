@@ -1,0 +1,17 @@
+<map id="utf8_readfrom" name="utf8_readfrom">
+<area shape="rect" id="Node000001" title="Reads a UTF&#45;8 string from a file." alt="" coords="5,80,120,105"/>
+<area shape="poly" id="edge10_Node000001_Node000001" title=" " alt="" coords="38,81,33,72,35,62,46,56,63,53,83,57,92,65,88,69,80,62,63,59,47,61,40,65,38,71,42,79"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#ac8dd740b9cf9558c3b5bd89f91857d08" title="Creates a new utf8_string object from a C string." alt="" coords="168,80,251,105"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="120,90,154,90,154,95,120,95"/>
+<area shape="poly" id="edge8_Node000002_Node000002" title=" " alt="" coords="184,81,179,72,182,62,192,56,209,53,230,57,238,65,235,69,227,62,209,59,194,61,186,65,185,71,189,79"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#a3619b219411d41dbdd9197a4d9f378a3" title="Creates a copy of a UTF&#45;8 string containing only valid UTF&#45;8 sequences." alt="" coords="340,29,427,55"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="250,78,326,56,328,61,252,83"/>
+<area shape="rect" id="Node000004" href="$unicode_8c.html#a37b529eaefb2e43c5f2a7eda74138c13" title="Counts the number of valid UTF&#45;8 bytes in a string." alt="" coords="516,55,683,80"/>
+<area shape="poly" id="edge9_Node000002_Node000004" title=" " alt="" coords="251,87,502,71,502,76,251,93"/>
+<area shape="rect" id="Node000005" href="$unicode_8c.html#a0b46c6da59494b8d0042d1557f77b6fe" title="Counts the number of Unicode codepoints in a UTF&#45;8 string." alt="" coords="299,155,468,180"/>
+<area shape="poly" id="edge6_Node000002_Node000005" title=" " alt="" coords="241,103,341,147,339,152,239,108"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="354,31,348,21,352,11,364,5,383,3,407,6,417,15,414,19,405,11,383,8,365,10,356,15,354,20,359,28"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="427,44,503,53,502,59,427,50"/>
+<area shape="poly" id="edge5_Node000004_Node000004" title=" " alt="" coords="564,56,556,46,560,36,575,30,599,28,629,32,641,41,638,45,627,37,599,33,576,35,564,40,562,46,568,53"/>
+<area shape="poly" id="edge7_Node000005_Node000005" title=" " alt="" coords="354,156,348,146,352,137,364,130,383,128,407,132,417,140,414,144,405,136,383,133,365,135,356,140,354,146,359,153"/>
+</map>

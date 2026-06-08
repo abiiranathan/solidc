@@ -1,0 +1,7 @@
+<map id="utf8_ends_with" name="utf8_ends_with">
+<area shape="rect" id="Node000001" title="Checks if a string ends with a given suffix." alt="" coords="5,29,127,55"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="34,31,28,21,31,11,44,5,66,3,92,6,103,15,100,19,90,11,66,8,46,10,35,15,33,20,39,28"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a37b529eaefb2e43c5f2a7eda74138c13" title="Counts the number of valid UTF&#45;8 bytes in a string." alt="" coords="175,29,341,55"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="127,39,161,39,161,45,127,45"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="226,31,220,21,223,11,236,5,258,3,284,6,295,15,292,19,282,11,258,8,238,10,227,15,225,20,231,28"/>
+</map>

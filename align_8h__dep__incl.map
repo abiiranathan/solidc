@@ -1,0 +1,16 @@
+<map id="include/align.h" name="include/align.h">
+<area shape="rect" id="Node000001" title="Memory alignment utilities and macros for cross&#45;platform alignment." alt="" coords="152,5,269,31"/>
+<area shape="rect" id="Node000002" href="$simd_8h.html" title="Portable Single Instruction Multiple Data (SIMD) Intrinsics Wrapper." alt="" coords="21,79,139,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="179,40,103,81,100,76,176,35"/>
+<area shape="rect" id="Node000006" href="$cache_8c_source.html" title=" " alt="" coords="163,79,258,104"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="213,44,213,79,208,79,208,44"/>
+<area shape="rect" id="Node000007" href="$threadpool_8c_source.html" title=" " alt="" coords="282,79,409,104"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="246,35,325,76,322,81,243,39"/>
+<area shape="rect" id="Node000003" href="$vec_8h_source.html" title=" " alt="" coords="26,152,134,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="83,118,83,152,77,152,77,118"/>
+<area shape="rect" id="Node000004" href="$linear__alg_8h.html" title="Linear algebra operations and utilities." alt="" coords="5,299,155,324"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="70,190,57,226,57,246,61,265,75,298,70,300,56,267,51,246,52,225,65,189"/>
+<area shape="rect" id="Node000005" href="$matrix_8h.html" title="Matrix operations and mathematical utilities." alt="" coords="67,225,195,251"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="99,187,125,224,120,227,94,190"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="116,264,90,300,86,297,112,261"/>
+</map>

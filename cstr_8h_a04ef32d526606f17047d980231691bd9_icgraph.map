@@ -1,0 +1,15 @@
+<map id="cstr_is_heap" name="cstr_is_heap">
+<area shape="rect" id="Node000001" title=" " alt="" coords="187,129,289,155"/>
+<area shape="rect" id="Node000002" href="$cstr_8h.html#acb52762bd703d1b224e79ad5c4f8da8a" title=" " alt="" coords="15,5,129,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="217,120,182,82,137,44,115,33,118,28,140,40,186,78,221,117"/>
+<area shape="rect" id="Node000003" href="$cstr_8h.html#aaee799b13da4e7fc4a2cc10db9775f0b" title="Current storage capacity (bytes available before reallocation). For SSO strings this is CSTR_SSO_CAP ..." alt="" coords="18,55,126,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="201,125,138,94,110,83,112,78,140,89,203,120"/>
+<area shape="rect" id="Node000004" href="$cstr_8c.html#a502782ea6c7a22c7032b34526b3b6e29" title="Print debug information about a cstr to stderr." alt="" coords="25,104,119,129"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="172,135,118,126,119,121,173,129"/>
+<area shape="rect" id="Node000005" href="$cstr_8c.html#ad783e4a1ef53d26feed9c59cd88b99de" title="Release only the internal heap buffer of an embedded cstr (one created via cstr_init_inplace)...." alt="" coords="31,153,113,179"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="173,154,114,163,113,157,172,149"/>
+<area shape="rect" id="Node000006" href="$cstr_8c.html#ac0035d2d1ada61ea0e7b9bf077885ac0" title="Free a heap&#45;allocated cstr and its storage. Safe to call with NULL." alt="" coords="33,203,111,228"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="201,164,140,192,109,205,107,200,138,188,198,159"/>
+<area shape="rect" id="Node000007" href="$cstr_8c.html#aaaffc7231bda5e82e146df5ad9584b8d" title="Shrink heap allocation to fit the current length (frees wasted memory)." alt="" coords="5,252,139,277"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="220,168,185,205,140,242,115,254,113,250,137,237,181,201,216,164"/>
+</map>

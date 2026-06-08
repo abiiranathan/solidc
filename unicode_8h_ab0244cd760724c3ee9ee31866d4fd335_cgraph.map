@@ -1,0 +1,10 @@
+<map id="utf8_trim_chars" name="utf8_trim_chars">
+<area shape="rect" id="Node000001" title="Removes leading and trailing characters from a UTF&#45;8 string in&#45;place." alt="" coords="5,67,129,92"/>
+<area shape="poly" id="edge5_Node000001_Node000001" title=" " alt="" coords="38,68,31,58,35,49,47,42,67,40,92,44,102,52,99,56,90,48,67,45,48,47,39,52,37,58,42,65"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#aadba4a5c759cfb7674c3dfe42351e952" title="Determines the byte length of a UTF&#45;8 character from its first byte." alt="" coords="181,29,312,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="128,64,171,55,172,60,130,69"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#a0075f88c12df63dda852af0ff5c41f92" title="Decodes a UTF&#45;8 byte sequence to its Unicode codepoint." alt="" coords="177,103,316,128"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="130,89,170,97,169,102,129,94"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="217,31,211,21,214,11,226,5,247,3,271,6,282,15,278,19,269,11,247,8,228,10,218,15,216,20,221,28"/>
+<area shape="poly" id="edge4_Node000003_Node000003" title=" " alt="" coords="217,104,211,94,214,85,226,78,247,76,271,80,282,88,278,92,269,84,247,81,228,83,218,88,216,94,221,101"/>
+</map>
