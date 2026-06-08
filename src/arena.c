@@ -47,6 +47,7 @@ void arena_init(Arena* a, void* buf, size_t size) {
     memset(a, 0, sizeof(Arena));
     a->page_size = get_page_size();
     a->heap_allocated = false;
+    a->tls_in_use_origin = NULL;
 
     a->first_block.base = (char*)buf;
     a->first_block.end = (char*)buf + size;
@@ -70,6 +71,10 @@ Arena* arena_create(size_t reserve_size) {
     if (!static_buffer_in_use && reserve_size <= STATIC_BUFFER_SIZE) {
         arena_init(a, static_buffer, STATIC_BUFFER_SIZE);
         static_buffer_in_use = true;
+
+        // Avoid race condition if the arena is handed off to another thread
+        // after creation since we are storing this threads address.
+        a->tls_in_use_origin = &static_buffer_in_use;
     } else {
         size_t page_size = get_page_size();
         size_t initial_size = reserve_size > 0 ? reserve_size : ARENA_MIN_BLOCK_SIZE;
@@ -103,8 +108,10 @@ void arena_destroy(Arena* a) {
     if (block && !block->is_static) { aligned_free_xp(block->base); }
 
     /* If the first block was the TLS static buffer, mark it available again
-     * so the next arena_create() can reuse it without leaking capacity. */
-    if (block && block->base == static_buffer) { static_buffer_in_use = false; }
+     * so the next arena_create() can reuse it without leaking capacity. 
+     Comparing block->base == static_buffer is a bug if the arena switched threads.
+     */
+    if (block && block->is_static && a->tls_in_use_origin) { *a->tls_in_use_origin = false; }
 
     /* Walk overflow blocks.  Each was allocated as a single slab where the
      * ArenaBlock header lives at the start of the pointer returned by

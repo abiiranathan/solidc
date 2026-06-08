@@ -187,6 +187,7 @@ typedef struct Arena {
     size_t page_size;          /**< OS page size used to round block sizes (usually 4096).  */
     size_t total_committed;    /**< Total bytes across all committed blocks.              */
     bool heap_allocated;       /**< True when this struct was allocated by arena_create(). */
+    bool* tls_in_use_origin;   /* == &static_buffer_in_use on creating thread */
     ArenaBlock first_block;    /**< Embedded descriptor for the initial backing buffer.     */
 } Arena;
 
