@@ -24,8 +24,8 @@ int test_count = 0;
 void record_test(const char* test_name, bool passed, const char* message) {
     if (test_count < MAX_TESTS) {
         test_results[test_count].test_name = test_name;
-        test_results[test_count].passed    = passed;
-        test_results[test_count].message   = message ? strdup(message) : NULL;
+        test_results[test_count].passed = passed;
+        test_results[test_count].message = message ? strdup(message) : NULL;
         test_count++;
     }
 }
@@ -70,7 +70,7 @@ void test_codepoint_conversion() {
 
     // Test invalid UTF-8 sequence
     const char invalid_utf8[] = {(char)0xC0, (char)0xAF, 0x00};  // Invalid 2-byte sequence
-    result                    = utf8_to_codepoint((const char*)invalid_utf8);
+    result = utf8_to_codepoint((const char*)invalid_utf8);
     record_test("Invalid UTF-8 sequence", result == 0xFFFD,
                 NULL);  // Should return replacement character
 }
@@ -81,37 +81,37 @@ void test_length_functions() {
 
     // Test ASCII string
     const char* ascii = "Hello, world!";
-    size_t byte_len   = utf8_valid_byte_count(ascii);
-    size_t cp_count   = utf8_count_codepoints(ascii);
+    size_t byte_len = utf8_valid_byte_count(ascii);
+    size_t cp_count = utf8_count_codepoints(ascii);
     record_test("ASCII byte length", byte_len == strlen(ascii), NULL);
     record_test("ASCII codepoint count", cp_count == strlen(ascii), NULL);
 
     // Test mixed string
     const char* mixed = "Hello, 世界!";  // "Hello, world!" with Chinese characters
-    byte_len          = utf8_valid_byte_count(mixed);
-    cp_count          = utf8_count_codepoints(mixed);
+    byte_len = utf8_valid_byte_count(mixed);
+    cp_count = utf8_count_codepoints(mixed);
     record_test("Mixed string byte length", byte_len == strlen(mixed), NULL);
     record_test("Mixed string codepoint count", cp_count == 10,
                 NULL);  // 8 ASCII + 2 Chinese chars
 
     // Test emoji string
     const char* emoji = "😀👍🌍";  // Three emoji
-    byte_len          = utf8_valid_byte_count(emoji);
-    cp_count          = utf8_count_codepoints(emoji);
+    byte_len = utf8_valid_byte_count(emoji);
+    cp_count = utf8_count_codepoints(emoji);
     record_test("Emoji byte length", byte_len == strlen(emoji), NULL);
     record_test("Emoji codepoint count", cp_count == 3, NULL);
 
     // Test empty string
     const char* empty = "";
-    byte_len          = utf8_valid_byte_count(empty);
-    cp_count          = utf8_count_codepoints(empty);
+    byte_len = utf8_valid_byte_count(empty);
+    cp_count = utf8_count_codepoints(empty);
     record_test("Empty string byte length", byte_len == 0, NULL);
     record_test("Empty string codepoint count", cp_count == 0, NULL);
 
     // Test with invalid UTF-8
     const char invalid[] = {(char)0xC0, (char)0xAF, 'A', 0x00};  // Invalid 2-byte sequence + ASCII
-    byte_len             = utf8_valid_byte_count(invalid);
-    cp_count             = utf8_count_codepoints(invalid);
+    byte_len = utf8_valid_byte_count(invalid);
+    cp_count = utf8_count_codepoints(invalid);
     record_test("Invalid UTF-8 byte length handling", byte_len == 3, NULL);
     record_test("Invalid UTF-8 codepoint count handling", cp_count > 0, NULL);
 }
@@ -122,28 +122,27 @@ void test_char_length() {
 
     // ASCII character (1 byte)
     const char* ascii = "A";
-    size_t len        = utf8_char_length(ascii);
+    size_t len = utf8_char_length(ascii);
     record_test("ASCII char length", len == 1, NULL);
 
     // 2-byte character
     const char two_byte[] = {(char)0xC2, (char)0xA9, 0x00};  // Copyright symbol ©
-    len                   = utf8_char_length(two_byte);
+    len = utf8_char_length(two_byte);
     record_test("2-byte char length", len == 2, NULL);
 
     // 3-byte character
     const char three_byte[] = {(char)0xE2, (char)0x82, (char)0xAC, 0x00};  // Euro symbol €
-    len                     = utf8_char_length(three_byte);
+    len = utf8_char_length(three_byte);
     record_test("3-byte char length", len == 3, NULL);
 
     // 4-byte character (emoji)
-    const char four_byte[] = {(char)0xF0, (char)0x9F, (char)0x98, (char)0x80,
-                              0x00};  // Grinning face emoji 😀
-    len                    = utf8_char_length(four_byte);
+    const char four_byte[] = {(char)0xF0, (char)0x9F, (char)0x98, (char)0x80, 0x00};  // Grinning face emoji 😀
+    len = utf8_char_length(four_byte);
     record_test("4-byte char length", len == 4, NULL);
 
     // Invalid byte
     const char invalid[] = {(char)0xFF, 0x00};  // Invalid UTF-8 lead byte
-    len                  = utf8_char_length(invalid);
+    len = utf8_char_length(invalid);
     record_test("Invalid UTF-8 lead byte", len == 0, NULL);
 }
 
@@ -168,11 +167,10 @@ void test_validation() {
     record_test("Emoji string validity", is_valid_utf8("😀👍🌍"), NULL);
 
     // Invalid UTF-8 strings
-    const char invalid1[] = {(char)0xC0, (char)0xAF, 0x00};              // Invalid 2-byte sequence
-    const char invalid2[] = {(char)0xE0, (char)0x80, (char)0xAF, 0x00};  // Overlong encoding
-    const char invalid3[] = {(char)0xED, (char)0xA0, (char)0x80, 0x00};  // UTF-16 surrogate
-    const char invalid4[] = {(char)0xF4, (char)0x90, (char)0x80, (char)0x80,
-                             0x00};  // Beyond Unicode range
+    const char invalid1[] = {(char)0xC0, (char)0xAF, 0x00};                          // Invalid 2-byte sequence
+    const char invalid2[] = {(char)0xE0, (char)0x80, (char)0xAF, 0x00};              // Overlong encoding
+    const char invalid3[] = {(char)0xED, (char)0xA0, (char)0x80, 0x00};              // UTF-16 surrogate
+    const char invalid4[] = {(char)0xF4, (char)0x90, (char)0x80, (char)0x80, 0x00};  // Beyond Unicode range
 
     record_test("Invalid 2-byte sequence", !is_valid_utf8(invalid1), NULL);
     record_test("Overlong encoding", !is_valid_utf8(invalid2), NULL);
@@ -241,7 +239,7 @@ void test_basic_operations() {
     free(copy);
 
     // Test append
-    utf8_append(s, " 🌍");
+    utf8_append(&s, " 🌍");
     record_test("String append", strstr(s->data, "🌍") != NULL, NULL);
     record_test("Appended length", s->length == strlen("Hello, 世界! 🌍"), NULL);
 
@@ -251,14 +249,15 @@ void test_basic_operations() {
     free(substr);
 
     // Test replace
-    utf8_replace(s, "Hello", "Hi");
+    utf8_replace(&s, "Hello", "Hi");
     record_test("Replace", strstr(s->data, "Hi") == s->data, NULL);
     record_test("Replace adjusts length", s->length == strlen("Hi, 世界! 🌍"), NULL);
 
     // Test reverse
-    utf8_string* rev = utf8_new("ABC");
-    utf8_reverse(rev);
+    utf8_string* orig_str = utf8_new("ABC");
+    utf8_string* rev = utf8_reverse(orig_str);
     record_test("Reverse ASCII", strcmp(rev->data, "CBA") == 0, NULL);
+    utf8_free(orig_str);
     utf8_free(rev);
 
     // Test UTF-8 reverse (with multibyte chars)
@@ -327,8 +326,8 @@ void test_trim_functions() {
 void test_split() {
     printf("Testing split function...\n");
 
-    utf8_string* s      = utf8_new("apple,banana,cherry");
-    size_t num_parts    = 0;
+    utf8_string* s = utf8_new("apple,banana,cherry");
+    size_t num_parts = 0;
     utf8_string** parts = utf8_split(s, ",", &num_parts);
 
     record_test("Split count", num_parts == 3, NULL);
@@ -434,16 +433,12 @@ int main() {
             passed++;
         } else {
             printf("[✗] %s", test_results[i].test_name);
-            if (test_results[i].message) {
-                printf(" - %s", test_results[i].message);
-            }
+            if (test_results[i].message) { printf(" - %s", test_results[i].message); }
             printf("\n");
             failed++;
         }
 
-        if (test_results[i].message) {
-            free(test_results[i].message);
-        }
+        if (test_results[i].message) { free(test_results[i].message); }
     }
 
     printf("\nSummary: %d passed, %d failed, %d total\n", passed, failed, test_count);

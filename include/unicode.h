@@ -44,11 +44,22 @@ extern "C" {
  *
  * This structure maintains both the UTF-8 byte data and precomputed
  * statistics about the string for efficient operations.
+ *
+ * @note Implementation detail, not part of the contract callers rely on:
+ *       `data` points into memory immediately following this struct within
+ *       a single allocation (struct + data live in one malloc'd block).
+ *       `data` must therefore never be passed to realloc()/free() on its
+ *       own; always operate on the utf8_string* itself (e.g. via
+ *       utf8_free(), or internally via realloc() on `s`, not `s->data`).
+ *       This is purely an implementation detail: utf8_data(s), s->data,
+ *       and free(s) all continue to work exactly as before.
  */
 typedef struct utf8_string {
-    char* data;    /**< Null-terminated UTF-8 encoded string data. Caller must free. */
-    size_t length; /**< Total number of bytes (excluding null terminator). */
-    size_t count;  /**< Number of Unicode codepoints (characters). */
+    char*
+        data; /**< Null-terminated UTF-8 string data. Points into this struct's own allocation; never free or realloc it separately. */
+    size_t length;   /**< Total number of bytes in use (excluding null terminator). */
+    size_t count;    /**< Number of Unicode codepoints (characters). */
+    size_t capacity; /**< Bytes allocated for data, excluding the implicit null terminator byte. */
 } utf8_string;
 
 /* ============================================================================
@@ -324,11 +335,19 @@ bool utf8_equals(const char* s1, const char* s2);
 
 /**
  * @brief Appends UTF-8 data to the end of a utf8_string.
- * @param s The utf8_string to append to. Must not be NULL.
+ * @param s_ptr Address of the utf8_string to append to. Must not be NULL,
+ *              and *s_ptr must not be NULL. On success, *s_ptr is updated
+ *              to point at the (possibly relocated) string; the caller
+ *              must use *s_ptr afterward and must not dereference the
+ *              value *s_ptr held before the call.
  * @param data Null-terminated UTF-8 string to append. NULL is safely ignored.
- * @return true on success, false on allocation failure.
+ * @return true on success, false on allocation failure (in which case
+ *         *s_ptr is left unchanged and still valid).
+ * @note Takes utf8_string** rather than utf8_string* because the struct
+ *       and its data buffer share a single allocation; growing the buffer
+ *       can move the entire block, including the struct itself.
  */
-bool utf8_append(utf8_string* s, const char* data);
+bool utf8_append(utf8_string** s_ptr, const char* data);
 
 /**
  * @brief Extracts a substring by byte range.
@@ -342,12 +361,18 @@ char* utf8_substr(const utf8_string* s, size_t index, size_t utf8_byte_len);
 
 /**
  * @brief Inserts UTF-8 data at a specific byte index.
- * @param s The utf8_string to modify. Must not be NULL.
+ * @param s_ptr Address of the utf8_string to modify. Must not be NULL, and
+ *              *s_ptr must not be NULL. On success, *s_ptr is updated to
+ *              point at the (possibly relocated) string.
  * @param index The byte index at which to insert.
  * @param data Null-terminated UTF-8 string to insert. NULL is safely ignored.
- * @return true on success, false on allocation failure or invalid index.
+ * @return true on success, false on allocation failure or invalid index
+ *         (in which case *s_ptr is left unchanged and still valid).
+ * @note Takes utf8_string** for the same reason as utf8_append(): the
+ *       struct and its data buffer share one allocation, so growing the
+ *       buffer can relocate the struct.
  */
-bool utf8_insert(utf8_string* s, size_t index, const char* data);
+bool utf8_insert(utf8_string** s_ptr, size_t index, const char* data);
 
 /**
  * @brief Removes a specified number of codepoints starting at a byte index.
@@ -360,28 +385,43 @@ bool utf8_remove(utf8_string* s, size_t index, size_t count);
 
 /**
  * @brief Replaces the first occurrence of a substring with another string.
- * @param s The utf8_string to modify. Must not be NULL.
+ * @param s_ptr Address of the utf8_string to modify. Must not be NULL, and
+ *              *s_ptr must not be NULL. On success, *s_ptr is updated to
+ *              point at the (possibly relocated) string.
  * @param old_str The substring to find and replace. Must not be NULL.
  * @param new_str The replacement string. Must not be NULL.
- * @return true if replacement occurred, false if old_str not found or on error.
+ * @return true if replacement occurred, false if old_str not found, on
+ *         allocation failure, or on invalid parameters. *s_ptr is left
+ *         unchanged and still valid in all false-returning cases.
+ * @note Takes utf8_string** for the same reason as utf8_append(): the
+ *       struct and its data buffer share one allocation, so growing the
+ *       buffer (when new_str is longer than old_str) can relocate the
+ *       struct.
  */
-bool utf8_replace(utf8_string* s, const char* old_str, const char* new_str);
+bool utf8_replace(utf8_string** s_ptr, const char* old_str, const char* new_str);
 
 /**
  * @brief Replaces all occurrences of a substring with another string.
- * @param s The utf8_string to modify. Must not be NULL.
+ * @param s_ptr Address of the utf8_string to modify. Must not be NULL, and
+ *              *s_ptr must not be NULL. On success, *s_ptr is updated to
+ *              point at the (possibly relocated) string.
  * @param old_str The substring to find and replace. Must not be NULL or empty.
  * @param new_str The replacement string. Must not be NULL (can be empty).
  * @return Number of replacements made, or 0 if none found or on error.
+ *         *s_ptr reflects all replacements completed even if a later one
+ *         fails partway through (see implementation note in unicode.c).
+ * @note Takes utf8_string** for the same reason as utf8_append(): the
+ *       struct and its data buffer share one allocation, so growing the
+ *       buffer can relocate the struct.
  */
-size_t utf8_replace_all(utf8_string* s, const char* old_str, const char* new_str);
+size_t utf8_replace_all(utf8_string** s_ptr, const char* old_str, const char* new_str);
 
 /**
  * @brief Reverses a UTF-8 string by codepoints.
- * @param s The utf8_string to reverse in-place. Must not be NULL.
- * @return true on success, false on allocation failure.
+ * @param s The utf8_string to reverse. Must not be NULL.
+ * @return A new utf8_string* success, NULL failure.
  */
-bool utf8_reverse(utf8_string* s);
+utf8_string* utf8_reverse(const utf8_string* s);
 
 /**
  * @brief Concatenates two utf8_string objects into a new string.
