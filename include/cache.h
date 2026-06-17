@@ -120,6 +120,9 @@ bool cache_save(cache_t* cache_ptr, const char* filename);
  */
 bool cache_load(cache_t* cache_ptr, const char* filename);
 
+/** Prints the global probe-length histogram to stderr. */
+void cache_probe_stats_dump(void);
+
 #ifdef __cplusplus
 }
 #endif

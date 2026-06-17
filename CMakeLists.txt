@@ -184,6 +184,7 @@ else()
 endif()
 
 # Enable OOM on allocation failure in arena.
+# CACHE_PROBE_STATS
 target_compile_definitions(solidc PRIVATE ARENA_ABORT_ON_OOM)
 
 if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")

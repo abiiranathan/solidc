@@ -10,21 +10,21 @@
 static int tests_passed = 0;
 static int tests_failed = 0;
 
-#define TEST_ASSERT(condition, msg)                                                                                    \
-    do {                                                                                                               \
-        if (condition) {                                                                                               \
-            tests_passed++;                                                                                            \
-            printf("  ✓ %s\n", msg);                                                                                   \
-        } else {                                                                                                       \
-            tests_failed++;                                                                                            \
-            fprintf(stderr, "  ✗ %s (line %d)\n", msg, __LINE__);                                                      \
-        }                                                                                                              \
+#define TEST_ASSERT(condition, msg)                               \
+    do {                                                          \
+        if (condition) {                                          \
+            tests_passed++;                                       \
+            printf("  ✓ %s\n", msg);                              \
+        } else {                                                  \
+            tests_failed++;                                       \
+            fprintf(stderr, "  ✗ %s (line %d)\n", msg, __LINE__); \
+        }                                                         \
     } while (0)
 
 // Helper: FNV-1a Hash to find shards (Duplicate of internal logic for testing internals)
 static uint32_t test_hash_key(const char* key) {
     uint32_t hash = 2166136261u;
-    size_t len    = strlen(key);
+    size_t len = strlen(key);
     for (size_t i = 0; i < len; i++) {
         hash ^= (uint32_t)(unsigned char)key[i];
         hash *= 16777619u;
@@ -57,10 +57,10 @@ static void test_set_get(void) {
     cache_t* cache = cache_create(100, 300);
     if (!cache) return;
 
-    const char* key   = "test_key";
+    const char* key = "test_key";
     const char* value = "test_value";
-    size_t keylen     = strlen(key);
-    size_t value_len  = strlen(value);
+    size_t keylen = strlen(key);
+    size_t value_len = strlen(value);
 
     // Test set
     bool result = cache_set(cache, key, keylen, value, value_len, 0);
@@ -68,7 +68,7 @@ static void test_set_get(void) {
     TEST_ASSERT(get_total_cache_size(cache) == 1, "Cache size incremented");
 
     // Test get
-    size_t retrieved_len      = 0;
+    size_t retrieved_len = 0;
     const void* retrieved_ptr = cache_get(cache, key, keylen, &retrieved_len);
 
     TEST_ASSERT(retrieved_ptr != NULL, "Get operation returned valid pointer");
@@ -95,7 +95,7 @@ static void test_update(void) {
     if (!cache) return;
 
     const char* key = "update_key";
-    size_t keylen   = strlen(key);
+    size_t keylen = strlen(key);
 
     // Initial set
     const char* value1 = "value1";
@@ -103,12 +103,12 @@ static void test_update(void) {
 
     // Update with new value
     const char* value2 = "value2_longer";
-    bool result        = cache_set(cache, key, keylen, value2, strlen(value2), 0);
+    bool result = cache_set(cache, key, keylen, value2, strlen(value2), 0);
     TEST_ASSERT(result == true, "Update operation succeeded");
     TEST_ASSERT(get_total_cache_size(cache) == 1, "Cache size unchanged after update");
 
     // Verify updated value
-    size_t len            = 0;
+    size_t len = 0;
     const void* retrieved = cache_get(cache, key, keylen, &len);
 
     TEST_ASSERT(retrieved != NULL, "Retrieved updated value");
@@ -139,7 +139,7 @@ static void test_lru_eviction(void) {
     }
 
     size_t size = get_total_cache_size(cache);
-    size_t cap  = get_total_capacity(cache);
+    size_t cap = get_total_capacity(cache);
 
     printf("  Total Capacity: %zu, Current Size: %zu\n", cap, size);
     TEST_ASSERT(size <= cap, "Cache respected capacity limits");
@@ -225,7 +225,7 @@ static void* concurrent_writer(void* arg) {
     for (int i = 0; i < targ->iterations; i++) {
         char key[32];
         char value[64];
-        int keylen    = snprintf(key, sizeof(key), "key%d", i % 50);
+        int keylen = snprintf(key, sizeof(key), "key%d", i % 50);
         int value_len = snprintf(value, sizeof(value), "val_t%d_i%d", targ->thread_id, i);
 
         cache_set(targ->cache, key, (size_t)keylen, value, (size_t)value_len, 0);
@@ -247,8 +247,8 @@ static void test_concurrent_access(void) {
     thread_arg_t args[NUM_THREADS];
 
     for (int i = 0; i < NUM_THREADS; i++) {
-        args[i].cache      = cache;
-        args[i].thread_id  = i;
+        args[i].cache = cache;
+        args[i].thread_id = i;
         args[i].iterations = ITERATIONS;
 
         if (i % 2 == 0) {
@@ -289,8 +289,8 @@ static void run_benchmarks(void) {
     printf("=================================\n");
 
     const size_t CACHE_SIZE = 100000;
-    const size_t NUM_OPS    = 500000;
-    const size_t VAL_SIZE   = 1024;  // 1KB
+    const size_t NUM_OPS = 1000000;  // 1 Million Operations
+    const size_t VAL_SIZE = 1024;    // 1KB
 
     cache_t* cache = cache_create(CACHE_SIZE, 3600);
     if (!cache) {
@@ -298,40 +298,74 @@ static void run_benchmarks(void) {
         return;
     }
 
-    // 1. Sequential Write
-    double start    = get_current_time();
     char* dummy_val = malloc(VAL_SIZE);
     TEST_ASSERT(dummy_val != NULL, "value allocated successfully");
-
     memset(dummy_val, 'A', VAL_SIZE);
     dummy_val[VAL_SIZE - 1] = '\0';
 
+    // Pre-generate keys to completely isolate cache timing from formatting overhead
+    const size_t NUM_KEYS = 100000;
+    char (*keys)[24] = malloc(NUM_KEYS * sizeof(*keys));
+    size_t* key_lens = malloc(NUM_KEYS * sizeof(*key_lens));
+
+    if (!keys || !key_lens) {
+        printf("Skipping benchmarks due to pre-allocation key memory failure.\n");
+        free(dummy_val);
+        free(keys);
+        free(key_lens);
+        cache_destroy(cache);
+        return;
+    }
+
+    for (size_t i = 0; i < NUM_KEYS; i++) {
+        key_lens[i] = (size_t)snprintf(keys[i], sizeof(keys[i]), "key%zu", i);
+    }
+
+    // 1. Random Write Benchmarks (Throughput & Latency)
+    uint32_t seed = 42;
+    double start = get_current_time();
     for (size_t i = 0; i < NUM_OPS; i++) {
-        char key[32];
-        int key_len = snprintf(key, sizeof(key), "key%zu", i % CACHE_SIZE);
-        cache_set(cache, key, (size_t)key_len, dummy_val, VAL_SIZE, 0);
+        // Fast inline LCG pseudo-random index selection (takes ~1ns)
+        seed = seed * 1664525u + 1013904223u;
+        size_t idx = seed % NUM_KEYS;
+        cache_set(cache, keys[idx], key_lens[idx], dummy_val, VAL_SIZE, 0);
     }
     double end = get_current_time();
-    printf("Writes: %.0f ops/sec\n", NUM_OPS / (end - start));
+    double write_duration = end - start;
 
-    // 2. Sequential Read (Zero Copy)
-    start            = get_current_time();
+    printf("Random Writes:\n");
+    printf("  Throughput:  %.0f ops/sec\n", (double)NUM_OPS / write_duration);
+    printf("  Avg Latency: %.2f ns/op (%.3f us/op)\n", (write_duration / (double)NUM_OPS) * 1e9,
+           (write_duration / (double)NUM_OPS) * 1e6);
+
+    // 2. Random Read Benchmarks (Throughput & Latency)
+    start = get_current_time();
     size_t hit_count = 0;
     for (size_t i = 0; i < NUM_OPS; i++) {
-        char key[32];
-        int keylen = snprintf(key, sizeof(key), "key%zu", i % CACHE_SIZE);
+        seed = seed * 1664525u + 1013904223u;
+        size_t idx = seed % NUM_KEYS;
 
         size_t len;
-        const void* ptr = cache_get(cache, key, (size_t)keylen, &len);
+        const void* ptr = cache_get(cache, keys[idx], key_lens[idx], &len);
         if (ptr) {
             hit_count++;
             cache_release(ptr);
         }
     }
-
     end = get_current_time();
-    printf("Reads:  %.0f ops/sec (Hits: %zu)\n", NUM_OPS / (end - start), hit_count);
+    double read_duration = end - start;
 
+    printf("Random Reads (Zero-Copy):\n");
+    printf("  Throughput:  %.0f ops/sec (Hits: %zu)\n", (double)NUM_OPS / read_duration, hit_count);
+    printf("  Avg Latency: %.2f ns/op (%.3f us/op)\n", (read_duration / (double)NUM_OPS) * 1e9,
+           (read_duration / (double)NUM_OPS) * 1e6);
+
+#ifdef CACHE_PROBE_STATS
+    cache_probe_stats_dump();
+#endif
+
+    free(keys);
+    free(key_lens);
     free(dummy_val);
     cache_destroy(cache);
 }
@@ -379,7 +413,7 @@ static void test_serialization(void) {
     TEST_ASSERT(loaded == true, "Cache loaded from file successfully");
 
     // 6. Verify String Data
-    size_t len      = 0;
+    size_t len = 0;
     const void* ptr = cache_get(c2, key_str, strlen(key_str), &len);
     TEST_ASSERT(ptr != NULL, "String key recovered");
     if (ptr) {
