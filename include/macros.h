@@ -135,57 +135,54 @@ extern "C" {
 #ifndef NDEBUG
 
 /** ASSERT(cond) — abort if cond is false. */
-#define ASSERT(cond)                                                                              \
-    do {                                                                                          \
-        if (UNLIKELY(!(cond))) {                                                                  \
-            fprintf(stderr, "%s:%d [%s]: Assertion '%s' failed.\n", __FILE__, __LINE__, __func__, \
-                    #cond);                                                                       \
-            exit(1);                                                                              \
-        }                                                                                         \
+#define ASSERT(cond)                                                                                      \
+    do {                                                                                                  \
+        if (UNLIKELY(!(cond))) {                                                                          \
+            fprintf(stderr, "%s:%d [%s]: Assertion '%s' failed.\n", __FILE__, __LINE__, __func__, #cond); \
+            exit(1);                                                                                      \
+        }                                                                                                 \
     } while (0)
 
 /** ASSERT_TRUE(cond) — alias for ASSERT; documents boolean intent. */
 #define ASSERT_TRUE(cond) ASSERT(cond)
 
 /** ASSERT_NULL(ptr) — abort if ptr is not NULL. */
-#define ASSERT_NULL(ptr)                                                                   \
-    do {                                                                                   \
-        if (UNLIKELY((ptr) != NULL)) {                                                     \
-            fprintf(stderr, "%s:%d [%s]: Expected '%s' to be NULL.\n", __FILE__, __LINE__, \
-                    __func__, #ptr);                                                       \
-            exit(1);                                                                       \
-        }                                                                                  \
+#define ASSERT_NULL(ptr)                                                                                    \
+    do {                                                                                                    \
+        if (UNLIKELY((ptr) != NULL)) {                                                                      \
+            fprintf(stderr, "%s:%d [%s]: Expected '%s' to be NULL.\n", __FILE__, __LINE__, __func__, #ptr); \
+            exit(1);                                                                                        \
+        }                                                                                                   \
     } while (0)
 
 /** ASSERT_NOT_NULL(ptr) — abort if ptr is NULL. */
-#define ASSERT_NOT_NULL(ptr)                                                                   \
-    do {                                                                                       \
-        if (UNLIKELY((ptr) == NULL)) {                                                         \
-            fprintf(stderr, "%s:%d [%s]: Expected '%s' to not be NULL.\n", __FILE__, __LINE__, \
-                    __func__, #ptr);                                                           \
-            exit(1);                                                                           \
-        }                                                                                      \
+#define ASSERT_NOT_NULL(ptr)                                                                                    \
+    do {                                                                                                        \
+        if (UNLIKELY((ptr) == NULL)) {                                                                          \
+            fprintf(stderr, "%s:%d [%s]: Expected '%s' to not be NULL.\n", __FILE__, __LINE__, __func__, #ptr); \
+            exit(1);                                                                                            \
+        }                                                                                                       \
     } while (0)
 
 /**
  * ASSERT_STR_EQ(a, b) — abort if two C strings are not equal.
  * Handles NULL on either side gracefully.
  */
-#define ASSERT_STR_EQ(a, b)                                                                  \
-    do {                                                                                     \
-        const char* _ase_a = (a);                                                            \
-        const char* _ase_b = (b);                                                            \
-        if (_ase_a == NULL || _ase_b == NULL) {                                              \
-            if (_ase_a != _ase_b) {                                                          \
-                fprintf(stderr, "%s:%d [%s]: '%s == %s' failed (one is NULL).\n", __FILE__,  \
-                        __LINE__, __func__, #a, #b);                                         \
-                exit(1);                                                                     \
-            }                                                                                \
-        } else if (strcmp(_ase_a, _ase_b) != 0) {                                            \
-            fprintf(stderr, "%s:%d [%s]: '%s == %s' failed (\"%s\" != \"%s\").\n", __FILE__, \
-                    __LINE__, __func__, #a, #b, _ase_a, _ase_b);                             \
-            exit(1);                                                                         \
-        }                                                                                    \
+#define ASSERT_STR_EQ(a, b)                                                                                          \
+    do {                                                                                                             \
+        const char* _ase_a = (a);                                                                                    \
+        const char* _ase_b = (b);                                                                                    \
+        if (_ase_a == NULL || _ase_b == NULL) {                                                                      \
+            if (_ase_a != _ase_b) {                                                                                  \
+                fprintf(stderr, "%s:%d [%s]: '%s == %s' failed (one is NULL).\n", __FILE__, __LINE__, __func__, #a,  \
+                        #b);                                                                                         \
+                exit(1);                                                                                             \
+            }                                                                                                        \
+        } else if (strcmp(_ase_a, _ase_b) != 0) {                                                                    \
+            fprintf(stderr, "%s:%d [%s]: '%s == %s' failed (\"%s\" != \"%s\").\n", __FILE__, __LINE__, __func__, #a, \
+                    #b, _ase_a, _ase_b);                                                                             \
+            exit(1);                                                                                                 \
+        }                                                                                                            \
     } while (0)
 
 /**
@@ -194,10 +191,10 @@ extern "C" {
  */
 #define ASSERT_FLOAT_EQ(a, b, epsilon)                                               \
     do {                                                                             \
-        double _afe_a   = (double)(a);                                               \
-        double _afe_b   = (double)(b);                                               \
+        double _afe_a = (double)(a);                                                 \
+        double _afe_b = (double)(b);                                                 \
         double _afe_eps = (double)(epsilon);                                         \
-        double _afe_d   = _afe_a - _afe_b;                                           \
+        double _afe_d = _afe_a - _afe_b;                                             \
         /* Use manual abs to avoid pulling in <math.h> for fabs. */                  \
         if ((_afe_d > _afe_eps) || (-_afe_d > _afe_eps)) {                           \
             fprintf(stderr,                                                          \
@@ -248,16 +245,16 @@ extern "C" {
     } while (0)
 
 /** ASSERT_RANGE(val, min, max) — abort if val is outside [min, max]. */
-#define ASSERT_RANGE(val, min, max)                                                            \
-    do {                                                                                       \
-        __typeof__(val) _ar_v   = (val);                                                       \
-        __typeof__(min) _ar_min = (min);                                                       \
-        __typeof__(max) _ar_max = (max);                                                       \
-        if (UNLIKELY(_ar_v < _ar_min || _ar_v > _ar_max)) {                                    \
-            fprintf(stderr, "%s:%d [%s]: %s=%td not in [%td, %td].\n", __FILE__, __LINE__,     \
-                    __func__, #val, (ptrdiff_t)_ar_v, (ptrdiff_t)_ar_min, (ptrdiff_t)_ar_max); \
-            exit(1);                                                                           \
-        }                                                                                      \
+#define ASSERT_RANGE(val, min, max)                                                                        \
+    do {                                                                                                   \
+        __typeof__(val) _ar_v = (val);                                                                     \
+        __typeof__(min) _ar_min = (min);                                                                   \
+        __typeof__(max) _ar_max = (max);                                                                   \
+        if (UNLIKELY(_ar_v < _ar_min || _ar_v > _ar_max)) {                                                \
+            fprintf(stderr, "%s:%d [%s]: %s=%td not in [%td, %td].\n", __FILE__, __LINE__, __func__, #val, \
+                    (ptrdiff_t)_ar_v, (ptrdiff_t)_ar_min, (ptrdiff_t)_ar_max);                             \
+            exit(1);                                                                                       \
+        }                                                                                                  \
     } while (0)
 
 #else /* MSVC or unknown — typeof unavailable */
@@ -288,16 +285,16 @@ extern "C" {
         }                                                          \
     } while (0)
 
-#define ASSERT_RANGE(val, min, max)                                                        \
-    do {                                                                                   \
-        intptr_t _ar_v   = (intptr_t)(val);                                                \
-        intptr_t _ar_min = (intptr_t)(min);                                                \
-        intptr_t _ar_max = (intptr_t)(max);                                                \
-        if (UNLIKELY(_ar_v < _ar_min || _ar_v > _ar_max)) {                                \
-            fprintf(stderr, "%s:%d [%s]: %s=%td not in [%td, %td].\n", __FILE__, __LINE__, \
-                    __func__, #val, _ar_v, _ar_min, _ar_max);                              \
-            exit(1);                                                                       \
-        }                                                                                  \
+#define ASSERT_RANGE(val, min, max)                                                                               \
+    do {                                                                                                          \
+        intptr_t _ar_v = (intptr_t)(val);                                                                         \
+        intptr_t _ar_min = (intptr_t)(min);                                                                       \
+        intptr_t _ar_max = (intptr_t)(max);                                                                       \
+        if (UNLIKELY(_ar_v < _ar_min || _ar_v > _ar_max)) {                                                       \
+            fprintf(stderr, "%s:%d [%s]: %s=%td not in [%td, %td].\n", __FILE__, __LINE__, __func__, #val, _ar_v, \
+                    _ar_min, _ar_max);                                                                            \
+            exit(1);                                                                                              \
+        }                                                                                                         \
     } while (0)
 
 #endif /* SOLIDC_GCC || SOLIDC_CLANG */
@@ -443,8 +440,8 @@ static inline uint32_t round_up_pow2_u32(uint32_t x) {
 /* =========================================================================
  * DEBUGGING AND LOGGING
  *
- * DEBUG_* macros compile to no-ops when NDEBUG is defined.
- * LOG_* macros are always active.
+ * DEBUG_* and LOG_DEBUG compile to no-ops when NDEBUG is defined.
+ * LOG_ERROR / LOG_WARN / LOG_INFO are always active.
  * ========================================================================= */
 
 #ifndef NDEBUG
@@ -453,18 +450,20 @@ static inline uint32_t round_up_pow2_u32(uint32_t x) {
 #define DEBUG_PRINT(fmt, ...) printf("[DEBUG] %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 
 /** DEBUG_VAR(var) — print a scalar variable's name and value as a signed integer. */
-#define DEBUG_VAR(var) \
-    printf("[DEBUG] %s:%d: %s = %td\n", __FILE__, __LINE__, #var, (ptrdiff_t)(var))
+#define DEBUG_VAR(var) printf("[DEBUG] %s:%d: %s = %td\n", __FILE__, __LINE__, #var, (ptrdiff_t)(var))
 
 /** DEBUG_STR(str) — print a string variable's name and value, handling NULL. */
-#define DEBUG_STR(str) \
-    printf("[DEBUG] %s:%d: %s = \"%s\"\n", __FILE__, __LINE__, #str, (str) ? (str) : "(null)")
+#define DEBUG_STR(str) printf("[DEBUG] %s:%d: %s = \"%s\"\n", __FILE__, __LINE__, #str, (str) ? (str) : "(null)")
+
+/** LOG_DEBUG(fmt, ...) — print a debug-level log message to stdout with source location. */
+#define LOG_DEBUG(fmt, ...) printf("[DEBUG] %s:%d [%s]: " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
 #else /* NDEBUG */
 
 #define DEBUG_PRINT(fmt, ...) ((void)0)
 #define DEBUG_VAR(var)        UNUSED(var)
 #define DEBUG_STR(str)        UNUSED(str)
+#define LOG_DEBUG(fmt, ...)   ((void)0)
 
 #endif /* NDEBUG */
 
@@ -473,12 +472,15 @@ static inline uint32_t round_up_pow2_u32(uint32_t x) {
     fprintf(stderr, "[ERROR] %s:%d [%s]: " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
 /** LOG_WARN(fmt, ...) — print a warning to stderr (always active). */
-#define LOG_WARN(fmt, ...) \
-    fprintf(stderr, "[WARN]  %s:%d [%s]: " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+#define LOG_WARN(fmt, ...) fprintf(stderr, "[WARN]  %s:%d [%s]: " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
 /** LOG_INFO(fmt, ...) — print an informational message to stdout (always active). */
-#define LOG_INFO(fmt, ...) \
-    printf("[INFO]  %s:%d [%s]: " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+#define LOG_INFO(fmt, ...) printf("[INFO]  %s:%d [%s]: " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+
+/** LOG_FATAL(fmt, ...) — print an error message to stderror and exit(1) */
+#define LOG_FATAL(fmt, ...)                                                               \
+    printf("[INFO]  %s:%d [%s]: " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__); \
+    exit(1);
 
 /* =========================================================================
  * CONTAINER ITERATION
@@ -498,9 +500,8 @@ static inline uint32_t round_up_pow2_u32(uint32_t x) {
  *   int nums[] = {1, 2, 3};
  *   FOR_EACH_ARRAY(n, nums) { printf("%d\n", *n); }
  */
-#define FOR_EACH_ARRAY(item, array)                                                      \
-    for (__typeof__(&(array)[0]) item = (array), _fea_end = (array) + ARRAY_SIZE(array); \
-         item < _fea_end; ++item)
+#define FOR_EACH_ARRAY(item, array) \
+    for (__typeof__(&(array)[0]) item = (array), _fea_end = (array) + ARRAY_SIZE(array); item < _fea_end; ++item)
 
 /**
  * FOR_EACH_RANGE(var, start, end) — iterate var over [start, end).
@@ -521,12 +522,11 @@ static inline uint32_t round_up_pow2_u32(uint32_t x) {
  *
  * Prefer the three-argument variant when element size is not obvious.
  */
-#define FOR_EACH_ARRAY(item, array)                                                        \
-    for (void *item = (void*)(array), *_fea_end = (void*)((char*)(array) + sizeof(array)); \
-         item < _fea_end; item = (char*)item + (sizeof((array)[0])))
+#define FOR_EACH_ARRAY(item, array)                                                                         \
+    for (void *item = (void*)(array), *_fea_end = (void*)((char*)(array) + sizeof(array)); item < _fea_end; \
+         item = (char*)item + (sizeof((array)[0])))
 
-#define FOR_EACH_RANGE(var, start, end) \
-    for (ptrdiff_t var = (ptrdiff_t)(start); var < (ptrdiff_t)(end); ++var)
+#define FOR_EACH_RANGE(var, start, end) for (ptrdiff_t var = (ptrdiff_t)(start); var < (ptrdiff_t)(end); ++var)
 
 #endif /* SOLIDC_GCC || SOLIDC_CLANG */
 
@@ -543,7 +543,7 @@ static inline uint32_t round_up_pow2_u32(uint32_t x) {
  *
  *   TIME_BLOCK("sort", sort(arr, n);)
  *
- * get_time_ns() — returns current monotonic time in nanoseconds as uint64_t.
+ * get_time_ns() / get_time_ms() — return current monotonic time as uint64_t.
  * TIME_DIFF / TIME_DIFF_MS — compute elapsed seconds / milliseconds between
  *   two timestamps captured with the platform-specific API.
  * ========================================================================= */
@@ -556,15 +556,13 @@ static inline uint32_t round_up_pow2_u32(uint32_t x) {
  * TIME_DIFF(start, end, freq) — elapsed seconds between two LARGE_INTEGER
  * timestamps captured with QueryPerformanceCounter.
  */
-#define TIME_DIFF(start, end, freq) \
-    ((double)((end).QuadPart - (start).QuadPart) / (double)(freq).QuadPart)
+#define TIME_DIFF(start, end, freq) ((double)((end).QuadPart - (start).QuadPart) / (double)(freq).QuadPart)
 
 /**
  * TIME_DIFF_MS(start, end, freq) — elapsed milliseconds between two
  * LARGE_INTEGER timestamps captured with QueryPerformanceCounter.
  */
-#define TIME_DIFF_MS(start, end, freq) \
-    ((double)((end).QuadPart - (start).QuadPart) * 1000.0 / (double)(freq).QuadPart)
+#define TIME_DIFF_MS(start, end, freq) ((double)((end).QuadPart - (start).QuadPart) * 1000.0 / (double)(freq).QuadPart)
 
 #define TIME_BLOCK(name, block)                                           \
     do {                                                                  \
@@ -596,9 +594,8 @@ static inline uint32_t round_up_pow2_u32(uint32_t x) {
  * TIME_DIFF_MS(start, end) — elapsed milliseconds between two struct timespec
  * values.
  */
-#define TIME_DIFF_MS(start, end)                        \
-    ((double)((end).tv_sec - (start).tv_sec) * 1000.0 + \
-     (double)((end).tv_nsec - (start).tv_nsec) / 1.0e6)
+#define TIME_DIFF_MS(start, end) \
+    ((double)((end).tv_sec - (start).tv_sec) * 1000.0 + (double)((end).tv_nsec - (start).tv_nsec) / 1.0e6)
 
 #define TIME_BLOCK(name, block)                                    \
     do {                                                           \
@@ -633,15 +630,26 @@ static inline uint64_t get_time_ns(void) {
     QueryPerformanceFrequency(&freq);
     QueryPerformanceCounter(&counter);
     /* Split into whole seconds and remainder to avoid 64-bit overflow. */
-    uint64_t seconds   = (uint64_t)counter.QuadPart / (uint64_t)freq.QuadPart;
+    uint64_t seconds = (uint64_t)counter.QuadPart / (uint64_t)freq.QuadPart;
     uint64_t remainder = (uint64_t)counter.QuadPart % (uint64_t)freq.QuadPart;
-    return seconds * UINT64_C(1000000000) +
-           (remainder * UINT64_C(1000000000)) / (uint64_t)freq.QuadPart;
+    return seconds * UINT64_C(1000000000) + (remainder * UINT64_C(1000000000)) / (uint64_t)freq.QuadPart;
 #else
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (uint64_t)ts.tv_sec * UINT64_C(1000000000) + (uint64_t)ts.tv_nsec;
 #endif
+}
+
+/**
+ * get_time_ms — returns the current monotonic timestamp in milliseconds.
+ *
+ * Convenience wrapper around get_time_ns() for callers that don't need
+ * nanosecond resolution (e.g. coarse-grained timeouts, rate limiting).
+ *
+ * @return Milliseconds since an unspecified epoch (suitable for intervals only).
+ */
+static inline uint64_t get_time_ms(void) {
+    return get_time_ns() / UINT64_C(1000000);
 }
 
 /* =========================================================================
@@ -678,6 +686,314 @@ static inline struct tm* localtime_r(const time_t* timep, struct tm* result) {
 }
 
 #endif /* SOLIDC_MSVC */
+
+/* =========================================================================
+ * ENDIANNESS
+ *
+ * IS_BIG_ENDIAN / IS_LITTLE_ENDIAN are compile-time constants (0 or 1),
+ * usable in #if directives. Detection prefers compiler-provided byte-order
+ * macros and falls back to common architecture defines.
+ * ========================================================================= */
+
+#if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__)
+#define SOLIDC_BIG_ENDIAN (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#elif defined(_WIN32)
+/* Windows targets (x86, x64, ARM64) are all little-endian. */
+#define SOLIDC_BIG_ENDIAN 0
+#elif defined(__BIG_ENDIAN__)
+#define SOLIDC_BIG_ENDIAN 1
+#else
+/* Default assumption: little-endian (true for x86/x64/ARM/RISC-V default mode). */
+#define SOLIDC_BIG_ENDIAN 0
+#endif
+
+/** IS_BIG_ENDIAN — 1 if the target is big-endian, 0 otherwise. Usable in #if. */
+#define IS_BIG_ENDIAN SOLIDC_BIG_ENDIAN
+
+/** IS_LITTLE_ENDIAN — 1 if the target is little-endian, 0 otherwise. Usable in #if. */
+#define IS_LITTLE_ENDIAN (!SOLIDC_BIG_ENDIAN)
+
+/**
+ * bswap16 — reverse the byte order of a 16-bit value.
+ * @param x Value to swap.
+ * @return Byte-swapped value.
+ */
+static inline uint16_t bswap16(uint16_t x) {
+#if SOLIDC_GCC || SOLIDC_CLANG
+    return __builtin_bswap16(x);
+#elif SOLIDC_MSVC
+    return _byteswap_ushort(x);
+#else
+    return (uint16_t)((x << 8) | (x >> 8));
+#endif
+}
+
+/**
+ * bswap32 — reverse the byte order of a 32-bit value.
+ * @param x Value to swap.
+ * @return Byte-swapped value.
+ */
+static inline uint32_t bswap32(uint32_t x) {
+#if SOLIDC_GCC || SOLIDC_CLANG
+    return __builtin_bswap32(x);
+#elif SOLIDC_MSVC
+    return _byteswap_ulong(x);
+#else
+    return ((x & 0x000000FFu) << 24) | ((x & 0x0000FF00u) << 8) | ((x & 0x00FF0000u) >> 8) | ((x & 0xFF000000u) >> 24);
+#endif
+}
+
+/**
+ * bswap64 — reverse the byte order of a 64-bit value.
+ * @param x Value to swap.
+ * @return Byte-swapped value.
+ */
+static inline uint64_t bswap64(uint64_t x) {
+#if SOLIDC_GCC || SOLIDC_CLANG
+    return __builtin_bswap64(x);
+#elif SOLIDC_MSVC
+    return _byteswap_uint64(x);
+#else
+    return ((uint64_t)bswap32((uint32_t)(x & 0xFFFFFFFFu)) << 32) | (uint64_t)bswap32((uint32_t)(x >> 32));
+#endif
+}
+
+/** TO_LE16(x) / TO_BE16(x) — convert a 16-bit host value to little/big-endian. */
+#define TO_LE16(x) (IS_BIG_ENDIAN ? bswap16(x) : (uint16_t)(x))
+#define TO_BE16(x) (IS_BIG_ENDIAN ? (uint16_t)(x) : bswap16(x))
+
+/** TO_LE32(x) / TO_BE32(x) — convert a 32-bit host value to little/big-endian. */
+#define TO_LE32(x) (IS_BIG_ENDIAN ? bswap32(x) : (uint32_t)(x))
+#define TO_BE32(x) (IS_BIG_ENDIAN ? (uint32_t)(x) : bswap32(x))
+
+/** TO_LE64(x) / TO_BE64(x) — convert a 64-bit host value to little/big-endian. */
+#define TO_LE64(x) (IS_BIG_ENDIAN ? bswap64(x) : (uint64_t)(x))
+#define TO_BE64(x) (IS_BIG_ENDIAN ? (uint64_t)(x) : bswap64(x))
+
+/**
+ * FROM_LE16(x) / FROM_BE16(x) — convert a little/big-endian 16-bit value to
+ * host order. The transform is its own inverse, so these alias TO_LE16 /
+ * TO_BE16; both names are kept so call sites can express direction of intent.
+ */
+#define FROM_LE16(x) TO_LE16(x)
+#define FROM_BE16(x) TO_BE16(x)
+
+/** FROM_LE32(x) / FROM_BE32(x) — convert a little/big-endian 32-bit value to host order. */
+#define FROM_LE32(x) TO_LE32(x)
+#define FROM_BE32(x) TO_BE32(x)
+
+/** FROM_LE64(x) / FROM_BE64(x) — convert a little/big-endian 64-bit value to host order. */
+#define FROM_LE64(x) TO_LE64(x)
+#define FROM_BE64(x) TO_BE64(x)
+
+/* =========================================================================
+ * SIMD FEATURE DETECTION
+ *
+ * Two layers are provided:
+ *
+ *   Compile-time (HAS_* macros, usable in #if): reflect the instruction
+ *   set the *compiler* was told to target (e.g. via -mavx2 or /arch:AVX2).
+ *   These say nothing about the CPU the binary will actually run on.
+ *
+ *   Runtime (cpu_has_* functions): query the actual CPU at execution time.
+ *   Always check the runtime function before executing the corresponding
+ *   instructions, even if the matching HAS_* macro is 1 — the binary may
+ *   be run on different hardware than it was compiled for (e.g. a binary
+ *   built with -mavx2 but distributed and run on an older CPU lacking it,
+ *   which will SIGILL on the first AVX2 instruction).
+ *
+ * x86/x64: runtime detection uses __builtin_cpu_supports() on GCC/Clang
+ *   (backed by glibc's IFUNC CPUID parsing) and raw CPUID via __cpuid /
+ *   __cpuidex on MSVC.
+ * ARM64 (AArch64): NEON (Advanced SIMD) is a mandatory part of the base
+ *   architecture, so cpu_has_neon() is always 1; no runtime check needed.
+ * ARM32 (AArch64-v7 and earlier): NEON is optional. Runtime detection on
+ *   Linux uses getauxval(AT_HWCAP) & HWCAP_NEON. Non-Linux ARM32 targets
+ *   fall back to the compile-time result.
+ * ========================================================================= */
+
+/** HAS_SSE2 — 1 if the compiler was told to target SSE2, 0 otherwise. */
+#if defined(__SSE2__) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2) || defined(_M_X64) || defined(_M_AMD64)
+#define HAS_SSE2 1
+#else
+#define HAS_SSE2 0
+#endif
+
+/** HAS_AVX — 1 if the compiler was told to target AVX, 0 otherwise. */
+#if defined(__AVX__)
+#define HAS_AVX 1
+#else
+#define HAS_AVX 0
+#endif
+
+/** HAS_AVX2 — 1 if the compiler was told to target AVX2, 0 otherwise. */
+#if defined(__AVX2__)
+#define HAS_AVX2 1
+#else
+#define HAS_AVX2 0
+#endif
+
+/** HAS_AVX512F — 1 if the compiler was told to target AVX-512 Foundation, 0 otherwise. */
+#if defined(__AVX512F__)
+#define HAS_AVX512F 1
+#else
+#define HAS_AVX512F 0
+#endif
+
+/** HAS_NEON — 1 if the compiler was told to target ARM NEON, 0 otherwise. */
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+#define HAS_NEON 1
+#else
+#define HAS_NEON 0
+#endif
+
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+
+#if SOLIDC_GCC || SOLIDC_CLANG
+
+/**
+ * cpu_has_sse2 — check at runtime whether the executing CPU supports SSE2.
+ * @return Non-zero if supported, 0 otherwise.
+ */
+static inline int cpu_has_sse2(void) {
+    return !!__builtin_cpu_supports("sse2");
+}
+
+/**
+ * cpu_has_avx — check at runtime whether the executing CPU supports AVX.
+ * @return Non-zero if supported, 0 otherwise.
+ */
+static inline int cpu_has_avx(void) {
+    return !!__builtin_cpu_supports("avx");
+}
+
+/**
+ * cpu_has_avx2 — check at runtime whether the executing CPU supports AVX2.
+ * @return Non-zero if supported, 0 otherwise.
+ */
+static inline int cpu_has_avx2(void) {
+    return !!__builtin_cpu_supports("avx2");
+}
+
+/**
+ * cpu_has_avx512f — check at runtime whether the executing CPU supports
+ * AVX-512 Foundation.
+ * @return Non-zero if supported, 0 otherwise.
+ */
+static inline int cpu_has_avx512f(void) {
+    return !!__builtin_cpu_supports("avx512f");
+}
+
+#elif SOLIDC_MSVC
+
+#include <intrin.h> /* __cpuid, __cpuidex */
+
+/**
+ * cpu_has_sse2 — check at runtime whether the executing CPU supports SSE2.
+ * Queries CPUID leaf 1, EDX bit 26.
+ * @return Non-zero if supported, 0 otherwise.
+ */
+static inline int cpu_has_sse2(void) {
+    int regs[4];
+    __cpuid(regs, 1);
+    return (regs[3] >> 26) & 1; /* EDX */
+}
+
+/**
+ * cpu_has_avx — check at runtime whether the executing CPU supports AVX.
+ * Queries CPUID leaf 1, ECX bit 28.
+ * @return Non-zero if supported, 0 otherwise.
+ */
+static inline int cpu_has_avx(void) {
+    int regs[4];
+    __cpuid(regs, 1);
+    return (regs[2] >> 28) & 1; /* ECX */
+}
+
+/**
+ * cpu_has_avx2 — check at runtime whether the executing CPU supports AVX2.
+ * Queries CPUID leaf 7, sub-leaf 0, EBX bit 5. Guards against CPUs that
+ * don't support leaf 7 at all by checking the max supported leaf first.
+ * @return Non-zero if supported, 0 otherwise.
+ */
+static inline int cpu_has_avx2(void) {
+    int regs[4];
+    __cpuid(regs, 0);
+    if (regs[0] < 7) return 0; /* leaf 7 unsupported */
+    __cpuidex(regs, 7, 0);
+    return (regs[1] >> 5) & 1; /* EBX */
+}
+
+/**
+ * cpu_has_avx512f — check at runtime whether the executing CPU supports
+ * AVX-512 Foundation. Queries CPUID leaf 7, sub-leaf 0, EBX bit 16.
+ * @return Non-zero if supported, 0 otherwise.
+ */
+static inline int cpu_has_avx512f(void) {
+    int regs[4];
+    __cpuid(regs, 0);
+    if (regs[0] < 7) return 0;  /* leaf 7 unsupported */
+    __cpuidex(regs, 7, 0);
+    return (regs[1] >> 16) & 1; /* EBX */
+}
+
+#else               /* Unknown x86 compiler — fall back to compile-time result */
+
+static inline int cpu_has_sse2(void) {
+    return HAS_SSE2;
+}
+static inline int cpu_has_avx(void) {
+    return HAS_AVX;
+}
+static inline int cpu_has_avx2(void) {
+    return HAS_AVX2;
+}
+static inline int cpu_has_avx512f(void) {
+    return HAS_AVX512F;
+}
+
+#endif              /* SOLIDC_GCC || SOLIDC_CLANG */
+
+#endif              /* x86 / x64 */
+
+#if defined(__aarch64__) || defined(_M_ARM64)
+
+/**
+ * cpu_has_neon — check at runtime whether the executing CPU supports NEON.
+ * NEON (Advanced SIMD) is mandatory on AArch64, so this always returns 1.
+ * @return Always 1 on AArch64.
+ */
+static inline int cpu_has_neon(void) {
+    return 1;
+}
+
+#elif defined(__arm__) && defined(__linux__)
+
+#include <asm/hwcap.h> /* HWCAP_NEON */
+#include <sys/auxv.h>  /* getauxval, AT_HWCAP */
+
+/**
+ * cpu_has_neon — check at runtime whether the executing CPU supports NEON.
+ * Queries AT_HWCAP via getauxval() for the HWCAP_NEON bit. Linux/AArch32 only.
+ * @return Non-zero if supported, 0 otherwise.
+ */
+static inline int cpu_has_neon(void) {
+    return (getauxval(AT_HWCAP) & HWCAP_NEON) != 0;
+}
+
+#elif defined(__arm__) || defined(_M_ARM)
+
+/**
+ * cpu_has_neon — check at runtime whether the executing CPU supports NEON.
+ * No portable runtime query is available for this target (non-Linux
+ * AArch32); falls back to the compile-time result.
+ * @return The value of HAS_NEON.
+ */
+static inline int cpu_has_neon(void) {
+    return HAS_NEON;
+}
+
+#endif /* ARM variants */
 
 #if defined(__cplusplus)
 }

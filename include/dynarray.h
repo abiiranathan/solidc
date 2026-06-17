@@ -67,6 +67,21 @@ void dynarray_free(dynarray_t* arr);
 bool dynarray_push(dynarray_t* arr, const void* element);
 
 /**
+ * Appends @p count contiguous elements to the end of the array in a single
+ * operation. Equivalent to calling dynarray_push() @p count times, but
+ * performs at most one capacity check, one growth calculation, and one
+ * memcpy for the whole batch instead of one per element.
+ * @param arr Pointer to the array.
+ * @param elements Pointer to the first element of a contiguous block to append.
+ * @param count Number of elements to append. A count of 0 is a no-op that
+ *        returns true.
+ * @return true on success, false on allocation failure (array is left
+ *         unmodified on failure).
+ * @note @p elements must not overlap the array's internal buffer.
+ */
+bool dynarray_push_n(dynarray_t* arr, const void* elements, size_t count);
+
+/**
  * Removes and returns the last element from the array.
  * @param arr Pointer to the array.
  * @param out_element Pointer to store the popped element (can be NULL if value not needed).
@@ -76,13 +91,24 @@ bool dynarray_push(dynarray_t* arr, const void* element);
 bool dynarray_pop(dynarray_t* arr, void* out_element);
 
 /**
- * Gets a pointer to the element at the specified index.
+ * Gets a mutable pointer to the element at the specified index.
  * @param arr Pointer to the array.
  * @param index Index of the element.
  * @return Pointer to the element, or NULL if index is out of bounds.
  * @note Returned pointer may be invalidated by operations that modify the array.
  */
 void* dynarray_get(const dynarray_t* arr, size_t index);
+
+/**
+ * Gets a read-only pointer to the element at the specified index.
+ * Identical to dynarray_get() but preserves const-correctness for callers
+ * that only have a const dynarray_t* and must not write through the result.
+ * @param arr Pointer to the array.
+ * @param index Index of the element.
+ * @return Const pointer to the element, or NULL if index is out of bounds.
+ * @note Returned pointer may be invalidated by operations that modify the array.
+ */
+const void* dynarray_get_const(const dynarray_t* arr, size_t index);
 
 /**
  * Sets the element at the specified index.
