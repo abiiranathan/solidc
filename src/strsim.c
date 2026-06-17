@@ -62,9 +62,7 @@ static inline size_t min3(size_t a, size_t b, size_t c) {
  * ------------------------------------------------------------------------- */
 
 int strsim_cosine(const char* a, const char* b, double* out_similarity) {
-    if (a == NULL || b == NULL || out_similarity == NULL) {
-        return -1;
-    }
+    if (a == NULL || b == NULL || out_similarity == NULL) { return -1; }
     if (*a == '\0' || *b == '\0') {
         /* Cosine similarity is undefined for zero-length vectors. */
         return -2;
@@ -80,7 +78,7 @@ int strsim_cosine(const char* a, const char* b, double* out_similarity) {
      * Accumulate the dot product and the squared norms using 64-bit integers
      * to avoid intermediate floating-point rounding on large strings.
      */
-    uint64_t dot     = 0;
+    uint64_t dot = 0;
     uint64_t norm2_a = 0;
     uint64_t norm2_b = 0;
 
@@ -100,9 +98,7 @@ int strsim_cosine(const char* a, const char* b, double* out_similarity) {
  * ------------------------------------------------------------------------- */
 
 int strsim_levenshtein(const char* a, const char* b, size_t* out_distance) {
-    if (a == NULL || b == NULL || out_distance == NULL) {
-        return -1;
-    }
+    if (a == NULL || b == NULL || out_distance == NULL) { return -1; }
 
     size_t len_a = strlen(a);
     size_t len_b = strlen(b);
@@ -110,11 +106,11 @@ int strsim_levenshtein(const char* a, const char* b, size_t* out_distance) {
     /* Ensure `a` is the shorter string so we allocate the smaller row. */
     if (len_a > len_b) {
         const char* tmp_s = a;
-        a                 = b;
-        b                 = tmp_s;
-        size_t tmp_n      = len_a;
-        len_a             = len_b;
-        len_b             = tmp_n;
+        a = b;
+        b = tmp_s;
+        size_t tmp_n = len_a;
+        len_a = len_b;
+        len_b = tmp_n;
     }
 
     if (len_a == 0) {
@@ -127,7 +123,7 @@ int strsim_levenshtein(const char* a, const char* b, size_t* out_distance) {
      * prev and curr are pointers into the buffer, swapped each iteration.
      */
     size_t row_len = len_a + 1;
-    size_t* buf    = malloc(2 * row_len * sizeof(*buf));
+    size_t* buf = malloc(2 * row_len * sizeof(*buf));
     if (buf == NULL) {
         errno = ENOMEM;
         return -2;
@@ -143,12 +139,12 @@ int strsim_levenshtein(const char* a, const char* b, size_t* out_distance) {
         curr[0] = j;
         for (size_t i = 1; i <= len_a; ++i) {
             size_t sub_cost = ((unsigned char)a[i - 1] == (unsigned char)b[j - 1]) ? 0 : 1;
-            curr[i]         = min3(prev[i] + 1, curr[i - 1] + 1, prev[i - 1] + sub_cost);
+            curr[i] = min3(prev[i] + 1, curr[i - 1] + 1, prev[i - 1] + sub_cost);
         }
         /* Swap rows: pointer swap within buf, no data movement. */
         size_t* swap = prev;
-        prev         = curr;
-        curr         = swap;
+        prev = curr;
+        curr = swap;
     }
 
     *out_distance = prev[len_a];
@@ -161,9 +157,7 @@ int strsim_levenshtein(const char* a, const char* b, size_t* out_distance) {
  * ------------------------------------------------------------------------- */
 
 int strsim_damerau_levenshtein(const char* a, const char* b, size_t* out_distance) {
-    if (a == NULL || b == NULL || out_distance == NULL) {
-        return -1;
-    }
+    if (a == NULL || b == NULL || out_distance == NULL) { return -1; }
 
     size_t len_a = strlen(a);
     size_t len_b = strlen(b);
@@ -237,9 +231,7 @@ int strsim_damerau_levenshtein(const char* a, const char* b, size_t* out_distanc
             size_t j1 = last_a;     /* last col where a[i-1] appeared in b */
 
             size_t sub_cost = (ca == cb) ? 0 : 1;
-            if (ca == cb) {
-                last_a = j; /* update last-seen column for a[i-1] in b */
-            }
+            if (ca == cb) { last_a = j; /* update last-seen column for a[i-1] in b */ }
 
             size_t cost_sub = d[i * cols + j] + sub_cost;
             size_t cost_del = d[(i + 1) * cols + j] + 1;
@@ -253,14 +245,11 @@ int strsim_damerau_levenshtein(const char* a, const char* b, size_t* out_distanc
              *             = d[i1][j1] + i + j - i1 - j1 - 1
              */
             size_t cost_trans = INF;
-            if (i1 > 0 && j1 > 0) {
-                cost_trans = d[i1 * cols + j1] + (i - i1 - 1) + 1 + (j - j1 - 1);
-            }
+            if (i1 > 0 && j1 > 0) { cost_trans = d[i1 * cols + j1] + (i - i1 - 1) + 1 + (j - j1 - 1); }
 
-            d[(i + 1) * cols + (j + 1)] =
-                min3(min2(cost_sub, cost_del), min2(cost_ins, cost_trans),
-                     /* sentinel; min3/min2 are just helpers, this keeps it clean */
-                     INF);
+            d[(i + 1) * cols + (j + 1)] = min3(min2(cost_sub, cost_del), min2(cost_ins, cost_trans),
+                                               /* sentinel; min3/min2 are just helpers, this keeps it clean */
+                                               INF);
         }
 
         last_b[ca] = i; /* record that a[i-1] was last seen at row i */
@@ -276,9 +265,7 @@ int strsim_damerau_levenshtein(const char* a, const char* b, size_t* out_distanc
  * ------------------------------------------------------------------------- */
 
 int strsim_jaro_winkler(const char* a, const char* b, double* out_similarity) {
-    if (a == NULL || b == NULL || out_similarity == NULL) {
-        return -1;
-    }
+    if (a == NULL || b == NULL || out_similarity == NULL) { return -1; }
 
     size_t len_a = strlen(a);
     size_t len_b = strlen(b);
@@ -297,7 +284,7 @@ int strsim_jaro_winkler(const char* a, const char* b, double* out_similarity) {
      * Match window: two characters are considered matching if they are within
      * floor(max(|a|, |b|) / 2) - 1 positions of each other.
      */
-    size_t max_len    = max2(len_a, len_b);
+    size_t max_len = max2(len_a, len_b);
     size_t match_dist = (max_len / 2 > 0) ? (max_len / 2) - 1 : 0;
 
     /*
@@ -320,12 +307,8 @@ int strsim_jaro_winkler(const char* a, const char* b, double* out_similarity) {
         size_t hi = min2(i + match_dist + 1, len_b);
 
         for (size_t j = lo; j < hi; ++j) {
-            if (matched_b[j]) {
-                continue; /* already matched */
-            }
-            if ((unsigned char)a[i] != (unsigned char)b[j]) {
-                continue;
-            }
+            if (matched_b[j]) { continue; /* already matched */ }
+            if ((unsigned char)a[i] != (unsigned char)b[j]) { continue; }
             matched_a[i] = 1;
             matched_b[j] = 1;
             ++matches;
@@ -345,30 +328,26 @@ int strsim_jaro_winkler(const char* a, const char* b, double* out_similarity) {
      * counts as half a transposition; we accumulate full transpositions.
      */
     size_t transpositions = 0;
-    size_t k              = 0;
+    size_t k = 0;
     for (size_t i = 0; i < len_a; ++i) {
-        if (!matched_a[i]) {
-            continue;
-        }
+        if (!matched_a[i]) { continue; }
         /* Advance k to the next matched position in b. */
         while (!matched_b[k]) {
             ++k;
         }
-        if ((unsigned char)a[i] != (unsigned char)b[k]) {
-            ++transpositions;
-        }
+        if ((unsigned char)a[i] != (unsigned char)b[k]) { ++transpositions; }
         ++k;
     }
 
     free(matched);
 
     /* Jaro similarity. */
-    double m    = (double)matches;
-    double t    = (double)(transpositions / 2.0); /* half-transpositions -> full */
+    double m = (double)matches;
+    double t = (double)(transpositions / 2.0); /* half-transpositions -> full */
     double jaro = (m / (double)len_a + m / (double)len_b + (m - t) / m) / 3.0;
 
     /* Jaro-Winkler prefix bonus. */
-    size_t prefix     = 0;
+    size_t prefix = 0;
     size_t max_prefix = min2(min2(len_a, len_b), JARO_WINKLER_MAX_PREFIX);
     while (prefix < max_prefix && (unsigned char)a[prefix] == (unsigned char)b[prefix]) {
         ++prefix;
@@ -383,9 +362,7 @@ int strsim_jaro_winkler(const char* a, const char* b, double* out_similarity) {
  * ------------------------------------------------------------------------- */
 
 int strsim_jaccard_bigram(const char* a, const char* b, double* out_similarity) {
-    if (a == NULL || b == NULL || out_similarity == NULL) {
-        return -1;
-    }
+    if (a == NULL || b == NULL || out_similarity == NULL) { return -1; }
 
     size_t len_a = strlen(a);
     size_t len_b = strlen(b);
@@ -393,9 +370,7 @@ int strsim_jaccard_bigram(const char* a, const char* b, double* out_similarity) 
     /* Degenerate: no bigrams possible for strings shorter than 2 characters.
      * Two such strings are considered identical only if they are byte-equal. */
     if (len_a < 2 && len_b < 2) {
-        *out_similarity =
-            (len_a == len_b && (len_a == 0 || (unsigned char)a[0] == (unsigned char)b[0])) ? 1.0
-                                                                                           : 0.0;
+        *out_similarity = (len_a == len_b && (len_a == 0 || (unsigned char)a[0] == (unsigned char)b[0])) ? 1.0 : 0.0;
         return 0;
     }
     if (len_a < 2 || len_b < 2) {
@@ -436,7 +411,7 @@ int strsim_jaccard_bigram(const char* a, const char* b, double* out_similarity) 
      * Jaccard = intersection / union.
      */
     size_t intersection = 0;
-    size_t union_size   = 0;
+    size_t union_size = 0;
 
     for (int i = 0; i < BIGRAM_TABLE_SIZE; ++i) {
         intersection += min2(freq_a[i], freq_b[i]);
