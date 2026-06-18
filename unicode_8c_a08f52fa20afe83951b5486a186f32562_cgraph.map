@@ -1,0 +1,9 @@
+<map id="utf8_readfrom" name="utf8_readfrom">
+<area shape="rect" id="Node000001" title="Reads a UTF&#45;8 string from a file." alt="" coords="5,31,120,56"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#ac8dd740b9cf9558c3b5bd89f91857d08" title="Creates a new utf8_string object from a C string." alt="" coords="168,31,251,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="120,41,154,41,154,46,120,46"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#a0b46c6da59494b8d0042d1557f77b6fe" title="Counts the number of Unicode codepoints in a UTF&#45;8 string." alt="" coords="299,5,468,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="250,35,285,30,286,35,251,40"/>
+<area shape="rect" id="Node000004" href="$unicode_8c.html#a37b529eaefb2e43c5f2a7eda74138c13" title="Counts the number of valid UTF&#45;8 bytes in a string." alt="" coords="300,55,467,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="251,46,287,51,286,57,250,52"/>
+</map>

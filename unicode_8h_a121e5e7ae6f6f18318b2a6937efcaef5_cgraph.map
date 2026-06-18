@@ -1,0 +1,5 @@
+<map id="utf8_array_remove" name="utf8_array_remove">
+<area shape="rect" id="Node000001" title="Removes an element from a utf8_string array and frees it." alt="" coords="5,5,152,31"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a32318a6b53c2731556ae4cd967a4f643" title="Frees all resources associated with a utf8_string." alt="" coords="200,5,281,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="152,15,186,15,186,21,152,21"/>
+</map>

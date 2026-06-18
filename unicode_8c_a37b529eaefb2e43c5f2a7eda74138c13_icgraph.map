@@ -1,0 +1,32 @@
+<map id="utf8_valid_byte_count" name="utf8_valid_byte_count">
+<area shape="rect" id="Node000001" title="Counts the number of valid UTF&#45;8 bytes in a string." alt="" coords="359,277,525,303"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a2a89a03f9e97d70adbc69ccfe15c5262" title="Appends UTF&#45;8 data to the end of a utf8_string." alt="" coords="188,5,291,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="432,265,416,218,391,158,356,97,334,69,309,44,290,32,292,28,312,40,338,65,360,94,396,156,421,216,437,263"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#a3619b219411d41dbdd9197a4d9f378a3" title="Creates a copy of a UTF&#45;8 string containing only valid UTF&#45;8 sequences." alt="" coords="196,55,283,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="428,266,411,228,385,181,351,134,309,93,282,79,284,74,312,89,355,131,389,179,415,225,433,264"/>
+<area shape="rect" id="Node000004" href="$unicode_8c.html#a3a260424f1e56ba6851f6a874e9751a2" title="Checks if a string ends with a given suffix." alt="" coords="179,104,300,129"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="423,267,377,205,345,172,309,143,288,132,290,127,312,138,349,168,381,202,428,264"/>
+<area shape="rect" id="Node000005" href="$unicode_8c.html#ac130f7b463a6dd213e240cc4fc8cd558" title="Inserts UTF&#45;8 data at a specific byte index." alt="" coords="193,153,285,179"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="416,270,368,231,309,192,284,181,286,176,312,188,372,227,419,266"/>
+<area shape="rect" id="Node000006" href="$unicode_8c.html#a239e5f8af941f48192b0eadaa7339a2e" title="Finds the byte index of the last occurrence of a substring." alt="" coords="168,203,311,228"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="395,275,310,242,278,231,279,225,312,237,397,270"/>
+<area shape="rect" id="Node000007" href="$unicode_8c.html#ac8dd740b9cf9558c3b5bd89f91857d08" title="Creates a new utf8_string object from a C string." alt="" coords="198,252,281,277"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="345,281,281,272,281,267,345,275"/>
+<area shape="rect" id="Node000010" href="$unicode_8c.html#a283c63b93c8d578ec05102ff6533ae5b" title="Splits a UTF&#45;8 string into parts using a delimiter." alt="" coords="21,303,104,328"/>
+<area shape="poly" id="edge12_Node000001_Node000010" title=" " alt="" coords="345,299,105,315,104,310,345,294"/>
+<area shape="rect" id="Node000011" href="$unicode_8c.html#a362e284c2424f2331d08094cb9decba0" title="Replaces the first occurrence of a substring with another string." alt="" coords="188,353,291,379"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="395,310,275,356,273,351,393,305"/>
+<area shape="rect" id="Node000012" href="$unicode_8c.html#a81f33e66332d41c30b0a7c120d59a4d2" title="Replaces all occurrences of a substring with another string." alt="" coords="176,403,303,428"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="419,314,372,354,312,394,286,405,284,400,309,389,368,350,416,310"/>
+<area shape="rect" id="Node000013" href="$unicode_8c.html#ae86895dd5a7ff70ecb5da034bb91b032" title="Checks if a string starts with a given prefix." alt="" coords="176,452,303,477"/>
+<area shape="poly" id="edge13_Node000001_Node000013" title=" " alt="" coords="428,316,381,379,349,413,312,443,290,454,288,450,309,438,345,409,377,375,424,313"/>
+<area shape="rect" id="Node000014" href="$unicode_8c.html#ae3f31481d188b5fbe03ca760b031677b" title="Converts all uppercase characters to lowercase in&#45;place." alt="" coords="187,501,291,527"/>
+<area shape="poly" id="edge14_Node000001_Node000014" title=" " alt="" coords="433,317,415,355,389,402,355,450,312,492,293,504,290,499,309,488,351,447,385,399,411,353,428,314"/>
+<area shape="rect" id="Node000015" href="$unicode_8c.html#a0695d31239b48bbee503c9191bdfc627" title="Converts all lowercase characters to uppercase in&#45;place." alt="" coords="187,551,292,576"/>
+<area shape="poly" id="edge15_Node000001_Node000015" title=" " alt="" coords="437,317,421,364,396,425,360,487,338,516,312,541,294,553,291,549,309,537,334,512,356,484,392,422,416,363,432,315"/>
+<area shape="rect" id="Node000008" href="$unicode_8c.html#ac66faa2fc9866e1f93c5496603126620" title="Duplicates a utf8_string object." alt="" coords="17,204,108,229"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="184,252,108,231,109,226,185,247"/>
+<area shape="rect" id="Node000009" href="$unicode_8c.html#a08f52fa20afe83951b5486a186f32562" title="Reads a UTF&#45;8 string from a file." alt="" coords="5,253,120,279"/>
+<area shape="poly" id="edge8_Node000007_Node000009" title=" " alt="" coords="184,268,121,268,121,263,184,262"/>
+<area shape="poly" id="edge9_Node000007_Node000010" title=" " alt="" coords="185,283,105,306,103,301,184,278"/>
+</map>

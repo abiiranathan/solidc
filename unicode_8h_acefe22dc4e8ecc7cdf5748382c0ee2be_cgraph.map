@@ -1,0 +1,7 @@
+<map id="utf8_reverse" name="utf8_reverse">
+<area shape="rect" id="Node000001" title="Reverses a UTF&#45;8 string by codepoints." alt="" coords="5,31,109,56"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#aadba4a5c759cfb7674c3dfe42351e952" title="Determines the byte length of a UTF&#45;8 character from its first byte." alt="" coords="181,5,312,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="109,34,167,26,168,31,110,39"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#a09009cfa7f3d90e4792c2bd731709794" title="Creates an empty utf8_string with preallocated capacity." alt="" coords="157,55,336,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="110,47,144,52,143,57,109,53"/>
+</map>

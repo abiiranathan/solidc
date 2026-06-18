@@ -1,0 +1,19 @@
+<map id="include/thread.h" name="include/thread.h">
+<area shape="rect" id="Node000001" title="Cross&#45;platform thread management and system information utilities." alt="" coords="297,5,424,31"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,79,76,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="307,33,90,81,89,76,306,28"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="100,79,168,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="325,33,182,78,180,73,323,28"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="192,79,247,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="339,33,256,75,253,70,337,28"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="271,79,355,104"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="355,33,330,69,326,66,351,30"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="379,79,441,104"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="371,29,396,66,392,69,367,33"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="465,79,550,104"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="385,28,472,70,470,75,383,33"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="574,79,662,104"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="403,28,564,72,563,78,401,33"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="686,79,761,104"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="425,28,673,76,672,81,424,33"/>
+</map>

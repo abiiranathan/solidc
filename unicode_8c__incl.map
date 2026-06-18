@@ -1,0 +1,22 @@
+<map id="src/unicode.c" name="src/unicode.c">
+<area shape="rect" id="Node000001" title="Implementation of the solidc UTF&#45;8 / Unicode handling library." alt="" coords="368,5,475,31"/>
+<area shape="rect" id="Node000002" href="$unicode_8h.html" title="Unicode handling library for C with UTF&#45;8 encoding support." alt="" coords="71,79,219,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="378,33,204,78,203,73,376,28"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="218,152,289,177"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="370,33,325,51,303,64,285,80,268,109,259,139,254,138,263,107,281,77,300,60,322,46,368,28"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="295,79,361,104"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="408,33,356,72,352,68,405,29"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="386,79,457,104"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="424,31,424,65,419,65,419,31"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="481,79,551,104"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="438,29,491,68,488,72,435,33"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="576,79,648,104"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="453,28,569,71,567,76,451,33"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="673,79,754,104"/>
+<area shape="poly" id="edge10_Node000001_Node000010" title=" " alt="" coords="469,28,660,74,659,80,468,33"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,152,88,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="131,106,75,146,72,142,128,102"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="112,152,187,177"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="149,104,151,138,145,139,143,104"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="164,102,226,142,223,147,161,106"/>
+</map>

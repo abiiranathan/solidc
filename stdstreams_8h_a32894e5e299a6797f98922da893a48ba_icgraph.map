@@ -1,0 +1,4 @@
+<map id="file_stream_read" name="file_stream_read">
+<area shape="rect" id="Node000001" title="Read up to count objects of size bytes from a file stream into ptr, rewinding to the beginning first." alt="" coords="5,29,136,55"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="92,18,86,11,71,8,58,10,51,14,49,20,53,28,49,30,44,21,46,11,56,5,71,3,88,6,96,14"/>
+</map>

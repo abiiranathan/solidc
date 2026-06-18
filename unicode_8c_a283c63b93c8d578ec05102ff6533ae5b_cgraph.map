@@ -1,0 +1,14 @@
+<map id="utf8_split" name="utf8_split">
+<area shape="rect" id="Node000001" title="Splits a UTF&#45;8 string into parts using a delimiter." alt="" coords="5,80,88,105"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#aadba4a5c759cfb7674c3dfe42351e952" title="Determines the byte length of a UTF&#45;8 character from its first byte." alt="" coords="136,5,267,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="67,77,135,40,149,33,151,38,137,44,69,82"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#a32318a6b53c2731556ae4cd967a4f643" title="Frees all resources associated with a utf8_string." alt="" coords="161,55,242,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="88,83,147,74,147,79,89,89"/>
+<area shape="rect" id="Node000004" href="$unicode_8c.html#ac8dd740b9cf9558c3b5bd89f91857d08" title="Creates a new utf8_string object from a C string." alt="" coords="160,104,243,129"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="89,96,146,106,146,111,88,102"/>
+<area shape="rect" id="Node000006" href="$unicode_8c.html#a37b529eaefb2e43c5f2a7eda74138c13" title="Counts the number of valid UTF&#45;8 bytes in a string." alt="" coords="316,153,483,179"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="67,103,99,123,137,139,220,157,302,164,301,169,219,162,135,145,96,128,64,108"/>
+<area shape="rect" id="Node000005" href="$unicode_8c.html#a0b46c6da59494b8d0042d1557f77b6fe" title="Counts the number of Unicode codepoints in a UTF&#45;8 string." alt="" coords="315,104,484,129"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="243,114,301,114,301,119,243,119"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="244,124,335,147,334,153,242,129"/>
+</map>

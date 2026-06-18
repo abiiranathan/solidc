@@ -1,0 +1,7 @@
+<map id="utf8_insert" name="utf8_insert">
+<area shape="rect" id="Node000001" title="Inserts UTF&#45;8 data at a specific byte index." alt="" coords="5,31,97,56"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a0b46c6da59494b8d0042d1557f77b6fe" title="Counts the number of Unicode codepoints in a UTF&#45;8 string." alt="" coords="145,5,315,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="97,34,131,29,132,35,98,40"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#a37b529eaefb2e43c5f2a7eda74138c13" title="Counts the number of valid UTF&#45;8 bytes in a string." alt="" coords="147,55,313,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="98,47,133,52,133,57,97,52"/>
+</map>

@@ -1,0 +1,23 @@
+<map id="include/str.h" name="include/str.h">
+<area shape="rect" id="Node000001" title="Header&#45;only string utility library for C11." alt="" coords="427,5,529,31"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,79,76,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="428,28,280,49,90,81,89,76,279,44,427,23"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="100,79,168,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="428,31,182,81,181,76,427,26"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="192,79,263,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="438,33,277,79,276,74,437,28"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="287,79,362,104"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="454,33,363,75,361,70,452,28"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="386,79,469,104"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="472,33,446,69,441,66,467,29"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="493,79,567,104"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="489,29,516,66,511,69,484,33"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="592,79,663,104"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="503,28,592,70,589,75,501,33"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="687,79,754,104"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="518,28,675,74,673,79,516,33"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="779,79,849,104"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="530,27,766,76,764,81,529,32"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="873,79,944,104"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="530,23,674,44,860,76,859,81,674,49,529,28"/>
+</map>
