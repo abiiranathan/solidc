@@ -1133,6 +1133,37 @@ static struct {
 } _comp_ctx = {0};
 
 /**
+ * @brief Escape text for use inside Zsh _arguments descriptions.
+ *
+ * These descriptions are embedded inside single-quoted strings, so
+ * apostrophes cannot be escaped with a backslash.
+ */
+static void write_zsh_description(FILE* f, const char* str) {
+    if (!f || !str) return;
+
+    for (const char* p = str; *p; ++p) {
+        switch (*p) {
+            case '\'':
+                /* close quote + escaped quote + reopen */
+                fprintf(f, "'\\''");
+                break;
+
+            case '[':
+            case ']':
+            case ':':
+            case '\\':
+                fputc('\\', f);
+                fputc(*p, f);
+                break;
+
+            default:
+                fputc(*p, f);
+                break;
+        }
+    }
+}
+
+/**
  * @brief Helper to write safe shell strings with proper escaping
  * @param f File to write to
  * @param str String to escape and write
@@ -1412,65 +1443,64 @@ static void write_zsh_args(FILE* f, FlagParser* p, int indent) {
     for (size_t i = 0; i < p->flag_count; i++) {
         Flag* flag = &p->flags[i];
 
-        // Build description with escaping for Zsh
-        char desc[512] = {0};
-        if (flag->description) {
-            size_t k = 0;
-            for (const char* c = flag->description; *c && k < 500; c++) {
-                // Escape special Zsh characters in descriptions
-                if (*c == '[' || *c == ']' || *c == '\'' || *c == '\\' || *c == ':') { desc[k++] = '\\'; }
-                desc[k++] = *c;
-            }
-            desc[k] = '\0';
-        }
-
-        // Print with proper indentation
         for (int j = 0; j < indent; j++)
             fprintf(f, "    ");
 
-        // Determine if flag needs an argument
         if (flag->type == TYPE_BOOL) {
             fprintf(f, "'--");
             write_safe_str(f, flag->name, 0);
-            fprintf(f, "[%s]'", desc);
+
+            fprintf(f, "[");
+
+            if (flag->description) write_zsh_description(f, flag->description);
+
+            fprintf(f, "]'");
+
         } else {
-            // Flags with arguments
             const char* arg_type = "value";
+
             switch (flag->type) {
                 case TYPE_STRING:
-                    arg_type = "file:_files";
+                    arg_type = "file";
                     break;
+
                 case TYPE_INT8:
                 case TYPE_INT16:
                 case TYPE_INT32:
                 case TYPE_INT64:
                     arg_type = "integer";
                     break;
+
                 case TYPE_UINT8:
                 case TYPE_UINT16:
                 case TYPE_UINT32:
                 case TYPE_UINT64:
                 case TYPE_SIZE_T:
-                    arg_type = "unsigned integer";
+                    arg_type = "integer";
                     break;
+
                 case TYPE_FLOAT:
                 case TYPE_DOUBLE:
                     arg_type = "number";
                     break;
+
                 default:
-                    arg_type = "value";
                     break;
             }
 
             fprintf(f, "'--");
             write_safe_str(f, flag->name, 0);
-            fprintf(f, "[%s]:", desc);
 
-            if (flag->type == TYPE_STRING) {
+            fprintf(f, "[");
+
+            if (flag->description) write_zsh_description(f, flag->description);
+
+            fprintf(f, "]:");
+
+            if (flag->type == TYPE_STRING)
                 fprintf(f, ":_files'");
-            } else {
+            else
                 fprintf(f, ":%s:'", arg_type);
-            }
         }
 
         fprintf(f, " \\\n");
@@ -1587,7 +1617,7 @@ static void gen_zsh_completion(FlagParser* fp, FILE* f) {
             if (i > 0) fprintf(f, " ");
             write_safe_str(f, fp->subcommands[i]->name, 0);
             fprintf(f, "\\:");
-            if (fp->subcommands[i]->description) { write_safe_str(f, fp->subcommands[i]->description, 0); }
+            if (fp->subcommands[i]->description) { write_zsh_description(f, fp->subcommands[i]->description); }
         }
         fprintf(f, "))' \\\n");
         fprintf(f, "        '*::arg:->args' \\\n");
