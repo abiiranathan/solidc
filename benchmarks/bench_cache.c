@@ -102,7 +102,7 @@ int main() {
     size_t threads = 8;
     long total_ops = 5000000;  // 5 Million ops
 
-    printf("Starting C Cache Benchmarks (%d threads, %ld total ops):\n\n", threads, total_ops);
+    printf("Starting C Cache Benchmarks (%zu threads, %ld total ops):\n\n", threads, total_ops);
     run_benchmark("ReadHeavy_90_10_InlineVal", 90, 128, threads, total_ops);
     run_benchmark("Balanced_50_50_InlineVal", 50, 128, threads, total_ops);
     run_benchmark("ReadHeavy_90_10_SlabVal", 90, 512, threads, total_ops);

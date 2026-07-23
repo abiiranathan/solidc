@@ -88,3 +88,22 @@ musl-static:
 		BUILD_TYPE=Release \
 		CMAKE_EXTRA_FLAGS="-DCMAKE_FIND_ROOT_PATH=/usr/lib/musl -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY" \
 		build
+
+# === Fil-C Target ===
+# 1. Clone BlocksRuntime
+# git clone https://github.com/mackyle/blocksruntime.git
+# cd blocksruntime
+
+# # 2. Build and install to /opt/fil using filcc
+# ./buildlib CC=/opt/fil/bin/filcc
+# sudo prefix=/opt/fil ./installib
+# Recursively calls 'make build' and 'make install' overriding compiler to filcc,
+# setting the install prefix to /opt/fil, and isolating artifacts inside 'build/filc'.
+fil-c:
+	@echo "Configuring, building, and installing with Fil-C..."
+	$(MAKE) CC=/opt/fil/bin/filcc \
+		INSTALL_PREFIX=/opt/fil \
+		BUILD_DIR=build/filc \
+		BUILD_TYPE=Release \
+		CMAKE_EXTRA_FLAGS="-DCMAKE_PREFIX_PATH=/opt/fil -DCMAKE_C_FLAGS='-I/usr/include' -DCMAKE_EXE_LINKER_FLAGS='-lBlocksRuntime' -DCMAKE_SHARED_LINKER_FLAGS='-lBlocksRuntime'" \
+		build install
