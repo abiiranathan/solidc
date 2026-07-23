@@ -67,15 +67,21 @@ static inline uint32_t next_pow2_u32(uint32_t x) {
 
 /* Minimum heap allocation that fits `need` bytes + NUL. */
 static inline uint32_t cstr_grow_cap(uint32_t current, uint32_t need) {
+    if (CSTR_UNLIKELY(need > CSTR_MAX_LEN)) return CSTR_MAX_LEN;
+
     uint32_t cap = current < CSTR_MIN_HEAP ? CSTR_MIN_HEAP : current;
-    while (cap < need) {
-        if (cap <= CSTR_MAX_LEN / 2) {
-            cap *= 2;
-        } else {
-            cap = CSTR_MAX_LEN;
-            break; /* saturate: cannot grow further */
-        }
-    }
+    if (cap >= need) return cap;
+
+#if defined(__GNUC__) || defined(__clang__)
+    // O(1) bit count leading zeros
+    uint32_t clz = (uint32_t)__builtin_clz(need - 1);
+    cap = 1u << (32u - clz);
+#else
+    cap = next_pow2_u32(need);
+#endif
+
+    if (cap < CSTR_MIN_HEAP) cap = CSTR_MIN_HEAP;
+    if (cap > CSTR_MAX_LEN) cap = CSTR_MAX_LEN;
     return cap;
 }
 
@@ -96,11 +102,11 @@ static bool cstr_ensure_cap(cstr* s, size_t need) {
         if (need32 <= CSTR_SSO_CAP) return true;
 
         uint32_t cap = cstr_grow_cap(CSTR_SSO_CAP, need32);
-        char* mem    = (char*)malloc(cap);
+        char* mem = (char*)malloc(cap);
         if (CSTR_UNLIKELY(!mem)) return false;
 
         memcpy(mem, s->buf, s->length + 1);
-        s->data     = mem;
+        s->data = mem;
         s->capacity = CSTR_HEAP_FLAG | cap;
         return true;
     }
@@ -115,7 +121,7 @@ static bool cstr_ensure_cap(cstr* s, size_t need) {
     char* mem = (char*)realloc(s->data, new_cap);
     if (CSTR_UNLIKELY(!mem)) return false;
 
-    s->data     = mem;
+    s->data = mem;
     s->capacity = CSTR_HEAP_FLAG | new_cap;
     return true;
 }
@@ -125,9 +131,7 @@ static bool cstr_ensure_cap(cstr* s, size_t need) {
  * ---------------------------------------------------------------------- */
 
 cstr* cstr_init(size_t initial_capacity) {
-    if (initial_capacity >= CSTR_MAX_SIZE) {
-        return NULL;
-    }
+    if (initial_capacity >= CSTR_MAX_SIZE) { return NULL; }
 
     cstr* s = (cstr*)malloc(sizeof(cstr));
     if (CSTR_UNLIKELY(!s)) return NULL;
@@ -162,7 +166,7 @@ cstr* cstr_new_len(const char* data, size_t length) {
         }
         memcpy(s->data, data, length);
         s->data[length] = '\0';
-        s->length       = (uint32_t)length;
+        s->length = (uint32_t)length;
     }
     return s;
 }
@@ -194,14 +198,9 @@ void cstr_debug(const cstr* s) {
     fprintf(stderr,
             "cstr { data=%p, length=%u, capacity=%u, mode=%s }\n"
             "  content: \"%.*s\"\n",
-            (const void*)s->data, s->length,
-            (unsigned)(cstr_is_heap(s) ? cstr_heap_cap(s) : CSTR_SSO_CAP - 1u),
+            (const void*)s->data, s->length, (unsigned)(cstr_is_heap(s) ? cstr_heap_cap(s) : CSTR_SSO_CAP - 1u),
             cstr_is_heap(s) ? "heap" : "sso", (int)s->length, s->data);
 }
-
-/* -------------------------------------------------------------------------
- * Capacity management
- * ---------------------------------------------------------------------- */
 
 bool cstr_reserve(cstr* s, size_t capacity) {
     return cstr_ensure_cap(s, capacity + 1);
@@ -214,7 +213,7 @@ void cstr_shrink_to_fit(cstr* s) {
 
     char* mem = (char*)realloc(s->data, needed);
     if (mem) {
-        s->data     = mem;
+        s->data = mem;
         s->capacity = CSTR_HEAP_FLAG | needed;
     }
     /* Failure is non-fatal — we just stay oversized. */
@@ -242,10 +241,17 @@ bool cstr_append_cstr(cstr* s, const cstr* append) {
     if (n == 0) return true;
 
     uint32_t new_len = s->length + n;
-    if (CSTR_UNLIKELY(new_len < s->length)) return false; /* overflow */
+    if (CSTR_UNLIKELY(new_len < s->length)) return false;
+
+    // Check for pointer aliasing within s's buffer
+    bool is_aliased = (append->data >= s->data && append->data < s->data + s->length);
+    size_t alias_offset = is_aliased ? (size_t)(append->data - s->data) : 0;
+
     if (CSTR_UNLIKELY(!cstr_ensure_cap(s, (size_t)new_len + 1))) return false;
 
-    memcpy(s->data + s->length, append->data, (size_t)n + 1);
+    const char* src = is_aliased ? (s->data + alias_offset) : append->data;
+    memcpy(s->data + s->length, src, n);
+    s->data[new_len] = '\0';
     s->length = new_len;
     return true;
 }
@@ -260,7 +266,7 @@ bool cstr_ncat(cstr* dest, const cstr* src, size_t n) {
 
     memcpy(dest->data + dest->length, src->data, copy_n);
     dest->data[new_len] = '\0';
-    dest->length        = new_len;
+    dest->length = new_len;
     return true;
 }
 
@@ -268,8 +274,8 @@ bool cstr_append_char(cstr* s, char c) {
     uint32_t new_len = s->length + 1;
     if (CSTR_UNLIKELY(!cstr_ensure_cap(s, (size_t)new_len + 1))) return false;
     s->data[s->length] = c;
-    s->data[new_len]   = '\0';
-    s->length          = new_len;
+    s->data[new_len] = '\0';
+    s->length = new_len;
     return true;
 }
 
@@ -431,10 +437,10 @@ bool cstr_copy(cstr* dest, const cstr* src) {
 size_t cstr_remove_all(cstr* s, const char* substr) {
     if (!*substr) return 0;
     size_t sub_len = strlen(substr);
-    char* d        = s->data;
+    char* d = s->data;
     char *w = d, *r = d;
     const char* end = d + s->length;
-    size_t count    = 0;
+    size_t count = 0;
 
     while (r < end) {
         size_t rem = (size_t)(end - r);
@@ -445,7 +451,7 @@ size_t cstr_remove_all(cstr* s, const char* substr) {
             *w++ = *r++;
         }
     }
-    *w        = '\0';
+    *w = '\0';
     s->length = (uint32_t)(w - d);
     return count;
 }
@@ -454,10 +460,10 @@ size_t cstr_remove_all_cstr(cstr* s, const cstr* substr) {
     uint32_t sub_len = substr->length;
     if (sub_len == 0) return 0;
     const char* sub = substr->data;
-    char* d         = s->data;
+    char* d = s->data;
     char *w = d, *r = d;
     const char* end = d + s->length;
-    size_t count    = 0;
+    size_t count = 0;
 
     while (r < end) {
         size_t rem = (size_t)(end - r);
@@ -468,28 +474,49 @@ size_t cstr_remove_all_cstr(cstr* s, const cstr* substr) {
             *w++ = *r++;
         }
     }
-    *w        = '\0';
+    *w = '\0';
     s->length = (uint32_t)(w - d);
     return count;
 }
 
 void cstr_remove_char(cstr* s, char c) {
-    char* d         = s->data;
-    char* w         = d;
-    const char* end = d + s->length;
-    while (d < end) {
-        if (*d != c) *w++ = *d;
-        d++;
+    if (s->length == 0) return;
+
+    char* read_ptr = s->data;
+    char* write_ptr = s->data;
+    size_t rem = s->length;
+
+    while (rem > 0) {
+        /* SIMD scan for the next occurrence of 'c' */
+        char* match = (char*)memchr(read_ptr, (unsigned char)c, rem);
+        if (!match) {
+            /* No more occurrences: copy remaining tail */
+            if (write_ptr != read_ptr) { memmove(write_ptr, read_ptr, rem); }
+            write_ptr += rem;
+            break;
+        }
+
+        /* Copy non-matching chunk preceding the match */
+        size_t chunk_len = (size_t)(match - read_ptr);
+        if (chunk_len > 0) {
+            if (write_ptr != read_ptr) { memmove(write_ptr, read_ptr, chunk_len); }
+            write_ptr += chunk_len;
+        }
+
+        /* Skip the matched character 'c' */
+        read_ptr = match + 1;
+        rem -= (chunk_len + 1);
     }
-    *w        = '\0';
-    s->length = (uint32_t)(w - s->data);
+
+    *write_ptr = '\0';
+    s->length = (uint32_t)(write_ptr - s->data);
 }
 
 void cstr_remove_substr(cstr* s, size_t start, size_t slen) {
     uint32_t len = s->length;
     if (CSTR_UNLIKELY(start >= len || slen == 0)) return;
     if (slen > len - start) slen = len - start;
-    char* d     = s->data;
+    char* d = s->data;
     size_t tail = len - start - slen;
     if (tail > 0)
         memmove(d + start, d + start + slen, tail + 1);
@@ -521,10 +548,10 @@ static const char* cstr_search(const char* hs, size_t hlen, const char* nd, size
     // Single char: Delegate to SIMD
     if (nlen == 1) return (const char*)memchr(hs, (unsigned char)nd[0], hlen);
 
-    const char* cur       = hs;
-    const char* end       = hs + hlen - nlen;
+    const char* cur = hs;
+    const char* end = hs + hlen - nlen;
     unsigned char n_first = (unsigned char)nd[0];
-    unsigned char n_last  = (unsigned char)nd[nlen - 1];
+    unsigned char n_last = (unsigned char)nd[nlen - 1];
 
     // Main Loop
     while (cur <= end) {
@@ -541,8 +568,8 @@ static const char* cstr_search(const char* hs, size_t hlen, const char* nd, size
                 // We already checked [0] and [nlen-1]. Check the middle.
                 // Compiler will unroll this completely for small nlen.
                 const char* p_hay = cur + 1;
-                const char* p_nd  = nd + 1;
-                size_t k          = nlen - 2;
+                const char* p_nd = nd + 1;
+                size_t k = nlen - 2;
 
                 // Do a manual check.
                 // Note: We use a do-while or simple for.
@@ -571,7 +598,7 @@ static const char* cstr_search(const char* hs, size_t hlen, const char* nd, size
  * ---------------------------------------------------------------------- */
 
 int cstr_find(const cstr* s, const char* substr) {
-    size_t nlen       = strlen(substr);
+    size_t nlen = strlen(substr);
     const char* found = cstr_search(s->data, s->length, substr, nlen);
     return found ? (int)(found - s->data) : CSTR_NPOS;
 }
@@ -585,10 +612,10 @@ int cstr_rfind(const cstr* s, const char* substr) {
     size_t nlen = strlen(substr);
     if (nlen == 0 || nlen > s->length) return CSTR_NPOS;
 
-    const char* hs   = s->data;
-    size_t hlen      = s->length;
+    const char* hs = s->data;
+    size_t hlen = s->length;
     const char* last = NULL;
-    const char* p    = hs;
+    const char* p = hs;
 
     /* Walk forward collecting last match — memchr makes each step fast. */
     while ((p = cstr_search(p, hlen - (size_t)(p - hs), substr, nlen)) != NULL) {
@@ -603,10 +630,10 @@ int cstr_rfind_cstr(const cstr* s, const cstr* sub) {
     if (sub->length == 0) return (int)s->length;
     if (sub->length > s->length) return CSTR_NPOS;
 
-    const char* hs   = s->data;
-    size_t hlen      = s->length;
+    const char* hs = s->data;
+    size_t hlen = s->length;
     const char* last = NULL;
-    const char* p    = hs;
+    const char* p = hs;
 
     while ((p = cstr_search(p, hlen - (size_t)(p - hs), sub->data, sub->length)) != NULL) {
         last = p;
@@ -669,15 +696,26 @@ bool cstr_ends_with_cstr(const cstr* s, const cstr* suffix) {
 /* -------------------------------------------------------------------------
  * Count occurrences
  * ---------------------------------------------------------------------- */
-
 size_t cstr_count_substr(const cstr* s, const char* substr) {
     size_t nlen = strlen(substr);
     if (nlen == 0 || nlen > s->length) return 0;
 
-    size_t count  = 0;
     const char* p = s->data;
-    size_t rem    = s->length;
+    size_t rem = s->length;
+    size_t count = 0;
 
+    /* Fast path: single-character needle using SIMD memchr */
+    if (nlen == 1) {
+        unsigned char target = (unsigned char)substr[0];
+        while ((p = (const char*)memchr(p, target, rem)) != NULL) {
+            count++;
+            p++;
+            rem = s->length - (size_t)(p - s->data);
+        }
+        return count;
+    }
+
+    /* Multi-character search path */
     while ((p = cstr_search(p, rem, substr, nlen)) != NULL) {
         count++;
         p += nlen;
@@ -689,39 +727,83 @@ size_t cstr_count_substr(const cstr* s, const char* substr) {
 
 size_t cstr_count_substr_cstr(const cstr* s, const cstr* sub) {
     if (sub->length == 0 || sub->length > s->length) return 0;
-    size_t nlen = sub->length;
-
-    size_t count  = 0;
-    const char* p = s->data;
-    size_t rem    = s->length;
-
-    while ((p = cstr_search(p, rem, sub->data, nlen)) != NULL) {
-        count++;
-        p += nlen;
-        rem = s->length - (size_t)(p - s->data);
-        if (rem < nlen) break;
-    }
-    return count;
+    return cstr_count_substr(s, sub->data);
 }
-
 /* -------------------------------------------------------------------------
  * Case conversion
  * ---------------------------------------------------------------------- */
 
 void cstr_lower(cstr* s) {
     char* d = s->data;
-    for (uint32_t i = 0, n = s->length; i < n; i++) {
+    uint32_t i = 0;
+    uint32_t n = s->length;
+
+    /* Process 8 bytes at a time via 64-bit SWAR */
+    for (; i + 8 <= n; i += 8) {
+        uint64_t chunk;
+        memcpy(&chunk, d + i, 8);
+
+        /* SWAR test for bytes in ASCII range ['A', 'Z'] */
+        uint64_t a = chunk + 0x7F7F7F7F7F7F7F7FULL - 0x4141414141414141ULL;
+        uint64_t z = chunk + 0x7F7F7F7F7F7F7F7FULL - 0x5B5B5B5B5B5B5B5BULL;
+        uint64_t mask = ((a ^ z) & 0x8080808080808080ULL) >> 2;
+
+        chunk |= mask; /* Set bit 5 (0x20) to convert to lowercase */
+        memcpy(d + i, &chunk, 8);
+    }
+
+    /* Scalar cleanup loop */
+    for (; i < n; i++) {
         unsigned char c = (unsigned char)d[i];
-        /* Branch-free ASCII fast path: sets bit 5 for A-Z. */
         if ((unsigned)(c - 'A') <= 25u) d[i] = (char)(c | 0x20u);
     }
 }
 
+/**
+ * @brief Securely zero out string memory (guaranteed not optimized away).
+ */
+void cstr_wipe(cstr* s) {
+    if (!s || !s->data) return;
+
+    size_t cap = cstr_capacity(s);
+
+#if defined(__STDC_LIB_EXT1__)
+    memset_s(s->data, cap, 0, cap);
+#elif defined(_WIN32)
+    SecureZeroMemory(s->data, cap);
+#elif defined(__unix__) || defined(__APPLE__)
+    explicit_bzero(s->data, cap);
+#else
+    volatile char* p = (volatile char*)s->data;
+    while (cap--)
+        *p++ = 0;
+#endif
+
+    s->length = 0;
+}
+
 void cstr_upper(cstr* s) {
     char* d = s->data;
-    for (uint32_t i = 0, n = s->length; i < n; i++) {
+    uint32_t i = 0;
+    uint32_t n = s->length;
+
+    /* Process 8 bytes at a time via 64-bit SWAR */
+    for (; i + 8 <= n; i += 8) {
+        uint64_t chunk;
+        memcpy(&chunk, d + i, 8);
+
+        /* SWAR test for bytes in ASCII range ['a', 'z'] */
+        uint64_t a = chunk + 0x7F7F7F7F7F7F7F7FULL - 0x6161616161616161ULL;  // 'a' = 0x61
+        uint64_t z = chunk + 0x7F7F7F7F7F7F7F7FULL - 0x7B7B7B7B7B7B7B7BULL;  // 'z' + 1 = 0x7B
+        uint64_t mask = ((a ^ z) & 0x8080808080808080ULL) >> 2;
+
+        chunk &= ~mask; /* Clear bit 5 (0x20) to convert to uppercase */
+        memcpy(d + i, &chunk, 8);
+    }
+
+    /* Scalar cleanup loop */
+    for (; i < n; i++) {
         unsigned char c = (unsigned char)d[i];
-        /* Branch-free ASCII: clears bit 5 for a-z. */
         if ((unsigned)(c - 'a') <= 25u) d[i] = (char)(c & ~0x20u);
     }
 }
@@ -730,105 +812,134 @@ bool cstr_snakecase(cstr* s) {
     uint32_t orig = s->length;
     if (orig == 0) return true;
 
-    /* Count how many underscores we'll need to insert. */
-    const char* d  = s->data;
+    /* First pass: count required extra capacity */
+    const char* d = s->data;
     uint32_t extra = 0;
-    for (uint32_t i = 1; i < orig; i++) {
-        if ((unsigned)((unsigned char)d[i] - 'A') <= 25u) extra++;
-    }
-    if (extra == 0) {
-        cstr_lower(s);
-        return true;
+    for (uint32_t i = 0; i < orig; i++) {
+        unsigned char c = (unsigned char)d[i];
+        if (c == ' ' || c == '-') {
+            /* Will replace space/hyphen with '_' (0 extra bytes) */
+            continue;
+        }
+        /* Insert '_' before uppercase if preceded by lowercase/number */
+        if (i > 0 && (unsigned)(c - 'A') <= 25u) {
+            unsigned char prev = (unsigned char)d[i - 1];
+            if (prev != '_' && prev != ' ' && prev != '-' && (unsigned)(prev - 'A') > 25u) { extra++; }
+        }
     }
 
     uint32_t new_len = orig + extra;
     if (CSTR_UNLIKELY(!cstr_ensure_cap(s, new_len + 1))) return false;
 
-    /* Right-to-left expansion (avoids second pass). */
-    d       = s->data; /* pointer may have changed after ensure_cap */
-    char* w = s->data + new_len;
-    *w--    = '\0';
+    /* Second pass: convert in-place */
+    d = s->data;
+    uint32_t r = 0, w = 0;
+    bool last_was_underscore = false;
 
-    for (uint32_t i = orig; i > 0;) {
-        i--;
-        unsigned char c = (unsigned char)d[i];
-        if (i > 0 && (unsigned)(c - 'A') <= 25u) {
-            *w-- = (char)(c | 0x20u);
-            *w-- = '_';
+    while (r < orig) {
+        unsigned char c = (unsigned char)d[r++];
+        if (c == ' ' || c == '-' || c == '_') {
+            if (!last_was_underscore && w > 0) {
+                s->data[w++] = '_';
+                last_was_underscore = true;
+            }
+            continue;
+        }
+
+        /* Insert '_' before uppercase if preceded by lowercase/digit */
+        if ((unsigned)(c - 'A') <= 25u) {
+            if (w > 0 && !last_was_underscore) {
+                unsigned char prev = (unsigned char)s->data[w - 1];
+                if ((unsigned)(prev - 'a') <= 25u || (unsigned)(prev - '0') <= 9u) { s->data[w++] = '_'; }
+            }
+            s->data[w++] = (char)(c | 0x20u); /* Lowercase */
+            last_was_underscore = false;
         } else {
-            *w-- = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
+            s->data[w++] = (char)c;
+            last_was_underscore = false;
         }
     }
-    s->length = new_len;
+
+    s->data[w] = '\0';
+    s->length = w;
     return true;
+}
+
+static inline bool cstr_is_sep(unsigned char c) {
+    return c == '_' || c == '-' || isspace(c);
 }
 
 void cstr_camelcase(cstr* s) {
     uint32_t len = s->length;
     if (len == 0) return;
-    char* d    = s->data;
+    char* d = s->data;
     uint32_t r = 0, w = 0;
 
-    /* Skip leading separators; first real char → lower. */
-    while (r < len && (d[r] == '_' || isspace((unsigned char)d[r])))
+    /* Skip leading separators */
+    while (r < len && cstr_is_sep((unsigned char)d[r]))
         r++;
+
     if (r < len) {
         unsigned char c = (unsigned char)d[r++];
-        d[w++]          = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
+        d[w++] = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
     }
 
     bool cap = false;
     while (r < len) {
         unsigned char c = (unsigned char)d[r++];
-        if (c == '_' || isspace(c)) {
+        if (cstr_is_sep(c)) {
             cap = true;
             continue;
         }
         if (cap) {
-            d[w++] = (char)toupper(c);
-            cap    = false;
+            d[w++] = (char)((unsigned)(c - 'a') <= 25u ? (c & ~0x20u) : c);
+            cap = false;
         } else {
-            d[w++] = (char)tolower(c);
+            d[w++] = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
         }
     }
-    d[w]      = '\0';
+    d[w] = '\0';
     s->length = w;
 }
 
 void cstr_pascalcase(cstr* s) {
     uint32_t len = s->length;
     if (len == 0) return;
-    char* d    = s->data;
+    char* d = s->data;
     uint32_t r = 0, w = 0;
 
-    while (r < len && (d[r] == '_' || isspace((unsigned char)d[r])))
+    while (r < len && cstr_is_sep((unsigned char)d[r]))
         r++;
 
     bool new_word = true;
     while (r < len) {
         unsigned char c = (unsigned char)d[r++];
-        if (c == '_' || isspace(c)) {
+        if (cstr_is_sep(c)) {
             new_word = true;
             continue;
         }
-        d[w++]   = new_word ? (char)toupper(c) : (char)tolower(c);
-        new_word = false;
+        if (new_word) {
+            d[w++] = (char)((unsigned)(c - 'a') <= 25u ? (c & ~0x20u) : c);
+            new_word = false;
+        } else {
+            d[w++] = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
+        }
     }
-    d[w]      = '\0';
+    d[w] = '\0';
     s->length = w;
 }
 
 void cstr_titlecase(cstr* s) {
     uint32_t len = s->length;
-    char* d      = s->data;
-    bool cap     = true;
+    char* d = s->data;
+    bool cap = true;
     for (uint32_t i = 0; i < len; i++) {
         unsigned char c = (unsigned char)d[i];
         if (isspace(c)) {
             cap = true;
         } else if (cap) {
             d[i] = (char)toupper(c);
-            cap  = false;
+            cap = false;
         } else {
             d[i] = (char)tolower(c);
         }
@@ -853,24 +964,24 @@ void cstr_trim(cstr* s) {
     uint32_t new_len = (start > end) ? 0 : (end - start + 1);
     if (new_len && start) memmove(d, d + start, new_len);
     d[new_len] = '\0';
-    s->length  = new_len;
+    s->length = new_len;
 }
 
 void cstr_rtrim(cstr* s) {
     uint32_t len = s->length;
     if (len == 0) return;
-    char* d    = s->data;
+    char* d = s->data;
     uint32_t e = len;
     while (e > 0 && isspace((unsigned char)d[e - 1]))
         e--;
-    d[e]      = '\0';
+    d[e] = '\0';
     s->length = e;
 }
 
 void cstr_ltrim(cstr* s) {
     uint32_t len = s->length;
     if (len == 0) return;
-    char* d        = s->data;
+    char* d = s->data;
     uint32_t start = 0;
     while (start < len && isspace((unsigned char)d[start]))
         start++;
@@ -886,22 +997,22 @@ void cstr_trim_chars(cstr* s, const char* chars) {
     char* d = s->data;
 
     uint32_t start = 0;
-    while (start < len && strchr(chars, d[start]))
+    while (start < len && d[start] != '\0' && strchr(chars, d[start]))
         start++;
     if (start == len) {
         s->length = 0;
-        d[0]      = '\0';
+        d[0] = '\0';
         return;
     }
 
     uint32_t end = len - 1;
-    while (end > start && strchr(chars, d[end]))
+    while (end > start && d[end] != '\0' && strchr(chars, d[end]))
         end--;
 
     uint32_t new_len = end - start + 1;
     if (start) memmove(d, d + start, new_len);
     d[new_len] = '\0';
-    s->length  = new_len;
+    s->length = new_len;
 }
 
 /* -------------------------------------------------------------------------
@@ -912,7 +1023,7 @@ cstr* cstr_substr(const cstr* s, size_t start, size_t length) {
     uint32_t slen = s->length;
     if (CSTR_UNLIKELY(start > slen)) return NULL;
     uint32_t avail = slen - (uint32_t)start;
-    uint32_t copy  = (length > avail) ? avail : (uint32_t)length;
+    uint32_t copy = (length > avail) ? avail : (uint32_t)length;
     return cstr_new_len(s->data + start, copy);
 }
 
@@ -927,7 +1038,7 @@ cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) {
     const char* found = cstr_search(s->data, s->length, old_str, old_len);
     if (!found) return cstr_new_len(s->data, s->length);
 
-    size_t new_len    = strlen(new_str);
+    size_t new_len = strlen(new_str);
     size_t prefix_len = (size_t)(found - s->data);
     size_t suffix_len = s->length - prefix_len - old_len;
     size_t result_len = prefix_len + new_len + suffix_len;
@@ -940,7 +1051,7 @@ cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) {
     memcpy(d + prefix_len, new_str, new_len);
     memcpy(d + prefix_len + new_len, found + old_len, suffix_len);
     d[result_len] = '\0';
-    r->length     = (uint32_t)result_len;
+    r->length = (uint32_t)result_len;
     return r;
 }
 
@@ -956,16 +1067,16 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
 
     size_t new_len = strlen(new_sub);
     const char* hs = s->data;
-    size_t hlen    = s->length;
+    size_t hlen = s->length;
 
     /* Collect match offsets. */
     size_t stack_offs[RA_STACK_CAP];
-    size_t* offs    = stack_offs;
+    size_t* offs = stack_offs;
     size_t offs_cap = RA_STACK_CAP;
-    size_t count    = 0;
+    size_t count = 0;
 
     const char* p = hs;
-    size_t rem    = hlen;
+    size_t rem = hlen;
 
     while ((p = cstr_search(p, rem, old_sub, old_len)) != NULL) {
         if (CSTR_UNLIKELY(count >= offs_cap)) {
@@ -982,7 +1093,7 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
                 no = (size_t*)realloc(offs, new_cap * sizeof(size_t));
                 if (CSTR_UNLIKELY(!no)) goto oom;
             }
-            offs     = no;
+            offs = no;
             offs_cap = new_cap;
         }
         offs[count++] = (size_t)(p - hs);
@@ -995,20 +1106,23 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
         return cstr_new_len(hs, hlen);
     }
 
-    /* Compute exact output length. */
+    /* Compute exact output length with overflow protection */
     size_t result_len;
-    if (new_len >= old_len)
-        result_len = hlen + count * (new_len - old_len);
-    else
+    if (new_len >= old_len) {
+        size_t diff = new_len - old_len;
+        if (diff > 0 && count > (CSTR_MAX_SIZE - hlen) / diff) { goto oom; /* Integer overflow */ }
+        result_len = hlen + count * diff;
+    } else {
         result_len = hlen - count * (old_len - new_len);
+    }
 
     {
         cstr* r = cstr_init(result_len);
         if (CSTR_UNLIKELY(!r)) goto oom;
 
-        char* dst        = r->data;
+        char* dst = r->data;
         size_t write_pos = 0;
-        size_t src_pos   = 0;
+        size_t src_pos = 0;
 
         for (size_t i = 0; i < count; i++) {
             size_t gap = offs[i] - src_pos;
@@ -1029,7 +1143,7 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
         }
 
         dst[write_pos] = '\0';
-        r->length      = (uint32_t)write_pos;
+        r->length = (uint32_t)write_pos;
 
         if (offs != stack_offs) free(offs);
         return r;
@@ -1048,11 +1162,13 @@ oom:
 
 cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
     *count_out = 0;
+
+    /* Handle empty or NULL delimiter */
     if (!delim || !*delim) {
         cstr** r = (cstr**)malloc(sizeof(cstr*));
-        if (!r) return NULL;
+        if (CSTR_UNLIKELY(!r)) return NULL;
         r[0] = cstr_new_len(s->data, s->length);
-        if (!r[0]) {
+        if (CSTR_UNLIKELY(!r[0])) {
             free(r);
             return NULL;
         }
@@ -1060,73 +1176,149 @@ cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
         return r;
     }
 
-    size_t dlen   = strlen(delim);
-    size_t cap    = 8;
+    size_t dlen = strlen(delim);
+    size_t cap = 8;
     cstr** result = (cstr**)malloc(cap * sizeof(cstr*));
-    if (!result) return NULL;
+    if (CSTR_UNLIKELY(!result)) return NULL;
 
     const char* start = s->data;
-    const char* end   = s->data + s->length;
-    size_t count      = 0;
+    size_t rem = s->length;
+    size_t count = 0;
 
-    while (1) {
-        const char* found   = cstr_search(start, (size_t)(end - start), delim, dlen);
-        const char* tok_end = found ? found : end;
+    if (dlen == 1) {
+        /* Fast path: single-character delimiter using SIMD memchr */
+        unsigned char target = (unsigned char)delim[0];
+        while (1) {
+            const char* match = (const char*)memchr(start, target, rem);
+            size_t tok_len = match ? (size_t)(match - start) : rem;
 
-        if (CSTR_UNLIKELY(count >= cap)) {
-            cap *= 2;
-            cstr** tmp = (cstr**)realloc(result, cap * sizeof(cstr*));
-            if (!tmp) goto split_err;
-            result = tmp;
+            if (CSTR_UNLIKELY(count >= cap)) {
+                if (CSTR_UNLIKELY(cap > SIZE_MAX / 2 / sizeof(cstr*))) goto split_err;
+                size_t new_cap = cap * 2;
+                cstr** tmp = (cstr**)realloc(result, new_cap * sizeof(cstr*));
+                if (CSTR_UNLIKELY(!tmp)) goto split_err;
+                result = tmp;
+                cap = new_cap;
+            }
+
+            result[count] = cstr_new_len(start, tok_len);
+            if (CSTR_UNLIKELY(!result[count])) goto split_err;
+            count++;
+
+            if (!match) break;
+            start = match + 1;
+            rem -= (tok_len + 1);
         }
+    } else {
+        /* Multi-character delimiter path using cstr_search */
+        const char* end = s->data + s->length;
+        while (1) {
+            const char* found = cstr_search(start, (size_t)(end - start), delim, dlen);
+            const char* tok_end = found ? found : end;
 
-        result[count] = cstr_new_len(start, (size_t)(tok_end - start));
-        if (!result[count]) goto split_err;
-        count++;
+            if (CSTR_UNLIKELY(count >= cap)) {
+                if (CSTR_UNLIKELY(cap > SIZE_MAX / 2 / sizeof(cstr*))) goto split_err;
+                size_t new_cap = cap * 2;
+                cstr** tmp = (cstr**)realloc(result, new_cap * sizeof(cstr*));
+                if (CSTR_UNLIKELY(!tmp)) goto split_err;
+                result = tmp;
+                cap = new_cap;
+            }
 
-        if (!found) break;
-        start = found + dlen;
+            result[count] = cstr_new_len(start, (size_t)(tok_end - start));
+            if (CSTR_UNLIKELY(!result[count])) goto split_err;
+            count++;
+
+            if (!found) break;
+            start = found + dlen;
+        }
     }
 
     *count_out = count;
     return result;
 
 split_err:
-    for (size_t i = 0; i < count; i++)
+    for (size_t i = 0; i < count; i++) {
         cstr_free(result[i]);
+    }
     free(result);
     return NULL;
 }
 
 cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
-    if (!strings || count == 0) return cstr_new_len("", 0);
+    if (CSTR_UNLIKELY(!strings || count == 0)) return cstr_new_len("", 0);
 
-    size_t dlen  = delim ? strlen(delim) : 0;
+    /* Single element fast path: no delimiter needed */
+    if (count == 1) {
+        if (CSTR_UNLIKELY(!strings[0])) return NULL;
+        return cstr_new_len(strings[0]->data, strings[0]->length);
+    }
+
+    size_t dlen = delim ? strlen(delim) : 0;
     size_t total = 0;
+
+    /* Pass 1: Compute exact size with overflow validation */
     for (size_t i = 0; i < count; i++) {
         if (CSTR_UNLIKELY(!strings[i])) return NULL;
-        total += strings[i]->length;
-        if (i + 1 < count) total += dlen;
+
+        size_t slen = strings[i]->length;
+        if (CSTR_UNLIKELY(slen > CSTR_MAX_SIZE - total)) return NULL; /* Overflow */
+        total += slen;
+
+        if (i + 1 < count && dlen) {
+            if (CSTR_UNLIKELY(dlen > CSTR_MAX_SIZE - total)) return NULL; /* Overflow */
+            total += dlen;
+        }
     }
 
     cstr* r = cstr_init(total);
-    if (!r) return NULL;
+    if (CSTR_UNLIKELY(!r)) return NULL;
 
-    char* d    = r->data;
-    size_t pos = 0;
-    for (size_t i = 0; i < count; i++) {
-        uint32_t len = strings[i]->length;
-        if (len) {
-            memcpy(d + pos, strings[i]->data, len);
-            pos += len;
+    char* w = r->data;
+
+    /* Write 1st string outside loop to eliminate 'i + 1 < count' check inside loop */
+    uint32_t first_len = strings[0]->length;
+    if (first_len) {
+        memcpy(w, strings[0]->data, first_len);
+        w += first_len;
+    }
+
+    /* Pass 2: Copy remaining strings */
+    if (dlen == 1) {
+        /* Specialized fast-path: 1-byte delimiter (direct byte store) */
+        char d_char = delim[0];
+        for (size_t i = 1; i < count; i++) {
+            *w++ = d_char;
+            uint32_t slen = strings[i]->length;
+            if (slen) {
+                memcpy(w, strings[i]->data, slen);
+                w += slen;
+            }
         }
-        if (dlen && i + 1 < count) {
-            memcpy(d + pos, delim, dlen);
-            pos += dlen;
+    } else if (dlen > 1) {
+        /* Multi-byte delimiter path */
+        for (size_t i = 1; i < count; i++) {
+            memcpy(w, delim, dlen);
+            w += dlen;
+            uint32_t slen = strings[i]->length;
+            if (slen) {
+                memcpy(w, strings[i]->data, slen);
+                w += slen;
+            }
+        }
+    } else {
+        /* No delimiter path */
+        for (size_t i = 1; i < count; i++) {
+            uint32_t slen = strings[i]->length;
+            if (slen) {
+                memcpy(w, strings[i]->data, slen);
+                w += slen;
+            }
         }
     }
-    d[pos]    = '\0';
-    r->length = (uint32_t)pos;
+
+    *w = '\0';
+    r->length = (uint32_t)(w - r->data);
     return r;
 }
 
@@ -1136,13 +1328,13 @@ cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
 
 cstr* cstr_reverse(const cstr* s) {
     uint32_t len = s->length;
-    cstr* r      = cstr_init(len);
+    cstr* r = cstr_init(len);
     if (!r) return NULL;
-    char* dst       = r->data;
+    char* dst = r->data;
     const char* src = s->data;
     for (uint32_t i = 0; i < len; i++)
         dst[i] = src[len - 1 - i];
-    dst[len]  = '\0';
+    dst[len] = '\0';
     r->length = len;
     return r;
 }
@@ -1153,7 +1345,7 @@ void cstr_reverse_inplace(cstr* s) {
     char* d = s->data;
     for (uint32_t i = 0, j = len - 1; i < j; i++, j--) {
         char t = d[i];
-        d[i]   = d[j];
-        d[j]   = t;
+        d[i] = d[j];
+        d[j] = t;
     }
 }

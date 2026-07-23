@@ -20,9 +20,7 @@ void print_cstr(const cstr* s) {
 
 // Helper function to compare cstr with expected C-string
 void ASSERT_cstr_equals(const cstr* s, const char* expected, const char* test_name) {
-    if (!s && !expected) {
-        return;
-    }
+    if (!s && !expected) { return; }
 
     ASSERT(s && expected && "cstr or expected is NULL");
     const char* data = cstr_data_const(s);
@@ -363,61 +361,144 @@ int main(void) {
         printf("str_rfind: Passed\n");
     }
 
-    // Test str_to_lower
+    // Test cstr_lower (scalar, SWAR, and scalar cleanup paths)
     {
-        printf("\nTesting str_to_lower...\n");
-        cstr* s = cstr_new("HELLO");
-        cstr_lower(s);
-        ASSERT_cstr_equals(s, "hello", "str_to_lower content");
-        cstr_free(s);
+        printf("\nTesting cstr_lower...\n");
+
+        // 1. Short string (< 8 bytes: scalar path)
+        cstr* s_short = cstr_new("HELLO");
+        cstr_lower(s_short);
+        ASSERT_cstr_equals(s_short, "hello", "cstr_lower short content");
+        cstr_free(s_short);
+
+        // 2. Exactly 8 bytes (1 full SWAR chunk, 0 scalar remainder)
+        cstr* s_exact = cstr_new("ABCDEFGH");
+        cstr_lower(s_exact);
+        ASSERT_cstr_equals(s_exact, "abcdefgh", "cstr_lower exact 8-byte SWAR");
+        cstr_free(s_exact);
+
+        // 3. Long string (> 8 bytes with symbols/numbers: tests multiple SWAR chunks + scalar cleanup)
+        const char* input_long = "HELLO WORLD! 123 TESTING_SWAR_PATH_WITH_LONG_STRING_64BIT";
+        const char* expected_long = "hello world! 123 testing_swar_path_with_long_string_64bit";
+
+        cstr* s_long = cstr_new(input_long);
+        cstr_lower(s_long);
+        ASSERT_cstr_equals(s_long, expected_long, "cstr_lower long SWAR content");
+        cstr_free(s_long);
     }
 
-    // Test str_to_upper
+    // Test cstr_upper (scalar, SWAR, and scalar cleanup paths)
     {
-        printf("\nTesting str_to_upper...\n");
-        cstr* s = cstr_new("hello");
-        cstr_upper(s);
-        ASSERT_cstr_equals(s, "HELLO", "str_to_upper content");
-        cstr_free(s);
+        printf("\nTesting cstr_upper...\n");
+
+        // 1. Short string (< 8 bytes: scalar path)
+        cstr* s_short = cstr_new("hello");
+        cstr_upper(s_short);
+        ASSERT_cstr_equals(s_short, "HELLO", "cstr_upper short content");
+        cstr_free(s_short);
+
+        // 2. Exactly 8 bytes (1 full SWAR chunk, 0 scalar remainder)
+        cstr* s_exact = cstr_new("abcdefgh");
+        cstr_upper(s_exact);
+        ASSERT_cstr_equals(s_exact, "ABCDEFGH", "cstr_upper exact 8-byte SWAR");
+        cstr_free(s_exact);
+
+        // 3. Long string (> 8 bytes with symbols/numbers: tests multiple SWAR chunks + scalar cleanup)
+        const char* input_long = "hello world! 123 testing_swar_path_with_long_string_64bit";
+        const char* expected_long = "HELLO WORLD! 123 TESTING_SWAR_PATH_WITH_LONG_STRING_64BIT";
+
+        cstr* s_long = cstr_new(input_long);
+        cstr_upper(s_long);
+        ASSERT_cstr_equals(s_long, expected_long, "cstr_upper long SWAR content");
+        cstr_free(s_long);
     }
 
     // Test str_snake_case
     {
         printf("\nTesting str_snake_case...\n");
-        cstr* s = cstr_new("HelloWorldMyDearFriend");  // should start on stack.
-        ASSERT(s);
-        ASSERT(cstr_snakecase(s));  // will migrate to the heap.
 
-        // hello_world_myDea_rFriend
-        ASSERT_cstr_equals(s, "hello_world_my_dear_friend", "str_snake_case content");
-        cstr_free(s);
+        // 1. CamelCase -> snake_case with SSO promotion
+        cstr* s1 = cstr_new("HelloWorldMyDearFriend");
+        ASSERT(s1);
+        ASSERT(!cstr_allocated(s1));  // Starts in SSO mode (len 22 <= SSO cap 16? No, 22 > 15, so heap or SSO)
+        ASSERT(cstr_snakecase(s1));
+        ASSERT_cstr_equals(s1, "hello_world_my_dear_friend", "str_snake_case CamelCase content");
+        cstr_free(s1);
+
+        // 2. Kebab-case and spaces
+        cstr* s2 = cstr_new("hello-world my dear friend");
+        ASSERT(cstr_snakecase(s2));
+        ASSERT_cstr_equals(s2, "hello_world_my_dear_friend", "str_snake_case kebab/spaces content");
+        cstr_free(s2);
+
+        // 3. Acronyms & consecutive uppercase
+        cstr* s3 = cstr_new("XMLParserIOStream");
+        ASSERT(cstr_snakecase(s3));
+        ASSERT_cstr_equals(s3, "xml_parser_io_stream", "str_snake_case acronyms content");
+        cstr_free(s3);
     }
 
     // Test str_camel_case
     {
         printf("\nTesting str_camel_case...\n");
-        cstr* s = cstr_new("hello_world");
-        cstr_camelcase(s);
-        ASSERT_cstr_equals(s, "helloWorld", "str_camel_case content");
-        cstr_free(s);
+
+        // 1. Standard snake_case
+        cstr* s1 = cstr_new("hello_world");
+        cstr_camelcase(s1);
+        ASSERT_cstr_equals(s1, "helloWorld", "str_camel_case snake_case content");
+        cstr_free(s1);
+
+        // 2. Kebab-case, spaces, multiple delimiters, and leading/trailing delimiters
+        cstr* s2 = cstr_new("__hello-world--my   dear_friend--");
+        cstr_camelcase(s2);
+        ASSERT_cstr_equals(s2, "helloWorldMyDearFriend", "str_camel_case mixed delimiters");
+        cstr_free(s2);
+
+        // 3. PascalCase input
+        cstr* s3 = cstr_new("HelloWorld");
+        cstr_camelcase(s3);
+        ASSERT_cstr_equals(s3, "helloWorld", "str_camel_case PascalCase input");
+        cstr_free(s3);
     }
 
     // Test str_pascal_case
     {
         printf("\nTesting str_pascal_case...\n");
-        cstr* s = cstr_new("hello_world");
-        cstr_pascalcase(s);
-        ASSERT_cstr_equals(s, "HelloWorld", "str_pascal_case content");
-        cstr_free(s);
+
+        // 1. Standard snake_case
+        cstr* s1 = cstr_new("hello_world");
+        cstr_pascalcase(s1);
+        ASSERT_cstr_equals(s1, "HelloWorld", "str_pascal_case snake_case content");
+        cstr_free(s1);
+
+        // 2. Kebab-case and leading hyphens/spaces
+        cstr* s2 = cstr_new("--hello-world my_dear_friend--");
+        cstr_pascalcase(s2);
+        ASSERT_cstr_equals(s2, "HelloWorldMyDearFriend", "str_pascal_case mixed delimiters");
+        cstr_free(s2);
+
+        // 3. camelCase input
+        cstr* s3 = cstr_new("helloWorld");
+        cstr_pascalcase(s3);
+        ASSERT_cstr_equals(s3, "HelloWorld", "str_pascal_case camelCase input");
+        cstr_free(s3);
     }
 
     // Test str_title_case
     {
         printf("\nTesting str_title_case...\n");
-        cstr* s = cstr_new("hello world");
-        cstr_titlecase(s);
-        ASSERT_cstr_equals(s, "Hello World", "str_title_case content");
-        cstr_free(s);
+
+        // 1. Standard space-separated
+        cstr* s1 = cstr_new("hello world");
+        cstr_titlecase(s1);
+        ASSERT_cstr_equals(s1, "Hello World", "str_title_case standard content");
+        cstr_free(s1);
+
+        // 2. Mixed case, multiple spaces, and non-alpha symbols
+        cstr* s2 = cstr_new("  hElLo   wORLD!  foo-bar_baz  ");
+        cstr_titlecase(s2);
+        ASSERT_cstr_equals(s2, "  Hello   World!  Foo-Bar_Baz  ", "str_title_case mixed formatting");
+        cstr_free(s2);
     }
 
     // Test str_trim
@@ -740,6 +821,194 @@ int main(void) {
         cstr_free(s);
     }
 
+    // ================== extened tests ==========================
+    // ============================================
+    // Test Self-Aliasing & Reallocation Safety (UAF Prevention)
+    // ============================================
+    {
+        printf("\n**************Testing Self-Aliasing Safety***************\n");
+
+        // 1. Self-append when SSO -> Heap promotion occurs
+        cstr* s1 = cstr_new("Hello");      // Length 5 (SSO)
+        ASSERT(cstr_append_cstr(s1, s1));  // "HelloHello" (Len 10)
+        ASSERT_cstr_equals(s1, "HelloHello", "self_append_sso_1");
+        ASSERT(cstr_append_cstr(s1, s1));  // "HelloHelloHelloHello" (Len 20 -> Promotes to Heap)
+        ASSERT_cstr_equals(s1, "HelloHelloHelloHello", "self_append_sso_promotion");
+        cstr_free(s1);
+
+        // 2. Self-append on Heap with realloc growth
+        cstr* s2 = cstr_new("1234567890123456");  // Heap allocated (Len 16)
+        ASSERT(cstr_append_cstr(s2, s2));         // Triggers heap realloc
+        ASSERT_cstr_equals(s2, "12345678901234561234567890123456", "self_append_heap_realloc");
+        cstr_free(s2);
+
+        // 3. Self-prepend with realloc growth
+        cstr* s3 = cstr_new("PrependMe!");
+        ASSERT(cstr_prepend_cstr(s3, s3));
+        ASSERT_cstr_equals(s3, "PrependMe!PrependMe!", "self_prepend_growth");
+        cstr_free(s3);
+
+        // 4. Self-insert with realloc growth
+        cstr* s4 = cstr_new("AB");
+        ASSERT(cstr_insert_cstr(s4, 1, s4));  // "AAB B" -> "AABB"
+        ASSERT_cstr_equals(s4, "AABB", "self_insert_growth");
+        cstr_free(s4);
+
+        printf("Self-Aliasing tests passed!\n");
+    }
+
+    // ============================================
+    // Test Security Memory Zeroization (cstr_wipe)
+    // ============================================
+    {
+        printf("\n**************Testing cstr_wipe***************\n");
+        cstr* s = cstr_new("SensitivePassword123!");
+        size_t orig_cap = cstr_capacity(s);
+
+        cstr_wipe(s);
+        ASSERT(cstr_len(s) == 0 && "cstr_wipe should reset length to 0");
+        ASSERT_cstr_equals(s, "", "cstr_wipe string content empty");
+        ASSERT(cstr_capacity(s) == orig_cap && "cstr_wipe preserves buffer capacity");
+
+        // Verify underlying memory was zeroed out
+        const char* raw = cstr_data_const(s);
+        for (size_t i = 0; i < orig_cap; i++) {
+            ASSERT(raw[i] == '\0' && "cstr_wipe memory byte zeroed");
+        }
+
+        cstr_free(s);
+        printf("cstr_wipe tests passed!\n");
+    }
+
+    // ============================================
+    // Test Binary Safety & Embedded NULs in Trim
+    // ============================================
+    {
+        printf("\n**************Testing Binary Safety in Trim***************\n");
+
+        // Create a string with embedded NUL byte: "abc\0def"
+        cstr* s = cstr_new_len("abc\0def", 7);
+        ASSERT(cstr_len(s) == 7);
+
+        // Trimming 'a' should not treat the embedded '\0' as a character to trim
+        cstr_trim_chars(s, "a");
+        ASSERT(cstr_len(s) == 6);
+        ASSERT(memcmp(cstr_data(s), "bc\0def", 6) == 0);
+
+        cstr_free(s);
+        printf("Binary safety trim tests passed!\n");
+    }
+
+    // ============================================
+    // Test Vectorized cstr_remove_char
+    // ============================================
+    {
+        printf("\n**************Testing Vectorized cstr_remove_char***************\n");
+
+        // 1. Target char not present
+        cstr* s1 = cstr_new("hello world");
+        cstr_remove_char(s1, 'z');
+        ASSERT_cstr_equals(s1, "hello world", "remove_char missing");
+        cstr_free(s1);
+
+        // 2. Remove leading, middle, and trailing target occurrences
+        cstr* s2 = cstr_new("xhelloxworldx");
+        cstr_remove_char(s2, 'x');
+        ASSERT_cstr_equals(s2, "helloworld", "remove_char lead/mid/trail");
+        cstr_free(s2);
+
+        // 3. Remove all characters (string becomes empty)
+        cstr* s3 = cstr_new("aaaaaa");
+        cstr_remove_char(s3, 'a');
+        ASSERT_cstr_equals(s3, "", "remove_char all match");
+        cstr_free(s3);
+
+        // 4. Long string (>32 bytes) sparse removal (SWAR/memchr fast path)
+        cstr* s4 = cstr_new("a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z");
+        cstr_remove_char(s4, ',');
+        ASSERT_cstr_equals(s4, "abcdefghijklmnopqrstuvwxyz", "remove_char long sparse");
+        cstr_free(s4);
+
+        printf("Vectorized cstr_remove_char tests passed!\n");
+    }
+
+    // ============================================
+    // Test 1-Byte vs Multi-Byte cstr_split Fast Path
+    // ============================================
+    {
+        printf("\n**************Testing cstr_split Delimiter Edge Cases***************\n");
+
+        size_t count = 0;
+
+        // 1. Single-character delimiter with consecutive delimiters
+        cstr* s1 = cstr_new("a,,b,c,");
+        cstr** arr1 = cstr_split(s1, ",", &count);
+        ASSERT(count == 5);
+        ASSERT_cstr_equals(arr1[0], "a", "split 1-char [0]");
+        ASSERT_cstr_equals(arr1[1], "", "split 1-char consecutive [1]");
+        ASSERT_cstr_equals(arr1[2], "b", "split 1-char [2]");
+        ASSERT_cstr_equals(arr1[3], "c", "split 1-char [3]");
+        ASSERT_cstr_equals(arr1[4], "", "split 1-char trailing [4]");
+        free_cstr_array(arr1, count);
+        cstr_free(s1);
+
+        // 2. Multi-character delimiter with consecutive matches
+        cstr* s2 = cstr_new("a<br><br>b<br>");
+        cstr** arr2 = cstr_split(s2, "<br>", &count);
+        ASSERT(count == 4);
+        ASSERT_cstr_equals(arr2[0], "a", "split multi-char [0]");
+        ASSERT_cstr_equals(arr2[1], "", "split multi-char consecutive [1]");
+        ASSERT_cstr_equals(arr2[2], "b", "split multi-char [2]");
+        ASSERT_cstr_equals(arr2[3], "", "split multi-char trailing [3]");
+        free_cstr_array(arr2, count);
+        cstr_free(s2);
+
+        printf("cstr_split edge cases passed!\n");
+    }
+
+    // ============================================
+    // Test Optimized cstr_join Edge Cases
+    // ============================================
+    {
+        printf("\n**************Testing cstr_join Edge Cases***************\n");
+
+        // 1. Single string in array (no delimiter added)
+        cstr* s1 = cstr_new("Solo");
+        const cstr* arr1[] = {s1};
+        cstr* res1 = cstr_join(arr1, 1, ", ");
+        ASSERT_cstr_equals(res1, "Solo", "join single element");
+        cstr_free(s1);
+        cstr_free(res1);
+
+        // 2. 1-Byte delimiter fast-path
+        cstr* a = cstr_new("1");
+        cstr* b = cstr_new("2");
+        cstr* c = cstr_new("3");
+        const cstr* arr2[] = {a, b, c};
+        cstr* res2 = cstr_join(arr2, 3, "-");
+        ASSERT_cstr_equals(res2, "1-2-3", "join 1-byte delimiter");
+
+        // 3. Empty string delimiter
+        cstr* res3 = cstr_join(arr2, 3, "");
+        ASSERT_cstr_equals(res3, "123", "join empty delimiter");
+
+        // 4. Joining elements containing empty strings
+        cstr* empty_str = cstr_new("");
+        const cstr* arr3[] = {a, empty_str, b};
+        cstr* res4 = cstr_join(arr3, 3, ":");
+        ASSERT_cstr_equals(res4, "1::2", "join containing empty elements");
+
+        cstr_free(a);
+        cstr_free(b);
+        cstr_free(c);
+        cstr_free(empty_str);
+        cstr_free(res2);
+        cstr_free(res3);
+        cstr_free(res4);
+
+        printf("cstr_join edge cases passed!\n");
+    }
+
     // Fuzz with large inputs
     {
         // This will reallocate multiple times.
@@ -761,7 +1030,8 @@ int main(void) {
             cstr* s = cstr_init(0);
             ASSERT(cstr_resize(s, 100));
 
-            for (int j = 0; j < 100; ++j) ASSERT(cstr_append_char(s, 'a' + (rand() % 26)));
+            for (int j = 0; j < 100; ++j)
+                ASSERT(cstr_append_char(s, 'a' + (rand() % 26)));
             cstr_free(s);
         }
     }

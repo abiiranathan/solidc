@@ -27,7 +27,8 @@
 #define XXH_INLINE_ALL
 #endif
 
-#include <xxhash.h>
+// Include xxhash heaader
+#include "../deps/xxhash/xxhash.h"
 
 #ifdef __cplusplus
 extern "C" {

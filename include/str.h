@@ -1,32 +1,18 @@
 /**
  * @file str.h
- * @brief Header-only string utility library for C11.
+ * @brief High-performance, header-only string utility library for C11.
  *
- * All functions operate on ordinary NUL-terminated C strings.
- * Functions whose names begin with @c str_ fall into two categories:
+ * All functions operate on ordinary NUL-terminated C strings (`char*`).
  *
- *  **In-place** – modify the buffer passed in; no allocation, O(n) at most.
- *  **Allocating** – return a newly @c malloc'd string (or array).
- *                   The caller is responsible for calling @c free() on every
- *                   pointer that is returned (including each element of a
- *                   split array; see @ref str_split and @ref str_free_split).
+ * Functions fall into two main categories:
+ *  - In-place: Modifies caller-supplied string buffers directly (`char*`).
+ *  - Allocating: Returns newly `malloc`'d memory. Caller is responsible for
+ *    releasing returned memory via `free()`.
  *
- * Every function that accepts a pointer guards against NULL unless the
- * parameter is explicitly documented as "must not be NULL".
- *
- * @note This header requires C11 or later.  MSVC users get thin shims for
- *       @c strcasecmp, @c strncasecmp and @c strcasestr at the bottom of the
- *       file.
- *
- * @section sections Sections
- *  - Internal fast search
- *  - Predicates (query / test)
- *  - Search & position
- *  - Case conversion (in-place)
- *  - Trimming, reversal & removal (in-place)
- *  - Allocating helpers
- *  - Number ↔ string conversions
- *  - Legacy / platform helpers
+ * Thread Safety:
+ *  Functions operating purely on read-only inputs (`const char*`) or distinct
+ *  buffers are safe for concurrent use across multiple threads. Functions
+ *  modifying shared buffers in-place require external synchronization.
  */
 
 #ifndef __STR_H__
@@ -48,49 +34,50 @@ extern "C" {
 #endif
 
 /* =========================================================================
- * Internal fast search
+ * Internal Fast Search
  * ======================================================================= */
 
 /**
- * @internal
- * @brief Finds the first occurrence of needle @p nd (length @p nlen) inside
- *        haystack @p hs (length @p hlen).
+ * @brief Internal fast substring search implementation using first/last byte matching and SIMD `memchr`.
  *
- * Avoids the overhead of platform @c memmem and is tuned for short needles:
- *  - zero-length needle  → returns @p hs immediately
- *  - one-byte needle     → delegates to @c memchr
- *  - short needles ≤ 9   → byte loop (avoids function call)
- *  - longer needles      → @c memcmp on candidate suffix
+ * @param[in] hs    Haystack string buffer to search within.
+ * @param[in] hlen  Length of haystack buffer in bytes.
+ * @param[in] nd    Needle substring to locate.
+ * @param[in] nlen  Length of needle substring in bytes.
  *
- * @param hs   Haystack (need not be NUL-terminated; length given by @p hlen).
- * @param hlen Length of the haystack in bytes.
- * @param nd   Needle   (need not be NUL-terminated; length given by @p nlen).
- * @param nlen Length of the needle in bytes.
- * @return     Pointer to first match inside @p hs, or @c NULL if not found.
+ * @return Pointer to the first occurrence of needle in haystack, or NULL if not found.
+ *
+ * @note Thread-safe.
  */
 static inline const char* str_search_impl(const char* hs, size_t hlen, const char* nd, size_t nlen) {
     if (nlen == 0) return hs;
     if (hlen < nlen) return NULL;
+
+    /* Optimized fast path for single-character search using vectorized system memchr */
     if (nlen == 1) return (const char*)memchr(hs, (unsigned char)nd[0], hlen);
 
-    const char* cur     = hs;
-    const char* end     = hs + hlen - nlen;
+    const char* cur = hs;
+    const char* end = hs + hlen - nlen;
     unsigned char first = (unsigned char)nd[0];
-    unsigned char last  = (unsigned char)nd[nlen - 1];
+    unsigned char last = (unsigned char)nd[nlen - 1];
 
+    /* Slotted window search: scan for first byte, verify last byte, then compare inner bytes */
     while (cur <= end) {
+        /* Rapidly skip non-matching characters using memchr */
         cur = (const char*)memchr(cur, first, (size_t)(end - cur + 1));
         if (!cur) return NULL;
 
+        /* Filter false positives early by testing the last byte of needle */
         if ((unsigned char)cur[nlen - 1] == last) {
             if (nlen <= 9) {
-                /* Unrolled inner comparison avoids memcmp call overhead. */
+                /* Unrolled manual loop for short needles to avoid call overhead of memcmp */
                 size_t i = 0;
                 for (; i < nlen - 2; i++) {
                     if (cur[1 + i] != nd[1 + i]) goto next_iter;
                 }
                 return cur;
             } else {
+                /* Bulk comparison for larger needle payloads */
                 if (memcmp(cur + 1, nd + 1, nlen - 2) == 0) return cur;
             }
         }
@@ -101,28 +88,26 @@ static inline const char* str_search_impl(const char* hs, size_t hlen, const cha
 }
 
 /* =========================================================================
- * Predicates — O(n), no allocation
+ * Predicates
  * ======================================================================= */
 
 /**
- * @brief Returns @c true when @p str is NULL or has zero length.
+ * @brief Checks whether a string is NULL or empty (zero length).
  *
- * Distinguishes from @ref str_is_blank, which also considers whitespace-only
- * strings as "empty."
- *
- * @param str  String to test (may be NULL).
- * @return     @c true  if @p str == NULL or @p str[0] == '\\0'.
+ * @param[in] str The string to evaluate.
+ * @return `true` if NULL or empty string `""`, `false` otherwise.
+ * @note Safe for concurrent use.
  */
 static inline bool str_is_empty(const char* str) {
     return !str || str[0] == '\0';
 }
 
 /**
- * @brief Returns @c true when @p str is NULL, empty, or contains only
- *        ASCII whitespace characters.
+ * @brief Checks whether a string is NULL, empty, or consists solely of white-space characters.
  *
- * @param str  String to test (may be NULL).
- * @return     @c true  if every byte satisfies @c isspace().
+ * @param[in] str The string to evaluate.
+ * @return `true` if NULL, empty, or whitespace-only; `false` otherwise.
+ * @note Safe for concurrent use.
  */
 static inline bool str_is_blank(const char* str) {
     if (!str) return true;
@@ -133,12 +118,11 @@ static inline bool str_is_blank(const char* str) {
 }
 
 /**
- * @brief Returns @c true when every character in @p str satisfies
- *        @c isalpha().
+ * @brief Checks whether a string contains exclusively alphabetic ASCII characters (`a-z`, `A-Z`).
  *
- * An empty or NULL string returns @c false.
- *
- * @param str  NUL-terminated string (may be NULL).
+ * @param[in] str The string to evaluate.
+ * @return `true` if non-NULL, non-empty, and entirely alphabetic; `false` otherwise.
+ * @note Safe for concurrent use.
  */
 static inline bool str_is_alpha(const char* str) {
     if (!str || !*str) return false;
@@ -149,12 +133,11 @@ static inline bool str_is_alpha(const char* str) {
 }
 
 /**
- * @brief Returns @c true when every character in @p str satisfies
- *        @c isdigit() (ASCII decimal digits 0–9).
+ * @brief Checks whether a string contains exclusively decimal digit ASCII characters (`0-9`).
  *
- * An empty or NULL string returns @c false.
- *
- * @param str  NUL-terminated string (may be NULL).
+ * @param[in] str The string to evaluate.
+ * @return `true` if non-NULL, non-empty, and entirely digits; `false` otherwise.
+ * @note Safe for concurrent use.
  */
 static inline bool str_is_digit(const char* str) {
     if (!str || !*str) return false;
@@ -165,12 +148,11 @@ static inline bool str_is_digit(const char* str) {
 }
 
 /**
- * @brief Returns @c true when every character in @p str satisfies
- *        @c isalnum().
+ * @brief Checks whether a string contains exclusively alphanumeric ASCII characters (`a-z`, `A-Z`, `0-9`).
  *
- * An empty or NULL string returns @c false.
- *
- * @param str  NUL-terminated string (may be NULL).
+ * @param[in] str The string to evaluate.
+ * @return `true` if non-NULL, non-empty, and entirely alphanumeric; `false` otherwise.
+ * @note Safe for concurrent use.
  */
 static inline bool str_is_alnum(const char* str) {
     if (!str || !*str) return false;
@@ -181,17 +163,16 @@ static inline bool str_is_alnum(const char* str) {
 }
 
 /**
- * @brief Returns @c true when @p str represents a valid decimal integer,
- *        optionally preceded by a single @c + or @c - sign.
+ * @brief Checks whether a string represents a valid signed decimal integer (optional leading '+' or '-').
  *
- * Whitespace is not permitted.  Strings like "  42" or "3.14" return false.
- *
- * @param str  NUL-terminated string (may be NULL).
+ * @param[in] str The string to evaluate.
+ * @return `true` if valid integer representation; `false` otherwise.
+ * @note Safe for concurrent use.
  */
 static inline bool str_is_numeric(const char* str) {
     if (!str || !*str) return false;
     if (*str == '+' || *str == '-') str++;
-    if (!*str) return false; /* bare sign */
+    if (!*str) return false;
     for (; *str; str++) {
         if (!isdigit((unsigned char)*str)) return false;
     }
@@ -199,12 +180,13 @@ static inline bool str_is_numeric(const char* str) {
 }
 
 /**
- * @brief Returns @c true when @p str represents a valid floating-point
- *        number acceptable by @c strtod (no leading/trailing whitespace).
+ * @brief Checks whether a string represents a valid floating-point number.
  *
- * Examples that return true:  "3.14", "-1e10", "+.5", "NaN", "inf".
+ * Uses `strtod` internally to parse float format without modifying global errno state unexpectedly.
  *
- * @param str  NUL-terminated string (may be NULL).
+ * @param[in] str The string to evaluate.
+ * @return `true` if full string parses as floating-point; `false` otherwise.
+ * @note Safe for concurrent use.
  */
 static inline bool str_is_float(const char* str) {
     if (!str || !*str) return false;
@@ -215,11 +197,12 @@ static inline bool str_is_float(const char* str) {
 }
 
 /**
- * @brief Case-sensitive equality test.
+ * @brief Performs case-sensitive equality comparison of two strings.
  *
- * @param a   First string  (may be NULL).
- * @param b   Second string (may be NULL).
- * @return    @c true iff both are non-NULL and @c strcmp returns 0.
+ * @param[in] a First string operand.
+ * @param[in] b Second string operand.
+ * @return `true` if both strings are byte-for-byte identical or both NULL; `false` otherwise.
+ * @note Safe for concurrent use.
  */
 static inline bool str_equals(const char* a, const char* b) {
     if (a == b) return true;
@@ -228,11 +211,12 @@ static inline bool str_equals(const char* a, const char* b) {
 }
 
 /**
- * @brief Case-insensitive equality test (ASCII only).
+ * @brief Performs case-insensitive ASCII equality comparison of two strings.
  *
- * @param a   First string  (may be NULL).
- * @param b   Second string (may be NULL).
- * @return    @c true iff both are non-NULL and differ only in ASCII case.
+ * @param[in] a First string operand.
+ * @param[in] b Second string operand.
+ * @return `true` if strings match case-insensitively or both NULL; `false` otherwise.
+ * @note Safe for concurrent use.
  */
 static inline bool str_iequals(const char* a, const char* b) {
     if (a == b) return true;
@@ -244,13 +228,12 @@ static inline bool str_iequals(const char* a, const char* b) {
 }
 
 /**
- * @brief Returns @c true when @p substr appears anywhere in @p str.
+ * @brief Tests whether a haystack string contains a substring payload.
  *
- * Equivalent to @c str_find(str, substr) >= 0 but without computing the
- * offset.
- *
- * @param str     Haystack (may be NULL).
- * @param substr  Needle   (may be NULL).
+ * @param[in] str     Haystack string to search.
+ * @param[in] substr  Needle substring to query.
+ * @return `true` if substring exists in haystack; `false` otherwise.
+ * @note Safe for concurrent use.
  */
 static inline bool str_contains(const char* str, const char* substr) {
     if (!str || !substr) return false;
@@ -260,12 +243,12 @@ static inline bool str_contains(const char* str, const char* substr) {
 }
 
 /**
- * @brief Tests whether @p str starts with @p prefix.
+ * @brief Checks whether a string begins with a given prefix.
  *
- * An empty prefix always matches (returns @c true).
- *
- * @param str     String to test (may be NULL).
- * @param prefix  Prefix to look for (may be NULL).
+ * @param[in] str     String to check.
+ * @param[in] prefix  Expected prefix substring.
+ * @return `true` if `str` starts with `prefix` or if `prefix` is empty; `false` otherwise.
+ * @note Safe for concurrent use.
  */
 static inline bool str_starts_with(const char* str, const char* prefix) {
     if (!str || !prefix) return false;
@@ -275,12 +258,12 @@ static inline bool str_starts_with(const char* str, const char* prefix) {
 }
 
 /**
- * @brief Tests whether @p str ends with @p suffix.
+ * @brief Checks whether a string ends with a given suffix.
  *
- * An empty suffix always matches (returns @c true).
- *
- * @param str     String to test (may be NULL).
- * @param suffix  Suffix to look for (may be NULL).
+ * @param[in] str     String to check.
+ * @param[in] suffix  Expected suffix substring.
+ * @return `true` if `str` ends with `suffix` or if `suffix` is empty; `false` otherwise.
+ * @note Safe for concurrent use.
  */
 static inline bool str_ends_with(const char* str, const char* suffix) {
     if (!str || !suffix) return false;
@@ -292,35 +275,32 @@ static inline bool str_ends_with(const char* str, const char* suffix) {
 }
 
 /* =========================================================================
- * Search & position — O(n), no allocation
+ * Search & Position
  * ======================================================================= */
 
 /**
- * @brief Returns the byte offset of the first occurrence of @p substr in
- *        @p str, or @c -1 if not found.
+ * @brief Finds the zero-based index of the first match of a substring in a haystack string.
  *
- * @param str     Haystack (may be NULL).
- * @param substr  Needle   (may be NULL).
- * @return        Zero-based byte index, or @c -1.
+ * @param[in] str     Haystack string.
+ * @param[in] substr  Needle substring to locate.
+ * @return Zero-based character index where match starts, or -1 if NULL or not found.
+ * @note Safe for concurrent use.
  */
 static inline int str_find(const char* str, const char* substr) {
     if (!str || !substr) return -1;
-    size_t hlen       = strlen(str);
-    size_t nlen       = strlen(substr);
+    size_t hlen = strlen(str);
+    size_t nlen = strlen(substr);
     const char* found = str_search_impl(str, hlen, substr, nlen);
     return found ? (int)(found - str) : -1;
 }
 
 /**
- * @brief Returns the byte offset of the *last* occurrence of @p substr in
- *        @p str, or @c -1 if not found.
+ * @brief Finds the zero-based index of the last match of a substring in a haystack string.
  *
- * Scans left-to-right keeping track of the most recent match so that the
- * overall complexity stays O(n · m) worst-case (same as @ref str_find).
- *
- * @param str     Haystack (may be NULL).
- * @param substr  Needle   (may be NULL).
- * @return        Zero-based byte index, or @c -1.
+ * @param[in] str     Haystack string.
+ * @param[in] substr  Needle substring to locate.
+ * @return Zero-based index of last match occurrence, or -1 if NULL, empty needle, or not found.
+ * @note Safe for concurrent use.
  */
 static inline int str_rfind(const char* str, const char* substr) {
     if (!str || !substr) return -1;
@@ -329,26 +309,23 @@ static inline int str_rfind(const char* str, const char* substr) {
     if (nlen == 0 || nlen > hlen) return -1;
 
     const char* last = NULL;
-    const char* p    = str;
+    const char* p = str;
 
+    /* Iteratively scan forward keeping track of the latest match pointer */
     while ((p = str_search_impl(p, hlen - (size_t)(p - str), substr, nlen)) != NULL) {
         last = p++;
-        /* Once there is no room left for another match, stop early. */
         if ((size_t)(p - str) + nlen > hlen) break;
     }
     return last ? (int)(last - str) : -1;
 }
 
 /**
- * @brief Counts the number of non-overlapping occurrences of @p substr in
- *        @p str.
+ * @brief Counts non-overlapping occurrences of a substring in a string.
  *
- * An empty needle returns 0.
- *
- * @param str     Haystack (may be NULL).
- * @param substr  Needle   (may be NULL).
- * @return        Occurrence count (0 if either pointer is NULL or needle is
- *                empty).
+ * @param[in] str     String to search.
+ * @param[in] substr  Substring to search for.
+ * @return Count of non-overlapping occurrences found.
+ * @note Safe for concurrent use.
  */
 static inline size_t str_count_substr(const char* str, const char* substr) {
     if (!str || !substr) return 0;
@@ -356,13 +333,28 @@ static inline size_t str_count_substr(const char* str, const char* substr) {
     size_t hlen = strlen(str);
     if (nlen == 0 || nlen > hlen) return 0;
 
-    size_t count  = 0;
+    /* Fast-path: single character using SIMD memchr */
+    if (nlen == 1) {
+        size_t count = 0;
+        const char* p = str;
+        size_t rem = hlen;
+        unsigned char target = (unsigned char)substr[0];
+
+        while ((p = (const char*)memchr(p, target, rem)) != NULL) {
+            count++;
+            p++;
+            rem = hlen - (size_t)(p - str);
+        }
+        return count;
+    }
+
+    size_t count = 0;
     const char* p = str;
-    size_t rem    = hlen;
+    size_t rem = hlen;
 
     while ((p = str_search_impl(p, rem, substr, nlen)) != NULL) {
         count++;
-        p += nlen;
+        p += nlen; /* Advance pointer past current match to ensure non-overlapping count */
         rem = hlen - (size_t)(p - str);
         if (rem < nlen) break;
     }
@@ -370,14 +362,11 @@ static inline size_t str_count_substr(const char* str, const char* substr) {
 }
 
 /**
- * @brief Counts the number of words in @p str.
+ * @brief Counts whitespace-delimited words in a string.
  *
- * Words are defined as maximal runs of non-whitespace characters,
- * matching the same boundary used by @c str_split(str, " ", ...) after
- * collapsing runs.
- *
- * @param str  NUL-terminated string (may be NULL).
- * @return     Word count.
+ * @param[in] str String to scan.
+ * @return Total number of whitespace-delimited tokens/words.
+ * @note Safe for concurrent use.
  */
 static inline size_t str_word_count(const char* str) {
     if (!str) return 0;
@@ -395,172 +384,217 @@ static inline size_t str_word_count(const char* str) {
 }
 
 /* =========================================================================
- * In-place case conversion — O(n), no allocation
+ * In-place Case Conversion (SWAR Optimized)
  * ======================================================================= */
 
 /**
- * @brief Converts all ASCII uppercase letters in @p str to lowercase in
- *        place.
+ * @brief Converts all uppercase ASCII characters in a string to lowercase in-place.
  *
- * Only the 26 ASCII letters A–Z are affected; other bytes are unchanged.
+ * Uses SWAR (SIMD Within A Register) bit manipulation to process 8 bytes in parallel
+ * on modern 64-bit architectures before processing remaining scalar tail bytes.
  *
- * @param str  NUL-terminated string to modify (may be NULL → no-op).
+ * @param[in,out] str Null-terminated string buffer to mutate in-place.
  */
 static inline void str_lower(char* str) {
     if (!str) return;
-    for (; *str; str++) {
-        unsigned char c = (unsigned char)*str;
-        if ((unsigned)(c - 'A') <= 25u) *str = (char)(c | 0x20u);
+    size_t len = strlen(str);
+    size_t i = 0;
+
+    /* Process 8-byte chunks via SWAR vectorization */
+    for (; i + 8 <= len; i += 8) {
+        uint64_t chunk;
+        memcpy(&chunk, str + i, 8);
+
+        /*
+         * SWAR ASCII check:
+         * Identifies bytes in range ['A', 'Z'] (0x41 to 0x5A) in parallel:
+         * 1. Add offset to trigger overflow bit on characters >= 'A'
+         * 2. Subtract offset to detect characters <= 'Z'
+         * 3. Mask upper sign bit 0x80 to build match mask, shifted right to bit 0x20
+         */
+        uint64_t a = chunk + 0x7F7F7F7F7F7F7F7FULL - 0x4040404040404040ULL;
+        uint64_t z = chunk + 0x7F7F7F7F7F7F7F7FULL - 0x5A5A5A5A5A5A5A5AULL;
+        uint64_t mask = ((a ^ z) & 0x8080808080808080ULL) >> 2;
+
+        chunk |= mask; /* Bitwise OR with 0x20 converts uppercase ASCII to lowercase */
+        memcpy(str + i, &chunk, 8);
+    }
+
+    /* Scalar cleanup for remaining 0-7 bytes */
+    for (; i < len; i++) {
+        unsigned char c = (unsigned char)str[i];
+        if ((unsigned)(c - 'A') <= 25u) str[i] = (char)(c | 0x20u);
     }
 }
 
 /**
- * @brief Converts all ASCII lowercase letters in @p str to uppercase in
- *        place.
+ * @brief Converts all lowercase ASCII characters in a string to uppercase in-place.
  *
- * Only the 26 ASCII letters a–z are affected; other bytes are unchanged.
+ * Uses SWAR (SIMD Within A Register) bit manipulation to process 8 bytes in parallel
+ * on modern 64-bit architectures before processing remaining scalar tail bytes.
  *
- * @param str  NUL-terminated string to modify (may be NULL → no-op).
+ * @param[in,out] str Null-terminated string buffer to mutate in-place.
  */
 static inline void str_upper(char* str) {
     if (!str) return;
-    for (; *str; str++) {
-        unsigned char c = (unsigned char)*str;
-        if ((unsigned)(c - 'a') <= 25u) *str = (char)(c & ~0x20u);
+    size_t len = strlen(str);
+    size_t i = 0;
+
+    /* Process 8-byte chunks via SWAR vectorization */
+    for (; i + 8 <= len; i += 8) {
+        uint64_t chunk;
+        memcpy(&chunk, str + i, 8);
+
+        /*
+         * SWAR ASCII check:
+         * Identifies bytes in range ['a', 'z'] (0x61 to 0x7A) in parallel:
+         * 1. Add offset to trigger overflow bit on characters >= 'a'
+         * 2. Subtract offset to detect characters <= 'z'
+         * 3. Mask upper sign bit 0x80 to build match mask, shifted right to bit 0x20
+         */
+        uint64_t a = chunk + 0x7F7F7F7F7F7F7F7FULL - 0x6060606060606060ULL;
+        uint64_t z = chunk + 0x7F7F7F7F7F7F7F7FULL - 0x7A7A7A7A7A7A7A7AULL;
+        uint64_t mask = ((a ^ z) & 0x8080808080808080ULL) >> 2;
+
+        chunk &= ~mask; /* Bitwise AND with ~0x20 converts lowercase ASCII to uppercase */
+        memcpy(str + i, &chunk, 8);
+    }
+
+    /* Scalar cleanup for remaining 0-7 bytes */
+    for (; i < len; i++) {
+        unsigned char c = (unsigned char)str[i];
+        if ((unsigned)(c - 'a') <= 25u) str[i] = (char)(c & ~0x20u);
     }
 }
 
 /**
- * @brief Capitalises the first character of @p str and lowercases the rest,
- *        in place.
+ * @brief Capitalizes the first character of a string and converts remaining characters to lowercase in-place.
  *
- * Example: @c "hELLO wORLD" → @c "Hello world".
- *
- * @param str  NUL-terminated string to modify (may be NULL → no-op).
+ * @param[in,out] str Buffer to mutate in-place.
  */
 static inline void str_capitalize(char* str) {
     if (!str || !*str) return;
     *str = (char)toupper((unsigned char)*str);
-    str++;
-    for (; *str; str++)
-        *str = (char)tolower((unsigned char)*str);
+    str_lower(str + 1);
 }
 
 /**
- * @brief Converts @p str to camelCase in place.
+ * @brief Helper internal predicate to check if a character acts as a word separator ('_', '-', or whitespace).
  *
- * Leading underscores and spaces are stripped.  Each word boundary
- * (underscore or whitespace) causes the following letter to be
- * uppercased.  The very first character is forced to lowercase so the
- * result begins with a lowercase letter (@c "my_var" → @c "myVar").
+ * @param[in] c Character byte to check.
+ * @return `true` if separator character; `false` otherwise.
+ */
+static inline bool str_is_sep(unsigned char c) {
+    return c == '_' || c == '-' || isspace(c);
+}
+
+/**
+ * @brief Converts a string to camelCase in-place (e.g. "hello_world" -> "helloWorld").
  *
- * @param str  NUL-terminated string to modify (may be NULL → no-op).
+ * Strips leading/intermittent separators ('_', '-', space) and upper-cases word boundaries.
+ *
+ * @param[in,out] str Buffer to mutate in-place.
  */
 static inline void str_camelcase(char* str) {
     if (!str || !*str) return;
 
-    size_t r   = 0;
-    size_t w   = 0;
+    size_t r = 0;
+    size_t w = 0;
     size_t len = strlen(str);
 
-    /* Skip leading underscores / spaces */
-    while (r < len && (str[r] == '_' || isspace((unsigned char)str[r])))
+    /* Strip leading separator characters */
+    while (r < len && str_is_sep((unsigned char)str[r]))
         r++;
 
-    /* First character is lowercased */
+    /* First word starts lowercase */
     if (r < len) {
         unsigned char c = (unsigned char)str[r++];
-        str[w++]        = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
+        str[w++] = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
     }
 
     bool cap = false;
     while (r < len) {
         unsigned char c = (unsigned char)str[r++];
-        if (c == '_' || isspace(c)) {
+        if (str_is_sep(c)) {
             cap = true;
         } else if (cap) {
-            str[w++] = (char)toupper(c);
-            cap      = false;
+            str[w++] = (char)((unsigned)(c - 'a') <= 25u ? (c & ~0x20u) : c);
+            cap = false;
         } else {
-            str[w++] = (char)tolower(c);
+            str[w++] = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
         }
     }
     str[w] = '\0';
 }
 
 /**
- * @brief Converts @p str to PascalCase in place.
+ * @brief Converts a string to PascalCase in-place (e.g. "hello_world" -> "HelloWorld").
  *
- * Like @ref str_camelcase but the very first letter is also uppercased
- * (@c "my_var" → @c "MyVar").
+ * Strips separators and capitalizes the start of every word including the first word.
  *
- * @param str  NUL-terminated string to modify (may be NULL → no-op).
+ * @param[in,out] str Buffer to mutate in-place.
  */
 static inline void str_pascalcase(char* str) {
     if (!str || !*str) return;
 
-    size_t r   = 0;
-    size_t w   = 0;
+    size_t r = 0;
+    size_t w = 0;
     size_t len = strlen(str);
 
-    /* Skip leading underscores / spaces */
-    while (r < len && (str[r] == '_' || isspace((unsigned char)str[r])))
+    /* Strip leading separators */
+    while (r < len && str_is_sep((unsigned char)str[r]))
         r++;
 
     bool new_word = true;
     while (r < len) {
         unsigned char c = (unsigned char)str[r++];
-        if (c == '_' || isspace(c)) {
+        if (str_is_sep(c)) {
             new_word = true;
-        } else {
-            str[w++] = new_word ? (char)toupper(c) : (char)tolower(c);
+        } else if (new_word) {
+            str[w++] = (char)((unsigned)(c - 'a') <= 25u ? (c & ~0x20u) : c);
             new_word = false;
+        } else {
+            str[w++] = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
         }
     }
     str[w] = '\0';
 }
 
 /**
- * @brief Converts @p str to Title Case in place.
+ * @brief Converts a string to Title Case in-place (e.g. "hello world" -> "Hello World").
  *
- * The first letter after any whitespace run is uppercased; all other
- * letters are lowercased.  Non-letter bytes are passed through unchanged.
+ * Capitalizes first letter of every word separated by spaces/underscores/dashes, leaving separators intact.
  *
- * Example: @c "the quick BROWN fox" → @c "The Quick Brown Fox".
- *
- * @param str  NUL-terminated string to modify (may be NULL → no-op).
+ * @param[in,out] str Buffer to mutate in-place.
  */
 static inline void str_titlecase(char* str) {
     if (!str) return;
     bool cap = true;
     for (; *str; str++) {
         unsigned char c = (unsigned char)*str;
-        if (isspace(c)) {
+        if (str_is_sep(c)) {
             cap = true;
         } else if (cap) {
-            *str = (char)toupper(c);
-            cap  = false;
+            *str = (char)((unsigned)(c - 'a') <= 25u ? (c & ~0x20u) : c);
+            cap = false;
         } else {
-            *str = (char)tolower(c);
+            *str = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
         }
     }
 }
 
 /* =========================================================================
- * In-place trimming, reversal & removal — O(n), no allocation
+ * In-place Trimming, Reversal, Removal & Security
  * ======================================================================= */
 
 /**
- * @brief Removes leading ASCII whitespace from @p str in place.
+ * @brief Trims leading white-space characters from a string in-place.
  *
- * The surviving content is shifted to the beginning of the buffer via
- * @c memmove; the pointer itself is unchanged.
- *
- * @param str  NUL-terminated string to modify (may be NULL → no-op).
+ * @param[in,out] str Buffer to mutate in-place.
  */
 static inline void str_ltrim(char* str) {
     if (!str || !*str) return;
-    size_t len   = strlen(str);
+    size_t len = strlen(str);
     size_t start = 0;
     while (start < len && isspace((unsigned char)str[start]))
         start++;
@@ -569,10 +603,9 @@ static inline void str_ltrim(char* str) {
 }
 
 /**
- * @brief Removes trailing ASCII whitespace from @p str in place by
- *        writing a NUL byte over the first trailing space.
+ * @brief Trims trailing white-space characters from a string in-place.
  *
- * @param str  NUL-terminated string to modify (may be NULL → no-op).
+ * @param[in,out] str Buffer to mutate in-place.
  */
 static inline void str_rtrim(char* str) {
     if (!str || !*str) return;
@@ -583,12 +616,9 @@ static inline void str_rtrim(char* str) {
 }
 
 /**
- * @brief Removes both leading and trailing ASCII whitespace from @p str
- *        in place.
+ * @brief Trims both leading and trailing white-space characters from a string in-place.
  *
- * Combines @ref str_rtrim and @ref str_ltrim.
- *
- * @param str  NUL-terminated string to modify (may be NULL → no-op).
+ * @param[in,out] str Buffer to mutate in-place.
  */
 static inline void str_trim(char* str) {
     if (!str || !*str) return;
@@ -597,20 +627,17 @@ static inline void str_trim(char* str) {
 }
 
 /**
- * @brief Removes any leading or trailing characters that appear in
- *        @p chars from @p str in place.
+ * @brief Trims leading and trailing occurrences of any characters specified in `chars` set in-place.
  *
- * Example: @c str_trim_chars("***hello***", "*") → @c "hello".
- *
- * @param str    NUL-terminated string to modify (may be NULL → no-op).
- * @param chars  Set of characters to strip (may be NULL → no-op).
+ * @param[in,out] str    Buffer to mutate in-place.
+ * @param[in]     chars  Null-terminated set of character bytes to trim.
  */
 static inline void str_trim_chars(char* str, const char* chars) {
     if (!str || !chars || !*chars) return;
-    size_t len   = strlen(str);
+    size_t len = strlen(str);
     size_t start = 0;
 
-    while (start < len && strchr(chars, str[start]))
+    while (start < len && str[start] != '\0' && strchr(chars, str[start]))
         start++;
     if (start == len) {
         str[0] = '\0';
@@ -618,7 +645,7 @@ static inline void str_trim_chars(char* str, const char* chars) {
     }
 
     size_t end = len - 1;
-    while (end > start && strchr(chars, str[end]))
+    while (end > start && str[end] != '\0' && strchr(chars, str[end]))
         end--;
 
     size_t new_len = end - start + 1;
@@ -627,13 +654,10 @@ static inline void str_trim_chars(char* str, const char* chars) {
 }
 
 /**
- * @brief Truncates @p str to at most @p max_len bytes in place by writing
- *        a NUL byte at position @p max_len.
+ * @brief Truncates a string buffer in-place if its length exceeds `max_len`.
  *
- * If @p str is already shorter than @p max_len, it is unchanged.
- *
- * @param str      NUL-terminated string to modify (may be NULL → no-op).
- * @param max_len  Maximum number of bytes to retain.
+ * @param[in,out] str      Buffer to truncate.
+ * @param[in]     max_len  Maximum permitted length in bytes.
  */
 static inline void str_truncate(char* str, size_t max_len) {
     if (!str) return;
@@ -642,9 +666,9 @@ static inline void str_truncate(char* str, size_t max_len) {
 }
 
 /**
- * @brief Reverses @p str in place.
+ * @brief Reverses a string buffer in-place.
  *
- * @param str  NUL-terminated string to modify (may be NULL → no-op).
+ * @param[in,out] str Buffer to mutate in-place.
  */
 static inline void str_reverse(char* str) {
     if (!str) return;
@@ -658,36 +682,56 @@ static inline void str_reverse(char* str) {
 }
 
 /**
- * @brief Removes every occurrence of the single byte @p c from @p str in
- *        place, compacting the remaining bytes.
+ * @brief Vectorized removal of all occurrences of a single target character byte in-place.
  *
- * @param str  NUL-terminated string to modify (may be NULL → no-op).
- * @param c    The character to remove.
+ * Leverages system SIMD `memchr` to skip non-matching chunks and `memmove` to collapse matching byte regions.
+ *
+ * @param[in,out] str  Buffer to mutate in-place.
+ * @param[in]     c    Target byte character to purge.
  */
 static inline void str_remove_char(char* str, char c) {
-    if (!str) return;
-    char *w = str, *r = str;
-    while (*r) {
-        if (*r != c) *w++ = *r;
-        r++;
+    if (!str || !*str) return;
+
+    char* read_ptr = str;
+    char* write_ptr = str;
+    size_t rem = strlen(str);
+
+    while (rem > 0) {
+        /* Vectorized search for next matching instance */
+        char* match = (char*)memchr(read_ptr, (unsigned char)c, rem);
+        if (!match) {
+            if (write_ptr != read_ptr) { memmove(write_ptr, read_ptr, rem); }
+            write_ptr += rem;
+            break;
+        }
+
+        /* Copy chunk between last read position and match position */
+        size_t chunk_len = (size_t)(match - read_ptr);
+        if (chunk_len > 0) {
+            if (write_ptr != read_ptr) { memmove(write_ptr, read_ptr, chunk_len); }
+            write_ptr += chunk_len;
+        }
+
+        read_ptr = match + 1;
+        rem -= (chunk_len + 1);
     }
-    *w = '\0';
+
+    *write_ptr = '\0';
 }
 
 /**
- * @brief Removes every non-overlapping occurrence of the substring
- *        @p substr from @p str in place.
+ * @brief Removes all instances of a target substring in-place.
  *
- * @param str     NUL-terminated string to modify (may be NULL → 0).
- * @param substr  Substring to remove (may be NULL or empty → 0).
- * @return        Number of occurrences removed.
+ * @param[in,out] str     Buffer to mutate in-place.
+ * @param[in]     substr  Target substring to purge.
+ * @return Number of occurrences removed.
  */
 static inline size_t str_remove_all(char* str, const char* substr) {
     if (!str || !substr || !*substr) return 0;
     size_t sub_len = strlen(substr);
-    char* w        = str;
-    char* r        = str;
-    size_t count   = 0;
+    char* w = str;
+    char* r = str;
+    size_t count = 0;
 
     while (*r) {
         if (strncmp(r, substr, sub_len) == 0) {
@@ -702,16 +746,11 @@ static inline size_t str_remove_all(char* str, const char* substr) {
 }
 
 /**
- * @brief Removes @p slen bytes from @p str starting at byte offset
- *        @p start, in place.
+ * @brief Removes a sub-range from a string in-place given a start index and length.
  *
- * If @p start ≥ length of @p str or @p slen == 0 the string is
- * unchanged.  If @p start + @p slen exceeds the length, everything from
- * @p start to the end is removed.
- *
- * @param str    NUL-terminated string to modify (may be NULL → no-op).
- * @param start  Zero-based byte offset of the first byte to remove.
- * @param slen   Number of bytes to remove.
+ * @param[in,out] str    Buffer to mutate in-place.
+ * @param[in]     start  Zero-based start position index.
+ * @param[in]     slen   Number of bytes to strip.
  */
 static inline void str_remove_substr(char* str, size_t start, size_t slen) {
     if (!str || slen == 0) return;
@@ -726,38 +765,49 @@ static inline void str_remove_substr(char* str, size_t start, size_t slen) {
         str[start] = '\0';
 }
 
+/**
+ * @brief Secure memory zeroization guaranteed not to be optimized away by compiler optimizations.
+ *
+ * Uses volatile pointer access to safely wipe sensitive credentials (passwords, tokens, key bytes)
+ * before releasing string buffers.
+ *
+ * @param[in,out] str Null-terminated string buffer to clear.
+ */
+static inline void str_wipe(char* str) {
+    if (!str) return;
+    size_t len = strlen(str);
+    volatile char* p = (volatile char*)str;
+    while (len--) {
+        *p++ = '\0';
+    }
+}
+
 /* =========================================================================
- * Allocating helpers — caller must free() every returned pointer
+ * Allocating Helpers
  * ======================================================================= */
 
 /**
- * @brief Returns a newly allocated copy of @p str.
+ * @brief Duplicates a string by allocating heap memory using `malloc`.
  *
- * Equivalent to POSIX @c strdup.  Provided here for completeness and for
- * platforms that lack @c strdup in their C standard library headers.
- *
- * @param str  NUL-terminated string to duplicate (may be NULL → @c NULL).
- * @return     Heap-allocated copy, or @c NULL on allocation failure / NULL
- *             input.  The caller must @c free() the result.
+ * @param[in] str String to duplicate.
+ * @return Newly allocated copy of string, or NULL on allocation failure or if input is NULL.
+ * @note Caller must free the returned string using `free()`.
  */
 static inline char* str_dup(const char* str) {
     if (!str) return NULL;
     size_t len = strlen(str) + 1;
-    char* r    = (char*)malloc(len);
+    char* r = (char*)malloc(len);
     if (r) memcpy(r, str, len);
     return r;
 }
 
 /**
- * @brief Returns a newly allocated copy of at most @p n bytes of @p str,
- *        always NUL-terminated.
+ * @brief Duplicates up to `n` characters of a string into a newly allocated NUL-terminated heap buffer.
  *
- * Equivalent to POSIX @c strndup.
- *
- * @param str  Source string (may be NULL → @c NULL).
- * @param n    Maximum number of bytes to copy (not counting the NUL).
- * @return     Heap-allocated string of length ≤ @p n, or @c NULL.  The
- *             caller must @c free() the result.
+ * @param[in] str String to duplicate.
+ * @param[in] n   Maximum number of bytes to copy.
+ * @return Newly allocated string duplicate, or NULL on failure/NULL input.
+ * @note Caller must free the returned string using `free()`.
  */
 static inline char* str_ndup(const char* str, size_t n) {
     if (!str) return NULL;
@@ -771,17 +821,13 @@ static inline char* str_ndup(const char* str, size_t n) {
 }
 
 /**
- * @brief Extracts a substring from @p str beginning at byte @p start and
- *        spanning at most @p length bytes.
+ * @brief Creates a newly allocated slice substring from a source string.
  *
- * If @p start is beyond the end of @p str, @c NULL is returned.  If
- * @p start + @p length extends past the end, the result is clamped to the
- * actual remaining length.
- *
- * @param str     Source string (may be NULL → @c NULL).
- * @param start   Zero-based byte offset of the first byte to extract.
- * @param length  Maximum number of bytes to extract.
- * @return        Heap-allocated substring, or @c NULL.  Caller must @c free().
+ * @param[in] str     Source string.
+ * @param[in] start   Zero-based start position index.
+ * @param[in] length  Maximum length of slice to extract.
+ * @return Newly allocated substring, or NULL if `start` is out of bounds or allocation fails.
+ * @note Caller must free the returned string using `free()`.
  */
 static inline char* str_substr(const char* str, size_t start, size_t length) {
     if (!str) return NULL;
@@ -789,7 +835,7 @@ static inline char* str_substr(const char* str, size_t start, size_t length) {
     if (start > len) return NULL;
 
     size_t avail = len - start;
-    size_t copy  = (length > avail) ? avail : length;
+    size_t copy = (length > avail) ? avail : length;
 
     char* r = (char*)malloc(copy + 1);
     if (!r) return NULL;
@@ -799,41 +845,36 @@ static inline char* str_substr(const char* str, size_t start, size_t length) {
 }
 
 /**
- * @brief Returns a newly allocated string consisting of @p str repeated
- *        @p n times.
+ * @brief Repeats a string `n` times into a newly allocated buffer.
  *
- * @c str_repeat("ab", 3) → @c "ababab".
- * @c str_repeat("x",  0) → @c "".
- *
- * @param str  Source string (may be NULL → @c NULL).
- * @param n    Number of repetitions.
- * @return     Heap-allocated result, or @c NULL.  Caller must @c free().
+ * @param[in] str String to repeat.
+ * @param[in] n   Number of repetitions.
+ * @return Newly allocated repeated string, or NULL on allocation error or size arithmetic overflow.
+ * @note Caller must free the returned string using `free()`.
  */
 static inline char* str_repeat(const char* str, size_t n) {
     if (!str) return NULL;
-    size_t slen   = strlen(str);
-    size_t result = slen * n; /* 0 when n == 0 */
+    size_t slen = strlen(str);
+    if (n > 0 && slen > (SIZE_MAX - 1) / n) return NULL; /* Overflow protection */
+    size_t total = slen * n;
 
-    char* r = (char*)malloc(result + 1);
+    char* r = (char*)malloc(total + 1);
     if (!r) return NULL;
 
     for (size_t i = 0; i < n; i++)
         memcpy(r + i * slen, str, slen);
-    r[result] = '\0';
+    r[total] = '\0';
     return r;
 }
 
 /**
- * @brief Left-pads @p str with @p pad_char so the total width is at least
- *        @p width characters.
+ * @brief Left-pads a string with a character to a minimum field length into a newly allocated buffer.
  *
- * If @c strlen(str) >= @p width the string is returned unchanged (duplicated).
- *
- * @param str       Source string (may be NULL → @c NULL).
- * @param width     Desired minimum total width.
- * @param pad_char  Character used for padding (typically @c ' ' or @c '0').
- * @return          Heap-allocated padded string, or @c NULL.  Caller must
- *                  @c free().
+ * @param[in] str       Source string.
+ * @param[in] width     Total desired minimum field width.
+ * @param[in] pad_char  Padding byte character.
+ * @return Newly allocated padded string, or duplicate of string if already >= width, or NULL on allocation error.
+ * @note Caller must free the returned string using `free()`.
  */
 static inline char* str_pad_left(const char* str, size_t width, char pad_char) {
     if (!str) return NULL;
@@ -841,7 +882,7 @@ static inline char* str_pad_left(const char* str, size_t width, char pad_char) {
     if (len >= width) return str_dup(str);
 
     size_t pad = width - len;
-    char* r    = (char*)malloc(width + 1);
+    char* r = (char*)malloc(width + 1);
     if (!r) return NULL;
 
     memset(r, (unsigned char)pad_char, pad);
@@ -851,16 +892,13 @@ static inline char* str_pad_left(const char* str, size_t width, char pad_char) {
 }
 
 /**
- * @brief Right-pads @p str with @p pad_char so the total width is at least
- *        @p width characters.
+ * @brief Right-pads a string with a character to a minimum field length into a newly allocated buffer.
  *
- * If @c strlen(str) >= @p width the string is returned unchanged (duplicated).
- *
- * @param str       Source string (may be NULL → @c NULL).
- * @param width     Desired minimum total width.
- * @param pad_char  Character used for padding (typically @c ' ').
- * @return          Heap-allocated padded string, or @c NULL.  Caller must
- *                  @c free().
+ * @param[in] str       Source string.
+ * @param[in] width     Total desired minimum field width.
+ * @param[in] pad_char  Padding byte character.
+ * @return Newly allocated padded string, or duplicate of string if already >= width, or NULL on allocation error.
+ * @note Caller must free the returned string using `free()`.
  */
 static inline char* str_pad_right(const char* str, size_t width, char pad_char) {
     if (!str) return NULL;
@@ -868,7 +906,7 @@ static inline char* str_pad_right(const char* str, size_t width, char pad_char) 
     if (len >= width) return str_dup(str);
 
     size_t pad = width - len;
-    char* r    = (char*)malloc(width + 1);
+    char* r = (char*)malloc(width + 1);
     if (!r) return NULL;
 
     memcpy(r, str, len);
@@ -878,17 +916,13 @@ static inline char* str_pad_right(const char* str, size_t width, char pad_char) 
 }
 
 /**
- * @brief Centers @p str within a field of @p width characters, padding both
- *        sides with @p pad_char.
+ * @brief Centers a string within a field width with equal padding on both sides in a newly allocated buffer.
  *
- * When the padding cannot be split evenly, the extra character goes on the
- * right (matching Python's @c str.center behaviour).
- *
- * @param str       Source string (may be NULL → @c NULL).
- * @param width     Desired total width.
- * @param pad_char  Character used for padding.
- * @return          Heap-allocated centered string, or @c NULL.  Caller must
- *                  @c free().
+ * @param[in] str       Source string.
+ * @param[in] width     Target output width.
+ * @param[in] pad_char  Padding byte character.
+ * @return Newly allocated centered string, or duplicate if string length >= width, or NULL on failure.
+ * @note Caller must free the returned string using `free()`.
  */
 static inline char* str_center(const char* str, size_t width, char pad_char) {
     if (!str) return NULL;
@@ -896,7 +930,7 @@ static inline char* str_center(const char* str, size_t width, char pad_char) {
     if (len >= width) return str_dup(str);
 
     size_t total_pad = width - len;
-    size_t left_pad  = total_pad / 2;
+    size_t left_pad = total_pad / 2;
     size_t right_pad = total_pad - left_pad;
 
     char* r = (char*)malloc(width + 1);
@@ -910,17 +944,50 @@ static inline char* str_center(const char* str, size_t width, char pad_char) {
 }
 
 /**
- * @brief Converts a string from camelCase or PascalCase to snake_case.
+ * @brief Internal helper to determine snake_case underscore injection points.
  *
- * An underscore is inserted before each uppercase letter (which is then
- * lowercased).  The leading character is never preceded by an underscore.
+ * Handles transitional cases:
+ *  - `lowerUPPER` -> `lower_upper`
+ *  - `UPPERUpper` -> `upper_upper` (e.g. `XMLParser` -> `xml_parser`)
  *
- * @c str_to_snakecase("myVarName")  → @c "my_var_name"
- * @c str_to_snakecase("HTTPServer") → @c "http_server"
+ * @param[in] str Input string.
+ * @param[in] i   Current character index.
+ * @param[in] len Total string length.
+ * @return `true` if an underscore should be inserted before character `str[i]`.
+ */
+static inline bool str_snake_should_underscore(const char* str, size_t i, size_t len) {
+    if (i == 0) return false;
+
+    unsigned char c = (unsigned char)str[i];
+    unsigned char prev = (unsigned char)str[i - 1];
+
+    if (c == ' ' || c == '-' || c == '_' || prev == ' ' || prev == '-' || prev == '_') { return false; }
+
+    bool curr_upper = (unsigned)(c - 'A') <= 25u;
+    bool prev_lower = (unsigned)(prev - 'a') <= 25u || (unsigned)(prev - '0') <= 9u;
+    bool prev_upper = (unsigned)(prev - 'A') <= 25u;
+
+    if (curr_upper) {
+        if (prev_lower) return true; /* lower -> UPPER (myVar -> my_var) */
+        if (prev_upper && i + 1 < len) {
+            unsigned char next = (unsigned char)str[i + 1];
+            bool next_lower = (unsigned)(next - 'a') <= 25u;
+            if (next_lower) return true; /* UPPER -> UPPER -> lower (XMLParser -> xml_parser) */
+        }
+    }
+    return false;
+}
+
+/**
+ * @brief Converts any camelCase, PascalCase, or delimiter-separated string into `snake_case`.
  *
- * @param str  NUL-terminated source string (may be NULL → @c NULL).
- * @return     Heap-allocated snake_case string, or @c NULL.  Caller must
- *             @c free().
+ * Uses a zero-realloc two-pass algorithm:
+ * Pass 1 inspects boundaries to count exact needed underscore allocations.
+ * Pass 2 allocates precise heap target size and formats string without dynamic buffer resizing.
+ *
+ * @param[in] str Source string.
+ * @return Newly allocated `snake_case` formatted string, or NULL on failure.
+ * @note Caller must free the returned string using `free()`.
  */
 static inline char* str_to_snakecase(const char* str) {
     if (!str) return NULL;
@@ -931,78 +998,68 @@ static inline char* str_to_snakecase(const char* str) {
         return empty;
     }
 
-    /* Pass 1: Count how many underscores we need to insert */
+    /* Pass 1: Pre-calculate exact memory buffer requirements without reallocations */
     size_t extra = 0;
-    for (size_t i = 1; i < orig; i++) {
-        unsigned char c = (unsigned char)str[i];
-        if ((unsigned)(c - 'A') <= 25u) {  // If current is uppercase
-            unsigned char prev = (unsigned char)str[i - 1];
-            unsigned char next = (i + 1 < orig) ? (unsigned char)str[i + 1] : '\0';
-
-            bool prev_is_lower = (unsigned)(prev - 'a') <= 25u;
-            bool next_is_lower = (unsigned)(next - 'a') <= 25u;
-
-            // Insert '_' if transitioning from lower->UPPER or UPPER->UPPER->lower
-            if (prev != '_' && (prev_is_lower || next_is_lower)) {
-                extra++;
-            }
-        }
+    for (size_t i = 0; i < orig; i++) {
+        if (str_snake_should_underscore(str, i, orig)) { extra++; }
     }
 
+    if (extra > SIZE_MAX - orig - 1) return NULL;
     char* r = (char*)malloc(orig + extra + 1);
     if (!r) return NULL;
 
-    /* Pass 2: Build the string */
+    /* Pass 2: Write converted payload directly to pre-sized allocation */
     size_t w = 0;
+    bool last_was_underscore = false;
+
     for (size_t i = 0; i < orig; i++) {
         unsigned char c = (unsigned char)str[i];
-        if ((unsigned)(c - 'A') <= 25u) {  // If current is uppercase
-            if (i > 0) {
-                unsigned char prev = (unsigned char)str[i - 1];
-                unsigned char next = (i + 1 < orig) ? (unsigned char)str[i + 1] : '\0';
 
-                bool prev_is_lower = (unsigned)(prev - 'a') <= 25u;
-                bool next_is_lower = (unsigned)(next - 'a') <= 25u;
-
-                if (prev != '_' && (prev_is_lower || next_is_lower)) {
-                    r[w++] = '_';
-                }
+        if (c == ' ' || c == '-' || c == '_') {
+            if (!last_was_underscore && w > 0) {
+                r[w++] = '_';
+                last_was_underscore = true;
             }
-            r[w++] = (char)(c | 0x20u);  // Convert to lowercase
-        } else {
-            r[w++] = (char)c;            // Keep as is
+            continue;
         }
-    }
-    r[w] = '\0';
 
+        if (str_snake_should_underscore(str, i, orig)) {
+            if (!last_was_underscore && w > 0) { r[w++] = '_'; }
+        }
+
+        r[w++] = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
+        last_was_underscore = false;
+    }
+
+    r[w] = '\0';
     return r;
 }
 
 /**
- * @brief Replaces the first occurrence of @p old_str with @p new_str and
- *        returns the result as a new heap-allocated string.
+ * @brief Replaces the first match occurrence of `old_str` with `new_str`.
  *
- * If @p old_str is not found, a duplicate of @p str is returned.
- *
- * @param str      Source string (may be NULL → @c NULL).
- * @param old_str  Substring to search for (may be NULL → duplicate of @p str).
- * @param new_str  Replacement string   (may be NULL → duplicate of @p str).
- * @return         Heap-allocated result, or @c NULL.  Caller must @c free().
+ * @param[in] str      Haystack string.
+ * @param[in] old_str  Substring target to match.
+ * @param[in] new_str  Replacement payload string.
+ * @return Newly allocated string with replacement performed, or string duplicate if unmatched/NULL.
+ * @note Caller must free the returned string using `free()`.
  */
 static inline char* str_replace(const char* str, const char* old_str, const char* new_str) {
     if (!str) return NULL;
     if (!old_str || !new_str) return str_dup(str);
 
-    size_t hlen    = strlen(str);
+    size_t hlen = strlen(str);
     size_t old_len = strlen(old_str);
     if (old_len == 0) return str_dup(str);
 
     const char* found = str_search_impl(str, hlen, old_str, old_len);
     if (!found) return str_dup(str);
 
-    size_t new_len    = strlen(new_str);
+    size_t new_len = strlen(new_str);
     size_t prefix_len = (size_t)(found - str);
     size_t suffix_len = hlen - prefix_len - old_len;
+
+    if (new_len > SIZE_MAX - prefix_len - suffix_len) return NULL;
     size_t result_len = prefix_len + new_len + suffix_len;
 
     char* r = (char*)malloc(result_len + 1);
@@ -1016,17 +1073,16 @@ static inline char* str_replace(const char* str, const char* old_str, const char
 }
 
 /**
- * @brief Replaces every non-overlapping occurrence of @p old_sub with
- *        @p new_sub and returns the result as a new heap-allocated string.
+ * @brief Replaces all occurrences of `old_sub` with `new_sub`.
  *
- * Uses a two-pass algorithm (collect offsets, then build result) that keeps
- * allocations to a minimum.  Offset storage starts on the stack (64 slots)
- * and spills to the heap only when needed.
+ * Optimized allocation strategy: Uses a fixed small-stack buffer (`STR_RA_STACK_CAP` = 64) to track match offsets
+ * for short inputs, preventing heap overhead. Spills over to heap dynamic reallocations for complex/large matches.
  *
- * @param str      Source string (may be NULL → @c NULL).
- * @param old_sub  Substring to replace (may be NULL → duplicate of @p str).
- * @param new_sub  Replacement string   (may be NULL → duplicate of @p str).
- * @return         Heap-allocated result, or @c NULL.  Caller must @c free().
+ * @param[in] str      Haystack source string.
+ * @param[in] old_sub  Target pattern substring to find.
+ * @param[in] new_sub  Replacement substring to inject.
+ * @return Newly allocated string with replacements applied, or NULL on allocation error.
+ * @note Caller must free the returned string using `free()`.
  */
 static inline char* str_replace_all(const char* str, const char* old_sub, const char* new_sub) {
     if (!str) return NULL;
@@ -1040,14 +1096,14 @@ static inline char* str_replace_all(const char* str, const char* old_sub, const 
 
 #define STR_RA_STACK_CAP 64
     size_t stack_offs[STR_RA_STACK_CAP];
-    size_t* offs    = stack_offs;
+    size_t* offs = stack_offs;
     size_t offs_cap = STR_RA_STACK_CAP;
-    size_t count    = 0;
+    size_t count = 0;
 
     const char* p = str;
-    size_t rem    = hlen;
+    size_t rem = hlen;
 
-    /* Pass 1 – collect match offsets */
+    /* Step 1: Scan string and record match indices (stack buffer fast-path) */
     while ((p = str_search_impl(p, rem, old_sub, old_len)) != NULL) {
         if (count >= offs_cap) {
             if (offs_cap > SIZE_MAX / 2 / sizeof(size_t)) goto oom;
@@ -1061,7 +1117,7 @@ static inline char* str_replace_all(const char* str, const char* old_sub, const 
                 no = (size_t*)realloc(offs, new_cap * sizeof(size_t));
                 if (!no) goto oom;
             }
-            offs     = no;
+            offs = no;
             offs_cap = new_cap;
         }
         offs[count++] = (size_t)(p - str);
@@ -1074,16 +1130,20 @@ static inline char* str_replace_all(const char* str, const char* old_sub, const 
         return str_dup(str);
     }
 
-    /* Pass 2 – build result */
+    /* Step 2: Compute target memory bounds */
     size_t result_len;
-    if (new_len >= old_len)
-        result_len = hlen + count * (new_len - old_len);
-    else
+    if (new_len >= old_len) {
+        size_t diff = new_len - old_len;
+        if (diff > 0 && count > (SIZE_MAX - hlen) / diff) goto oom;
+        result_len = hlen + count * diff;
+    } else {
         result_len = hlen - count * (old_len - new_len);
+    }
 
     char* r = (char*)malloc(result_len + 1);
     if (!r) goto oom;
 
+    /* Step 3: Stitch together target string in single copy pass */
     size_t wp = 0, sp = 0;
     for (size_t i = 0; i < count; i++) {
         size_t gap = offs[i] - sp;
@@ -1114,29 +1174,20 @@ oom:
 }
 
 /**
- * @brief Splits @p str on every occurrence of @p delim and returns a
- *        NULL-terminated array of heap-allocated token strings.
+ * @brief Splits a string by a given delimiter into an array of newly allocated substrings.
  *
- * The number of tokens is stored in @c *count_out.  The returned array
- * must be freed by calling @ref str_free_split.
- *
- * Splitting @c "a::b" on @c "::" yields @c {"a", "b", NULL}.
- * Splitting @c ""     on @c ","  yields @c {"",  NULL}.
- * A NULL or empty delimiter yields an array containing a single copy of
- * the entire string.
- *
- * @param str        Haystack string (may be NULL → @c NULL).
- * @param delim      Delimiter string (may be NULL or empty → single token).
- * @param count_out  Receives the number of tokens; must not be NULL.
- * @return           NULL-terminated @c char** array, or @c NULL on failure.
- *                   Free with @ref str_free_split.
+ * @param[in]  str        Source string to split.
+ * @param[in]  delim      Delimiter string.
+ * @param[out] count_out  Pointer receiving total array elements count (excluding NULL sentinel).
+ * @return NULL-terminated array of dynamically allocated string pointers (`char**`), or NULL on error.
+ * @note Caller must release allocated output using `str_free_split()`.
  */
 static inline char** str_split(const char* str, const char* delim, size_t* count_out) {
     if (!count_out) return NULL;
     *count_out = 0;
     if (!str) return NULL;
 
-    /* No delimiter → single token */
+    /* Empty or NULL delimiter returns single element array copy of entire input */
     if (!delim || !*delim) {
         char** r = (char**)malloc(2 * sizeof(char*));
         if (!r) return NULL;
@@ -1145,45 +1196,76 @@ static inline char** str_split(const char* str, const char* delim, size_t* count
             free(r);
             return NULL;
         }
-        r[1]       = NULL;
+        r[1] = NULL;
         *count_out = 1;
         return r;
     }
 
-    size_t dlen   = strlen(delim);
-    size_t cap    = 8;
+    size_t dlen = strlen(delim);
+    size_t cap = 8;
     char** result = (char**)malloc(cap * sizeof(char*));
     if (!result) return NULL;
 
     const char* start = str;
-    const char* end   = str + strlen(str);
-    size_t count      = 0;
+    size_t rem = strlen(str);
+    size_t count = 0;
 
-    for (;;) {
-        const char* found   = str_search_impl(start, (size_t)(end - start), delim, dlen);
-        const char* tok_end = found ? found : end;
+    if (dlen == 1) {
+        /* Single-character SIMD fast path */
+        unsigned char target = (unsigned char)delim[0];
+        for (;;) {
+            const char* match = (const char*)memchr(start, target, rem);
+            size_t tok_len = match ? (size_t)(match - start) : rem;
 
-        /* Keep one extra slot for the NULL terminator */
-        if (count + 1 >= cap) {
-            cap *= 2;
-            char** tmp = (char**)realloc(result, cap * sizeof(char*));
-            if (!tmp) goto split_err;
-            result = tmp;
+            if (count + 1 >= cap) {
+                if (cap > SIZE_MAX / 2 / sizeof(char*)) goto split_err;
+                size_t new_cap = cap * 2;
+                char** tmp = (char**)realloc(result, new_cap * sizeof(char*));
+                if (!tmp) goto split_err;
+                result = tmp;
+                cap = new_cap;
+            }
+
+            result[count] = (char*)malloc(tok_len + 1);
+            if (!result[count]) goto split_err;
+            memcpy(result[count], start, tok_len);
+            result[count][tok_len] = '\0';
+            count++;
+
+            if (!match) break;
+            start = match + 1;
+            rem -= (tok_len + 1);
         }
+    } else {
+        /* Multi-character substring search split path */
+        const char* end = str + rem;
+        for (;;) {
+            const char* found = str_search_impl(start, (size_t)(end - start), delim, dlen);
+            const char* tok_end = found ? found : end;
 
-        size_t tok_len = (size_t)(tok_end - start);
-        result[count]  = (char*)malloc(tok_len + 1);
-        if (!result[count]) goto split_err;
-        memcpy(result[count], start, tok_len);
-        result[count][tok_len] = '\0';
-        count++;
+            if (count + 1 >= cap) {
+                if (cap > SIZE_MAX / 2 / sizeof(char*)) goto split_err;
+                size_t new_cap = cap * 2;
+                char** tmp = (char**)realloc(result, new_cap * sizeof(char*));
+                if (!tmp) goto split_err;
+                result = tmp;
+                cap = new_cap;
+            }
 
-        if (!found) break;
-        start = found + dlen;
+            size_t tok_len = (size_t)(tok_end - start);
+            result[count] = (char*)malloc(tok_len + 1);
+            if (!result[count]) goto split_err;
+            memcpy(result[count], start, tok_len);
+            result[count][tok_len] = '\0';
+            count++;
+
+            if (!found) break;
+            start = found + dlen;
+        }
     }
 
-    result[count] = NULL;
-    *count_out    = count;
+    result[count] = NULL; /* Append mandatory NULL sentinel pointer */
+    *count_out = count;
     return result;
 
 split_err:
@@ -1194,12 +1276,11 @@ split_err:
 }
 
 /**
- * @brief Frees a split array returned by @ref str_split.
+ * @brief Frees a string array produced by `str_split()`.
  *
- * Iterates the NULL-terminated array, frees each token, then frees the
- * array itself.  Passing @c NULL is a no-op.
+ * Iterates through array elements until reaching NULL sentinel pointer and releases memory.
  *
- * @param parts  NULL-terminated array of strings returned by @ref str_split.
+ * @param[in,out] parts Pointer to split array.
  */
 static inline void str_free_split(char** parts) {
     if (!parts) return;
@@ -1209,16 +1290,13 @@ static inline void str_free_split(char** parts) {
 }
 
 /**
- * @brief Joins @p count strings from @p strings with @p delim between each
- *        adjacent pair and returns the result as a new heap-allocated string.
+ * @brief Joins an array of strings into a single newly allocated string using a delimiter.
  *
- * @param strings  Array of NUL-terminated strings.  Must have at least
- *                 @p count elements; no element may be @c NULL.
- * @param count    Number of strings in @p strings.
- * @param delim    Delimiter placed between elements (may be @c NULL → no
- *                 separator).
- * @return         Heap-allocated joined string, or @c NULL.  Caller must
- *                 @c free().
+ * @param[in] strings Array of string pointers to join.
+ * @param[in] count   Number of elements in string array.
+ * @param[in] delim   Delimiter string placed between adjacent elements (optional).
+ * @return Newly allocated joined string, or NULL on error.
+ * @note Caller must free the returned string using `free()`.
  */
 static inline char* str_join(const char** strings, size_t count, const char* delim) {
     if (!strings || count == 0) {
@@ -1227,58 +1305,91 @@ static inline char* str_join(const char** strings, size_t count, const char* del
         return empty;
     }
 
-    size_t dlen  = delim ? strlen(delim) : 0;
+    if (count == 1) { return strings[0] ? str_dup(strings[0]) : NULL; }
+
+    size_t dlen = delim ? strlen(delim) : 0;
     size_t total = 0;
+
+    /* Calculate bounds and verify against size_t overflow */
     for (size_t i = 0; i < count; i++) {
         if (!strings[i]) return NULL;
-        total += strlen(strings[i]);
-        if (i + 1 < count) total += dlen;
+        size_t slen = strlen(strings[i]);
+        if (slen > SIZE_MAX - total) return NULL;
+        total += slen;
+
+        if (i + 1 < count && dlen) {
+            if (dlen > SIZE_MAX - total) return NULL;
+            total += dlen;
+        }
     }
 
     char* r = (char*)malloc(total + 1);
     if (!r) return NULL;
 
-    size_t pos = 0;
-    for (size_t i = 0; i < count; i++) {
-        size_t len = strlen(strings[i]);
-        if (len) {
-            memcpy(r + pos, strings[i], len);
-            pos += len;
+    char* w = r;
+    size_t first_len = strlen(strings[0]);
+    if (first_len) {
+        memcpy(w, strings[0], first_len);
+        w += first_len;
+    }
+
+    /* Fast-path optimized byte copying based on delimiter length */
+    if (dlen == 1) {
+        char d_char = delim[0];
+        for (size_t i = 1; i < count; i++) {
+            *w++ = d_char;
+            size_t slen = strlen(strings[i]);
+            if (slen) {
+                memcpy(w, strings[i], slen);
+                w += slen;
+            }
         }
-        if (dlen && i + 1 < count) {
-            memcpy(r + pos, delim, dlen);
-            pos += dlen;
+    } else if (dlen > 1) {
+        for (size_t i = 1; i < count; i++) {
+            memcpy(w, delim, dlen);
+            w += dlen;
+            size_t slen = strlen(strings[i]);
+            if (slen) {
+                memcpy(w, strings[i], slen);
+                w += slen;
+            }
+        }
+    } else {
+        for (size_t i = 1; i < count; i++) {
+            size_t slen = strlen(strings[i]);
+            if (slen) {
+                memcpy(w, strings[i], slen);
+                w += slen;
+            }
         }
     }
-    r[pos] = '\0';
+
+    *w = '\0';
     return r;
 }
 
 /**
- * @brief Concatenates a NULL-terminated list of strings into a new
- *        heap-allocated string.
+ * @brief Concatenates a variadic list of strings into a newly allocated buffer.
  *
- * Usage:
- * @code
- *   char *s = str_concat("Hello", ", ", "world", "!", NULL);
- *   // s == "Hello, world!"
- *   free(s);
- * @endcode
- *
- * @param first  First string to concatenate (may be @c NULL → empty string).
- * @param ...    Additional strings, terminated by a final @c NULL sentinel.
- * @return       Heap-allocated result, or @c NULL on allocation failure.
- *               Caller must @c free().
+ * @param[in] first  First string argument. Must be terminated with a trailing NULL argument.
+ * @param[in] ...    Subsequent string arguments terminated by explicit NULL pointer.
+ * @return Newly allocated concatenated string result, or NULL on allocation error or size overflow.
+ * @note Caller must free the returned string using `free()`.
+ * @warning The variadic call list MUST terminate with a NULL sentinel value: `str_concat(s1, s2, NULL);`
  */
 static inline char* str_concat(const char* first, ...) {
-    /* Pass 1 – measure total length */
     size_t total = 0;
     {
         va_list ap;
         va_start(ap, first);
         const char* s = first;
         while (s) {
-            total += strlen(s);
+            size_t len = strlen(s);
+            if (len > SIZE_MAX - total) {
+                va_end(ap);
+                return NULL;
+            }
+            total += len;
             s = va_arg(ap, const char*);
         }
         va_end(ap);
@@ -1287,7 +1398,6 @@ static inline char* str_concat(const char* first, ...) {
     char* r = (char*)malloc(total + 1);
     if (!r) return NULL;
 
-    /* Pass 2 – copy */
     size_t pos = 0;
     {
         va_list ap;
@@ -1306,38 +1416,33 @@ static inline char* str_concat(const char* first, ...) {
 }
 
 /**
- * @brief Computes the FNV-1a 32-bit hash of @p str.
+ * @brief Calculates 32-bit FNV-1a (Fowler-Noll-Vo) non-cryptographic hash digest of a string.
  *
- * Fast, well-distributed, non-cryptographic hash suitable for use in hash
- * tables.  Returns 0 for a NULL input.
- *
- * @param str  NUL-terminated string to hash (may be NULL → 0).
- * @return     32-bit hash value.
+ * @param[in] str Target string.
+ * @return Calculated 32-bit hash, or 0 if `str` is NULL.
+ * @note Safe for concurrent use.
  */
 static inline uint32_t str_hash(const char* str) {
     if (!str) return 0u;
-    uint32_t h = 2166136261u; /* FNV offset basis */
+    uint32_t h = 2166136261u; /* FNV-1a 32-bit initial offset basis */
     for (; *str; str++) {
         h ^= (unsigned char)*str;
-        h *= 16777619u; /* FNV prime */
+        h *= 16777619u; /* FNV-1a 32-bit prime factor */
     }
     return h;
 }
 
 /* =========================================================================
- * Number -> string conversions
+ * Number -> String Conversions
  * ======================================================================= */
 
 /**
- * @brief Converts the integer @p value to its decimal string representation,
- *        writing into the caller-supplied buffer @p buf.
+ * @brief Formats a signed integer value into a caller-provided character buffer.
  *
- * @param value   Value to convert.
- * @param buf     Destination buffer; must not be NULL.
- * @param buflen  Size of @p buf in bytes.  12 bytes is sufficient for any
- *                32-bit @c int ("-2147483648\0"); 24 bytes covers 64-bit.
- * @return        @p buf on success, @c NULL if @p buf is NULL, @p buflen is
- *                zero, or the formatted value would not fit.
+ * @param[in]  value   Integer payload value to convert.
+ * @param[out] buf     Destination buffer.
+ * @param[in]  buflen  Capacity of output destination buffer in bytes.
+ * @return Pointer to output destination `buf`, or NULL if truncated or invalid parameters.
  */
 static inline char* str_from_int(int value, char* buf, size_t buflen) {
     if (!buf || buflen == 0) return NULL;
@@ -1347,15 +1452,12 @@ static inline char* str_from_int(int value, char* buf, size_t buflen) {
 }
 
 /**
- * @brief Converts the @c long @p value to its decimal string representation,
- *        writing into the caller-supplied buffer @p buf.
+ * @brief Formats a signed long value into a caller-provided character buffer.
  *
- * @param value   Value to convert.
- * @param buf     Destination buffer; must not be NULL.
- * @param buflen  Size of @p buf in bytes.  24 bytes is sufficient for any
- *                64-bit @c long ("-9223372036854775808\0").
- * @return        @p buf on success, @c NULL if @p buf is NULL, @p buflen is
- *                zero, or the formatted value would not fit.
+ * @param[in]  value   Long integer payload value to convert.
+ * @param[out] buf     Destination buffer.
+ * @param[in]  buflen  Capacity of output destination buffer in bytes.
+ * @return Pointer to output destination `buf`, or NULL if truncated or invalid parameters.
  */
 static inline char* str_from_long(long value, char* buf, size_t buflen) {
     if (!buf || buflen == 0) return NULL;
@@ -1365,17 +1467,13 @@ static inline char* str_from_long(long value, char* buf, size_t buflen) {
 }
 
 /**
- * @brief Converts the @c double @p value to a string with @p precision
- *        decimal places, writing into the caller-supplied buffer @p buf.
+ * @brief Formats a double-precision floating point value into a caller-provided character buffer.
  *
- * @param value      Value to convert.
- * @param precision  Digits after the decimal point; negative values default
- *                   to 6, values above 64 are clamped to 64.
- * @param buf        Destination buffer; must not be NULL.
- * @param buflen     Size of @p buf in bytes.  128 bytes is sufficient for
- *                   any finite double at up to 64 decimal places.
- * @return           @p buf on success, @c NULL if @p buf is NULL, @p buflen
- *                   is zero, or the formatted value would not fit.
+ * @param[in]  value      Double floating point value to convert.
+ * @param[in]  precision  Decimal fraction precision digits (capped between 0 and 64; default 6 if negative).
+ * @param[out] buf        Destination buffer.
+ * @param[in]  buflen     Capacity of output destination buffer in bytes.
+ * @return Pointer to output destination `buf`, or NULL if truncated or invalid parameters.
  */
 static inline char* str_from_double(double value, int precision, char* buf, size_t buflen) {
     if (!buf || buflen == 0) return NULL;
@@ -1387,14 +1485,18 @@ static inline char* str_from_double(double value, int precision, char* buf, size
 }
 
 /* =========================================================================
- * Legacy / platform helpers
+ * Legacy / MSVC Platform Helpers
  * ======================================================================= */
 
 #if defined(_MSC_VER)
-
 /**
- * @brief Case-insensitive string comparison (MSVC shim for POSIX
- *        @c strcasecmp).
+ * @brief POSIX `strcasecmp` compatibility wrapper for MSVC targets.
+ *
+ * Performs case-insensitive comparison of two NUL-terminated strings.
+ *
+ * @param[in] s1 First string operand.
+ * @param[in] s2 Second string operand.
+ * @return Less than 0 if s1 < s2, 0 if s1 == s2, greater than 0 if s1 > s2.
  */
 static inline int strcasecmp(const char* s1, const char* s2) {
     if (s1 == s2) return 0;
@@ -1404,8 +1506,14 @@ static inline int strcasecmp(const char* s1, const char* s2) {
 }
 
 /**
- * @brief Case-insensitive bounded string comparison (MSVC shim for POSIX
- *        @c strncasecmp).
+ * @brief POSIX `strncasecmp` compatibility wrapper for MSVC targets.
+ *
+ * Performs bounded case-insensitive comparison of two strings up to `n` characters.
+ *
+ * @param[in] s1 First string operand.
+ * @param[in] s2 Second string operand.
+ * @param[in] n  Maximum byte comparison limit.
+ * @return Less than 0 if s1 < s2, 0 if s1 == s2, greater than 0 if s1 > s2.
  */
 static inline int strncasecmp(const char* s1, const char* s2, size_t n) {
     if (n == 0) return 0;
@@ -1416,11 +1524,13 @@ static inline int strncasecmp(const char* s1, const char* s2, size_t n) {
 }
 
 /**
- * @brief Case-insensitive substring search (MSVC shim for GNU @c strcasestr).
+ * @brief GNU `strcasestr` compatibility wrapper for MSVC targets.
  *
- * @param haystack  String to search in.
- * @param needle    Substring to search for.
- * @return          Pointer to first case-insensitive match, or @c NULL.
+ * Performs case-insensitive substring search within a haystack string.
+ *
+ * @param[in] haystack Haystack string to search within.
+ * @param[in] needle   Substring payload to locate.
+ * @return Pointer to first case-insensitive substring match, or NULL if not found.
  */
 static inline char* strcasestr(const char* haystack, const char* needle) {
     if (!needle || *needle == '\0') return (char*)haystack;
@@ -1432,7 +1542,7 @@ static inline char* strcasestr(const char* haystack, const char* needle) {
     }
     return NULL;
 }
-#endif /* _MSC_VER */
+#endif
 
 #ifdef __cplusplus
 }

@@ -178,6 +178,21 @@ void test_validation() {
     record_test("Beyond Unicode range", !is_valid_utf8(invalid4), NULL);
 }
 
+void test_unicode_fused_validation(void) {
+    // Mixed string containing ASCII and 3-byte valid sequences plus trailing malformed elements
+    const char* mixed = "Hello, 世界\xE0\x80\x80";  // \xE0\x80\x80 is overlong (invalid)
+
+    utf8_string* s = utf8_new(mixed);
+    assert(s != NULL);
+
+    // Expected output is "Hello, 世界" - "Hello, " is 7 bytes, "世界" is 6 bytes. Total = 13 bytes.
+    assert(s->length == 13);
+    assert(s->count == 9);  // 'H','e','l','l','o',',',' ','世','界'
+    assert(strcmp(s->data, "Hello, 世界") == 0);
+
+    utf8_free(s);
+}
+
 // Test character classification functions
 void test_char_classification() {
     printf("Testing character classification...\n");
@@ -415,6 +430,7 @@ int main() {
     test_length_functions();
     test_char_length();
     test_validation();
+    test_unicode_fused_validation();
     test_char_classification();
     test_basic_operations();
     test_trim_functions();

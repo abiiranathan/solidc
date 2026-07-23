@@ -27,7 +27,7 @@ CMAKE_ARGS += $(CMAKE_EXTRA_FLAGS)
 
 # === Phony Targets ===
 
-.PHONY: all configure build test install clean format bench
+.PHONY: all configure build test install clean format bench musl-static
 
 all: build
 
@@ -36,7 +36,7 @@ configure:
 	@echo "Install prefix: $(INSTALL_PREFIX)"
 	rm -rf $(BUILD_DIR) .cache
 	mkdir -p $(BUILD_DIR)
-	cd $(BUILD_DIR) && cmake $(CMAKE_ARGS) ..
+	cd $(BUILD_DIR) && cmake $(CMAKE_ARGS) $(CURDIR)
 
 build: configure
 	@echo "Building..."
@@ -74,3 +74,17 @@ release:
 
 docs:
 	doxygen Doxyfile
+
+# === Musl Static Target ===
+# Recursively calls 'make build' while overriding the compiler to musl-gcc
+# and isolating the object files inside 'build/musl' to avoid glibc collisions.
+# === Musl Static Target ===
+# Recursively calls 'make build' while overriding the compiler to musl-gcc
+# and isolating the object files inside 'build/musl' to avoid glibc collisions.
+musl-static:
+	@echo "Configuring and building static library with musl-gcc..."
+	$(MAKE) CC=musl-gcc \
+		BUILD_DIR=build/musl \
+		BUILD_TYPE=Release \
+		CMAKE_EXTRA_FLAGS="-DCMAKE_FIND_ROOT_PATH=/usr/lib/musl -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY" \
+		build

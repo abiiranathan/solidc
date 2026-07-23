@@ -140,6 +140,11 @@ CSTR_INLINE bool cstr_is_heap(const cstr* s) {
     return (s->capacity & CSTR_HEAP_FLAG) != 0;
 }
 
+/**
+ * @brief Securely zero out string memory (guaranteed not optimized away).
+ */
+void cstr_wipe(cstr* s);
+
 /** Extract actual heap capacity (strip flag bit). */
 CSTR_INLINE uint32_t cstr_heap_cap(const cstr* s) CSTR_PURE;
 CSTR_INLINE uint32_t cstr_heap_cap(const cstr* s) {
@@ -217,7 +222,7 @@ CSTR_INLINE cstr_view cstr_as_view(const cstr* s);
 CSTR_INLINE cstr_view cstr_as_view(const cstr* s) {
     cstr_view v = {NULL, 0};
     if (CSTR_LIKELY(s != NULL)) {
-        v.data   = s->data;
+        v.data = s->data;
         v.length = s->length;
     }
     return v;
@@ -237,9 +242,9 @@ CSTR_INLINE cstr_view cstr_as_view(const cstr* s) {
  */
 CSTR_INLINE void cstr_init_inplace(cstr* s);
 CSTR_INLINE void cstr_init_inplace(cstr* s) {
-    s->buf[0]   = '\0';
-    s->data     = s->buf;
-    s->length   = 0;
+    s->buf[0] = '\0';
+    s->data = s->buf;
+    s->length = 0;
     s->capacity = 0; /* SSO, no heap flag */
 }
 
@@ -316,7 +321,7 @@ void cstr_shrink_to_fit(cstr* s) CSTR_NONNULL(1);
 CSTR_INLINE void cstr_clear(cstr* s);
 CSTR_INLINE void cstr_clear(cstr* s) {
     if (CSTR_LIKELY(s != NULL)) {
-        s->length  = 0;
+        s->length = 0;
         s->data[0] = '\0';
     }
 }
@@ -349,7 +354,7 @@ CSTR_INLINE bool cstr_cat(cstr* dest, const cstr* src) {
  */
 CSTR_INLINE bool cstr_append_fast(cstr* s, const char* CSTR_RESTRICT append) CSTR_NONNULL(1, 2);
 CSTR_INLINE bool cstr_append_fast(cstr* s, const char* CSTR_RESTRICT append) {
-    size_t n  = strlen(append);
+    size_t n = strlen(append);
     char* dst = s->data + s->length;
     memcpy(dst, append, n + 1); /* includes NUL */
     s->length += (uint32_t)n;
@@ -505,10 +510,8 @@ size_t cstr_count_substr_cstr(const cstr* s, const cstr* substr) CSTR_NONNULL(1,
  * ---------------------------------------------------------------------- */
 
 cstr* cstr_substr(const cstr* s, size_t start, size_t length) CSTR_NONNULL(1) CSTR_WARN_UNUSED;
-cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str)
-    CSTR_NONNULL(1, 2, 3) CSTR_WARN_UNUSED;
-cstr* cstr_replace_all(const cstr* s, const char* old_str, const char* new_str)
-    CSTR_NONNULL(1, 2, 3) CSTR_WARN_UNUSED;
+cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) CSTR_NONNULL(1, 2, 3) CSTR_WARN_UNUSED;
+cstr* cstr_replace_all(const cstr* s, const char* old_str, const char* new_str) CSTR_NONNULL(1, 2, 3) CSTR_WARN_UNUSED;
 
 /* -------------------------------------------------------------------------
  * Split & join
@@ -519,8 +522,7 @@ cstr* cstr_replace_all(const cstr* s, const char* old_str, const char* new_str)
  *        terminated by setting *count_out.  Caller must free each element
  *        and the array itself.
  */
-cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out)
-    CSTR_NONNULL(1, 3) CSTR_WARN_UNUSED;
+cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) CSTR_NONNULL(1, 3) CSTR_WARN_UNUSED;
 
 /**
  * @brief Join an array of cstr pointers with a delimiter.

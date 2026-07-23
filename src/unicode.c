@@ -37,7 +37,58 @@
 #include <string.h>  // for memcpy, memmove, memcmp, strstr, strcmp, strlen
 #include <wchar.h>   // for WCHAR_MAX
 #include <wctype.h>  // for iswspace, iswdigit, iswalpha, iswalnum, iswpunct,
-                     // iswupper, iswlower, towlower, towupper
+// iswupper, iswlower, towlower, towupper
+
+typedef struct {
+    size_t valid_bytes;
+    size_t codepoints;
+} utf8_analysis_t;
+
+/**
+ * @brief Performs validation, byte length, and codepoint counting in a single pass.
+ */
+static inline utf8_analysis_t utf8_analyze(const char* s) {
+    utf8_analysis_t analysis = {0, 0};
+    if (!s) return analysis;
+
+    size_t i = 0;
+    while (s[i] != '\0') {
+        unsigned char byte = (unsigned char)s[i];
+        if ((byte & 0x80) == 0) {
+            analysis.valid_bytes++;
+            analysis.codepoints++;
+            i++;
+        } else if ((byte & 0xE0) == 0xC0 && s[i + 1] != '\0') {
+            if (((unsigned char)s[i + 1] & 0xC0) == 0x80) {
+                analysis.valid_bytes += 2;
+                analysis.codepoints++;
+                i += 2;
+            } else {
+                i++;
+            }
+        } else if ((byte & 0xF0) == 0xE0 && s[i + 1] != '\0' && s[i + 2] != '\0') {
+            if (((unsigned char)s[i + 1] & 0xC0) == 0x80 && ((unsigned char)s[i + 2] & 0xC0) == 0x80) {
+                analysis.valid_bytes += 3;
+                analysis.codepoints++;
+                i += 3;
+            } else {
+                i++;
+            }
+        } else if ((byte & 0xF8) == 0xF0 && s[i + 1] != '\0' && s[i + 2] != '\0' && s[i + 3] != '\0') {
+            if (((unsigned char)s[i + 1] & 0xC0) == 0x80 && ((unsigned char)s[i + 2] & 0xC0) == 0x80 &&
+                ((unsigned char)s[i + 3] & 0xC0) == 0x80) {
+                analysis.valid_bytes += 4;
+                analysis.codepoints++;
+                i += 4;
+            } else {
+                i++;
+            }
+        } else {
+            i++;
+        }
+    }
+    return analysis;
+}
 
 /* ============================================================================
  * Core Encoding/Decoding Functions
@@ -601,15 +652,15 @@ char* utf8_copy(const char* data) {
 utf8_string* utf8_new(const char* data) {
     if (!data) { return NULL; }
 
-    size_t length = utf8_valid_byte_count(data);
+    utf8_analysis_t analysis = utf8_analyze(data);
 
-    utf8_string* s = utf8_string_alloc(length);
+    utf8_string* s = utf8_string_alloc(analysis.valid_bytes);
     if (!s) { return NULL; }
 
-    memcpy(s->data, data, length);
-    s->data[length] = '\0';
-    s->length = length;
-    s->count = utf8_count_codepoints(s->data);
+    memcpy(s->data, data, analysis.valid_bytes);
+    s->data[analysis.valid_bytes] = '\0';
+    s->length = analysis.valid_bytes;
+    s->count = analysis.codepoints;
     return s;
 }
 
@@ -867,17 +918,15 @@ bool utf8_append(utf8_string** s_ptr, const char* data) {
     if (!s_ptr || !*s_ptr || !data) { return false; }
 
     utf8_string* s = *s_ptr;
-    size_t length = utf8_valid_byte_count(data);
-    size_t count = utf8_count_codepoints(data);
+    utf8_analysis_t analysis = utf8_analyze(data);
+    if (analysis.valid_bytes == 0) { return true; }
 
-    if (!utf8_string_grow(s_ptr, s->length + length)) {
-        return false;  // *s_ptr is left untouched and still valid on failure
-    }
-    s = *s_ptr;        // utf8_string_grow() may have relocated the block
+    if (!utf8_string_grow(s_ptr, s->length + analysis.valid_bytes)) { return false; }
+    s = *s_ptr;
 
-    memcpy(&s->data[s->length], data, length);
-    s->length += length;
-    s->count += count;
+    memcpy(&s->data[s->length], data, analysis.valid_bytes);
+    s->length += analysis.valid_bytes;
+    s->count += analysis.codepoints;
     s->data[s->length] = '\0';
     return true;
 }
@@ -925,23 +974,16 @@ bool utf8_insert(utf8_string** s_ptr, size_t index, const char* data) {
     if (!s_ptr || !*s_ptr || !(*s_ptr)->data || !data || index > (*s_ptr)->length) { return false; }
 
     utf8_string* s = *s_ptr;
-    size_t length = utf8_valid_byte_count(data);
-    size_t count = utf8_count_codepoints(data);
-    if (length == 0) {
-        return true;  // nothing to insert; not an error
-    }
+    utf8_analysis_t analysis = utf8_analyze(data);
+    if (analysis.valid_bytes == 0) { return true; }
 
-    if (!utf8_string_grow(s_ptr, s->length + length)) {
-        return false;  // *s_ptr is left untouched and still valid on failure
-    }
-    s = *s_ptr;        // utf8_string_grow() may have relocated the block
+    if (!utf8_string_grow(s_ptr, s->length + analysis.valid_bytes)) { return false; }
+    s = *s_ptr;
 
-    /* Shift the tail (including the NUL terminator) right by `length` bytes
-     * to make room, then copy the new data into the gap. */
-    memmove(&s->data[index + length], &s->data[index], s->length - index + 1);
-    memcpy(&s->data[index], data, length);
-    s->length += length;
-    s->count += count;
+    memmove(&s->data[index + analysis.valid_bytes], &s->data[index], s->length - index + 1);
+    memcpy(&s->data[index], data, analysis.valid_bytes);
+    s->length += analysis.valid_bytes;
+    s->count += analysis.codepoints;
     return true;
 }
 
@@ -1096,55 +1138,37 @@ size_t utf8_replace_all(utf8_string** s_ptr, const char* old_str, const char* ne
  * internal byte order is preserved; only the order of characters within
  * the string is reversed.
  *
- * @param s The utf8_string to reverse in-place. Must not be NULL.
- * @return true on success, false on allocation failure or if s->data is
- *         NULL/empty.
+ * @param s The utf8_string to reverse. Must not be NULL.
+ * @return A newly allocated, reversed utf8_string on success, or NULL on failure.
  * @note If a malformed byte sequence is encountered mid-scan, the function
  *       aborts and leaves s unmodified rather than producing a corrupted
  *       result.
- */
-/**
- * Reverses a UTF-8 string by codepoints (not bytes).
- *
- * Each complete UTF-8 character is treated as an atomic unit and its
- * internal byte order is preserved; only the order of characters within
- * the string is reversed.
- *
- * @param s The utf8_string to reverse in-place. Must not be NULL.
- * @return true on success, false on allocation failure or if s->data is
- *         NULL/empty.
- * @note If a malformed byte sequence is encountered mid-scan, the function
- *       aborts and leaves s unmodified rather than producing a corrupted
- *       result.
- * @note Builds the reversed bytes in a temporary scratch buffer, then
- *       copies them back into s->data, rather than swapping s->data to
- *       point at the scratch buffer directly. s->data is an interior
- *       pointer into s's own single allocation (see utf8_string_alloc()),
- *       so it must never be freed or replaced with a pointer from a
- *       separate allocation; doing so would either crash on free() or
- *       silently break the single-allocation invariant relied on by
- *       utf8_free() and utf8_string_grow().
  */
 utf8_string* utf8_reverse(const utf8_string* s) {
     if (!s || !s->data || s->length == 0) { return NULL; }
 
-    utf8_string* scratch = utf8_new_with_capacity(s->length + 1);
+    utf8_string* scratch = utf8_new_with_capacity(s->length);
     if (!scratch) { return NULL; }
 
-    char* ptr = scratch->data;
+    const char* src = s->data;
+    char* dst = scratch->data;
     size_t write_pos = s->length;
+
     for (size_t i = 0; i < s->length;) {
-        size_t len = utf8_char_length(&ptr[i]);
+        size_t len = utf8_char_length(&src[i]);
         if (len == 0 || write_pos < len) {
             free(scratch);
             return NULL;
         }
         write_pos -= len;
-        memcpy(&scratch[write_pos], &ptr[i], len);
+        memcpy(&dst[write_pos], &src[i], len);
         i += len;
     }
 
-    ptr[s->length] = '\0';
+    dst[s->length] = '\0';
+    scratch->length = s->length;
+    scratch->count = s->count;
+
     return scratch;
 }
 

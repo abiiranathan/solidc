@@ -11,6 +11,8 @@
 #include <string.h>
 #include <time.h>
 
+#define MAX_DIR_DEPTH 64
+
 #ifdef _WIN32
 #include <io.h>  // for _access
 #include <windows.h>
@@ -41,9 +43,7 @@
 #define TEMP_PREF_PREFIX_LEN 12
 
 static inline size_t safe_strlcpy(char* dst, const char* src, size_t size) {
-    if (!dst || !src || size == 0) {
-        return 0;
-    }
+    if (!dst || !src || size == 0) { return 0; }
     size_t n = strnlen(src, size - 1);
     memcpy(dst, src, n);
     dst[n] = '\0';
@@ -62,9 +62,9 @@ static void random_string(char* str, size_t len) {
         atomic_store(&initialized, 1);
     }
 
-    const char charset[]      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     const size_t charset_size = sizeof(charset) - 1;  // Exclude null terminator
-    unsigned char buffer[64];  // Buffer for random bytes (sufficient for typical len)
+    unsigned char buffer[64];                         // Buffer for random bytes (sufficient for typical len)
 
     lock_acquire(&rand_lock);
 
@@ -176,13 +176,9 @@ void dir_close(Directory* dir) {
     if (!dir) return;
 
 #ifdef _WIN32
-    if (dir->handle != INVALID_HANDLE_VALUE) {
-        FindClose(dir->handle);
-    }
+    if (dir->handle != INVALID_HANDLE_VALUE) { FindClose(dir->handle); }
 #else
-    if (dir->dir) {
-        closedir(dir->dir);
-    }
+    if (dir->dir) { closedir(dir->dir); }
 #endif
     free(dir->path);
     free(dir);
@@ -202,15 +198,12 @@ char* dir_next(Directory* dir) {
     }
     if (FindNextFileW(dir->handle, &dir->find_data)) {
         // Convert wide-char filename to UTF-8 directly into the struct buffer
-        WideCharToMultiByte(CP_UTF8, 0, dir->find_data.cFileName, -1, dir->name_buf, MAX_PATH, NULL,
-                            NULL);
+        WideCharToMultiByte(CP_UTF8, 0, dir->find_data.cFileName, -1, dir->name_buf, MAX_PATH, NULL, NULL);
         return dir->name_buf;
     }
 #else
     struct dirent* entry = readdir(dir->dir);
-    if (entry) {
-        return entry->d_name;
-    }
+    if (entry) { return entry->d_name; }
 #endif
     return NULL;
 }
@@ -230,9 +223,9 @@ static void map_win32_attrs(const WIN32_FIND_DATAW* fd, FileAttributes* attr) {
 
     // Convert Windows FileTime to Unix mtime (simplified)
     ULARGE_INTEGER ull;
-    ull.LowPart  = fd->ftLastWriteTime.dwLowDateTime;
+    ull.LowPart = fd->ftLastWriteTime.dwLowDateTime;
     ull.HighPart = fd->ftLastWriteTime.dwHighDateTime;
-    attr->mtime  = (time_t)((ull.QuadPart - 116444736000000000ULL) / 10000000ULL);
+    attr->mtime = (time_t)((ull.QuadPart - 116444736000000000ULL) / 10000000ULL);
 }
 #else
 
@@ -240,22 +233,18 @@ static int map_dirent_attrs(const struct dirent* entry, const char* path, FileAt
     struct stat st;
     if (lstat(path, &st) != 0) return -1;
 
-    attr->size  = (size_t)st.st_size;
+    attr->size = (size_t)st.st_size;
     attr->mtime = st.st_mtime;
     attr->attrs = FATTR_NONE;
 
     // Check for hidden file based on name
-    if (entry->d_name[0] == '.') {
-        attr->attrs |= FATTR_HIDDEN;
-    }
+    if (entry->d_name[0] == '.') { attr->attrs |= FATTR_HIDDEN; }
 
     // Use standard POSIX macros on st_mode instead of non-standard DT_ constants
     if (S_ISREG(st.st_mode)) {
         attr->attrs |= FATTR_FILE;
         // Optional: Check executable bits here if needed
-        if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
-            attr->attrs |= FATTR_EXECUTABLE;
-        }
+        if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) { attr->attrs |= FATTR_EXECUTABLE; }
     } else if (S_ISDIR(st.st_mode)) {
         attr->attrs |= FATTR_DIR;
     } else if (S_ISLNK(st.st_mode)) {
@@ -290,15 +279,13 @@ static int delete_single_directory(const char* path) {
 #ifdef _WIN32
     if (!RemoveDirectoryA(path)) {
         DWORD err = GetLastError();
-        errno     = (err == ERROR_DIR_NOT_EMPTY)                                   ? ENOTEMPTY
-                    : (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
-                                                                                   : EACCES;
+        errno = (err == ERROR_DIR_NOT_EMPTY)                                   ? ENOTEMPTY
+                : (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
+                                                                               : EACCES;
         return -1;
     }
 #else
-    if (rmdir(path) == -1) {
-        return -1;
-    }
+    if (rmdir(path) == -1) { return -1; }
 #endif
     return 0;
 }
@@ -312,17 +299,13 @@ int dir_create(const char* path) {
 
 #ifdef _WIN32
     if (!CreateDirectoryA(path, NULL)) {
-        if (GetLastError() == ERROR_ALREADY_EXISTS) {
-            return 0;
-        }
+        if (GetLastError() == ERROR_ALREADY_EXISTS) { return 0; }
         errno = GetLastError() == ERROR_ACCESS_DENIED ? EACCES : EIO;
         return -1;
     }
 #else
     if (mkdir(path, 0755) == -1) {
-        if (errno == EEXIST) {
-            return 0;
-        }
+        if (errno == EEXIST) { return 0; }
         return -1;
     }
 #endif
@@ -336,8 +319,7 @@ int dir_create(const char* path) {
  * @param data User-provided data (unused).
  * @return DirContinue on success, DirError on failure (errno is set).
  */
-static WalkDirOption dir_remove_callback(const FileAttributes* attr, const char* path,
-                                         const char* name, void* data) {
+static WalkDirOption dir_remove_callback(const FileAttributes* attr, const char* path, const char* name, void* data) {
     (void)data;
     (void)name;
 
@@ -350,17 +332,17 @@ static WalkDirOption dir_remove_callback(const FileAttributes* attr, const char*
     if (fattr_is_dir(attr)) {
         if (!RemoveDirectoryA(path)) {
             DWORD err = GetLastError();
-            errno     = (err == ERROR_DIR_NOT_EMPTY)                                   ? ENOTEMPTY
-                        : (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
-                                                                                       : EACCES;
+            errno = (err == ERROR_DIR_NOT_EMPTY)                                   ? ENOTEMPTY
+                    : (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
+                                                                                   : EACCES;
             return DirError;
         }
     } else {
         if (!DeleteFileA(path)) {
             DWORD err = GetLastError();
-            errno     = (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
-                        : (err == ERROR_ACCESS_DENIED)                               ? EACCES
-                                                                                     : EIO;
+            errno = (err == ERROR_PATH_NOT_FOUND || err == ERROR_FILE_NOT_FOUND) ? ENOENT
+                    : (err == ERROR_ACCESS_DENIED)                               ? EACCES
+                                                                                 : EIO;
             return DirError;
         }
     }
@@ -389,17 +371,11 @@ static WalkDirOption dir_remove_callback(const FileAttributes* attr, const char*
     }
 
 /**
- * Recursively walks a directory tree depth-first (post-order), invoking a callback for each entry.
- * Files are processed before their containing directories. Useful for operations like deletion
- * where you need to empty a directory before removing it.
- * @param path Starting directory path.
- * @param callback Function to call for each directory entry.
- * @param data User-provided data passed to callback.
- * @return 0 on success, -1 on error (errno is set).
+ * @brief Depth-checked helper for dir_walk_depth_first.
  */
-int dir_walk_depth_first(const char* path, WalkDirCallback callback, void* data) {
-    if (!path || !callback || *path == '\0') {
-        errno = EINVAL;
+static int dir_walk_depth_first_helper(const char* path, WalkDirCallback callback, void* data, int depth) {
+    if (depth > MAX_DIR_DEPTH) {
+        errno = ELOOP;
         return -1;
     }
 
@@ -422,7 +398,7 @@ int dir_walk_depth_first(const char* path, WalkDirCallback callback, void* data)
         map_win32_attrs(&dir->find_data, &attr);
 
         if (fattr_is_dir(&attr)) {
-            if (dir_walk_depth_first(fullpath, callback, data) != 0) {
+            if (dir_walk_depth_first_helper(fullpath, callback, data, depth + 1) != 0) {
                 status = -1;
                 break;
             }
@@ -444,12 +420,10 @@ int dir_walk_depth_first(const char* path, WalkDirCallback callback, void* data)
         FileAttributes attr;
         if (map_dirent_attrs(entry, fullpath, &attr) != 0) continue;
 
-        if (attr.attrs == FATTR_NONE) {
-            populate_file_attrs(fullpath, &attr);
-        }
+        if (attr.attrs == FATTR_NONE) { populate_file_attrs(fullpath, &attr); }
 
         if (fattr_is_dir(&attr)) {
-            if (dir_walk_depth_first(fullpath, callback, data) != 0) {
+            if (dir_walk_depth_first_helper(fullpath, callback, data, depth + 1) != 0) {
                 status = -1;
                 break;
             }
@@ -468,6 +442,23 @@ int dir_walk_depth_first(const char* path, WalkDirCallback callback, void* data)
     return status;
 }
 
+/**
+ * Recursively walks a directory tree depth-first (post-order), invoking a callback for each entry.
+ * Files are processed before their containing directories. Useful for operations like deletion
+ * where you need to empty a directory before removing it.
+ * @param path Starting directory path.
+ * @param callback Function to call for each directory entry.
+ * @param data User-provided data passed to callback.
+ * @return 0 on success, -1 on error (errno is set).
+ */
+int dir_walk_depth_first(const char* path, WalkDirCallback callback, void* data) {
+    if (!path || !callback || *path == '\0') {
+        errno = EINVAL;
+        return -1;
+    }
+    return dir_walk_depth_first_helper(path, callback, data, 0);
+}
+
 // Remove a directory, with optional recursive deletion
 // When recursive is true, deletes all files, subdirectories, and symbolic links (POSIX)
 // within path, including empty subdirectories. Does not affect parent directories,
@@ -479,9 +470,7 @@ int dir_remove(const char* path, bool recursive) {
     }
 
     if (recursive) {
-        if (dir_walk_depth_first(path, dir_remove_callback, NULL) != 0) {
-            return -1;
-        };
+        if (dir_walk_depth_first(path, dir_remove_callback, NULL) != 0) { return -1; };
         // fallthrough and remove root directory.
     }
     return delete_single_directory(path);
@@ -512,34 +501,28 @@ char** dir_list(const char* path, size_t* count) {
         return NULL;
     }
 
-    Directory* dir  = NULL;
-    char** list     = NULL;
-    size_t size     = 0;
+    Directory* dir = NULL;
+    char** list = NULL;
+    size_t size = 0;
     size_t capacity = 10;
-    char* name      = NULL;
+    char* name = NULL;
 
     dir = dir_open(path);
     if (!dir) return NULL;
 
     list = (char**)calloc(capacity, sizeof(char*));
-    if (!list) {
-        goto error;
-    }
+    if (!list) { goto error; }
 
     while ((name = dir_next(dir)) != NULL) {
         if (size >= capacity) {
             capacity *= 2;
             char** tmp = (char**)realloc(list, capacity * sizeof(char*));
-            if (!tmp) {
-                goto error;
-            }
+            if (!tmp) { goto error; }
             list = tmp;
         }
 
         list[size] = strdup(name);
-        if (!list[size]) {
-            goto error;
-        }
+        if (!list[size]) { goto error; }
         size++;
     }
 
@@ -566,15 +549,11 @@ void dir_list_with_callback(const char* path, void (*callback)(const char* name)
     if (!path || !callback || *path == '\0') return;
 
     Directory* dir = dir_open(path);
-    if (!dir) {
-        return;
-    }
+    if (!dir) { return; }
 
     char* name = NULL;
     while ((name = dir_next(dir)) != NULL) {
-        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
-            continue;
-        }
+        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) { continue; }
         callback(name);
     }
 
@@ -583,74 +562,54 @@ void dir_list_with_callback(const char* path, void (*callback)(const char* name)
 
 // Check if path is a directory
 bool is_dir(const char* path) {
-    if (!path || *path == '\0') {
-        return false;
-    }
+    if (!path || *path == '\0') { return false; }
 
 #ifdef _WIN32
     DWORD attr = GetFileAttributesA(path);
-    if (attr == INVALID_FILE_ATTRIBUTES) {
-        return false;
-    }
+    if (attr == INVALID_FILE_ATTRIBUTES) { return false; }
     return (attr & FILE_ATTRIBUTE_DIRECTORY) != 0;
 #else
     struct stat st;
-    if (stat(path, &st) != 0) {
-        return false;
-    }
+    if (stat(path, &st) != 0) { return false; }
     return S_ISDIR(st.st_mode);
 #endif
 }
 
 // Check if path is a file
 bool is_file(const char* path) {
-    if (!path || *path == '\0') {
-        return false;
-    }
+    if (!path || *path == '\0') { return false; }
 
 #ifdef _WIN32
     DWORD attr = GetFileAttributesA(path);
-    if (attr == INVALID_FILE_ATTRIBUTES) {
-        return false;
-    }
+    if (attr == INVALID_FILE_ATTRIBUTES) { return false; }
     return (attr & FILE_ATTRIBUTE_DIRECTORY) == 0;
 #else
     struct stat st;
-    if (stat(path, &st) != 0) {
-        return false;
-    }
+    if (stat(path, &st) != 0) { return false; }
     return S_ISREG(st.st_mode);
 #endif
 }
 
 // Check if path is a symbolic link
 bool is_symlink(const char* path) {
-    if (!path || *path == '\0') {
-        return false;
-    }
+    if (!path || *path == '\0') { return false; }
 
 #ifdef _WIN32
     // Windows supports symbolic links since Vista, but we keep original behavior
     return false;
 #else
     struct stat st;
-    if (lstat(path, &st) != 0) {
-        return false;
-    }
+    if (lstat(path, &st) != 0) { return false; }
     return S_ISLNK(st.st_mode);
 #endif
 }
 
 /**
- * Recursively walks a directory tree, invoking a callback for each entry.
- * @param path Starting directory path.
- * @param callback Function to call for each directory entry.
- * @param data User-provided data passed to callback.
- * @return 0 on success, -1 on error (errno is set).
+ * @brief Depth-checked helper for dir_walk.
  */
-int dir_walk(const char* path, WalkDirCallback callback, void* data) {
-    if (!path || !callback || *path == '\0') {
-        errno = EINVAL;
+static int dir_walk_helper(const char* path, WalkDirCallback callback, void* data, int depth) {
+    if (depth > MAX_DIR_DEPTH) {
+        errno = ELOOP;  // Symbolic link loop or too many levels of directories
         return -1;
     }
 
@@ -661,7 +620,6 @@ int dir_walk(const char* path, WalkDirCallback callback, void* data) {
     int status = 0;
 
 #ifdef _WIN32
-    // Windows iteration
     do {
         const wchar_t* wname = dir->find_data.cFileName;
         if (wcscmp(wname, L".") == 0 || wcscmp(wname, L"..") == 0) continue;
@@ -686,14 +644,13 @@ int dir_walk(const char* path, WalkDirCallback callback, void* data) {
         if (opt == DirSkip) continue;
 
         if (fattr_is_dir(&attr)) {
-            if (dir_walk(fullpath, callback, data) != 0) {
+            if (dir_walk_helper(fullpath, callback, data, depth + 1) != 0) {
                 status = -1;
                 break;
             }
         }
     } while (FindNextFileW(dir->handle, &dir->find_data));
 #else
-    // POSIX iteration
     struct dirent* entry;
     while ((entry = readdir(dir->dir)) != NULL) {
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
@@ -704,11 +661,8 @@ int dir_walk(const char* path, WalkDirCallback callback, void* data) {
         }
 
         FileAttributes attr;
-        if (map_dirent_attrs(entry, fullpath, &attr) != 0) {
-            continue;
-        };
+        if (map_dirent_attrs(entry, fullpath, &attr) != 0) { continue; }
 
-        // Fallback for filesystems that don't support d_type (DT_UNKNOWN)
         if (attr.attrs == FATTR_NONE) {
             if (populate_file_attrs(fullpath, &attr) != 0) continue;
         }
@@ -722,7 +676,7 @@ int dir_walk(const char* path, WalkDirCallback callback, void* data) {
         if (opt == DirSkip) continue;
 
         if (fattr_is_dir(&attr)) {
-            if (dir_walk(fullpath, callback, data) != 0) {
+            if (dir_walk_helper(fullpath, callback, data, depth + 1) != 0) {
                 status = -1;
                 break;
             }
@@ -734,15 +688,24 @@ int dir_walk(const char* path, WalkDirCallback callback, void* data) {
     return status;
 }
 
+/**
+ * Recursively walks a directory tree, invoking a callback for each entry.
+ * @param path Starting directory path.
+ * @param callback Function to call for each directory entry.
+ * @param data User-provided data passed to callback.
+ * @return 0 on success, -1 on error (errno is set).
+ */
+int dir_walk(const char* path, WalkDirCallback callback, void* data) {
+    return dir_walk_helper(path, callback, data, 0);
+}
+
 // Callback for directory size calculation
-static inline WalkDirOption dir_size_callback(const FileAttributes* attr, const char* path,
-                                              const char* name, void* data) {
+static inline WalkDirOption dir_size_callback(const FileAttributes* attr, const char* path, const char* name,
+                                              void* data) {
     (void)path;
     (void)name;
 
-    if (!attr || !data) {
-        return DirStop;
-    }
+    if (!attr || !data) { return DirStop; }
 
     if (fattr_is_file(attr)) {
         ssize_t* size = (ssize_t*)data;
@@ -759,9 +722,7 @@ ssize_t dir_size(const char* path) {
     }
 
     ssize_t size = 0;
-    if (dir_walk(path, dir_size_callback, &size) != 0) {
-        return -1;
-    }
+    if (dir_walk(path, dir_size_callback, &size) != 0) { return -1; }
     return size;
 }
 
@@ -788,7 +749,7 @@ bool filepath_makedirs(const char* path) {
         }
 
         char old = *p;
-        *p       = '\0';
+        *p = '\0';
 
         if (*temp_path != '\0') {
             if (dir_create(temp_path) != 0) {
@@ -798,9 +759,7 @@ bool filepath_makedirs(const char* path) {
         }
 
         *p = old;
-        if (*p != '\0') {
-            p++;
-        }
+        if (*p != '\0') { p++; }
     }
 
     free(temp_path);
@@ -830,9 +789,7 @@ char* get_tempdir(void) {
     return temp;
 #else
     const char* temp = GETENV("TMPDIR");
-    if (!temp) {
-        temp = "/tmp";
-    }
+    if (!temp) { temp = "/tmp"; }
     char* result = strdup(temp);
     if (!result) {
         errno = ENOMEM;
@@ -845,9 +802,7 @@ char* get_tempdir(void) {
 // Make a temporary file
 char* make_tempfile(void) {
     char* tmpdir = get_tempdir();
-    if (!tmpdir) {
-        return NULL;
-    }
+    if (!tmpdir) { return NULL; }
 
     char pattern[TEMP_PREF_PREFIX_LEN + 7] = {0};
     random_string(pattern, TEMP_PREF_PREFIX_LEN);
@@ -888,9 +843,7 @@ char* make_tempfile(void) {
 // Make a temporary directory
 char* make_tempdir(void) {
     char* tmpdir = get_tempdir();
-    if (!tmpdir) {
-        return NULL;
-    }
+    if (!tmpdir) { return NULL; }
 
     char pattern[TEMP_PREF_PREFIX_LEN + 7] = {0};
     random_string(pattern, TEMP_PREF_PREFIX_LEN);
@@ -954,9 +907,7 @@ void filepath_basename(const char* path, char* basename, size_t size) {
     }
 
     const char* base = strrchr(path, '/');
-    if (!base) {
-        base = strrchr(path, '\\');
-    }
+    if (!base) { base = strrchr(path, '\\'); }
     base = base ? base + 1 : path;
     safe_strlcpy(basename, base, size);
 }
@@ -969,9 +920,7 @@ void filepath_dirname(const char* path, char* dirname, size_t size) {
     }
 
     const char* base = strrchr(path, '/');
-    if (!base) {
-        base = strrchr(path, '\\');
-    }
+    if (!base) { base = strrchr(path, '\\'); }
     if (!base) {
         dirname[0] = '\0';
     } else {
@@ -1004,7 +953,7 @@ void filepath_nameonly(const char* path, char* name, size_t size) {
     filepath_basename(path, base, BASENAME_MAX);
     char* dot = strrchr(base, '.');
 
-    size_t base_len   = strnlen(base, BASENAME_MAX);
+    size_t base_len = strnlen(base, BASENAME_MAX);
     size_t source_len = dot ? (size_t)(dot - base) : base_len;
 
     // Don't exceed destination size
@@ -1028,9 +977,7 @@ char* filepath_absolute(const char* path) {
     }
 #else
     char* abs = realpath(path, NULL);
-    if (!abs) {
-        return NULL;
-    }
+    if (!abs) { return NULL; }
 #endif
     return abs;
 }
@@ -1084,9 +1031,7 @@ char* filepath_expanduser(const char* path) {
         return NULL;
     }
 
-    if (path[0] != '~') {
-        return strdup(path);
-    }
+    if (path[0] != '~') { return strdup(path); }
 
     const char* home = user_home_dir();
     if (!home) {
@@ -1095,12 +1040,10 @@ char* filepath_expanduser(const char* path) {
     }
 
     size_t pathLen = strlen(path);
-    bool isHome    = pathLen == 1 || (pathLen == 2 && (path[1] == '/' || path[1] == '\\'));
-    if (isHome) {
-        return strdup(home);
-    }
+    bool isHome = pathLen == 1 || (pathLen == 2 && (path[1] == '/' || path[1] == '\\'));
+    if (isHome) { return strdup(home); }
 
-    size_t len     = strlen(home) + pathLen + 1;
+    size_t len = strlen(home) + pathLen + 1;
     char* expanded = (char*)malloc(len);
     if (!expanded) {
         errno = ENOMEM;
@@ -1109,9 +1052,7 @@ char* filepath_expanduser(const char* path) {
 
     const char* suffix = path + 1;
     // Skip leading separator after ~
-    if (*suffix == '/' || *suffix == '\\') {
-        suffix++;
-    }
+    if (*suffix == '/' || *suffix == '\\') { suffix++; }
     snprintf(expanded, len, "%s%c%s", home, PATH_SEP, suffix);
     return expanded;
 }
@@ -1124,9 +1065,7 @@ bool filepath_expanduser_buf(const char* path, char* expanded, size_t len) {
         return false;
     }
 
-    if (path[0] != '~') {
-        return safe_strlcpy(expanded, path, len) < len;
-    }
+    if (path[0] != '~') { return safe_strlcpy(expanded, path, len) < len; }
 
     const char* home = user_home_dir();
     if (!home) {
@@ -1135,10 +1074,8 @@ bool filepath_expanduser_buf(const char* path, char* expanded, size_t len) {
     }
 
     size_t pathLen = strlen(path);
-    bool isHome    = pathLen == 1 || (pathLen == 2 && (path[1] == '/' || path[1] == '\\'));
-    if (isHome) {
-        return safe_strlcpy(expanded, home, len) < len;
-    }
+    bool isHome = pathLen == 1 || (pathLen == 2 && (path[1] == '/' || path[1] == '\\'));
+    if (isHome) { return safe_strlcpy(expanded, home, len) < len; }
 
     size_t homeLen = strlen(home);
     if (homeLen + pathLen + 1 > len) {
@@ -1161,7 +1098,7 @@ char* filepath_join(const char* path1, const char* path2) {
         return NULL;
     }
 
-    size_t len   = strlen(path1) + strlen(path2) + 2;
+    size_t len = strlen(path1) + strlen(path2) + 2;
     char* joined = (char*)malloc(len);
     if (!joined) {
         errno = ENOMEM;
@@ -1186,7 +1123,7 @@ bool filepath_join_buf(const char* path1, const char* path2, char* abspath, size
 #ifdef _WIN32
     // On Windows, decide which separator to use based on what path1 already uses
     const char* sep = strchr(path1, '\\') ? "\\" : "/";
-    int result      = snprintf(abspath, len, "%s%s%s", path1, sep, path2);
+    int result = snprintf(abspath, len, "%s%s%s", path1, sep, path2);
 #else
     int result = snprintf(abspath, len, "%s/%s", path1, path2);
 #endif
@@ -1195,7 +1132,7 @@ bool filepath_join_buf(const char* path1, const char* path2, char* abspath, size
     if (result < 0 || (size_t)result >= len) {
         // Ensure null-termination if truncated (snprintf does this, but good practice to be sure)
         abspath[len - 1] = '\0';
-        errno            = ENAMETOOLONG;
+        errno = ENAMETOOLONG;
         return false;
     }
 
@@ -1211,9 +1148,7 @@ void filepath_split(const char* path, char* dir, char* name, size_t dir_size, si
     }
 
     const char* p = strrchr(path, '/');
-    if (!p) {
-        p = strrchr(path, '\\');
-    }
+    if (!p) { p = strrchr(path, '\\'); }
 
     if (!p) {
         dir[0] = '\0';

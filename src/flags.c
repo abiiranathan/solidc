@@ -1135,8 +1135,11 @@ static struct {
 /**
  * @brief Escape text for use inside Zsh _arguments descriptions.
  *
- * These descriptions are embedded inside single-quoted strings, so
- * apostrophes cannot be escaped with a backslash.
+ * These descriptions are embedded inside single-quoted strings. Apostrophes
+ * are escaped as \' rather than the shell '\'' trick, because _arguments
+ * does its own internal escape-aware re-parsing of [message] content, and
+ * an unescaped quote there breaks that re-parsing even though the outer
+ * shell quoting itself is fine. Other Zsh metacharacters are backslashed.
  */
 static void write_zsh_description(FILE* f, const char* str) {
     if (!f || !str) return;
@@ -1144,18 +1147,21 @@ static void write_zsh_description(FILE* f, const char* str) {
     for (const char* p = str; *p; ++p) {
         switch (*p) {
             case '\'':
-                /* close quote + escaped quote + reopen */
-                fprintf(f, "'\\''");
+                // \' (not '\'') -- see function doc comment.
+                fprintf(f, "\\'\\''");
                 break;
-
             case '[':
-            case ']':
-            case ':':
-            case '\\':
-                fputc('\\', f);
-                fputc(*p, f);
+                fprintf(f, "\\[");
                 break;
-
+            case ']':
+                fprintf(f, "\\]");
+                break;
+            case ':':
+                fprintf(f, "\\:");
+                break;
+            case '\\':
+                fprintf(f, "\\\\");
+                break;
             default:
                 fputc(*p, f);
                 break;
@@ -1164,38 +1170,48 @@ static void write_zsh_description(FILE* f, const char* str) {
 }
 
 /**
- * @brief Helper to write safe shell strings with proper escaping
- * @param f File to write to
- * @param str String to escape and write
- * @param quote_style 0=no quotes, 1=single quotes, 2=double quotes
+ * @brief Escape text for use inside Zsh subcommand lists ((name\:description)).
+ *
+ * Escapes single quotes, colons, spaces, parenthesis, and brackets in a
+ * single-quoted Zsh string context. Single quotes use the same \' escaping
+ * as write_zsh_description, for the same reason: _arguments re-parses the
+ * ((value\:desc ...)) list internally.
  */
-static void write_safe_str(FILE* f, const char* str, int quote_style) {
-    if (!str || !f) return;
+static void write_zsh_cmd_desc(FILE* f, const char* str) {
+    if (!f || !str) return;
 
-    if (quote_style == 1) fputc('\'', f);
-    if (quote_style == 2) fputc('"', f);
-
-    for (const char* p = str; *p; p++) {
-        if (quote_style == 1 && *p == '\'') {
-            // Escape single quote in single-quoted string: close, escaped quote, reopen
-            fprintf(f, "'\\''");
-        } else if (quote_style == 2 && (*p == '"' || *p == '\\' || *p == '$' || *p == '`')) {
-            // Escape special chars in double-quoted string
-            fputc('\\', f);
-            fputc(*p, f);
-        } else if (quote_style == 0 && (*p == ' ' || *p == '\t' || *p == '\n' || *p == '|' || *p == '&' || *p == ';' ||
-                                        *p == '<' || *p == '>' || *p == '(' || *p == ')' || *p == '$' || *p == '`' ||
-                                        *p == '\\' || *p == '"' || *p == '\'' || *p == '*' || *p == '?')) {
-            // Escape special shell chars when not quoted
-            fputc('\\', f);
-            fputc(*p, f);
-        } else {
-            fputc(*p, f);
+    for (const char* p = str; *p; ++p) {
+        switch (*p) {
+            case '\'':
+                fprintf(f, "\\'\\''");
+                break;
+            case ' ':
+            case '\t':
+                fprintf(f, "\\ ");
+                break;
+            case ':':
+                fprintf(f, "\\:");
+                break;
+            case '[':
+                fprintf(f, "\\[");
+                break;
+            case ']':
+                fprintf(f, "\\]");
+                break;
+            case '(':
+                fprintf(f, "\\(");
+                break;
+            case ')':
+                fprintf(f, "\\)");
+                break;
+            case '\\':
+                fprintf(f, "\\\\");
+                break;
+            default:
+                fputc(*p, f);
+                break;
         }
     }
-
-    if (quote_style == 1) fputc('\'', f);
-    if (quote_style == 2) fputc('"', f);
 }
 
 /**
@@ -1213,6 +1229,58 @@ static void write_shell_identifier(FILE* f, const char* str) {
         } else {
             fputc('_', f);
         }
+    }
+}
+
+/**
+ * @brief Write a name for use inside a Bash case-statement pattern.
+ *
+ * Bash case patterns are unquoted glob text. Backslash-escape glob/shell
+ * metacharacters so the name matches itself literally instead of being
+ * interpreted as a pattern or breaking the case syntax.
+ */
+static void write_bash_pattern(FILE* f, const char* str) {
+    if (!f || !str) return;
+
+    for (const char* p = str; *p; ++p) {
+        switch (*p) {
+            case '*':
+            case '?':
+            case '[':
+            case ']':
+            case '(':
+            case ')':
+            case '|':
+            case '$':
+            case '`':
+            case '\\':
+            case '"':
+            case '\'':
+            case ' ':
+            case '\t':
+                fputc('\\', f);
+                fputc(*p, f);
+                break;
+            default:
+                fputc(*p, f);
+                break;
+        }
+    }
+}
+
+/**
+ * @brief Write a name for use inside a Bash double-quoted string, e.g.
+ * local flags="--name --name2".
+ *
+ * Only '"', '\', '$', and '`' are special inside Bash double quotes;
+ * nothing else needs (or should get) a backslash here.
+ */
+static void write_bash_dq(FILE* f, const char* str) {
+    if (!f || !str) return;
+
+    for (const char* p = str; *p; ++p) {
+        if (*p == '"' || *p == '\\' || *p == '$' || *p == '`') { fputc('\\', f); }
+        fputc(*p, f);
     }
 }
 
@@ -1236,7 +1304,7 @@ static void write_bash_subcommand_cases(FILE* f, FlagParser* p, const char* pref
     // Write case for this command (skip root as it's handled separately)
     if (p != _comp_ctx.root && (p->flag_count > 0 || p->cmd_count > 0)) {
         fprintf(f, "        ");
-        write_safe_str(f, p->name, 0);
+        write_bash_pattern(f, p->name);
         fprintf(f, ")\n");
 
         // Handle flags that need arguments
@@ -1246,7 +1314,7 @@ static void write_bash_subcommand_cases(FILE* f, FlagParser* p, const char* pref
                 Flag* flag = &p->flags[i];
                 if (flag->type != TYPE_BOOL) {
                     fprintf(f, "                --");
-                    write_safe_str(f, flag->name, 0);
+                    write_bash_pattern(f, flag->name);
                     if (flag->short_name && isprint(flag->short_name)) {
                         fprintf(f, "|-");
                         fputc(flag->short_name, f);
@@ -1278,7 +1346,7 @@ static void write_bash_subcommand_cases(FILE* f, FlagParser* p, const char* pref
         fprintf(f, "            local flags=\"");
         for (size_t i = 0; i < p->flag_count; i++) {
             fprintf(f, "--");
-            write_safe_str(f, p->flags[i].name, 0);
+            write_bash_dq(f, p->flags[i].name);
             fprintf(f, " ");
         }
         fprintf(f, "\"\n");
@@ -1286,7 +1354,7 @@ static void write_bash_subcommand_cases(FILE* f, FlagParser* p, const char* pref
         if (p->cmd_count > 0) {
             fprintf(f, "            local subcommands=\"");
             for (size_t i = 0; i < p->cmd_count; i++) {
-                write_safe_str(f, p->subcommands[i]->name, 0);
+                write_bash_dq(f, p->subcommands[i]->name);
                 fprintf(f, " ");
             }
             fprintf(f, "\"\n");
@@ -1313,7 +1381,7 @@ static void write_bash_subcommand_cases(FILE* f, FlagParser* p, const char* pref
 static void write_bash_all_subcommands_list(FILE* f, FlagParser* p) {
     if (!p) return;
     for (size_t i = 0; i < p->cmd_count; i++) {
-        write_safe_str(f, p->subcommands[i]->name, 0);
+        write_bash_dq(f, p->subcommands[i]->name);
         fprintf(f, " ");
         write_bash_all_subcommands_list(f, p->subcommands[i]);
     }
@@ -1341,7 +1409,7 @@ static void gen_bash_completion(FlagParser* fp, FILE* f) {
     if (fp->flag_count > 0) {
         for (size_t i = 0; i < fp->flag_count; i++) {
             fprintf(f, "--");
-            write_safe_str(f, fp->flags[i].name, 0);
+            write_bash_dq(f, fp->flags[i].name);
             fprintf(f, " ");
         }
     }
@@ -1359,7 +1427,7 @@ static void gen_bash_completion(FlagParser* fp, FILE* f) {
         Flag* flag = &fp->flags[i];
         if (flag->type != TYPE_BOOL) {
             fprintf(f, "        --");
-            write_safe_str(f, flag->name, 0);
+            write_bash_pattern(f, flag->name);
             if (flag->short_name && isprint(flag->short_name)) {
                 fprintf(f, "|-");
                 fputc(flag->short_name, f);
@@ -1398,7 +1466,7 @@ static void gen_bash_completion(FlagParser* fp, FILE* f) {
     if (fp->cmd_count > 0) {
         fprintf(f, "        local top_level_subs=\"");
         for (size_t i = 0; i < fp->cmd_count; i++) {
-            write_safe_str(f, fp->subcommands[i]->name, 0);
+            write_bash_dq(f, fp->subcommands[i]->name);
             fprintf(f, " ");
         }
         fprintf(f, "\"\n");
@@ -1428,7 +1496,7 @@ static void gen_bash_completion(FlagParser* fp, FILE* f) {
     fprintf(f, "complete -F _");
     write_shell_identifier(f, bin_name);
     fprintf(f, "_completion ");
-    write_safe_str(f, bin_name, 0);
+    write_bash_pattern(f, bin_name);
     fprintf(f, "\n");
 }
 
@@ -1447,15 +1515,15 @@ static void write_zsh_args(FILE* f, FlagParser* p, int indent) {
             fprintf(f, "    ");
 
         if (flag->type == TYPE_BOOL) {
+            /*
+             * Boolean spec form: '--flag[description]'
+             * Single-quoted so we do not have to worry about shell expansions of $, `, etc.
+             */
             fprintf(f, "'--");
-            write_safe_str(f, flag->name, 0);
-
+            write_zsh_description(f, flag->name);
             fprintf(f, "[");
-
             if (flag->description) write_zsh_description(f, flag->description);
-
             fprintf(f, "]'");
-
         } else {
             const char* arg_type = "value";
 
@@ -1463,14 +1531,10 @@ static void write_zsh_args(FILE* f, FlagParser* p, int indent) {
                 case TYPE_STRING:
                     arg_type = "file";
                     break;
-
                 case TYPE_INT8:
                 case TYPE_INT16:
                 case TYPE_INT32:
                 case TYPE_INT64:
-                    arg_type = "integer";
-                    break;
-
                 case TYPE_UINT8:
                 case TYPE_UINT16:
                 case TYPE_UINT32:
@@ -1478,29 +1542,26 @@ static void write_zsh_args(FILE* f, FlagParser* p, int indent) {
                 case TYPE_SIZE_T:
                     arg_type = "integer";
                     break;
-
                 case TYPE_FLOAT:
                 case TYPE_DOUBLE:
                     arg_type = "number";
                     break;
-
                 default:
                     break;
             }
 
+            /*
+             * Value spec form: '--flag[description]:metavar:action'
+             * Single-quoted for robustness.
+             */
             fprintf(f, "'--");
-            write_safe_str(f, flag->name, 0);
-
+            write_zsh_description(f, flag->name);
             fprintf(f, "[");
-
             if (flag->description) write_zsh_description(f, flag->description);
-
-            fprintf(f, "]:");
-
             if (flag->type == TYPE_STRING)
-                fprintf(f, ":_files'");
+                fprintf(f, "]:file:_files'");
             else
-                fprintf(f, ":%s:'", arg_type);
+                fprintf(f, "]:%s:'", arg_type);
         }
 
         fprintf(f, " \\\n");
@@ -1518,7 +1579,7 @@ static void write_zsh_subcommand_cases(FILE* f, FlagParser* p, int depth) {
 
         for (int j = 0; j < depth; j++)
             fprintf(f, "    ");
-        write_safe_str(f, sub->name, 0);
+        write_zsh_description(f, sub->name);
         fprintf(f, ")\n");
 
         for (int j = 0; j < depth; j++)
@@ -1535,9 +1596,9 @@ static void write_zsh_subcommand_cases(FILE* f, FlagParser* p, int depth) {
             fprintf(f, "'1:command:((");
             for (size_t k = 0; k < sub->cmd_count; k++) {
                 if (k > 0) fprintf(f, " ");
-                write_safe_str(f, sub->subcommands[k]->name, 0);
+                write_zsh_description(f, sub->subcommands[k]->name);
                 fprintf(f, "\\:");
-                if (sub->subcommands[k]->description) { write_safe_str(f, sub->subcommands[k]->description, 0); }
+                if (sub->subcommands[k]->description) { write_zsh_cmd_desc(f, sub->subcommands[k]->description); }
             }
             fprintf(f, "))' \\\n");
 
@@ -1590,7 +1651,7 @@ static void gen_zsh_completion(FlagParser* fp, FILE* f) {
     char* bin_name = fp->name;
 
     fprintf(f, "#compdef ");
-    write_safe_str(f, bin_name, 0);
+    write_zsh_description(f, bin_name);
     fprintf(f, "\n");
     fprintf(f, "# Generated by flags.c completion generator\n\n");
 
@@ -1615,9 +1676,9 @@ static void gen_zsh_completion(FlagParser* fp, FILE* f) {
         fprintf(f, "        '1:command:((");
         for (size_t i = 0; i < fp->cmd_count; i++) {
             if (i > 0) fprintf(f, " ");
-            write_safe_str(f, fp->subcommands[i]->name, 0);
+            write_zsh_description(f, fp->subcommands[i]->name);
             fprintf(f, "\\:");
-            if (fp->subcommands[i]->description) { write_zsh_description(f, fp->subcommands[i]->description); }
+            if (fp->subcommands[i]->description) { write_zsh_cmd_desc(f, fp->subcommands[i]->description); }
         }
         fprintf(f, "))' \\\n");
         fprintf(f, "        '*::arg:->args' \\\n");
@@ -1645,7 +1706,7 @@ static void gen_zsh_completion(FlagParser* fp, FILE* f) {
     fprintf(f, "compdef _");
     write_shell_identifier(f, bin_name);
     fprintf(f, " ");
-    write_safe_str(f, bin_name, 0);
+    write_zsh_description(f, bin_name);
     fprintf(f, "\n");
 }
 
