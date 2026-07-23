@@ -664,7 +664,7 @@ int main(void) {
     test_input_validation();
     test_concurrent_access();
 
-     test_ttl_expiration();
+    test_ttl_expiration();
     test_default_ttl();
     test_inline_slab_boundary();
     test_inline_to_slab_transition();

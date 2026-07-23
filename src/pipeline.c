@@ -36,14 +36,14 @@ CommandNode* create_command_node(char** args) {
  * command.
  */
 void execute_pipeline(CommandNode* head, int output_fd) {
-    int pipefd[2]          = {0};
+    int pipefd[2] = {0};
     int prev_pipe_read_end = -1;
-    CommandNode* current   = head;
-    STARTUPINFO si         = {0};
+    CommandNode* current = head;
+    STARTUPINFO si = {0};
     PROCESS_INFORMATION pi = {0};
-    HANDLE* proc_handles   = NULL;
-    DWORD proc_count       = 0;
-    DWORD command_count    = 0;
+    HANDLE* proc_handles = NULL;
+    DWORD proc_count = 0;
+    DWORD command_count = 0;
 
     // Count commands first to allocate handles array
     CommandNode* count_node = head;
@@ -69,7 +69,7 @@ void execute_pipeline(CommandNode* head, int output_fd) {
 
         // Prepare the command string
         char command[1024] = "";
-        int i              = 0;
+        int i = 0;
         while (current->args[i] != NULL) {
             // Add quotes if the argument contains spaces
             if (strchr(current->args[i], ' ') != NULL) {
@@ -85,18 +85,16 @@ void execute_pipeline(CommandNode* head, int output_fd) {
 
         // Initialize STARTUPINFO
         ZeroMemory(&si, sizeof(si));
-        si.cb      = sizeof(si);
+        si.cb = sizeof(si);
         si.dwFlags = STARTF_USESTDHANDLES;
 
         // Set standard handles
-        si.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
+        si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
         si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-        si.hStdError  = GetStdHandle(STD_ERROR_HANDLE);
+        si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
 
         // Redirect input from previous pipe if any
-        if (prev_pipe_read_end != -1) {
-            si.hStdInput = (HANDLE)_get_osfhandle(prev_pipe_read_end);
-        }
+        if (prev_pipe_read_end != -1) { si.hStdInput = (HANDLE)_get_osfhandle(prev_pipe_read_end); }
 
         // Redirect output to next pipe or specified file descriptor
         if (current->next != NULL) {
@@ -129,14 +127,10 @@ void execute_pipeline(CommandNode* head, int output_fd) {
         CloseHandle(pi.hThread);
 
         // Close write end of pipe
-        if (current->next != NULL) {
-            close(pipefd[1]);
-        }
+        if (current->next != NULL) { close(pipefd[1]); }
 
         // Close read end of previous pipe
-        if (prev_pipe_read_end != -1) {
-            close(prev_pipe_read_end);
-        }
+        if (prev_pipe_read_end != -1) { close(prev_pipe_read_end); }
 
         // Save read end for next command
         prev_pipe_read_end = pipefd[0];
@@ -165,7 +159,7 @@ void execute_pipeline(CommandNode* head, int output_fd) {
 void execute_pipeline(CommandNode* head, int output_fd) {
     int pipefd[2];
     int prev_pipe_read_end = -1;
-    CommandNode* current   = head;
+    CommandNode* current = head;
 
     while (current != NULL) {
         // Create a pipe if there's a next command
@@ -206,14 +200,10 @@ void execute_pipeline(CommandNode* head, int output_fd) {
             exit(EXIT_FAILURE);
         } else {  // Parent process
             // Close the write end of the current pipe (if any)
-            if (current->next != NULL) {
-                close(pipefd[1]);
-            }
+            if (current->next != NULL) { close(pipefd[1]); }
 
             // Close the read end of the previous pipe (if any)
-            if (prev_pipe_read_end != -1) {
-                close(prev_pipe_read_end);
-            }
+            if (prev_pipe_read_end != -1) { close(prev_pipe_read_end); }
 
             // Save the read end of the current pipe for the next command
             prev_pipe_read_end = pipefd[0];

@@ -42,21 +42,21 @@ extern "C" {
  * @brief Error codes for process operations
  */
 typedef enum {
-    PROCESS_SUCCESS                 = 0,
-    PROCESS_ERROR_INVALID_ARGUMENT  = -1,
-    PROCESS_ERROR_FORK_FAILED       = -2,
-    PROCESS_ERROR_EXEC_FAILED       = -3,
-    PROCESS_ERROR_PIPE_FAILED       = -4,
-    PROCESS_ERROR_MEMORY            = -5,
-    PROCESS_ERROR_WAIT_FAILED       = -6,
-    PROCESS_ERROR_KILL_FAILED       = -7,
+    PROCESS_SUCCESS = 0,
+    PROCESS_ERROR_INVALID_ARGUMENT = -1,
+    PROCESS_ERROR_FORK_FAILED = -2,
+    PROCESS_ERROR_EXEC_FAILED = -3,
+    PROCESS_ERROR_PIPE_FAILED = -4,
+    PROCESS_ERROR_MEMORY = -5,
+    PROCESS_ERROR_WAIT_FAILED = -6,
+    PROCESS_ERROR_KILL_FAILED = -7,
     PROCESS_ERROR_PERMISSION_DENIED = -8,
-    PROCESS_ERROR_IO                = -9,
-    PROCESS_ERROR_TIMEOUT           = -10,  // Operation timed out
-    PROCESS_ERROR_WOULD_BLOCK       = -11,  // Non-blocking operation would block
-    PROCESS_ERROR_PIPE_CLOSED       = -12,  // Pipe end was closed
-    PROCESS_ERROR_TERMINATE_FAILED  = -13,
-    PROCESS_ERROR_UNKNOWN           = -14
+    PROCESS_ERROR_IO = -9,
+    PROCESS_ERROR_TIMEOUT = -10,      // Operation timed out
+    PROCESS_ERROR_WOULD_BLOCK = -11,  // Non-blocking operation would block
+    PROCESS_ERROR_PIPE_CLOSED = -12,  // Pipe end was closed
+    PROCESS_ERROR_TERMINATE_FAILED = -13,
+    PROCESS_ERROR_UNKNOWN = -14
 } ProcessError;
 
 #ifdef _WIN32
@@ -68,11 +68,7 @@ typedef int PipeFd;  // Pipe file descriptor.
 /**
  * @brief Standard IO stream types for redirection
  */
-typedef enum {
-    PROCESS_STREAM_STDIN  = 0,
-    PROCESS_STREAM_STDOUT = 1,
-    PROCESS_STREAM_STDERR = 2
-} ProcessStream;
+typedef enum { PROCESS_STREAM_STDIN = 0, PROCESS_STREAM_STDOUT = 1, PROCESS_STREAM_STDERR = 2 } ProcessStream;
 
 /**
  * @brief Process handle type (platform-specific details hidden in
@@ -230,8 +226,7 @@ ProcessError pipe_set_nonblocking(PipeHandle* pipe, bool nonblocking);
  * @param[in] timeout_ms Timeout in milliseconds (-1 = wait indefinitely)
  * @return PROCESS_SUCCESS on success, error code otherwise
  */
-ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* bytes_read,
-                       int timeout_ms);
+ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* bytes_read, int timeout_ms);
 
 /**
  * @brief Write data to a pipe
@@ -244,8 +239,7 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
  * @param[in] timeout_ms Timeout in milliseconds (-1 = wait indefinitely)
  * @return PROCESS_SUCCESS on success, error code otherwise
  */
-ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_t* bytes_written,
-                        int timeout_ms);
+ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_t* bytes_written, int timeout_ms);
 
 /**
  * @brief Close a pipe
@@ -276,8 +270,8 @@ const char* process_error_string(ProcessError error);
  * @param[out] exit_code Pointer to receive the exit code (can be NULL)
  * @return PROCESS_SUCCESS on success, error code otherwise
  */
-ProcessError process_run_and_capture(const char* command, const char* const argv[],
-                                     ProcessOptions* options, int* exit_code);
+ProcessError process_run_and_capture(const char* command, const char* const argv[], ProcessOptions* options,
+                                     int* exit_code);
 
 #ifndef _WIN32
 /**
@@ -289,8 +283,8 @@ ProcessError process_run_and_capture(const char* command, const char* const argv
  * @param[in] mode File mode for creation (if O_CREAT is used)
  * @return ProcessError
  */
-ProcessError process_redirect_to_file(FileRedirection** redirection, const char* filepath,
-                                      int flags, unsigned int mode);
+ProcessError process_redirect_to_file(FileRedirection** redirection, const char* filepath, int flags,
+                                      unsigned int mode);
 
 /**
  * @brief Create a file redirection from an existing file descriptor
@@ -325,8 +319,8 @@ void process_close_redirection(FileRedirection* redirection);
  * (NULL-terminated)
  * @return ProcessError
  */
-ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd,
-                                          const char* args[], int output_fds[], int error_fds[]);
+ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd, const char* args[], int output_fds[],
+                                          int error_fds[]);
 
 /**
  * @brief Create a process with extended redirection options
@@ -337,8 +331,7 @@ ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd
  * @param[in] options Process options with extended IO
  * @return ProcessError
  */
-ProcessError process_create_with_redirection(ProcessHandle** handle, const char* command,
-                                             const char* const argv[],
+ProcessError process_create_with_redirection(ProcessHandle** handle, const char* command, const char* const argv[],
                                              const ExtProcessOptions* options);
 
 /**
@@ -353,9 +346,8 @@ ProcessError process_create_with_redirection(ProcessHandle** handle, const char*
  * @param[in] append Whether to append to files (true) or overwrite (false)
  * @return ProcessError
  */
-ProcessError process_run_with_file_redirection(ProcessHandle** handle, const char* command,
-                                               const char* const argv[], const char* stdout_file,
-                                               const char* stderr_file, bool append);
+ProcessError process_run_with_file_redirection(ProcessHandle** handle, const char* command, const char* const argv[],
+                                               const char* stdout_file, const char* stderr_file, bool append);
 
 #endif  // Linux only
 

@@ -35,8 +35,8 @@ list_t* list_new(size_t elem_size) {
     list_t* list = (list_t*)malloc(sizeof(list_t));
     if (!list) return NULL;
     list->head = list->tail = NULL;
-    list->size              = 0;
-    list->elem_size         = elem_size;
+    list->size = 0;
+    list->elem_size = elem_size;
     return list;
 }
 
@@ -55,7 +55,7 @@ void list_clear(list_t* list) {
         cur = next;
     }
     list->head = list->tail = NULL;
-    list->size              = 0;
+    list->size = 0;
 }
 
 size_t list_size(const list_t* list) {
@@ -70,9 +70,9 @@ void list_push_back(list_t* list, void* elem) {
     if (!list->tail) {
         list->head = list->tail = node;
     } else {
-        node->prev       = list->tail;
+        node->prev = list->tail;
         list->tail->next = node;
-        list->tail       = node;
+        list->tail = node;
     }
     list->size++;
 }
@@ -80,7 +80,7 @@ void list_push_back(list_t* list, void* elem) {
 void list_pop_back(list_t* list) {
     if (!list || !list->tail) return;
     list_node_t* n = list->tail;
-    list->tail     = n->prev;
+    list->tail = n->prev;
     if (list->tail)
         list->tail->next = NULL;
     else
@@ -97,9 +97,9 @@ void list_push_front(list_t* list, void* elem) {
     if (!list->head) {
         list->head = list->tail = node;
     } else {
-        node->next       = list->head;
+        node->next = list->head;
         list->head->prev = node;
-        list->head       = node;
+        list->head = node;
     }
     list->size++;
 }
@@ -107,7 +107,7 @@ void list_push_front(list_t* list, void* elem) {
 void list_pop_front(list_t* list) {
     if (!list || !list->head) return;
     list_node_t* n = list->head;
-    list->head     = n->next;
+    list->head = n->next;
     if (list->head)
         list->head->prev = NULL;
     else
@@ -127,7 +127,7 @@ void* list_get(const list_t* list, size_t index) {
 int list_index_of(const list_t* list, void* elem) {
     if (!list) return -1;
     list_node_t* cur = list->head;
-    int idx          = 0;
+    int idx = 0;
     while (cur) {
         if (memcmp(cur->data, elem, list->elem_size) == 0) return idx;
         cur = cur->next;

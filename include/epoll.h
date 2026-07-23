@@ -94,8 +94,8 @@ static inline int epoll_create(int size) {
  */
 static inline int epoll_ctl(int epfd, int op, int fd, struct epoll_event* event) {
     struct kevent kev[2];
-    int nchanges    = 0;
-    int flags_read  = 0;
+    int nchanges = 0;
+    int flags_read = 0;
     int flags_write = 0;
 
     /* Default kqueue flags */
@@ -114,13 +114,9 @@ static inline int epoll_ctl(int epfd, int op, int fd, struct epoll_event* event)
     }
 
     /* Handle Edge Triggering */
-    if (event && (event->events & EPOLLET)) {
-        k_flags |= EV_CLEAR;
-    }
+    if (event && (event->events & EPOLLET)) { k_flags |= EV_CLEAR; }
     /* Handle One Shot */
-    if (event && (event->events & EPOLLONESHOT)) {
-        k_flags |= EV_ONESHOT;
-    }
+    if (event && (event->events & EPOLLONESHOT)) { k_flags |= EV_ONESHOT; }
 
     /* Prepare READ filter */
     if (op == EPOLL_CTL_DEL || (event && (event->events & (EPOLLIN | EPOLLPRI | EPOLLRDHUP)))) {
@@ -172,9 +168,9 @@ static inline int epoll_wait(int epfd, struct epoll_event* events, int maxevents
     struct timespec* ts_ptr = NULL;
 
     if (timeout_ms >= 0) {
-        ts.tv_sec  = timeout_ms / 1000;
+        ts.tv_sec = timeout_ms / 1000;
         ts.tv_nsec = (timeout_ms % 1000) * 1000000;
-        ts_ptr     = &ts;
+        ts_ptr = &ts;
     }
 
     /*
@@ -203,14 +199,10 @@ static inline int epoll_wait(int epfd, struct epoll_event* events, int maxevents
                 ev_flags |= EPOLLOUT;
             }
 
-            if (k_events[i].flags & EV_ERROR) {
-                ev_flags |= EPOLLERR;
-            }
-            if (k_events[i].flags & EV_EOF) {
-                ev_flags |= EPOLLHUP;
-            }
+            if (k_events[i].flags & EV_ERROR) { ev_flags |= EPOLLERR; }
+            if (k_events[i].flags & EV_EOF) { ev_flags |= EPOLLHUP; }
 
-            events[i].events   = ev_flags;
+            events[i].events = ev_flags;
             events[i].data.ptr = k_events[i].udata;
         }
     }
@@ -237,9 +229,7 @@ static inline int epoll_wait(int epfd, struct epoll_event* events, int maxevents
  */
 static inline int set_nonblocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1) {
-        return -1;
-    }
+    if (flags == -1) { return -1; }
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
@@ -270,9 +260,9 @@ static inline int create_listen_socket(uint16_t port) {
     }
 
     struct sockaddr_in addr = {0};
-    addr.sin_family         = AF_INET;
-    addr.sin_addr.s_addr    = INADDR_ANY;
-    addr.sin_port           = htons(port);
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_port = htons(port);
 
     if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
         perror("bind");

@@ -168,9 +168,7 @@ typedef union ALIGN(16) SimdVec4 {
  * @param name Optional name to display (can be NULL)
  */
 static inline void vec2_print(const Vec2 v, const char* name) {
-    if (name) {
-        printf("%s: ", name);
-    }
+    if (name) { printf("%s: ", name); }
     printf("Vec2(%f, %f)\n", v.x, v.y);
 }
 
@@ -180,9 +178,7 @@ static inline void vec2_print(const Vec2 v, const char* name) {
  * @param name Optional name to display (can be NULL)
  */
 static inline void vec3_print(const Vec3 v, const char* name) {
-    if (name) {
-        printf("%s: ", name);
-    }
+    if (name) { printf("%s: ", name); }
     printf("Vec3(%.4f, %.4f, %.4f)\n", v.x, v.y, v.z);
 }
 
@@ -192,9 +188,7 @@ static inline void vec3_print(const Vec3 v, const char* name) {
  * @param name Optional name to display (can be NULL)
  */
 static inline void vec3_print_ex(const Vec3 v, const char* name) {
-    if (name) {
-        printf("%s: ", name);
-    }
+    if (name) { printf("%s: ", name); }
     printf("Vec3(%f, %f, %f)\n", v.x, v.y, v.z);
 }
 
@@ -204,9 +198,7 @@ static inline void vec3_print_ex(const Vec3 v, const char* name) {
  * @param name Optional name to display (can be NULL)
  */
 static inline void vec4_print(const Vec4 v, const char* name) {
-    if (name) {
-        printf("%s: ", name);
-    }
+    if (name) { printf("%s: ", name); }
     printf("Vec4(%.4f, %.4f, %.4f, %.4f)\n", v.x, v.y, v.z, v.w);
 }
 
@@ -871,9 +863,7 @@ static inline SimdVec4 vec4_mul(SimdVec4 a, float s) {
  */
 static inline SimdVec4 vec4_div(SimdVec4 a, float s) {
     // Check against a small epsilon to avoid Division by Zero
-    if (fabsf(s) < 1e-8f) {
-        return (SimdVec4){.v = simd_set_zero()};
-    }
+    if (fabsf(s) < 1e-8f) { return (SimdVec4){.v = simd_set_zero()}; }
 
     // Multiplication by reciprocal is faster than division
     return vec4_mul(a, 1.0f / s);

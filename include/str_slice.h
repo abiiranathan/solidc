@@ -23,12 +23,12 @@ typedef struct {
 
 // Typed result — never use errno for slice ops.
 typedef enum {
-    SS_OK        = 0,
-    SS_NULL      = 1,  // null data pointer
-    SS_BOUNDS    = 2,  // out-of-range indices
+    SS_OK = 0,
+    SS_NULL = 1,       // null data pointer
+    SS_BOUNDS = 2,     // out-of-range indices
     SS_NOT_FOUND = 3,  // substring not found
-    SS_OVERFLOW  = 4,  // value exceeds the target type's range
-    SS_INVALID   = 5,  // malformed input (e.g. "1.2.3", bare "e", "maybe")
+    SS_OVERFLOW = 4,   // value exceeds the target type's range
+    SS_INVALID = 5,    // malformed input (e.g. "1.2.3", bare "e", "maybe")
 } StrSliceErr;
 
 // ─── Construction ─────────────────────────────────────────────────────────────
@@ -270,10 +270,10 @@ static inline StrSliceErr ss_to_double(StrSlice s, double* out) {
     }
 
     uint64_t mantissa = 0;
-    int dec_shift     = 0;  // net decimal places (positive = divide)
-    bool seen_dot     = false;
-    bool has_digits   = false;
-    bool saturated    = false;  // mantissa too wide; extra digits are dropped
+    int dec_shift = 0;  // net decimal places (positive = divide)
+    bool seen_dot = false;
+    bool has_digits = false;
+    bool saturated = false;  // mantissa too wide; extra digits are dropped
 
     for (; i < s.len; ++i) {
         char c = s.data[i];
@@ -343,7 +343,7 @@ static inline StrSliceErr ss_to_double(StrSlice s, double* out) {
                 str *= 10.0;
             str;
         });
-        result       = (total_exp < 0) ? result / scale : result * scale;
+        result = (total_exp < 0) ? result / scale : result * scale;
     }
 
     *out = neg ? -result : result;
@@ -362,14 +362,14 @@ static inline StrSliceErr ss_to_double(StrSlice s, double* out) {
 static inline StrSliceErr ss_to_bool(StrSlice s, bool* out) {
     if (!out) return SS_NULL;
 
-    if (ss_equal_nocase(s, SS_LIT("true")) || ss_equal_nocase(s, SS_LIT("yes")) ||
-        ss_equal_nocase(s, SS_LIT("on")) || ss_equal(s, SS_LIT("1"))) {
+    if (ss_equal_nocase(s, SS_LIT("true")) || ss_equal_nocase(s, SS_LIT("yes")) || ss_equal_nocase(s, SS_LIT("on")) ||
+        ss_equal(s, SS_LIT("1"))) {
         *out = true;
         return SS_OK;
     }
 
-    if (ss_equal_nocase(s, SS_LIT("false")) || ss_equal_nocase(s, SS_LIT("no")) ||
-        ss_equal_nocase(s, SS_LIT("off")) || ss_equal(s, SS_LIT("0"))) {
+    if (ss_equal_nocase(s, SS_LIT("false")) || ss_equal_nocase(s, SS_LIT("no")) || ss_equal_nocase(s, SS_LIT("off")) ||
+        ss_equal(s, SS_LIT("0"))) {
         *out = false;
         return SS_OK;
     }

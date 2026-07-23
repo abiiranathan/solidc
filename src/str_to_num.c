@@ -13,32 +13,24 @@
 
 /** Internal helper for validating string input and performing base conversion. */
 static inline StoError validate_and_parse_signed(const char* str, int base, intmax_t* result) {
-    if (str == NULL || result == NULL) {
-        return STO_INVALID;
-    }
+    if (str == NULL || result == NULL) { return STO_INVALID; }
 
     char* endptr = NULL;
-    errno        = 0;
-    *result      = strtoimax(str, &endptr, base);
+    errno = 0;
+    *result = strtoimax(str, &endptr, base);
 
     // Check for standard ERANGE (overflow of intmax_t)
-    if (errno == ERANGE) {
-        return STO_OVERFLOW;
-    }
+    if (errno == ERANGE) { return STO_OVERFLOW; }
 
     // Check for invalid input (no conversion or partial conversion)
-    if (endptr == str || *endptr != '\0') {
-        return STO_INVALID;
-    }
+    if (endptr == str || *endptr != '\0') { return STO_INVALID; }
 
     return STO_SUCCESS;
 }
 
 /** Internal helper for validating string input and performing base conversion (unsigned). */
 static inline StoError validate_and_parse_unsigned(const char* str, int base, uintmax_t* result) {
-    if (str == NULL || result == NULL) {
-        return STO_INVALID;
-    }
+    if (str == NULL || result == NULL) { return STO_INVALID; }
 
     // Skip whitespace to correctly find the sign
     const char* p = str;
@@ -49,23 +41,17 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
     // Check for negative input manually.
     // Standard strtoumax wraps negative numbers (e.g. "-1" -> UINTMAX_MAX).
     // For a strict "string to unsigned" conversion, negative input is an underflow.
-    if (*p == '-') {
-        return STO_UNDERFLOW;
-    }
+    if (*p == '-') { return STO_UNDERFLOW; }
 
     char* endptr = NULL;
-    errno        = 0;
-    *result      = strtoumax(str, &endptr, base);
+    errno = 0;
+    *result = strtoumax(str, &endptr, base);
 
     // Check for standard conversion errors (overflow of uintmax_t)
-    if (errno == ERANGE) {
-        return STO_OVERFLOW;
-    }
+    if (errno == ERANGE) { return STO_OVERFLOW; }
 
     // Check for invalid input (no conversion or partial conversion)
-    if (endptr == str || *endptr != '\0') {
-        return STO_INVALID;
-    }
+    if (endptr == str || *endptr != '\0') { return STO_INVALID; }
 
     return STO_SUCCESS;
 }
@@ -75,25 +61,19 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
  * Generic macro for signed integer conversion with range checking.
  * FIX: Explicitly check if the intmax_t result fits in the target type.
  */
-#define IMPLEMENT_SIGNED_CONVERSION(func_name, type_name, type_max, type_min) \
-    StoError func_name(const char* str, type_name* result) {                  \
-        if (result == NULL) {                                                 \
-            return STO_INVALID;                                               \
-        }                                                                     \
-                                                                              \
-        intmax_t temp;                                                        \
-        StoError err = validate_and_parse_signed(str, 10, &temp);             \
-        if (err != STO_SUCCESS) {                                             \
-            return err;                                                       \
-        }                                                                     \
-                                                                              \
-        /* Range check before casting */                                      \
-        if (temp > (intmax_t)(type_max) || temp < (intmax_t)(type_min)) {     \
-            return STO_OVERFLOW;                                              \
-        }                                                                     \
-                                                                              \
-        *result = (type_name)temp;                                            \
-        return STO_SUCCESS;                                                   \
+#define IMPLEMENT_SIGNED_CONVERSION(func_name, type_name, type_max, type_min)                    \
+    StoError func_name(const char* str, type_name* result) {                                     \
+        if (result == NULL) { return STO_INVALID; }                                              \
+                                                                                                 \
+        intmax_t temp;                                                                           \
+        StoError err = validate_and_parse_signed(str, 10, &temp);                                \
+        if (err != STO_SUCCESS) { return err; }                                                  \
+                                                                                                 \
+        /* Range check before casting */                                                         \
+        if (temp > (intmax_t)(type_max) || temp < (intmax_t)(type_min)) { return STO_OVERFLOW; } \
+                                                                                                 \
+        *result = (type_name)temp;                                                               \
+        return STO_SUCCESS;                                                                      \
     }
 
 /**
@@ -102,64 +82,46 @@ static inline StoError validate_and_parse_unsigned(const char* str, int base, ui
  */
 #define IMPLEMENT_UNSIGNED_CONVERSION(func_name, type_name, type_max) \
     StoError func_name(const char* str, type_name* result) {          \
-        if (result == NULL) {                                         \
-            return STO_INVALID;                                       \
-        }                                                             \
+        if (result == NULL) { return STO_INVALID; }                   \
                                                                       \
         uintmax_t temp;                                               \
         StoError err = validate_and_parse_unsigned(str, 10, &temp);   \
-        if (err != STO_SUCCESS) {                                     \
-            return err;                                               \
-        }                                                             \
+        if (err != STO_SUCCESS) { return err; }                       \
                                                                       \
         /* Range check before casting */                              \
-        if (temp > (uintmax_t)(type_max)) {                           \
-            return STO_OVERFLOW;                                      \
-        }                                                             \
+        if (temp > (uintmax_t)(type_max)) { return STO_OVERFLOW; }    \
                                                                       \
         *result = (type_name)temp;                                    \
         return STO_SUCCESS;                                           \
     }
 
 /** Generic macro for signed integer conversion with custom base. */
-#define IMPLEMENT_SIGNED_BASE_CONVERSION(func_name, type_name, type_max, type_min) \
-    StoError func_name(const char* str, int base, type_name* result) {             \
-        if (result == NULL) {                                                      \
-            return STO_INVALID;                                                    \
-        }                                                                          \
-                                                                                   \
-        intmax_t temp;                                                             \
-        StoError err = validate_and_parse_signed(str, base, &temp);                \
-        if (err != STO_SUCCESS) {                                                  \
-            return err;                                                            \
-        }                                                                          \
-                                                                                   \
-        /* Range check before casting */                                           \
-        if (temp > (intmax_t)(type_max) || temp < (intmax_t)(type_min)) {          \
-            return STO_OVERFLOW;                                                   \
-        }                                                                          \
-                                                                                   \
-        *result = (type_name)temp;                                                 \
-        return STO_SUCCESS;                                                        \
+#define IMPLEMENT_SIGNED_BASE_CONVERSION(func_name, type_name, type_max, type_min)               \
+    StoError func_name(const char* str, int base, type_name* result) {                           \
+        if (result == NULL) { return STO_INVALID; }                                              \
+                                                                                                 \
+        intmax_t temp;                                                                           \
+        StoError err = validate_and_parse_signed(str, base, &temp);                              \
+        if (err != STO_SUCCESS) { return err; }                                                  \
+                                                                                                 \
+        /* Range check before casting */                                                         \
+        if (temp > (intmax_t)(type_max) || temp < (intmax_t)(type_min)) { return STO_OVERFLOW; } \
+                                                                                                 \
+        *result = (type_name)temp;                                                               \
+        return STO_SUCCESS;                                                                      \
     }
 
 /** Generic macro for unsigned integer conversion with custom base. */
 #define IMPLEMENT_UNSIGNED_BASE_CONVERSION(func_name, type_name, type_max) \
     StoError func_name(const char* str, int base, type_name* result) {     \
-        if (result == NULL) {                                              \
-            return STO_INVALID;                                            \
-        }                                                                  \
+        if (result == NULL) { return STO_INVALID; }                        \
                                                                            \
         uintmax_t temp;                                                    \
         StoError err = validate_and_parse_unsigned(str, base, &temp);      \
-        if (err != STO_SUCCESS) {                                          \
-            return err;                                                    \
-        }                                                                  \
+        if (err != STO_SUCCESS) { return err; }                            \
                                                                            \
         /* Range check before casting */                                   \
-        if (temp > (uintmax_t)(type_max)) {                                \
-            return STO_OVERFLOW;                                           \
-        }                                                                  \
+        if (temp > (uintmax_t)(type_max)) { return STO_OVERFLOW; }         \
                                                                            \
         *result = (type_name)temp;                                         \
         return STO_SUCCESS;                                                \
@@ -193,15 +155,11 @@ IMPLEMENT_UNSIGNED_BASE_CONVERSION(str_to_ulong_base, unsigned long, ULONG_MAX)
 
 // Special case for uintptr_t (no upper bound check needed as it can hold any uintmax_t value)
 StoError str_to_uintptr(const char* str, uintptr_t* result) {
-    if (result == NULL) {
-        return STO_INVALID;
-    }
+    if (result == NULL) { return STO_INVALID; }
 
     uintmax_t temp = 0;
-    StoError err   = validate_and_parse_unsigned(str, 10, &temp);
-    if (err != STO_SUCCESS) {
-        return err;
-    }
+    StoError err = validate_and_parse_unsigned(str, 10, &temp);
+    if (err != STO_SUCCESS) { return err; }
 
     // uintptr_t should be able to hold any valid pointer value
     // On most platforms, uintptr_t == uintmax_t, but we cast safely
@@ -210,12 +168,10 @@ StoError str_to_uintptr(const char* str, uintptr_t* result) {
 }
 
 StoError str_to_float(const char* str, float* result) {
-    if (str == NULL || result == NULL) {
-        return STO_INVALID;
-    }
+    if (str == NULL || result == NULL) { return STO_INVALID; }
     char* endptr = NULL;
-    errno        = 0;
-    *result      = strtof(str, &endptr);
+    errno = 0;
+    *result = strtof(str, &endptr);
     if (endptr == str || *endptr != '\0') return STO_INVALID;
     if (errno == ERANGE) {
         if (isinf(*result) || fabsf(*result) > FLT_MAX) return STO_OVERFLOW;
@@ -226,12 +182,10 @@ StoError str_to_float(const char* str, float* result) {
 }
 
 StoError str_to_double(const char* str, double* result) {
-    if (str == NULL || result == NULL) {
-        return STO_INVALID;
-    }
+    if (str == NULL || result == NULL) { return STO_INVALID; }
     char* endptr = NULL;
-    errno        = 0;
-    *result      = strtod(str, &endptr);
+    errno = 0;
+    *result = strtod(str, &endptr);
     if (endptr == str || *endptr != '\0') return STO_INVALID;
     if (errno == ERANGE) {
         if (isinf(*result) || fabs(*result) > DBL_MAX) return STO_OVERFLOW;
@@ -254,9 +208,7 @@ static const bool_mapping_t BOOL_MAPPINGS[] = {
 static const size_t BOOL_MAPPINGS_COUNT = sizeof(BOOL_MAPPINGS) / sizeof(BOOL_MAPPINGS[0]);
 
 StoError str_to_bool(const char* str, bool* result) {
-    if (str == NULL || result == NULL) {
-        return STO_INVALID;
-    }
+    if (str == NULL || result == NULL) { return STO_INVALID; }
 
     // Use lookup table for efficient case-insensitive matching
     for (size_t i = 0; i < BOOL_MAPPINGS_COUNT; i++) {

@@ -125,9 +125,7 @@ static inline uint64_t fast_small_hash(const void* key, size_t size) {
 
 // xxHash implementation with small key optimization
 static inline unsigned long xxhash(const void* key, size_t size) {
-    if (size <= sizeof(uint64_t)) {
-        return fast_small_hash(key, size);
-    }
+    if (size <= sizeof(uint64_t)) { return fast_small_hash(key, size); }
     return XXH3_64bits(key, size);
 }
 
@@ -148,9 +146,7 @@ static inline size_t next_power_of_two(size_t n) {
 
 // Safe capacity growth calculation
 static inline size_t calculate_new_capacity(size_t current) {
-    if (current > SIZE_MAX / 2) {
-        return SIZE_MAX;
-    }
+    if (current > SIZE_MAX / 2) { return SIZE_MAX; }
     size_t new_cap = current * 2;
     return (new_cap < current) ? SIZE_MAX : new_cap;
 }
@@ -162,30 +158,23 @@ static inline size_t xxhash_wrapper(const void* key, size_t len) {
 
 // Map creation with better error handling and memory optimization
 HashMap* map_create(const MapConfig* config) {
-    if (!config || !config->key_compare) {
-        return NULL;
-    }
+    if (!config || !config->key_compare) { return NULL; }
 
-    size_t capacity =
-        MAX(MIN_CAPACITY, config->initial_capacity > 0 ? next_power_of_two(config->initial_capacity)
-                                                       : INITIAL_MAP_SIZE);
+    size_t capacity = MAX(MIN_CAPACITY, config->initial_capacity > 0 ? next_power_of_two(config->initial_capacity)
+                                                                     : INITIAL_MAP_SIZE);
 
-    if (capacity > SIZE_MAX / 2) {
-        return NULL;
-    }
+    if (capacity > SIZE_MAX / 2) { return NULL; }
 
     float max_load_factor = config->max_load_factor > 0.1f && config->max_load_factor <= 0.95f
                                 ? config->max_load_factor
                                 : DEFAULT_MAX_LOAD_FACTOR;
 
     HashMap* m = (HashMap*)malloc(sizeof(HashMap));
-    if (!m) {
-        return NULL;
-    }
+    if (!m) { return NULL; }
 
     // Allocate interleaved keys and values for better cache locality
     m->keys_values = (void**)calloc(capacity * 2, sizeof(void*));
-    m->deleted     = (size_t*)calloc(capacity, sizeof(size_t));
+    m->deleted = (size_t*)calloc(capacity, sizeof(size_t));
 
     if (!m->keys_values || !m->deleted) {
         free(m->keys_values);
@@ -194,13 +183,13 @@ HashMap* map_create(const MapConfig* config) {
         return NULL;
     }
 
-    m->size            = 0;
-    m->capacity        = capacity;
+    m->size = 0;
+    m->capacity = capacity;
     m->max_load_factor = max_load_factor;
-    m->hash            = config->hash_func ? config->hash_func : xxhash_wrapper;
-    m->key_compare     = config->key_compare;
-    m->key_free        = config->key_free;
-    m->value_free      = config->value_free;
+    m->hash = config->hash_func ? config->hash_func : xxhash_wrapper;
+    m->key_compare = config->key_compare;
+    m->key_free = config->key_free;
+    m->value_free = config->value_free;
 
     lock_init(&m->lock);
     return m;
@@ -218,12 +207,10 @@ static inline void** get_value_ptr(HashMap* m, size_t index) {
 
 // Resize the map with optimized rehashing and error handling
 static bool map_resize(HashMap* m, size_t new_capacity, size_t key_len) {
-    if (new_capacity <= m->capacity || new_capacity > SIZE_MAX / 2) {
-        return false;
-    }
+    if (new_capacity <= m->capacity || new_capacity > SIZE_MAX / 2) { return false; }
 
     void** new_keys_values = (void**)calloc(new_capacity * 2, sizeof(void*));
-    size_t* new_deleted    = (size_t*)calloc(new_capacity, sizeof(size_t));
+    size_t* new_deleted = (size_t*)calloc(new_capacity, sizeof(size_t));
 
     if (!new_keys_values || !new_deleted) {
         free(new_keys_values);
@@ -233,31 +220,31 @@ static bool map_resize(HashMap* m, size_t new_capacity, size_t key_len) {
 
     // Save old data
     void** old_keys_values = m->keys_values;
-    size_t* old_deleted    = m->deleted;
-    size_t old_capacity    = m->capacity;
+    size_t* old_deleted = m->deleted;
+    size_t old_capacity = m->capacity;
 
     // Swap in new arrays
-    m->keys_values  = new_keys_values;
-    m->deleted      = new_deleted;
-    m->capacity     = new_capacity;
+    m->keys_values = new_keys_values;
+    m->deleted = new_deleted;
+    m->capacity = new_capacity;
     size_t old_size = m->size;
-    m->size         = 0;
+    m->size = 0;
 
     // Rehash all active entries using Robin Hood linear probing (matching map_set)
-    bool success      = true;
+    bool success = true;
     const size_t mask = new_capacity - 1;
     for (size_t i = 0; i < old_capacity; i++) {
         if (old_keys_values[i * 2] && old_keys_values[i * 2] != NULL) {
-            void* ins_key   = old_keys_values[i * 2];
+            void* ins_key = old_keys_values[i * 2];
             void* ins_value = old_keys_values[i * 2 + 1];
 
-            size_t hash     = m->hash(ins_key, key_len);
-            size_t idx      = hash & mask;
+            size_t hash = m->hash(ins_key, key_len);
+            size_t idx = hash & mask;
             size_t ins_dist = 0;
 
             for (size_t j = 0; j < new_capacity; j++) {
                 if (_RH_EMPTY(m, idx)) {
-                    *get_key_ptr(m, idx)   = ins_key;
+                    *get_key_ptr(m, idx) = ins_key;
                     *get_value_ptr(m, idx) = ins_value;
                     _RH_SET_DIB(m, idx, ins_dist);
                     m->size++;
@@ -267,14 +254,14 @@ static bool map_resize(HashMap* m, size_t new_capacity, size_t key_len) {
                 // Robin Hood: steal from richer elements
                 size_t cur_dist = _RH_DIB(m, idx);
                 if (cur_dist < ins_dist) {
-                    void* tmp_k            = *get_key_ptr(m, idx);
-                    void* tmp_v            = *get_value_ptr(m, idx);
-                    *get_key_ptr(m, idx)   = ins_key;
+                    void* tmp_k = *get_key_ptr(m, idx);
+                    void* tmp_v = *get_value_ptr(m, idx);
+                    *get_key_ptr(m, idx) = ins_key;
                     *get_value_ptr(m, idx) = ins_value;
                     _RH_SET_DIB(m, idx, ins_dist);
-                    ins_key   = tmp_k;
+                    ins_key = tmp_k;
                     ins_value = tmp_v;
-                    ins_dist  = cur_dist;
+                    ins_dist = cur_dist;
                 }
 
                 idx = (idx + 1) & mask;
@@ -290,9 +277,9 @@ static bool map_resize(HashMap* m, size_t new_capacity, size_t key_len) {
     } else {
         // Restore original state on failure
         m->keys_values = old_keys_values;
-        m->deleted     = old_deleted;
-        m->capacity    = old_capacity;
-        m->size        = old_size;
+        m->deleted = old_deleted;
+        m->capacity = old_capacity;
+        m->size = old_size;
         free(new_keys_values);
         free(new_deleted);
         return false;
@@ -317,18 +304,18 @@ bool map_set(HashMap* m, void* key, size_t key_len, void* value) {
     }
 
     const size_t mask = m->capacity - 1;
-    size_t hash       = m->hash(key, key_len);
-    size_t idx        = hash & mask;
+    size_t hash = m->hash(key, key_len);
+    size_t idx = hash & mask;
 
     /* The element we're about to insert. */
-    void* ins_key   = key;
+    void* ins_key = key;
     void* ins_value = value;
     size_t ins_dist = 0;
 
     for (size_t i = 0; i < m->capacity; i++) {
         if (_RH_EMPTY(m, idx)) {
             /* Empty slot — place the element here. */
-            *get_key_ptr(m, idx)   = ins_key;
+            *get_key_ptr(m, idx) = ins_key;
             *get_value_ptr(m, idx) = ins_value;
             _RH_SET_DIB(m, idx, ins_dist);
             m->size++;
@@ -351,13 +338,13 @@ bool map_set(HashMap* m, void* key, size_t key_len, void* value) {
             void* tmp_k = *cur_kp;
             void* tmp_v = *get_value_ptr(m, idx);
 
-            *get_key_ptr(m, idx)   = ins_key;
+            *get_key_ptr(m, idx) = ins_key;
             *get_value_ptr(m, idx) = ins_value;
             _RH_SET_DIB(m, idx, ins_dist);
 
-            ins_key   = tmp_k;
+            ins_key = tmp_k;
             ins_value = tmp_v;
-            ins_dist  = cur_dist;
+            ins_dist = cur_dist;
         }
 
         idx = (idx + 1) & mask;
@@ -373,7 +360,7 @@ void* map_get(HashMap* m, void* key, size_t key_len) {
 
     const size_t hash = m->hash(key, key_len);
     const size_t mask = m->capacity - 1;
-    size_t idx        = hash & mask;
+    size_t idx = hash & mask;
 
     for (size_t dist = 0; dist < m->capacity; dist++) {
         if (_RH_EMPTY(m, idx)) return NULL;
@@ -394,8 +381,8 @@ bool map_remove(HashMap* m, void* key, size_t key_len) {
     if (!m || !key) return false;
 
     const size_t mask = m->capacity - 1;
-    size_t hash       = m->hash(key, key_len);
-    size_t idx        = hash & mask;
+    size_t hash = m->hash(key, key_len);
+    size_t idx = hash & mask;
 
     /* Locate the element. */
     size_t pos = SIZE_MAX;
@@ -422,7 +409,7 @@ bool map_remove(HashMap* m, void* key, size_t key_len) {
         if (_RH_EMPTY(m, next) || _RH_DIB(m, next) == 0) break;
 
         /* Move next into hole and decrement its DIB. */
-        *get_key_ptr(m, hole)   = *get_key_ptr(m, next);
+        *get_key_ptr(m, hole) = *get_key_ptr(m, next);
         *get_value_ptr(m, hole) = *get_value_ptr(m, next);
         _RH_SET_DIB(m, hole, _RH_DIB(m, next) - 1);
 
@@ -430,7 +417,7 @@ bool map_remove(HashMap* m, void* key, size_t key_len) {
     }
 
     /* Mark the last vacated slot as empty. */
-    *get_key_ptr(m, hole)   = NULL;
+    *get_key_ptr(m, hole) = NULL;
     *get_value_ptr(m, hole) = NULL;
     _RH_SET_DIB(m, hole, 0);
     m->size--;
@@ -441,13 +428,11 @@ void map_destroy(HashMap* m) {
     if (!m) return;
 
     // no cleanup functions are provided
-    if (!m->key_free && !m->value_free) {
-        goto cleanup;
-    }
+    if (!m->key_free && !m->value_free) { goto cleanup; }
 
-    void** keys_values           = m->keys_values;
-    size_t capacity              = m->capacity;
-    KeyFreeFunction key_free     = m->key_free;
+    void** keys_values = m->keys_values;
+    size_t capacity = m->capacity;
+    KeyFreeFunction key_free = m->key_free;
     ValueFreeFunction value_free = m->value_free;
 
     for (size_t i = 0; i < capacity; i++) {
@@ -471,10 +456,10 @@ map_iterator map_iter(HashMap* map) {
 }
 
 bool map_next(map_iterator* it, void** key, void** value) {
-    HashMap* map       = it->map;
-    size_t capacity    = map->capacity;
+    HashMap* map = it->map;
+    size_t capacity = map->capacity;
     void** keys_values = map->keys_values;
-    size_t index       = it->index;
+    size_t index = it->index;
 
     while (index < capacity) {
         void* current_key = keys_values[index * 2];

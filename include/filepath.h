@@ -260,8 +260,7 @@ typedef enum WalkDirOption {
  * @return WalkDirOption to control traversal behavior.
  * @note Callback must not call dir_walk on the same path to avoid infinite recursion.
  */
-typedef WalkDirOption (*WalkDirCallback)(const FileAttributes* attr, const char* path,
-                                         const char* name, void* data);
+typedef WalkDirOption (*WalkDirCallback)(const FileAttributes* attr, const char* path, const char* name, void* data);
 
 /**
  * Walks a directory tree in breadth-first order.

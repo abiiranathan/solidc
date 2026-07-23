@@ -10,81 +10,79 @@
 
 // Predefined styles
 const prettytable_style PRETTYTABLE_STYLE_BOX = {
-    .top_left     = "┌",
-    .top_mid      = "┬",
-    .top_right    = "┐",
-    .mid_left     = "├",
-    .mid_mid      = "┼",
-    .mid_right    = "┤",
-    .bottom_left  = "└",
-    .bottom_mid   = "┴",
+    .top_left = "┌",
+    .top_mid = "┬",
+    .top_right = "┐",
+    .mid_left = "├",
+    .mid_mid = "┼",
+    .mid_right = "┤",
+    .bottom_left = "└",
+    .bottom_mid = "┴",
     .bottom_right = "┘",
-    .horizontal   = "─",
-    .vertical     = "│",
+    .horizontal = "─",
+    .vertical = "│",
 };
 
 const prettytable_style PRETTYTABLE_STYLE_ASCII = {
-    .top_left     = "+",
-    .top_mid      = "+",
-    .top_right    = "+",
-    .mid_left     = "+",
-    .mid_mid      = "+",
-    .mid_right    = "+",
-    .bottom_left  = "+",
-    .bottom_mid   = "+",
+    .top_left = "+",
+    .top_mid = "+",
+    .top_right = "+",
+    .mid_left = "+",
+    .mid_mid = "+",
+    .mid_right = "+",
+    .bottom_left = "+",
+    .bottom_mid = "+",
     .bottom_right = "+",
-    .horizontal   = "-",
-    .vertical     = "|",
+    .horizontal = "-",
+    .vertical = "|",
 };
 
 const prettytable_style PRETTYTABLE_STYLE_MINIMAL = {
-    .top_left     = "",
-    .top_mid      = "",
-    .top_right    = "",
-    .mid_left     = "",
-    .mid_mid      = " ",
-    .mid_right    = "",
-    .bottom_left  = "",
-    .bottom_mid   = "",
+    .top_left = "",
+    .top_mid = "",
+    .top_right = "",
+    .mid_left = "",
+    .mid_mid = " ",
+    .mid_right = "",
+    .bottom_left = "",
+    .bottom_mid = "",
     .bottom_right = "",
-    .horizontal   = "",
-    .vertical     = " ",
+    .horizontal = "",
+    .vertical = " ",
 };
 
 const prettytable_style PRETTYTABLE_STYLE_DOUBLE = {
-    .top_left     = "╔",
-    .top_mid      = "╦",
-    .top_right    = "╗",
-    .mid_left     = "╠",
-    .mid_mid      = "╬",
-    .mid_right    = "╣",
-    .bottom_left  = "╚",
-    .bottom_mid   = "╩",
+    .top_left = "╔",
+    .top_mid = "╦",
+    .top_right = "╗",
+    .mid_left = "╠",
+    .mid_mid = "╬",
+    .mid_right = "╣",
+    .bottom_left = "╚",
+    .bottom_mid = "╩",
     .bottom_right = "╝",
-    .horizontal   = "═",
-    .vertical     = "║",
+    .horizontal = "═",
+    .vertical = "║",
 };
 
 void prettytable_config_init(prettytable_config* config) {
-    config->num_rows       = 0;
-    config->num_cols       = 0;
-    config->get_header     = NULL;
-    config->get_cell       = NULL;
-    config->get_length     = NULL;
-    config->user_data      = NULL;
-    config->style          = &PRETTYTABLE_STYLE_BOX;
-    config->show_header    = true;
+    config->num_rows = 0;
+    config->num_cols = 0;
+    config->get_header = NULL;
+    config->get_cell = NULL;
+    config->get_length = NULL;
+    config->user_data = NULL;
+    config->style = &PRETTYTABLE_STYLE_BOX;
+    config->show_header = true;
     config->show_row_count = true;
-    config->output         = stdout;
+    config->output = stdout;
 }
 
 /**
  * Get display length of text using custom or default strlen.
  */
 static inline int get_text_length(const prettytable_config* cfg, const char* text) {
-    if (cfg->get_length) {
-        return cfg->get_length(cfg->user_data, text);
-    }
+    if (cfg->get_length) { return cfg->get_length(cfg->user_data, text); }
     return (int)strlen(text);
 }
 
@@ -96,7 +94,7 @@ static void calculate_column_widths(const prettytable_config* cfg, int* widths) 
     if (cfg->show_header && cfg->get_header) {
         for (int col = 0; col < cfg->num_cols; col++) {
             const char* header = cfg->get_header(cfg->user_data, col);
-            widths[col]        = get_text_length(cfg, header);
+            widths[col] = get_text_length(cfg, header);
         }
     } else {
         for (int col = 0; col < cfg->num_cols; col++) {
@@ -108,10 +106,8 @@ static void calculate_column_widths(const prettytable_config* cfg, int* widths) 
     for (int row = 0; row < cfg->num_rows; row++) {
         for (int col = 0; col < cfg->num_cols; col++) {
             const char* value = cfg->get_cell(cfg->user_data, row, col);
-            int len           = get_text_length(cfg, value);
-            if (len > widths[col]) {
-                widths[col] = len;
-            }
+            int len = get_text_length(cfg, value);
+            if (len > widths[col]) { widths[col] = len; }
         }
     }
 }
@@ -119,10 +115,10 @@ static void calculate_column_widths(const prettytable_config* cfg, int* widths) 
 /**
  * Print a horizontal separator.
  */
-static inline void print_separator(const prettytable_config* cfg, const int* widths,
-                                   const char* left, const char* mid, const char* right) {
+static inline void print_separator(const prettytable_config* cfg, const int* widths, const char* left, const char* mid,
+                                   const char* right) {
     const prettytable_style* style = cfg->style;
-    FILE* out                      = cfg->output;
+    FILE* out = cfg->output;
 
     fputs(left, out);
     for (int col = 0; col < cfg->num_cols; col++) {
@@ -131,9 +127,7 @@ static inline void print_separator(const prettytable_config* cfg, const int* wid
             fputs(style->horizontal, out);
         }
 
-        if (col < cfg->num_cols - 1) {
-            fputs(mid, out);
-        }
+        if (col < cfg->num_cols - 1) { fputs(mid, out); }
     }
     fputs(right, out);
     fputc('\n', out);
@@ -144,7 +138,7 @@ static inline void print_separator(const prettytable_config* cfg, const int* wid
  */
 static inline void print_row(const prettytable_config* cfg, const int* widths, const char** values) {
     const prettytable_style* style = cfg->style;
-    FILE* out                      = cfg->output;
+    FILE* out = cfg->output;
 
     fputs(style->vertical, out);
 
@@ -156,27 +150,24 @@ static inline void print_row(const prettytable_config* cfg, const int* widths, c
 }
 
 int prettytable_print(const prettytable_config* config) {
-    if (!config || !config->get_cell) {
-        return -1;
-    }
+    if (!config || !config->get_cell) { return -1; }
 
     if (config->num_cols <= 0) {
         fprintf(config->output ? config->output : stderr, "(No columns)\n");
         return 0;
     }
 
-    const prettytable_config* cfg  = config;
+    const prettytable_config* cfg = config;
     const prettytable_style* style = cfg->style ? cfg->style : &PRETTYTABLE_STYLE_BOX;
 
     // Allocate single block for widths and row data
-    void* block =
-        malloc(sizeof(int) * (size_t)cfg->num_cols + sizeof(char*) * (size_t)cfg->num_cols);
+    void* block = malloc(sizeof(int) * (size_t)cfg->num_cols + sizeof(char*) * (size_t)cfg->num_cols);
     if (!block) {
         fprintf(stderr, "Memory allocation failed\n");
         return -1;
     }
 
-    int* widths           = (int*)block;
+    int* widths = (int*)block;
     const char** row_data = (const char**)((char*)block + sizeof(int) * (size_t)cfg->num_cols);
 
     // Calculate column widths
@@ -208,9 +199,7 @@ int prettytable_print(const prettytable_config* config) {
     print_separator(cfg, widths, style->bottom_left, style->bottom_mid, style->bottom_right);
 
     // Print row count if requested
-    if (cfg->show_row_count) {
-        fprintf(cfg->output, "(%d row%s)\n", cfg->num_rows, cfg->num_rows == 1 ? "" : "s");
-    }
+    if (cfg->show_row_count) { fprintf(cfg->output, "(%d row%s)\n", cfg->num_rows, cfg->num_rows == 1 ? "" : "s"); }
 
     free(block);
     return 0;

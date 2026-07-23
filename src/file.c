@@ -27,15 +27,11 @@
  * @return Native handle or INVALID_NATIVE_HANDLE on error.
  */
 static native_handle_t get_native_handle(FILE* stream) {
-    if (!stream) {
-        return INVALID_NATIVE_HANDLE;
-    }
+    if (!stream) { return INVALID_NATIVE_HANDLE; }
 
 #ifdef _WIN32
     int fd = _fileno(stream);
-    if (fd == -1) {
-        return INVALID_NATIVE_HANDLE;
-    }
+    if (fd == -1) { return INVALID_NATIVE_HANDLE; }
     HANDLE handle = (HANDLE)(uintptr_t)_get_osfhandle(fd);
     return (handle == INVALID_HANDLE_VALUE) ? INVALID_NATIVE_HANDLE : handle;
 #else
@@ -58,7 +54,7 @@ static native_handle_t get_native_handle(FILE* stream) {
  */
 static time_t filetime_to_unix(const FILETIME* ft) {
     ULARGE_INTEGER ull;
-    ull.LowPart  = ft->dwLowDateTime;
+    ull.LowPart = ft->dwLowDateTime;
     ull.HighPart = ft->dwHighDateTime;
     // Convert from 100-nanosecond intervals since 1601 to seconds since 1970
     return (time_t)((ull.QuadPart / 10000000ULL) - 11644473600ULL);
@@ -81,15 +77,15 @@ int populate_file_attrs(const char* path, FileAttributes* attr) {
     // Initialize structure
     *attr = (FileAttributes){
         .attrs = FATTR_NONE,
-        .size  = 0,
+        .size = 0,
         .mtime = filetime_to_unix(&file_info.ftLastWriteTime),
     };
 
     // Calculate file size
     ULARGE_INTEGER file_size;
-    file_size.LowPart  = file_info.nFileSizeLow;
+    file_size.LowPart = file_info.nFileSizeLow;
     file_size.HighPart = file_info.nFileSizeHigh;
-    attr->size         = file_size.QuadPart;
+    attr->size = file_size.QuadPart;
 
     // Determine file type
     if (file_info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
@@ -100,14 +96,10 @@ int populate_file_attrs(const char* path, FileAttributes* attr) {
     }
 
     // Check for reparse points (symlinks, junctions, etc.)
-    if (file_info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
-        attr->attrs |= FATTR_SYMLINK;
-    }
+    if (file_info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) { attr->attrs |= FATTR_SYMLINK; }
 
     // Check for hidden files
-    if (file_info.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) {
-        attr->attrs |= FATTR_HIDDEN;
-    }
+    if (file_info.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) { attr->attrs |= FATTR_HIDDEN; }
 
     // On Windows, executability is determined by file extension
     const char* ext = strrchr(path, '.');
@@ -135,7 +127,7 @@ int populate_file_attrs(const char* path, FileAttributes* attr) {
     // Initialize structure
     *attr = (FileAttributes){
         .attrs = FATTR_NONE,
-        .size  = (uint64_t)st.st_size,
+        .size = (uint64_t)st.st_size,
         .mtime = st.st_mtime,
     };
 
@@ -143,9 +135,7 @@ int populate_file_attrs(const char* path, FileAttributes* attr) {
     if (S_ISREG(st.st_mode)) {
         attr->attrs |= FATTR_FILE;
         // Check if the file is executable by User, Group, or Other.
-        if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
-            attr->attrs |= FATTR_EXECUTABLE;
-        }
+        if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) { attr->attrs |= FATTR_EXECUTABLE; }
     } else if (S_ISDIR(st.st_mode)) {
         attr->attrs |= FATTR_DIR;
         attr->size = 0;  // Directory size is not meaningful
@@ -154,27 +144,19 @@ int populate_file_attrs(const char* path, FileAttributes* attr) {
     }
 
 #ifdef S_ISCHR
-    if (S_ISCHR(st.st_mode)) {
-        attr->attrs |= FATTR_CHARDEV;
-    }
+    if (S_ISCHR(st.st_mode)) { attr->attrs |= FATTR_CHARDEV; }
 #endif
 
 #ifdef S_ISBLK
-    if (S_ISBLK(st.st_mode)) {
-        attr->attrs |= FATTR_BLOCKDEV;
-    }
+    if (S_ISBLK(st.st_mode)) { attr->attrs |= FATTR_BLOCKDEV; }
 #endif
 
 #ifdef S_ISFIFO
-    if (S_ISFIFO(st.st_mode)) {
-        attr->attrs |= FATTR_FIFO;
-    }
+    if (S_ISFIFO(st.st_mode)) { attr->attrs |= FATTR_FIFO; }
 #endif
 
 #ifdef S_ISSOCK
-    if (S_ISSOCK(st.st_mode)) {
-        attr->attrs |= FATTR_SOCKET;
-    }
+    if (S_ISSOCK(st.st_mode)) { attr->attrs |= FATTR_SOCKET; }
 #endif
 
     // Check if hidden (starts with '.' on Unix)
@@ -182,14 +164,10 @@ int populate_file_attrs(const char* path, FileAttributes* attr) {
 
     if (path) {
         const char* slash = strrchr(path, '/');
-        if (slash && slash[1] != '\0') {
-            name = slash + 1;
-        }
+        if (slash && slash[1] != '\0') { name = slash + 1; }
     }
 
-    if (name[0] == '.') {
-        attr->attrs |= FATTR_HIDDEN;
-    }
+    if (name[0] == '.') { attr->attrs |= FATTR_HIDDEN; }
 
     return 0;
 }
@@ -202,7 +180,7 @@ file_result_t file_open(file_t* file, const char* filename, const char* mode) {
     }
 
     // Initialize structure to safe state
-    file->stream        = NULL;
+    file->stream = NULL;
     file->native_handle = INVALID_NATIVE_HANDLE;
 
     // Open the file stream
@@ -216,7 +194,7 @@ file_result_t file_open(file_t* file, const char* filename, const char* mode) {
     if (file->native_handle == INVALID_NATIVE_HANDLE) {
         fclose(file->stream);
         file->stream = NULL;
-        errno        = EBADF;
+        errno = EBADF;
         return FILE_ERROR_OPEN_FAILED;
     }
 
@@ -224,7 +202,7 @@ file_result_t file_open(file_t* file, const char* filename, const char* mode) {
     if (populate_file_attrs(filename, &file->attr) != 0) {
         fclose(file->stream);
         file->stream = NULL;
-        errno        = EBADF;
+        errno = EBADF;
         return FILE_ERROR_OPEN_FAILED;
     }
 
@@ -246,14 +224,11 @@ file_result_t file_truncate(file_t* file, int64_t length) {
     }
 
     // Flush any pending writes before truncation
-    if (fflush(file->stream) != 0) {
-        return FILE_ERROR_IO_FAILED;
-    }
+    if (fflush(file->stream) != 0) { return FILE_ERROR_IO_FAILED; }
 
 #ifdef _WIN32
     LARGE_INTEGER li = {.QuadPart = length};
-    if (!SetFilePointerEx(file->native_handle, li, NULL, FILE_BEGIN) ||
-        !SetEndOfFile(file->native_handle)) {
+    if (!SetFilePointerEx(file->native_handle, li, NULL, FILE_BEGIN) || !SetEndOfFile(file->native_handle)) {
         errno = EIO;
         return FILE_ERROR_IO_FAILED;
     }
@@ -277,10 +252,10 @@ file_result_t filesize_tostring(uint64_t size, char* buf, size_t len) {
     }
 
     static const char* const units[] = {"B", "KB", "MB", "GB", "TB", "PB", "EB"};
-    static const size_t num_units    = sizeof(units) / sizeof(units[0]);
+    static const size_t num_units = sizeof(units) / sizeof(units[0]);
 
     size_t unit_index = 0;
-    double value      = (double)size;
+    double value = (double)size;
 
     while (value >= 1024.0 && unit_index < num_units - 1) {
         value /= 1024.0;
@@ -288,7 +263,7 @@ file_result_t filesize_tostring(uint64_t size, char* buf, size_t len) {
     }
 
     double rounded = round(value);
-    int written    = -1;
+    int written = -1;
 
     if (fabs(value - rounded) < HUMAN_SIZE_EPSILON) {
         written = snprintf(buf, len, "%.0f %s", rounded, units[unit_index]);
@@ -300,23 +275,17 @@ file_result_t filesize_tostring(uint64_t size, char* buf, size_t len) {
 }
 
 size_t file_read(const file_t* file, void* buffer, size_t size, size_t count) {
-    if (!buffer || size == 0 || count == 0) {
-        return 0;
-    }
+    if (!buffer || size == 0 || count == 0) { return 0; }
     return fread(buffer, size, count, file->stream);
 }
 
 size_t file_write(file_t* file, const void* buffer, size_t size, size_t count) {
-    if (!buffer || size == 0 || count == 0) {
-        return 0;
-    }
+    if (!buffer || size == 0 || count == 0) { return 0; }
     return fwrite(buffer, size, count, file->stream);
 }
 
 size_t file_write_string(file_t* file, const char* str) {
-    if (!str) {
-        return 0;
-    }
+    if (!str) { return 0; }
     size_t len = strlen(str);
     return (len > 0) ? fwrite(str, 1, len, file->stream) : 0;
 }
@@ -328,9 +297,7 @@ ssize_t file_pread(const file_t* file, void* buffer, size_t size, int64_t offset
     }
 
 #ifdef _WIN32
-    OVERLAPPED ov = {.Offset     = (DWORD)(offset & 0xFFFFFFFF),
-                     .OffsetHigh = (DWORD)(offset >> 32),
-                     .hEvent     = NULL};
+    OVERLAPPED ov = {.Offset = (DWORD)(offset & 0xFFFFFFFF), .OffsetHigh = (DWORD)(offset >> 32), .hEvent = NULL};
 
     DWORD bytes_read;
     if (!ReadFile(file->native_handle, buffer, (DWORD)size, &bytes_read, &ov)) {
@@ -354,9 +321,7 @@ ssize_t file_pwrite(file_t* file, const void* buffer, size_t size, int64_t offse
     }
 
 #ifdef _WIN32
-    OVERLAPPED ov = {.Offset     = (DWORD)(offset & 0xFFFFFFFF),
-                     .OffsetHigh = (DWORD)(offset >> 32),
-                     .hEvent     = NULL};
+    OVERLAPPED ov = {.Offset = (DWORD)(offset & 0xFFFFFFFF), .OffsetHigh = (DWORD)(offset >> 32), .hEvent = NULL};
 
     DWORD bytes_written;
     if (!WriteFile(file->native_handle, buffer, (DWORD)size, &bytes_written, &ov)) {
@@ -374,9 +339,7 @@ void* file_readall(file_t* file, size_t* size_out) {
     int64_t orig_pos = file_tell(file);
 
     /* Seek to the end to get the actual, up-to-date byte count. */
-    if (fseek(file->stream, 0, SEEK_END) != 0) {
-        return NULL;
-    }
+    if (fseek(file->stream, 0, SEEK_END) != 0) { return NULL; }
 
     int64_t current_size = file_tell(file);
     if (current_size < 0) {
@@ -407,9 +370,7 @@ void* file_readall(file_t* file, size_t* size_out) {
     size_t bytes_read = file_read(file, buffer, 1, (size_t)current_size);
 
     /* Restore the original stream position (best-effort). */
-    if (orig_pos >= 0) {
-        fseek(file->stream, (long)orig_pos, SEEK_SET);
-    }
+    if (orig_pos >= 0) { fseek(file->stream, (long)orig_pos, SEEK_SET); }
 
     if (bytes_read != (size_t)current_size) {
         free(buffer);
@@ -420,17 +381,15 @@ void* file_readall(file_t* file, size_t* size_out) {
     // Update attrs.size with most recent size after reading, since file could have changed since open
     file->attr.size = (size_t)current_size;
 
-    if (size_out) {
-        *size_out = bytes_read;
-    }
+    if (size_out) { *size_out = bytes_read; }
     return buffer;
 }
 
 file_result_t file_lock(const file_t* file) {
 #ifdef _WIN32
     OVERLAPPED overlapped = {0};
-    if (LockFileEx(file->native_handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0,
-                   MAXDWORD, MAXDWORD, &overlapped)) {
+    if (LockFileEx(file->native_handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, MAXDWORD, MAXDWORD,
+                   &overlapped)) {
         return FILE_SUCCESS;
     }
 
@@ -444,13 +403,9 @@ file_result_t file_lock(const file_t* file) {
 #else
     struct flock fl = {.l_type = F_WRLCK, .l_whence = SEEK_SET, .l_start = 0, .l_len = 0};
 
-    if (fcntl(file->native_handle, F_SETLK, &fl) == 0) {
-        return FILE_SUCCESS;
-    }
+    if (fcntl(file->native_handle, F_SETLK, &fl) == 0) { return FILE_SUCCESS; }
 
-    if (errno == EACCES || errno == EAGAIN) {
-        return FILE_ERROR_LOCK_FAILED;
-    }
+    if (errno == EACCES || errno == EAGAIN) { return FILE_ERROR_LOCK_FAILED; }
     return FILE_ERROR_SYSTEM_ERROR;
 #endif
 }
@@ -458,44 +413,34 @@ file_result_t file_lock(const file_t* file) {
 file_result_t file_unlock(const file_t* file) {
 #ifdef _WIN32
     OVERLAPPED overlapped = {0};
-    if (UnlockFileEx(file->native_handle, 0, MAXDWORD, MAXDWORD, &overlapped)) {
-        return FILE_SUCCESS;
-    }
+    if (UnlockFileEx(file->native_handle, 0, MAXDWORD, MAXDWORD, &overlapped)) { return FILE_SUCCESS; }
     errno = EIO;
     return FILE_ERROR_SYSTEM_ERROR;
 #else
     struct flock fl = {.l_type = F_UNLCK, .l_whence = SEEK_SET, .l_start = 0, .l_len = 0};
 
-    if (fcntl(file->native_handle, F_SETLK, &fl) == 0) {
-        return FILE_SUCCESS;
-    }
+    if (fcntl(file->native_handle, F_SETLK, &fl) == 0) { return FILE_SUCCESS; }
     return FILE_ERROR_SYSTEM_ERROR;
 #endif
 }
 
 file_result_t file_copy(const file_t* src, file_t* dst) {
     char buffer[COPY_BUFSIZE] = {0};
-    size_t bytes_read         = 0;
+    size_t bytes_read = 0;
 
     // Clear any previous errors
     clearerr(src->stream);
     clearerr(dst->stream);
 
     while ((bytes_read = file_read(src, buffer, 1, COPY_BUFSIZE)) > 0) {
-        if (file_write(dst, buffer, 1, bytes_read) != bytes_read) {
-            return FILE_ERROR_IO_FAILED;
-        }
+        if (file_write(dst, buffer, 1, bytes_read) != bytes_read) { return FILE_ERROR_IO_FAILED; }
     }
 
     // Check for read error
-    if (ferror(src->stream)) {
-        return FILE_ERROR_IO_FAILED;
-    }
+    if (ferror(src->stream)) { return FILE_ERROR_IO_FAILED; }
 
     // Flush destination
-    if (fflush(dst->stream) != 0) {
-        return FILE_ERROR_IO_FAILED;
-    }
+    if (fflush(dst->stream) != 0) { return FILE_ERROR_IO_FAILED; }
 
     return FILE_SUCCESS;
 }
@@ -508,10 +453,9 @@ void* file_mmap(const file_t* file, size_t length, bool read_access, bool write_
 
 #ifdef _WIN32
     DWORD protect = write_access ? PAGE_READWRITE : PAGE_READONLY;
-    DWORD access  = write_access ? FILE_MAP_WRITE : FILE_MAP_READ;
+    DWORD access = write_access ? FILE_MAP_WRITE : FILE_MAP_READ;
 
-    HANDLE mapping = CreateFileMapping(file->native_handle, NULL, protect, (DWORD)(length >> 32),
-                                       (DWORD)length, NULL);
+    HANDLE mapping = CreateFileMapping(file->native_handle, NULL, protect, (DWORD)(length >> 32), (DWORD)length, NULL);
     if (!mapping) {
         errno = EIO;
         return NULL;
@@ -520,9 +464,7 @@ void* file_mmap(const file_t* file, size_t length, bool read_access, bool write_
     void* addr = MapViewOfFile(mapping, access, 0, 0, length);
     CloseHandle(mapping);
 
-    if (!addr) {
-        errno = EIO;
-    }
+    if (!addr) { errno = EIO; }
     return addr;
 #else
     int prot = 0;
@@ -535,9 +477,7 @@ void* file_mmap(const file_t* file, size_t length, bool read_access, bool write_
 }
 
 file_result_t file_munmap(void* addr, size_t length) {
-    if (!addr) {
-        return FILE_ERROR_INVALID_ARGS;
-    }
+    if (!addr) { return FILE_ERROR_INVALID_ARGS; }
 
 #ifdef _WIN32
     (void)length;  // Unused on Windows
@@ -555,9 +495,7 @@ int64_t file_tell(const file_t* file) {
 #ifdef _WIN32
     LARGE_INTEGER zero = {0};
     LARGE_INTEGER pos;
-    if (SetFilePointerEx(file->native_handle, zero, &pos, FILE_CURRENT)) {
-        return (int64_t)pos.QuadPart;
-    }
+    if (SetFilePointerEx(file->native_handle, zero, &pos, FILE_CURRENT)) { return (int64_t)pos.QuadPart; }
     errno = EIO;
     return -1;
 #else
@@ -568,9 +506,7 @@ int64_t file_tell(const file_t* file) {
 
 file_result_t file_seek(file_t* file, int64_t offset, int whence) {
     // Flush any pending writes before seeking
-    if (fflush(file->stream) != 0) {
-        return FILE_ERROR_IO_FAILED;
-    }
+    if (fflush(file->stream) != 0) { return FILE_ERROR_IO_FAILED; }
 
 #ifdef _WIN32
     DWORD move_method;
@@ -603,9 +539,7 @@ file_result_t file_seek(file_t* file, int64_t offset, int whence) {
     }
 
     // Sync the FILE* stream position
-    if (fseek(file->stream, 0, SEEK_CUR) != 0) {
-        return FILE_ERROR_IO_FAILED;
-    }
+    if (fseek(file->stream, 0, SEEK_CUR) != 0) { return FILE_ERROR_IO_FAILED; }
 
     return FILE_SUCCESS;
 #endif

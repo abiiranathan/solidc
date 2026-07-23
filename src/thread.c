@@ -74,9 +74,9 @@ DWORD WINAPI thread_start_wrapper(LPVOID lpParameter) {
         return 1;  // Indicate error
     }
 
-    ThreadParams* params             = (ThreadParams*)lpParameter;
+    ThreadParams* params = (ThreadParams*)lpParameter;
     ThreadStartRoutine start_routine = params->start_routine;
-    void* data                       = params->data;
+    void* data = params->data;
 
     // Signal that we've started and captured our parameters
     params->started = 1;
@@ -95,20 +95,16 @@ DWORD WINAPI thread_start_wrapper(LPVOID lpParameter) {
 #endif
 
 int thread_create(Thread* thread, ThreadStartRoutine start_routine, void* data) {
-    if (thread == NULL || start_routine == NULL) {
-        return EINVAL;
-    }
+    if (thread == NULL || start_routine == NULL) { return EINVAL; }
 
 #ifdef _WIN32
     ThreadParams* params = (ThreadParams*)malloc(sizeof(ThreadParams));
-    if (params == NULL) {
-        return ENOMEM;
-    }
+    if (params == NULL) { return ENOMEM; }
 
     params->start_routine = start_routine;
-    params->data          = data;
-    params->result        = NULL;
-    params->started       = 0;
+    params->data = data;
+    params->result = NULL;
+    params->started = 0;
 
     HANDLE handle = CreateThread(NULL,                  // Security attributes (default)
                                  0,                     // Stack size (default)
@@ -139,22 +135,17 @@ int thread_create(Thread* thread, ThreadStartRoutine start_routine, void* data) 
 #endif
 }
 
-int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine start_routine,
-                       void* data) {
-    if (thread == NULL || attr == NULL || start_routine == NULL) {
-        return EINVAL;
-    }
+int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine start_routine, void* data) {
+    if (thread == NULL || attr == NULL || start_routine == NULL) { return EINVAL; }
 
 #ifdef _WIN32
     ThreadParams* params = (ThreadParams*)malloc(sizeof(ThreadParams));
-    if (params == NULL) {
-        return ENOMEM;
-    }
+    if (params == NULL) { return ENOMEM; }
 
     params->start_routine = start_routine;
-    params->data          = data;
-    params->result        = NULL;
-    params->started       = 0;
+    params->data = data;
+    params->result = NULL;
+    params->started = 0;
 
     HANDLE handle = CreateThread(&attr->sa,             // Security attributes
                                  attr->stackSize,       // Stack size
@@ -186,14 +177,10 @@ int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine star
 
 int thread_join(Thread tid, void** retval) {
 #ifdef _WIN32
-    if (!is_valid_thread_handle(tid)) {
-        return EINVAL;
-    }
+    if (!is_valid_thread_handle(tid)) { return EINVAL; }
 
     DWORD wait_result = WaitForSingleObject(tid, INFINITE);
-    if (wait_result != WAIT_OBJECT_0) {
-        return win_error_to_errno(GetLastError());
-    }
+    if (wait_result != WAIT_OBJECT_0) { return win_error_to_errno(GetLastError()); }
 
     // Retrieve the thread's parameters to get the actual return value
     // We stored the ThreadParams pointer in thread-local storage conceptually,
@@ -242,9 +229,7 @@ void thread_exit(void* retval) {
 
 int thread_detach(Thread tid) {
 #ifdef _WIN32
-    if (!is_valid_thread_handle(tid)) {
-        return EINVAL;
-    }
+    if (!is_valid_thread_handle(tid)) { return EINVAL; }
 
     // On Windows, "detaching" means we close our reference to the handle.
     // The thread continues to run, and the system will clean up when it exits.
@@ -253,9 +238,7 @@ int thread_detach(Thread tid) {
     // becomes invalid and cannot be used for any operations, including join.
     // This matches POSIX semantics where you cannot join a detached thread.
 
-    if (!CloseHandle(tid)) {
-        return win_error_to_errno(GetLastError());
-    }
+    if (!CloseHandle(tid)) { return win_error_to_errno(GetLastError()); }
     return 0;
 
 #else  // POSIX
@@ -277,17 +260,15 @@ pthread_t thread_self() {
 /* Thread Attribute Management */
 
 int thread_attr_init(ThreadAttr* attr) {
-    if (attr == NULL) {
-        return EINVAL;
-    }
+    if (attr == NULL) { return EINVAL; }
 
 #ifdef _WIN32
     // Initialize to safe defaults with explicit zeroing for security
     memset(attr, 0, sizeof(ThreadAttr));
-    attr->stackSize               = 0;      // Use system default stack size
-    attr->sa.nLength              = sizeof(SECURITY_ATTRIBUTES);
-    attr->sa.lpSecurityDescriptor = NULL;   // Default security
-    attr->sa.bInheritHandle       = FALSE;  // Don't inherit handles by default
+    attr->stackSize = 0;                   // Use system default stack size
+    attr->sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+    attr->sa.lpSecurityDescriptor = NULL;  // Default security
+    attr->sa.bInheritHandle = FALSE;       // Don't inherit handles by default
     return 0;
 
 #else  // POSIX
@@ -297,9 +278,7 @@ int thread_attr_init(ThreadAttr* attr) {
 }
 
 int thread_attr_destroy(ThreadAttr* attr) {
-    if (attr == NULL) {
-        return EINVAL;
-    }
+    if (attr == NULL) { return EINVAL; }
 
 #ifdef _WIN32
     // Explicitly zero out the structure for security
@@ -315,9 +294,7 @@ int thread_attr_destroy(ThreadAttr* attr) {
 /* Utility Functions */
 
 void sleep_ms(int ms) {
-    if (ms <= 0) {
-        return;
-    }
+    if (ms <= 0) { return; }
 
 #ifdef _WIN32
     // Windows Sleep is documented to accept DWORD, validate range
@@ -328,15 +305,13 @@ void sleep_ms(int ms) {
 
 #else  // POSIX
     struct timespec ts;
-    ts.tv_sec  = ms / 1000;
+    ts.tv_sec = ms / 1000;
     ts.tv_nsec = (ms % 1000) * 1000000L;
 
     // Handle EINTR by continuing to sleep for remaining time
     struct timespec remaining;
     while (nanosleep(&ts, &remaining) == -1) {
-        if (errno != EINTR) {
-            break;
-        }
+        if (errno != EINTR) { break; }
         ts = remaining;
     }
 #endif
@@ -398,12 +373,10 @@ int get_ppid() {
     HANDLE snapshot;
     PROCESSENTRY32 pe32;
     DWORD current_pid = GetCurrentProcessId();
-    DWORD parent_pid  = (DWORD)-1;
+    DWORD parent_pid = (DWORD)-1;
 
     snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (snapshot == INVALID_HANDLE_VALUE) {
-        return -1;
-    }
+    if (snapshot == INVALID_HANDLE_VALUE) { return -1; }
 
     pe32.dwSize = sizeof(PROCESSENTRY32);
     if (!Process32First(snapshot, &pe32)) {
@@ -420,9 +393,7 @@ int get_ppid() {
 
     CloseHandle(snapshot);
 
-    if (parent_pid == (DWORD)-1 || parent_pid > INT_MAX) {
-        return -1;
-    }
+    if (parent_pid == (DWORD)-1 || parent_pid > INT_MAX) { return -1; }
     return (int)parent_pid;
 }
 
@@ -432,15 +403,13 @@ int get_ppid() {
  * @note Returns a hash of the user's SID since Windows SIDs are variable-length.
  */
 unsigned int get_uid() {
-    HANDLE token            = NULL;
+    HANDLE token = NULL;
     DWORD token_info_length = 0;
-    TOKEN_USER* token_user  = NULL;
-    unsigned int uid_hash   = (unsigned int)-1;
+    TOKEN_USER* token_user = NULL;
+    unsigned int uid_hash = (unsigned int)-1;
 
     // Open current process token
-    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
-        return (unsigned int)-1;
-    }
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) { return (unsigned int)-1; }
 
     // Get required buffer size
     GetTokenInformation(token, TokenUser, NULL, 0, &token_info_length);
@@ -466,7 +435,7 @@ unsigned int get_uid() {
     PSID sid = token_user->User.Sid;
     if (IsValidSid(sid)) {
         DWORD sid_length = GetLengthSid(sid);
-        BYTE* sid_bytes  = (BYTE*)sid;
+        BYTE* sid_bytes = (BYTE*)sid;
 
         // Simple FNV-1a hash
         uid_hash = 2166136261u;
@@ -487,15 +456,13 @@ unsigned int get_uid() {
  * @note Returns a hash of the primary group's SID.
  */
 unsigned int get_gid() {
-    HANDLE token                       = NULL;
-    DWORD token_info_length            = 0;
+    HANDLE token = NULL;
+    DWORD token_info_length = 0;
     TOKEN_PRIMARY_GROUP* primary_group = NULL;
-    unsigned int gid_hash              = (unsigned int)-1;
+    unsigned int gid_hash = (unsigned int)-1;
 
     // Open current process token
-    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
-        return (unsigned int)-1;
-    }
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) { return (unsigned int)-1; }
 
     // Get required buffer size
     GetTokenInformation(token, TokenPrimaryGroup, NULL, 0, &token_info_length);
@@ -511,8 +478,7 @@ unsigned int get_gid() {
     }
 
     // Get primary group SID
-    if (!GetTokenInformation(token, TokenPrimaryGroup, primary_group, token_info_length,
-                             &token_info_length)) {
+    if (!GetTokenInformation(token, TokenPrimaryGroup, primary_group, token_info_length, &token_info_length)) {
         free(primary_group);
         CloseHandle(token);
         return (unsigned int)-1;
@@ -522,7 +488,7 @@ unsigned int get_gid() {
     PSID sid = primary_group->PrimaryGroup;
     if (IsValidSid(sid)) {
         DWORD sid_length = GetLengthSid(sid);
-        BYTE* sid_bytes  = (BYTE*)sid;
+        BYTE* sid_bytes = (BYTE*)sid;
 
         // Simple FNV-1a hash
         gid_hash = 2166136261u;
@@ -548,9 +514,7 @@ static char win_username_buffer[UNLEN + 1];
 char* get_username() {
     DWORD username_len = UNLEN + 1;
 
-    if (!GetUserNameA(win_username_buffer, &username_len)) {
-        return NULL;
-    }
+    if (!GetUserNameA(win_username_buffer, &username_len)) { return NULL; }
 
     return win_username_buffer;
 }
@@ -565,15 +529,13 @@ static char win_groupname_buffer[256];
  * @note On Windows, this returns the name of the user's primary group from their token.
  */
 char* get_groupname() {
-    HANDLE token                       = NULL;
-    DWORD token_info_length            = 0;
+    HANDLE token = NULL;
+    DWORD token_info_length = 0;
     TOKEN_PRIMARY_GROUP* primary_group = NULL;
-    char* result                       = NULL;
+    char* result = NULL;
 
     // Open current process token
-    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
-        return NULL;
-    }
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) { return NULL; }
 
     // Get required buffer size for primary group
     GetTokenInformation(token, TokenPrimaryGroup, NULL, 0, &token_info_length);
@@ -589,28 +551,26 @@ char* get_groupname() {
     }
 
     // Get primary group SID
-    if (!GetTokenInformation(token, TokenPrimaryGroup, primary_group, token_info_length,
-                             &token_info_length)) {
+    if (!GetTokenInformation(token, TokenPrimaryGroup, primary_group, token_info_length, &token_info_length)) {
         free(primary_group);
         CloseHandle(token);
         return NULL;
     }
 
     // Lookup account name from SID
-    DWORD name_len   = sizeof(win_groupname_buffer);
+    DWORD name_len = sizeof(win_groupname_buffer);
     DWORD domain_len = 0;
     SID_NAME_USE sid_type;
 
     // First call to get domain length
-    LookupAccountSidA(NULL, primary_group->PrimaryGroup, win_groupname_buffer, &name_len, NULL,
-                      &domain_len, &sid_type);
+    LookupAccountSidA(NULL, primary_group->PrimaryGroup, win_groupname_buffer, &name_len, NULL, &domain_len, &sid_type);
 
     if (domain_len > 0) {
         char* domain_buffer = (char*)malloc(domain_len);
         if (domain_buffer != NULL) {
             name_len = sizeof(win_groupname_buffer);
-            if (LookupAccountSidA(NULL, primary_group->PrimaryGroup, win_groupname_buffer,
-                                  &name_len, domain_buffer, &domain_len, &sid_type)) {
+            if (LookupAccountSidA(NULL, primary_group->PrimaryGroup, win_groupname_buffer, &name_len, domain_buffer,
+                                  &domain_len, &sid_type)) {
                 result = win_groupname_buffer;
             }
             free(domain_buffer);
@@ -627,9 +587,7 @@ char* get_groupname() {
 int get_ppid() {
     pid_t ppid = getppid();
     // POSIX guarantees ppid fits in int, but be defensive
-    if (ppid < 0 || ppid > INT_MAX) {
-        return -1;
-    }
+    if (ppid < 0 || ppid > INT_MAX) { return -1; }
     return (int)ppid;
 }
 

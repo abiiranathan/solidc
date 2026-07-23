@@ -142,11 +142,10 @@ static inline void fast_rwlock_rdlock(fast_rwlock_t* l) {
             continue;
         }
 #ifdef __cplusplus
-        if (l->state.compare_exchange_weak(state, state + 1, std::memory_order_acquire,
-                                           std::memory_order_relaxed))
+        if (l->state.compare_exchange_weak(state, state + 1, std::memory_order_acquire, std::memory_order_relaxed))
 #else
-        if (atomic_compare_exchange_weak_explicit(&l->state, &state, state + 1,
-                                                  memory_order_acquire, memory_order_relaxed))
+        if (atomic_compare_exchange_weak_explicit(&l->state, &state, state + 1, memory_order_acquire,
+                                                  memory_order_relaxed))
 #endif
             return;
         cpu_relax();
@@ -214,11 +213,9 @@ static inline void fast_rwlock_wrlock(fast_rwlock_t* l) {
     while (true) {
         int expected = 0;
 #ifdef __cplusplus
-        if (l->state.compare_exchange_weak(expected, -1, std::memory_order_acquire,
-                                           std::memory_order_relaxed))
+        if (l->state.compare_exchange_weak(expected, -1, std::memory_order_acquire, std::memory_order_relaxed))
 #else
-        if (atomic_compare_exchange_weak_explicit(&l->state, &expected, -1, memory_order_acquire,
-                                                  memory_order_relaxed))
+        if (atomic_compare_exchange_weak_explicit(&l->state, &expected, -1, memory_order_acquire, memory_order_relaxed))
 #endif
             return;
         cpu_relax();

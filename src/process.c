@@ -40,9 +40,7 @@ static char* find_in_path(const char* command, const char* const* environment) {
     }
 #else
     // POSIX: Check for absolute or relative path
-    if (command[0] == '/' || command[0] == '.') {
-        return strdup(command);
-    }
+    if (command[0] == '/' || command[0] == '.') { return strdup(command); }
 #endif
 
     // Find PATH in environment
@@ -63,7 +61,7 @@ static char* find_in_path(const char* command, const char* const* environment) {
     if (!path_copy) return NULL;
 
     char* saveptr = NULL;
-    char* dir     = strtok_r(path_copy, PATH_SEP, &saveptr);
+    char* dir = strtok_r(path_copy, PATH_SEP, &saveptr);
     char full_path[4096];
 
     while (dir) {
@@ -126,15 +124,15 @@ struct FileRedirection {
 
 /* Default options for process creation */
 static const ProcessOptions DEFAULT_OPTIONS = {
-    .working_directory   = NULL,
+    .working_directory = NULL,
     .inherit_environment = true,
-    .environment         = NULL,
-    .detached            = false,
+    .environment = NULL,
+    .detached = false,
     .io =
         {
-            .stdin_pipe   = NULL,
-            .stdout_pipe  = NULL,
-            .stderr_pipe  = NULL,
+            .stdin_pipe = NULL,
+            .stdout_pipe = NULL,
+            .stderr_pipe = NULL,
             .merge_stderr = false,
         },
 };
@@ -245,19 +243,15 @@ const char* process_error_string(ProcessError error) {
 
 /* Implementation of the pipe API */
 ProcessError pipe_create(PipeHandle** pipeHandle) {
-    if (!pipeHandle) {
-        return PROCESS_ERROR_INVALID_ARGUMENT;
-    }
+    if (!pipeHandle) { return PROCESS_ERROR_INVALID_ARGUMENT; }
 
     *pipeHandle = (PipeHandle*)calloc(1, sizeof(PipeHandle));
-    if (!*pipeHandle) {
-        return PROCESS_ERROR_MEMORY;
-    }
+    if (!*pipeHandle) { return PROCESS_ERROR_MEMORY; }
 
 #ifdef _WIN32
     SECURITY_ATTRIBUTES security_attrs;
     memset(&security_attrs, 0, sizeof(security_attrs));
-    security_attrs.nLength        = sizeof(security_attrs);
+    security_attrs.nLength = sizeof(security_attrs);
     security_attrs.bInheritHandle = TRUE;
 
     if (!CreatePipe(&(*pipeHandle)->read_fd, &(*pipeHandle)->write_fd, &security_attrs, 0)) {
@@ -273,7 +267,7 @@ ProcessError pipe_create(PipeHandle** pipeHandle) {
         return PROCESS_ERROR_PIPE_FAILED;
     }
 
-    (*pipeHandle)->read_fd  = fds[0];
+    (*pipeHandle)->read_fd = fds[0];
     (*pipeHandle)->write_fd = fds[1];
 #endif
 
@@ -288,26 +282,18 @@ ProcessError pipe_create(PipeHandle** pipeHandle) {
  * @return ProcessError
  */
 ProcessError pipe_set_nonblocking(PipeHandle* pipe, bool nonblocking) {
-    if (!pipe) {
-        return PROCESS_ERROR_INVALID_ARGUMENT;
-    }
+    if (!pipe) { return PROCESS_ERROR_INVALID_ARGUMENT; }
 
 #ifdef _WIN32
     DWORD mode = nonblocking ? PIPE_NOWAIT : PIPE_WAIT;
-    if (!SetNamedPipeHandleState(pipe->read_fd, &mode, NULL, NULL)) {
-        return process_system_error();
-    }
-    if (!SetNamedPipeHandleState(pipe->write_fd, &mode, NULL, NULL)) {
-        return process_system_error();
-    }
+    if (!SetNamedPipeHandleState(pipe->read_fd, &mode, NULL, NULL)) { return process_system_error(); }
+    if (!SetNamedPipeHandleState(pipe->write_fd, &mode, NULL, NULL)) { return process_system_error(); }
 #else
     int flags;
 
     // Set read end
     flags = fcntl(pipe->read_fd, F_GETFL);
-    if (flags == -1) {
-        return process_system_error();
-    }
+    if (flags == -1) { return process_system_error(); }
 
     if (nonblocking) {
         flags |= O_NONBLOCK;
@@ -315,15 +301,11 @@ ProcessError pipe_set_nonblocking(PipeHandle* pipe, bool nonblocking) {
         flags &= ~O_NONBLOCK;
     }
 
-    if (fcntl(pipe->read_fd, F_SETFL, flags) == -1) {
-        return process_system_error();
-    }
+    if (fcntl(pipe->read_fd, F_SETFL, flags) == -1) { return process_system_error(); }
 
     // Set write end
     flags = fcntl(pipe->write_fd, F_GETFL);
-    if (flags == -1) {
-        return process_system_error();
-    }
+    if (flags == -1) { return process_system_error(); }
 
     if (nonblocking) {
         flags |= O_NONBLOCK;
@@ -331,23 +313,16 @@ ProcessError pipe_set_nonblocking(PipeHandle* pipe, bool nonblocking) {
         flags &= ~O_NONBLOCK;
     }
 
-    if (fcntl(pipe->write_fd, F_SETFL, flags) == -1) {
-        return process_system_error();
-    }
+    if (fcntl(pipe->write_fd, F_SETFL, flags) == -1) { return process_system_error(); }
 #endif
 
     return PROCESS_SUCCESS;
 }
 
-ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* bytes_read,
-                       int timeout_ms) {
-    if (!pipe || !buffer || pipe->read_closed) {
-        return PROCESS_ERROR_INVALID_ARGUMENT;
-    }
+ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* bytes_read, int timeout_ms) {
+    if (!pipe || !buffer || pipe->read_closed) { return PROCESS_ERROR_INVALID_ARGUMENT; }
 
-    if (bytes_read) {
-        *bytes_read = 0;
-    }
+    if (bytes_read) { *bytes_read = 0; }
 
 #ifdef _WIN32
     // Windows implementation remains similar but with better error codes
@@ -356,36 +331,27 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
     memset(&overlapped, 0, sizeof(overlapped));
     overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
-    if (!overlapped.hEvent) {
-        return process_system_error();
-    }
+    if (!overlapped.hEvent) { return process_system_error(); }
 
     if (!ReadFile(pipe->read_fd, buffer, (DWORD)size, NULL, &overlapped)) {
         DWORD error = GetLastError();
         if (error != ERROR_IO_PENDING) {
             CloseHandle(overlapped.hEvent);
-            if (error == ERROR_BROKEN_PIPE) {
-                return PROCESS_ERROR_PIPE_CLOSED;
-            }
+            if (error == ERROR_BROKEN_PIPE) { return PROCESS_ERROR_PIPE_CLOSED; }
             return process_system_error();
         }
     }
 
-    DWORD wait_result =
-        WaitForSingleObject(overlapped.hEvent, timeout_ms < 0 ? INFINITE : (DWORD)timeout_ms);
+    DWORD wait_result = WaitForSingleObject(overlapped.hEvent, timeout_ms < 0 ? INFINITE : (DWORD)timeout_ms);
 
     if (wait_result == WAIT_OBJECT_0) {
         if (!GetOverlappedResult(pipe->read_fd, &overlapped, &bytes_read_win, FALSE)) {
             CloseHandle(overlapped.hEvent);
             DWORD error = GetLastError();
-            if (error == ERROR_BROKEN_PIPE) {
-                return PROCESS_ERROR_PIPE_CLOSED;
-            }
+            if (error == ERROR_BROKEN_PIPE) { return PROCESS_ERROR_PIPE_CLOSED; }
             return process_system_error();
         }
-        if (bytes_read) {
-            *bytes_read = bytes_read_win;
-        }
+        if (bytes_read) { *bytes_read = bytes_read_win; }
     } else if (wait_result == WAIT_TIMEOUT) {
         CancelIo(pipe->read_fd);
         CloseHandle(overlapped.hEvent);
@@ -405,7 +371,7 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
         FD_SET(pipe->read_fd, &read_fds);
 
         struct timeval timeout;
-        timeout.tv_sec  = timeout_ms / 1000;
+        timeout.tv_sec = timeout_ms / 1000;
         timeout.tv_usec = (long)((timeout_ms % 1000) * 1000);
 
         // select returns: -1 (error), 0 (timeout), >0 (ready)
@@ -443,23 +409,16 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
         return PROCESS_ERROR_PIPE_CLOSED;
     }
 
-    if (bytes_read) {
-        *bytes_read = (size_t)result;
-    }
+    if (bytes_read) { *bytes_read = (size_t)result; }
 #endif
 
     return PROCESS_SUCCESS;
 }
 
-ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_t* bytes_written,
-                        int timeout_ms) {
-    if (!pipe || !buffer || pipe->write_closed) {
-        return PROCESS_ERROR_INVALID_ARGUMENT;
-    }
+ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_t* bytes_written, int timeout_ms) {
+    if (!pipe || !buffer || pipe->write_closed) { return PROCESS_ERROR_INVALID_ARGUMENT; }
 
-    if (bytes_written) {
-        *bytes_written = 0;
-    }
+    if (bytes_written) { *bytes_written = 0; }
 
 #ifdef _WIN32
     DWORD bytes_written_win = 0;
@@ -467,36 +426,27 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
     memset(&overlapped, 0, sizeof(overlapped));
     overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
-    if (!overlapped.hEvent) {
-        return process_system_error();
-    }
+    if (!overlapped.hEvent) { return process_system_error(); }
 
     if (!WriteFile(pipe->write_fd, buffer, (DWORD)size, NULL, &overlapped)) {
         DWORD error = GetLastError();
         if (error != ERROR_IO_PENDING) {
             CloseHandle(overlapped.hEvent);
-            if (error == ERROR_BROKEN_PIPE || error == ERROR_NO_DATA) {
-                return PROCESS_ERROR_PIPE_CLOSED;
-            }
+            if (error == ERROR_BROKEN_PIPE || error == ERROR_NO_DATA) { return PROCESS_ERROR_PIPE_CLOSED; }
             return process_system_error();
         }
     }
 
-    DWORD wait_result =
-        WaitForSingleObject(overlapped.hEvent, timeout_ms < 0 ? INFINITE : (DWORD)timeout_ms);
+    DWORD wait_result = WaitForSingleObject(overlapped.hEvent, timeout_ms < 0 ? INFINITE : (DWORD)timeout_ms);
 
     if (wait_result == WAIT_OBJECT_0) {
         if (!GetOverlappedResult(pipe->write_fd, &overlapped, &bytes_written_win, FALSE)) {
             CloseHandle(overlapped.hEvent);
             DWORD error = GetLastError();
-            if (error == ERROR_BROKEN_PIPE || error == ERROR_NO_DATA) {
-                return PROCESS_ERROR_PIPE_CLOSED;
-            }
+            if (error == ERROR_BROKEN_PIPE || error == ERROR_NO_DATA) { return PROCESS_ERROR_PIPE_CLOSED; }
             return process_system_error();
         }
-        if (bytes_written) {
-            *bytes_written = bytes_written_win;
-        }
+        if (bytes_written) { *bytes_written = bytes_written_win; }
     } else if (wait_result == WAIT_TIMEOUT) {
         CancelIo(pipe->write_fd);
         CloseHandle(overlapped.hEvent);
@@ -516,9 +466,9 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
 
         struct timeval timeout;
         struct timeval* timeout_ptr = NULL;
-        timeout.tv_sec              = timeout_ms / 1000;
-        timeout.tv_usec             = ((long)timeout_ms % 1000) * 1000;
-        timeout_ptr                 = &timeout;
+        timeout.tv_sec = timeout_ms / 1000;
+        timeout.tv_usec = ((long)timeout_ms % 1000) * 1000;
+        timeout_ptr = &timeout;
         int select_result = select(pipe->write_fd + 1, NULL, &write_fds, NULL, timeout_ptr);
         if (select_result == -1) {
             if (errno == EINTR)
@@ -547,40 +497,36 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
         return process_system_error();
     }
 
-    if (bytes_written) {
-        *bytes_written = (size_t)result;
-    }
+    if (bytes_written) { *bytes_written = (size_t)result; }
 #endif
 
     return PROCESS_SUCCESS;
 }
 
 void pipe_close(PipeHandle* pipe) {
-    if (!pipe) {
-        return;
-    }
+    if (!pipe) { return; }
 
 #ifdef _WIN32
     if (pipe->read_fd != INVALID_NATIVE_HANDLE && !pipe->read_closed) {
         CloseHandle(pipe->read_fd);
         pipe->read_closed = true;
-        pipe->read_fd     = INVALID_NATIVE_HANDLE;
+        pipe->read_fd = INVALID_NATIVE_HANDLE;
     }
     if (pipe->write_fd != INVALID_NATIVE_HANDLE && !pipe->write_closed) {
         CloseHandle(pipe->write_fd);
         pipe->write_closed = true;
-        pipe->write_fd     = INVALID_NATIVE_HANDLE;
+        pipe->write_fd = INVALID_NATIVE_HANDLE;
     }
 #else
     if (pipe->read_fd != INVALID_NATIVE_HANDLE && !pipe->read_closed) {
         close(pipe->read_fd);
         pipe->read_closed = true;
-        pipe->read_fd     = INVALID_NATIVE_HANDLE;
+        pipe->read_fd = INVALID_NATIVE_HANDLE;
     }
     if (pipe->write_fd != INVALID_NATIVE_HANDLE && !pipe->write_closed) {
         close(pipe->write_fd);
         pipe->write_closed = true;
-        pipe->write_fd     = INVALID_NATIVE_HANDLE;
+        pipe->write_fd = INVALID_NATIVE_HANDLE;
     }
 #endif
 
@@ -596,7 +542,7 @@ ProcessError pipe_close_read_end(PipeHandle* pipe) {
         close(pipe->read_fd);
 #endif
         pipe->read_closed = true;
-        pipe->read_fd     = INVALID_NATIVE_HANDLE;
+        pipe->read_fd = INVALID_NATIVE_HANDLE;
     }
     return PROCESS_SUCCESS;
 }
@@ -610,7 +556,7 @@ ProcessError pipe_close_write_end(PipeHandle* pipe) {
         close(pipe->write_fd);
 #endif
         pipe->write_closed = true;
-        pipe->write_fd     = INVALID_NATIVE_HANDLE;
+        pipe->write_fd = INVALID_NATIVE_HANDLE;
     }
     return PROCESS_SUCCESS;
 }
@@ -667,8 +613,8 @@ static void append_escaped_win32_arg(char* dest, const char* arg) {
             /* Literal backslashes followed by a normal char */
             for (int k = 0; k < num_bs; k++)
                 strcat(dest, "\\");
-            size_t len    = strlen(dest);
-            dest[len]     = *p;
+            size_t len = strlen(dest);
+            dest[len] = *p;
             dest[len + 1] = '\0';
             p++;
         }
@@ -677,26 +623,22 @@ static void append_escaped_win32_arg(char* dest, const char* arg) {
     strcat(dest, "\"");
 }
 
-static ProcessError win32_create_process(ProcessHandle** handle, const char* command,
-                                         const char* const argv[], const ProcessOptions* options) {
+static ProcessError win32_create_process(ProcessHandle** handle, const char* command, const char* const argv[],
+                                         const ProcessOptions* options) {
     /* Calculate an upper-bound for the command-line buffer.
      * Each character can expand to at most 2 (backslash doubling) plus
      * 2 surrounding quotes + 1 space separator. */
     size_t cmdline_len = 0;
-    int arg_count      = 0;
+    int arg_count = 0;
 
     while (argv[arg_count] != NULL) {
         cmdline_len += strlen(argv[arg_count]) * 2 + 4; /* worst-case escaping */
         arg_count++;
     }
-    if (arg_count == 0) {
-        return PROCESS_ERROR_INVALID_ARGUMENT;
-    }
+    if (arg_count == 0) { return PROCESS_ERROR_INVALID_ARGUMENT; }
 
     char* cmdline = (char*)malloc(cmdline_len + 1);
-    if (!cmdline) {
-        return PROCESS_ERROR_MEMORY;
-    }
+    if (!cmdline) { return PROCESS_ERROR_MEMORY; }
     cmdline[0] = '\0';
 
     for (int i = 0; i < arg_count; i++) {
@@ -707,11 +649,11 @@ static ProcessError win32_create_process(ProcessHandle** handle, const char* com
     /* Prepare startup info with redirections */
     STARTUPINFOA startup_info;
     memset(&startup_info, 0, sizeof(startup_info));
-    startup_info.cb         = sizeof(startup_info);
-    startup_info.dwFlags    = STARTF_USESTDHANDLES;
-    startup_info.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
+    startup_info.cb = sizeof(startup_info);
+    startup_info.dwFlags = STARTF_USESTDHANDLES;
+    startup_info.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
     startup_info.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-    startup_info.hStdError  = GetStdHandle(STD_ERROR_HANDLE);
+    startup_info.hStdError = GetStdHandle(STD_ERROR_HANDLE);
 
     if (options->io.stdin_pipe) startup_info.hStdInput = options->io.stdin_pipe->read_fd;
     if (options->io.stdout_pipe) startup_info.hStdOutput = options->io.stdout_pipe->write_fd;
@@ -723,20 +665,15 @@ static ProcessError win32_create_process(ProcessHandle** handle, const char* com
     }
 
     DWORD creation_flags = 0;
-    if (options->detached) {
-        creation_flags |= DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP;
-    }
+    if (options->detached) { creation_flags |= DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP; }
 
     PROCESS_INFORMATION process_info;
-    BOOL success = CreateProcessA(command, cmdline, NULL, NULL, TRUE, creation_flags,
-                                  (LPVOID)(options->environment), options->working_directory,
-                                  &startup_info, &process_info);
+    BOOL success = CreateProcessA(command, cmdline, NULL, NULL, TRUE, creation_flags, (LPVOID)(options->environment),
+                                  options->working_directory, &startup_info, &process_info);
 
     free(cmdline);
 
-    if (!success) {
-        return process_system_error();
-    }
+    if (!success) { return process_system_error(); }
 
     *handle = (ProcessHandle*)malloc(sizeof(ProcessHandle));
     if (!*handle) {
@@ -746,15 +683,15 @@ static ProcessError win32_create_process(ProcessHandle** handle, const char* com
     }
 
     (*handle)->process_info = process_info;
-    (*handle)->detached     = options->detached;
+    (*handle)->detached = options->detached;
 
     return PROCESS_SUCCESS;
 }
 #else
-static ProcessError unix_create_process(ProcessHandle** handle, const char* command,
-                                        const char* const argv[], const ProcessOptions* options) {
+static ProcessError unix_create_process(ProcessHandle** handle, const char* command, const char* const argv[],
+                                        const ProcessOptions* options) {
     // Create pipes for redirection if needed
-    int stdin_pipe[2]  = {-1, -1};
+    int stdin_pipe[2] = {-1, -1};
     int stdout_pipe[2] = {-1, -1};
     int stderr_pipe[2] = {-1, -1};
 
@@ -777,18 +714,14 @@ static ProcessError unix_create_process(ProcessHandle** handle, const char* comm
     // Fork the process
     pid_t pid = fork();
 
-    if (pid < 0) {
-        return PROCESS_ERROR_FORK_FAILED;
-    }
+    if (pid < 0) { return PROCESS_ERROR_FORK_FAILED; }
 
     if (pid == 0) {
         // Child process
 
         // Handle working directory
         if (options->working_directory) {
-            if (chdir(options->working_directory) != 0) {
-                _exit(127);
-            }
+            if (chdir(options->working_directory) != 0) { _exit(127); }
         }
 
         // Handle standard input
@@ -816,9 +749,7 @@ static ProcessError unix_create_process(ProcessHandle** handle, const char* comm
 
         // Detach from parent if requested
         if (options->detached) {
-            if (setsid() < 0) {
-                _exit(127);
-            }
+            if (setsid() < 0) { _exit(127); }
         }
 
         // Execute the command
@@ -826,8 +757,7 @@ static ProcessError unix_create_process(ProcessHandle** handle, const char* comm
             execvp(command, (char* const*)argv);
         } else {
             // Custom or empty environment - need to search PATH manually
-            const char* const* env =
-                options->environment ? options->environment : (const char* const[]){NULL};
+            const char* const* env = options->environment ? options->environment : (const char* const[]){NULL};
             char* cmd_path = find_in_path(command, env);
             if (cmd_path) {
                 execve(cmd_path, (char* const*)argv, (char* const*)env);
@@ -845,11 +775,9 @@ static ProcessError unix_create_process(ProcessHandle** handle, const char* comm
 
     // Parent process
     *handle = (ProcessHandle*)malloc(sizeof(ProcessHandle));
-    if (!*handle) {
-        return PROCESS_ERROR_MEMORY;
-    }
+    if (!*handle) { return PROCESS_ERROR_MEMORY; }
 
-    (*handle)->pid      = pid;
+    (*handle)->pid = pid;
     (*handle)->detached = options->detached;
 
     return PROCESS_SUCCESS;
@@ -858,9 +786,7 @@ static ProcessError unix_create_process(ProcessHandle** handle, const char* comm
 
 ProcessError process_create(ProcessHandle** handle, const char* command, const char* const argv[],
                             const ProcessOptions* options) {
-    if (!handle || !command || !argv || !argv[0]) {
-        return PROCESS_ERROR_INVALID_ARGUMENT;
-    }
+    if (!handle || !command || !argv || !argv[0]) { return PROCESS_ERROR_INVALID_ARGUMENT; }
 
     // Use default options if not provided
     ProcessOptions effective_options;
@@ -890,14 +816,14 @@ void process_free(ProcessHandle* handle) {
 #ifndef _WIN32
 static inline void set_process_result(int status, ProcessResult* result) {
     if (WIFEXITED(status)) {
-        result->exit_code       = WEXITSTATUS(status);
+        result->exit_code = WEXITSTATUS(status);
         result->exited_normally = true;
     } else if (WIFSIGNALED(status)) {
-        result->exit_code       = WTERMSIG(status);
+        result->exit_code = WTERMSIG(status);
         result->exited_normally = false;
-        result->term_signal     = WTERMSIG(status);  // only set term_signal here
+        result->term_signal = WTERMSIG(status);  // only set term_signal here
     } else {
-        result->exit_code       = -1;                // Undefined exit reason
+        result->exit_code = -1;                  // Undefined exit reason
         result->exited_normally = false;
     }
 }
@@ -913,16 +839,14 @@ void NANOSLEEP(long seconds, long nanoseconds) {
 #else
     // On Linux/Unix, we can use nanosleep directly
     struct timespec req;
-    req.tv_sec  = seconds;
+    req.tv_sec = seconds;
     req.tv_nsec = nanoseconds;
     nanosleep(&req, NULL);
 #endif
 }
 
 ProcessError process_wait(ProcessHandle* handle, ProcessResult* result, int timeout_ms) {
-    if (!handle) {
-        return PROCESS_ERROR_INVALID_ARGUMENT;
-    }
+    if (!handle) { return PROCESS_ERROR_INVALID_ARGUMENT; }
 
     if (handle->detached) {
         // Cannot wait for detached processes
@@ -942,17 +866,15 @@ ProcessError process_wait(ProcessHandle* handle, ProcessResult* result, int time
 
     if (result) {
         DWORD exit_code;
-        if (!GetExitCodeProcess(handle->process_info.hProcess, &exit_code)) {
-            return process_system_error();
-        }
+        if (!GetExitCodeProcess(handle->process_info.hProcess, &exit_code)) { return process_system_error(); }
 
-        result->exit_code       = (int)exit_code;
+        result->exit_code = (int)exit_code;
         result->exited_normally = true;
-        result->term_signal     = 0;  // No signal on Windows
+        result->term_signal = 0;  // No signal on Windows
     }
 #else
     // Linux/Unix-specific code
-    int status        = 0;
+    int status = 0;
     pid_t wait_result = 0;
 
     if (timeout_ms < 0) {
@@ -963,10 +885,9 @@ ProcessError process_wait(ProcessHandle* handle, ProcessResult* result, int time
         int remaining_timeout_ms = timeout_ms;
 
         // Here, we wait in a loop until the process exits or the timeout is reached
-        while ((wait_result = waitpid(handle->pid, &status, WNOHANG)) == 0 &&
-               remaining_timeout_ms > 0) {
+        while ((wait_result = waitpid(handle->pid, &status, WNOHANG)) == 0 && remaining_timeout_ms > 0) {
             struct timespec ts;
-            ts.tv_sec  = remaining_timeout_ms / 1000;
+            ts.tv_sec = remaining_timeout_ms / 1000;
             ts.tv_nsec = (remaining_timeout_ms % 1000) * 1000000L;
 
             // Sleep for the remaining timeout duration
@@ -977,18 +898,14 @@ ProcessError process_wait(ProcessHandle* handle, ProcessResult* result, int time
         }
     }
 
-    if (wait_result < 0) {
-        return process_system_error();
-    }
+    if (wait_result < 0) { return process_system_error(); }
 
     if (wait_result == 0) {
         // Process is still running
         return PROCESS_ERROR_WAIT_FAILED;
     }
 
-    if (result) {
-        set_process_result(status, result);
-    }
+    if (result) { set_process_result(status, result); }
 
 #endif
     return PROCESS_SUCCESS;
@@ -1003,66 +920,46 @@ ProcessError process_wait(ProcessHandle* handle, ProcessResult* result, int time
  * @return PROCESS_SUCCESS on success, error code otherwise
  */
 ProcessError process_terminate(ProcessHandle* handle, bool force) {
-    if (!handle) {
-        return PROCESS_ERROR_INVALID_ARGUMENT;
-    }
+    if (!handle) { return PROCESS_ERROR_INVALID_ARGUMENT; }
 #ifdef _WIN32
     if (force) {
         // Force termination using TerminateProcess (like SIGKILL)
-        if (!TerminateProcess(handle->process_info.hProcess, 1)) {
-            return PROCESS_ERROR_TERMINATE_FAILED;
-        }
+        if (!TerminateProcess(handle->process_info.hProcess, 1)) { return PROCESS_ERROR_TERMINATE_FAILED; }
     } else {
         // Graceful termination using GenerateConsoleCtrlEvent or other method
         // GenerateCtrlEvent is typically used for console processes
-        if (!GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0)) {
-            return PROCESS_ERROR_TERMINATE_FAILED;
-        }
+        if (!GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0)) { return PROCESS_ERROR_TERMINATE_FAILED; }
     }
 #else
-    if (handle->pid <= 0) {
-        return PROCESS_ERROR_INVALID_ARGUMENT;
-    }
+    if (handle->pid <= 0) { return PROCESS_ERROR_INVALID_ARGUMENT; }
 
     if (force) {
         // Force termination using SIGKILL (immediate termination)
-        if (kill(handle->pid, SIGKILL) != 0) {
-            return PROCESS_ERROR_KILL_FAILED;
-        }
+        if (kill(handle->pid, SIGKILL) != 0) { return PROCESS_ERROR_KILL_FAILED; }
     } else {
         // Graceful termination using SIGTERM (request termination)
-        if (kill(handle->pid, SIGTERM) != 0) {
-            return PROCESS_ERROR_KILL_FAILED;
-        }
+        if (kill(handle->pid, SIGTERM) != 0) { return PROCESS_ERROR_KILL_FAILED; }
     }
 #endif
     return PROCESS_SUCCESS;
 }
 
-ProcessError process_run_and_capture(const char* command, const char* const argv[],
-                                     ProcessOptions* options, int* exit_code) {
+ProcessError process_run_and_capture(const char* command, const char* const argv[], ProcessOptions* options,
+                                     int* exit_code) {
     ProcessHandle* proc = NULL;
-    ProcessError err    = {0};
-    err                 = process_create(&proc, command, argv, options);
-    if (err != PROCESS_SUCCESS) {
-        return err;
-    }
+    ProcessError err = {0};
+    err = process_create(&proc, command, argv, options);
+    if (err != PROCESS_SUCCESS) { return err; }
 
     ProcessResult res = {0};
-    err               = process_wait(proc, &res, -1);
+    err = process_wait(proc, &res, -1);
     process_free(proc);
 
-    if (exit_code) {
-        *exit_code = res.exit_code;
-    }
+    if (exit_code) { *exit_code = res.exit_code; }
 
-    if (err != PROCESS_SUCCESS) {
-        return err;
-    }
+    if (err != PROCESS_SUCCESS) { return err; }
 
-    if (res.exit_code != 0) {
-        return PROCESS_ERROR_EXEC_FAILED;
-    }
+    if (res.exit_code != 0) { return PROCESS_ERROR_EXEC_FAILED; }
     return PROCESS_SUCCESS;
 }
 
@@ -1077,16 +974,12 @@ ProcessError process_run_and_capture(const char* command, const char* const argv
  * @param[in] mode File mode for creation (if O_CREAT is used)
  * @return ProcessError
  */
-ProcessError process_redirect_to_file(FileRedirection** redirection, const char* filepath,
-                                      int flags, unsigned int mode) {
-    if (!redirection || !filepath) {
-        return PROCESS_ERROR_INVALID_ARGUMENT;
-    }
+ProcessError process_redirect_to_file(FileRedirection** redirection, const char* filepath, int flags,
+                                      unsigned int mode) {
+    if (!redirection || !filepath) { return PROCESS_ERROR_INVALID_ARGUMENT; }
 
     *redirection = (FileRedirection*)malloc(sizeof(FileRedirection));
-    if (!*redirection) {
-        return PROCESS_ERROR_MEMORY;
-    }
+    if (!*redirection) { return PROCESS_ERROR_MEMORY; }
 
     // Open the file with the specified flags and mode
     int fd = open(filepath, flags, mode);
@@ -1096,7 +989,7 @@ ProcessError process_redirect_to_file(FileRedirection** redirection, const char*
         return process_system_error();
     }
 
-    (*redirection)->fd            = fd;
+    (*redirection)->fd = fd;
     (*redirection)->close_on_exec = true;
 
     return PROCESS_SUCCESS;
@@ -1111,16 +1004,12 @@ ProcessError process_redirect_to_file(FileRedirection** redirection, const char*
  * @return ProcessError
  */
 ProcessError process_redirect_to_fd(FileRedirection** redirection, int fd, bool close_on_exec) {
-    if (!redirection || fd < 0) {
-        return PROCESS_ERROR_INVALID_ARGUMENT;
-    }
+    if (!redirection || fd < 0) { return PROCESS_ERROR_INVALID_ARGUMENT; }
 
     *redirection = (FileRedirection*)malloc(sizeof(FileRedirection));
-    if (!*redirection) {
-        return PROCESS_ERROR_MEMORY;
-    }
+    if (!*redirection) { return PROCESS_ERROR_MEMORY; }
 
-    (*redirection)->fd            = fd;
+    (*redirection)->fd = fd;
     (*redirection)->close_on_exec = close_on_exec;
 
     return PROCESS_SUCCESS;
@@ -1132,13 +1021,9 @@ ProcessError process_redirect_to_fd(FileRedirection** redirection, int fd, bool 
  * @param redirection The redirection to close
  */
 void process_close_redirection(FileRedirection* redirection) {
-    if (!redirection) {
-        return;
-    }
+    if (!redirection) { return; }
 
-    if (redirection->close_on_exec && redirection->fd >= 0) {
-        close(redirection->fd);
-    }
+    if (redirection->close_on_exec && redirection->fd >= 0) { close(redirection->fd); }
 
     free(redirection);
     redirection = NULL;
@@ -1153,27 +1038,20 @@ void process_close_redirection(FileRedirection* redirection) {
  * @param[in] options Process options with extended IO
  * @return ProcessError
  */
-ProcessError process_create_with_redirection(ProcessHandle** handle, const char* command,
-                                             const char* const argv[],
+ProcessError process_create_with_redirection(ProcessHandle** handle, const char* command, const char* const argv[],
                                              const ExtProcessOptions* options) {
-    if (!handle || !command || !argv || !argv[0]) {
-        return PROCESS_ERROR_INVALID_ARGUMENT;
-    }
+    if (!handle || !command || !argv || !argv[0]) { return PROCESS_ERROR_INVALID_ARGUMENT; }
     // Fork the process
     pid_t pid = fork();
 
-    if (pid < 0) {
-        return PROCESS_ERROR_FORK_FAILED;
-    }
+    if (pid < 0) { return PROCESS_ERROR_FORK_FAILED; }
 
     if (pid == 0) {
         // Child process
 
         // Handle working directory
         if (options->working_directory) {
-            if (chdir(options->working_directory) != 0) {
-                _exit(127);
-            }
+            if (chdir(options->working_directory) != 0) { _exit(127); }
         }
 
         // Handle standard input
@@ -1202,9 +1080,7 @@ ProcessError process_create_with_redirection(ProcessHandle** handle, const char*
                 perror("dup2");
                 return PROCESS_ERROR_IO;
             };
-            if (options->io.stdout_file->close_on_exec) {
-                close(options->io.stdout_file->fd);
-            }
+            if (options->io.stdout_file->close_on_exec) { close(options->io.stdout_file->fd); }
         }
 
         // Handle standard error
@@ -1221,9 +1097,7 @@ ProcessError process_create_with_redirection(ProcessHandle** handle, const char*
                 perror("dup2");
                 return PROCESS_ERROR_IO;
             };
-            if (options->io.stderr_file->close_on_exec) {
-                close(options->io.stderr_file->fd);
-            }
+            if (options->io.stderr_file->close_on_exec) { close(options->io.stderr_file->fd); }
         } else if (options->io.merge_stderr) {
             if (dup2(STDOUT_FILENO, STDERR_FILENO) == -1) {
                 perror("dup2");
@@ -1233,25 +1107,17 @@ ProcessError process_create_with_redirection(ProcessHandle** handle, const char*
 
         // Detach from parent if requested
         if (options->detached) {
-            if (setsid() < 0) {
-                _exit(127);
-            }
+            if (setsid() < 0) { _exit(127); }
         }
 
         // Execute the command
         if (options->environment) {
-            if (execve(command, (char* const*)argv, (char* const*)options->environment) == -1) {
-                perror("execve");
-            };
+            if (execve(command, (char* const*)argv, (char* const*)options->environment) == -1) { perror("execve"); };
         } else if (options->inherit_environment) {
-            if (execvp(command, (char* const*)argv) == -1) {
-                perror("execvp");
-            };
+            if (execvp(command, (char* const*)argv) == -1) { perror("execvp"); };
         } else {
             char* empty_env[] = {NULL};
-            if (execve(command, (char* const*)argv, empty_env) == -1) {
-                perror("execve");
-            };
+            if (execve(command, (char* const*)argv, empty_env) == -1) { perror("execve"); };
         }
 
         // If we get here, exec failed
@@ -1260,18 +1126,16 @@ ProcessError process_create_with_redirection(ProcessHandle** handle, const char*
 
     // Parent process
     *handle = (ProcessHandle*)malloc(sizeof(ProcessHandle));
-    if (!*handle) {
-        return PROCESS_ERROR_MEMORY;
-    }
+    if (!*handle) { return PROCESS_ERROR_MEMORY; }
 
-    (*handle)->pid      = pid;
+    (*handle)->pid = pid;
     (*handle)->detached = options->detached;
 
     return PROCESS_SUCCESS;
 }
 
-ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd,
-                                          const char* args[], int output_fds[], int error_fds[]) {
+ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd, const char* args[], int output_fds[],
+                                          int error_fds[]) {
     // Create pipes for stdout and stderr
     int stdout_pipe[2];
     int stderr_pipe[2];
@@ -1446,25 +1310,22 @@ ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd
  * @param[in] append Whether to append to files (true) or overwrite (false)
  * @return ProcessError
  */
-ProcessError process_run_with_file_redirection(ProcessHandle** handle, const char* command,
-                                               const char* const argv[], const char* stdout_file,
-                                               const char* stderr_file, bool append) {
+ProcessError process_run_with_file_redirection(ProcessHandle** handle, const char* command, const char* const argv[],
+                                               const char* stdout_file, const char* stderr_file, bool append) {
     ExtProcessOptions options;
     memset(&options, 0, sizeof(options));
     options.inherit_environment = true;
 
     FileRedirection* stdout_redir = NULL;
     FileRedirection* stderr_redir = NULL;
-    ProcessError err              = PROCESS_SUCCESS;
+    ProcessError err = PROCESS_SUCCESS;
 
     if (stdout_file) {
         int flags = O_WRONLY | O_CREAT;
         flags |= (append ? O_APPEND : O_TRUNC);
 
         err = process_redirect_to_file(&stdout_redir, stdout_file, flags, 0644);
-        if (err != PROCESS_SUCCESS) {
-            return err;
-        }
+        if (err != PROCESS_SUCCESS) { return err; }
         options.io.stdout_file = stdout_redir;
     }
 
@@ -1474,9 +1335,7 @@ ProcessError process_run_with_file_redirection(ProcessHandle** handle, const cha
 
         err = process_redirect_to_file(&stderr_redir, stderr_file, flags, 0644);
         if (err != PROCESS_SUCCESS) {
-            if (stdout_redir) {
-                process_close_redirection(stdout_redir);
-            }
+            if (stdout_redir) { process_close_redirection(stdout_redir); }
             return err;
         }
         options.io.stderr_file = stderr_redir;
@@ -1486,13 +1345,9 @@ ProcessError process_run_with_file_redirection(ProcessHandle** handle, const cha
     err = process_create_with_redirection(handle, command, argv, &options);
 
     // Clean up redirections
-    if (stdout_redir) {
-        process_close_redirection(stdout_redir);
-    }
+    if (stdout_redir) { process_close_redirection(stdout_redir); }
 
-    if (stderr_redir) {
-        process_close_redirection(stderr_redir);
-    }
+    if (stderr_redir) { process_close_redirection(stderr_redir); }
 
     return err;
 }
