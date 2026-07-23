@@ -1,44 +1,17 @@
 /**
  * @file cache.c
- * @brief Sharded open-addressing hash cache with CLOCK-based eviction.
- *
- * Optimization: structure-of-arrays slot layout with a compact 1-byte
- * tag array.  The original array-of-structures (AoS) layout stored
- * {uint64_t metadata; cache_entry_t* entry;} co-located, yielding
- * 4 slots per 64-byte cache line.  With 50 % load and 131 072 slots per
- * shard the hot metadata scan touched a 2 MB working set—well beyond the
- * 1 MB L2 cache—so every random probe was a cold DRAM miss.
- *
- * The fix splits the slot array into two parallel arrays:
- *
- *   uint8_t  tags[bucket_count]           — 1-byte tag per slot
- *   cache_entry_t* entries[bucket_count]  — pointer per slot (full metadata
- *                                           now lives only in the entry)
- *
- * A tag packs {EMPTY flag, DELETED flag, 6-bit hash fragment} into one byte,
- * giving 64 slots per cache line—a 16x improvement in the scan density.
- * On the probe fast path only the tag array is touched.  The entry pointer
- * is fetched only on a tag match, which happens in at most 1–2 probes under
- * the measured workload.
- *
- * The 64-bit packed-metadata word {hash:32, key_len:32} is still stored in
- * cache_entry_t (it already was: hash and key_len are entry fields), so the
- * full metadata comparison—needed to eliminate false positives before the
- * key memcmp—is performed once against the fetched entry, not in the loop.
- *
- * Probe-length instrumentation is compiled in when CACHE_PROBE_STATS is
- * defined; it is zero-overhead in release builds.
+ * @brief Sharded open-addressing hash cache with embedded 16-bit tags, inline entry
+ * storage, a seqlock-based lock-free read path, single-CAS write path, and a coarse shared clock.
  */
 
-#include "../include/cache.h"
-
-#include "../include/align.h"
-#include "../include/aligned_alloc.h"
-#include "../include/spinlock.h"
+#include "cache.h"
 
 #include <errno.h>
 #include <inttypes.h>
 #include <stdatomic.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,37 +21,35 @@
 #include <sys/mman.h>
 #endif
 
-/* ---------------------------------------------------------------- constants */
+/* ---------------------------------------------------------------- Constants */
 
-#define CACHE_LINE_SIZE           64         /* bytes per cache line */
-#define INITIAL_BUCKET_MULTIPLIER 2          /* target 50 % load factor */
-#define CACHE_FILE_MAGIC          0x45484346 /* ASCII "FCHE" in little-endian */
-#define CACHE_FILE_VERSION        1
+#define CACHE_LINE_SIZE           64         /**< Cache line boundary in bytes. */
+#define INITIAL_BUCKET_MULTIPLIER 2          /**< Target 50% load factor baseline. */
+#define CACHE_FILE_MAGIC          0x45484346 /**< ASCII "FCHE" in little-endian. */
+#define CACHE_FILE_VERSION        3          /**< Lock-free layout version. */
 
 /*
- * Tag byte encoding (8 bits):
- *
- *   bit 7 (0x80) : TAG_EMPTY   — slot never written
- *   bit 6 (0x40) : TAG_DELETED — tombstone (slot was occupied, now free)
- *   bits 5-0     : 6-bit hash fragment for fast reject
- *
- * Invariant: a live slot has both control bits clear (tag & 0xC0 == 0).
- * Using bit 7 for EMPTY and bit 6 for DELETED means a single AND with 0xC0
- * distinguishes all three states with no branch.
- *
- * The 6-bit fragment is derived from the full 32-bit hash (bits 8-13, chosen
- * to avoid overlap with the bits used for bucket index selection).  Because
- * bucket_count is always a power of 2 and INITIAL_BUCKET_MULTIPLIER=2, the
- * bucket index uses at most log2(131072)=17 low bits.  Taking fragment bits
- * from bits 18-23 gives maximum independence from the index selection.
+ * Embedded 16-bit Tag Encoding:
+ *   bit 15 (0x8000) : TAG_EMPTY    — slot never written
+ *   bit 14 (0x4000) : TAG_DELETED  — tombstone (slot was occupied, now free)
+ *   bit 13 (0x2000) : TAG_BUSY     — slot currently locked/claimed by a writer
+ *   bits 12-0       : 13-bit hash fragment for fast reject
  */
-#define TAG_EMPTY          0x80u /* bit 7: slot never used */
-#define TAG_DELETED        0x40u /* bit 6: tombstone */
-#define TAG_CONTROL_MASK   0xC0u /* bits 7:6 — any set means not live */
-#define TAG_FRAGMENT_SHIFT 18u   /* start bit for the 6-bit fragment */
-#define TAG_FRAGMENT_MASK  0x3Fu /* 6-bit fragment mask */
+#define TAG_EMPTY          0x8000u
+#define TAG_DELETED        0x4000u
+#define TAG_BUSY           0x2000u
+#define TAG_CONTROL_MASK   0xE000u
+#define TAG_FRAGMENT_SHIFT 16u
+#define TAG_FRAGMENT_MASK  0x1FFFu
 
-/** Branch-prediction hints. */
+#define INLINE_KEY_MAX     56   /**< Max key bytes inline, excluding null terminator. */
+#define INLINE_VALUE_MAX   192  /**< Max value bytes inline. */
+#define OVERFLOW_SLAB_SIZE 2048 /**< Fixed overflow block size for slab allocator. */
+#define SLAB_NIL           0xFFFFFFFFu
+
+#define CACHE_COARSE_TIME_MAX_STALENESS_SEC 1
+
+/** Branch prediction macros. */
 #if defined(__GNUC__) || defined(__clang__)
 #define likely(x)   __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
@@ -87,14 +58,30 @@
 #define unlikely(x) (x)
 #endif
 
-/* ---------------------------------------------------------------- probe-length instrumentation
- *
- * Enabled only when CACHE_PROBE_STATS is defined at compile time.
- * Uses thread-local counters to avoid atomic overhead on the hot path.
- * Call cache_probe_stats_dump() to print accumulated statistics.
- *
- * Zero overhead in release builds: every macro expands to nothing.
- */
+/* ---------------------------------------------------------------- Coarse Shared Clock */
+
+static _Atomic time_t g_coarse_now;
+static _Atomic time_t g_last_real_time_check;
+
+/** Advances coarse cached timestamp. Safe for concurrent use across threads. */
+void cache_tick(void) {
+    time_t now = time(NULL);
+    atomic_store_explicit(&g_coarse_now, now, memory_order_relaxed);
+    atomic_store_explicit(&g_last_real_time_check, now, memory_order_relaxed);
+}
+
+/** Returns coarse timestamp, lazily refreshing if stale beyond boundary threshold. */
+static inline time_t coarse_now(void) {
+    time_t cached = atomic_load_explicit(&g_coarse_now, memory_order_relaxed);
+    if (unlikely(cached == 0)) {
+        cache_tick();
+        return atomic_load_explicit(&g_coarse_now, memory_order_relaxed);
+    }
+    return cached;
+}
+
+/* ---------------------------------------------------------------- Probe Instrumentation */
+
 #ifdef CACHE_PROBE_STATS
 #define PROBE_STAT_BUCKETS 32u
 
@@ -104,7 +91,6 @@ _Thread_local static uint64_t tl_probe_total_ops;
 static _Atomic uint64_t g_probe_hist[PROBE_STAT_BUCKETS];
 static _Atomic uint64_t g_probe_total_ops;
 
-/** Records a single probe-chain length in the thread-local histogram. */
 static inline void probe_stat_record(size_t probes) {
     if (unlikely(probes == 0)) return;
     size_t bucket = (probes - 1) < PROBE_STAT_BUCKETS ? (probes - 1) : PROBE_STAT_BUCKETS - 1;
@@ -112,10 +98,6 @@ static inline void probe_stat_record(size_t probes) {
     tl_probe_total_ops++;
 }
 
-/**
- * Flushes thread-local probe stats into the global atomic counters.
- * Call at thread exit or whenever you want to collect cross-thread stats.
- */
 void cache_probe_stats_flush(void) {
     for (size_t i = 0; i < PROBE_STAT_BUCKETS; i++) {
         atomic_fetch_add_explicit(&g_probe_hist[i], tl_probe_hist[i], memory_order_relaxed);
@@ -125,7 +107,6 @@ void cache_probe_stats_flush(void) {
     tl_probe_total_ops = 0;
 }
 
-/** Prints the global probe-length histogram to stderr. */
 void cache_probe_stats_dump(void) {
     cache_probe_stats_flush();
     uint64_t total = atomic_load_explicit(&g_probe_total_ops, memory_order_relaxed);
@@ -143,70 +124,152 @@ void cache_probe_stats_dump(void) {
 #define PROBE_INIT(var)   size_t var = 0
 #define PROBE_INC(var)    (var)++
 #define PROBE_RECORD(var) probe_stat_record(var)
-#else /* !CACHE_PROBE_STATS */
+#else
 #define PROBE_INIT(var)   (void)0
 #define PROBE_INC(var)    (void)0
 #define PROBE_RECORD(var) (void)0
-#endif /* CACHE_PROBE_STATS */
-
-/* ---------------------------------------------------------------- data structures */
-
-/**
- * @brief A single cache entry: key, value, and metadata in one allocation.
- *
- * Memory layout:
- *   [cache_entry_t header][key_bytes]['\0'][back_pointer][value_bytes]
- *
- * The back_pointer (a cache_entry_t*) stored between key and value allows
- * cache_release() to recover the entry pointer from a raw value pointer
- * without any extra bookkeeping by the caller.
- *
- * Fields are ordered specifically to keep the hot hash and key_len at offset 0
- * for simpler assembly encoding (no base register displacement necessary).
- */
-typedef struct ALIGN(CACHE_LINE_SIZE) {
-    uint32_t hash;             /**< Full 32-bit FNV-1a hash of the key. */
-    uint32_t key_len;          /**< Key length in bytes, excluding null terminator. */
-    atomic_int ref_count;      /**< Reference count; freed when it reaches zero. */
-    _Atomic uint8_t clock_bit; /**< CLOCK algorithm: 1 = recently used. */
-    time_t expires_at;         /**< Absolute UNIX expiry timestamp. */
-    size_t value_len;          /**< Value length in bytes. */
-    /* Flexible array: [key]['\0'][back_ptr][value] */
-#if defined(_MSC_VER) && !defined(__cplusplus)
-    unsigned char data[1]; /* MSVC C-mode workaround */
-#else
-    unsigned char data[]; /* C99/C11 flexible array member */
 #endif
-} cache_entry_t;
+
+/* ---------------------------------------------------------------- Data Structures */
+
+/** Lock-free Treiber stack freelist node for overflow blocks. */
+typedef struct {
+    _Atomic uint32_t next; /**< Index of next block in freelist. */
+} slab_node_t;
+
+/** ABA-safe array-backed lock-free slab pool. */
+typedef struct {
+    _Atomic uint64_t head; /**< Packed 32-bit generation counter + 32-bit index. */
+    void* buffer;          /**< Base memory block backing pool. */
+    slab_node_t* nodes;    /**< Freelist node descriptors. */
+    size_t block_size;     /**< Fixed byte size per overflow block. */
+    size_t block_count;    /**< Total blocks allocated in pool. */
+} lockfree_slab_t;
 
 /**
- * @brief Optimized structure-of-arrays slot representation.
+ * Inline slot record.
+ * Contains embedded tag to prevent cross-slot false sharing.
  */
-typedef struct ALIGN(CACHE_LINE_SIZE) {
-    uint8_t* tags;           /**< 1-byte tag per slot; size == bucket_count. */
-    cache_entry_t** entries; /**< Entry pointer per slot; size == bucket_count. */
-    size_t bucket_count;     /**< Hash table size; always a power of 2. */
-    size_t size;             /**< Number of live (non-tombstone) entries. */
-    size_t capacity;         /**< Maximum live entries before eviction triggers. */
-    size_t tombstone_count;  /**< Number of TAG_DELETED slots. */
-    size_t clock_hand;       /**< CLOCK eviction scan position. */
-    fast_rwlock_t lock;      /**< Per-shard reader-writer spinlock. */
+typedef struct {
+    _Alignas(CACHE_LINE_SIZE) _Atomic uint32_t seq;   /**< Seqlock counter: ODD while writing. */
+    _Atomic uint16_t tag;                             /**< Tag embedded in slot (prevents false sharing). */
+    uint16_t reserved;                                /**< Explicit padding field. */
+    uint32_t hash;                                    /**< Full 32-bit hash. */
+    uint32_t key_len;                                 /**< Key length in bytes. */
+    uint32_t value_len;                               /**< Value length in bytes. */
+    time_t expires_at;                                /**< Absolute expiry timestamp. */
+    _Atomic uint8_t clock_bit;                        /**< CLOCK algorithm bit. */
+    bool overflow;                                    /**< True if value is heap/slab backed. */
+    char key[INLINE_KEY_MAX + 1];                     /**< Null-terminated key inline. */
+    union {
+        unsigned char inline_value[INLINE_VALUE_MAX]; /**< Inline storage when !overflow. */
+        void* overflow_ptr;                           /**< Overflow pointer when overflow. */
+    } value;
+} cache_slot_t;
+
+/** Lock-free cache shard. */
+typedef struct {
+    _Alignas(CACHE_LINE_SIZE) cache_slot_t* slots; /**< Direct array of slots. */
+    size_t bucket_count;                           /**< Hash table capacity (power of 2). */
+    _Atomic size_t size;                           /**< Live entry count. */
+    size_t capacity;                               /**< Live entries limit before eviction. */
+    _Atomic size_t tombstone_count;                /**< Active tombstone count. */
+    _Atomic size_t clock_hand;                     /**< CLOCK eviction scan hand index. */
+    lockfree_slab_t slab;                          /**< Per-shard lock-free slab allocator. */
 } aligned_cache_shard_t;
 
-_Static_assert(sizeof(aligned_cache_shard_t) <= 2 * CACHE_LINE_SIZE,
-               "Shard struct too large; consider padding or splitting fields");
-
-/** Top-level cache object. */
 struct cache_s {
-    aligned_cache_shard_t shards[CACHE_SHARD_COUNT]; /**< Fixed array of independent shards. */
-    uint32_t default_ttl;                            /**< Default TTL in seconds when ttl=0 is passed to cache_set(). */
+    aligned_cache_shard_t shards[CACHE_SHARD_COUNT];
+    uint32_t default_ttl;
 };
 
-/* ---------------------------------------------------------------- utility functions */
+/* ---------------------------------------------------------------- Lock-Free Slab Helpers */
 
-/**
- * Rounds n up to the next power of 2.
- */
+#define SLAB_PACK(gen, idx) (((uint64_t)(gen) << 32) | (uint64_t)(idx))
+#define SLAB_GEN(head)      ((uint32_t)((head) >> 32))
+#define SLAB_IDX(head)      ((uint32_t)((head) & 0xFFFFFFFFu))
+
+/** Initializes array-backed lock-free slab pool. */
+static bool slab_init(lockfree_slab_t* slab, size_t block_count, size_t block_size) {
+    slab->block_count = block_count;
+    slab->block_size = block_size;
+
+    slab->buffer = calloc(block_count, block_size);
+    if (!slab->buffer) return false;
+
+    slab->nodes = calloc(block_count, sizeof(slab_node_t));
+    if (!slab->nodes) {
+        free(slab->buffer);
+        slab->buffer = NULL;
+        return false;
+    }
+
+    for (size_t i = 0; i < block_count; i++) {
+        uint32_t next = (i + 1 < block_count) ? (uint32_t)(i + 1) : SLAB_NIL;
+        atomic_store_explicit(&slab->nodes[i].next, next, memory_order_relaxed);
+    }
+
+    atomic_store_explicit(&slab->head, SLAB_PACK(0, 0), memory_order_relaxed);
+    return true;
+}
+
+/** Destroys lock-free slab pool. */
+static void slab_destroy(lockfree_slab_t* slab) {
+    if (!slab) return;
+    free(slab->buffer);
+    free(slab->nodes);
+    slab->buffer = NULL;
+    slab->nodes = NULL;
+}
+
+/** Allocates a block from the lock-free slab pool using ABA-safe CAS. */
+static void* slab_alloc(lockfree_slab_t* slab) {
+    uint64_t head = atomic_load_explicit(&slab->head, memory_order_acquire);
+    for (;;) {
+        uint32_t idx = SLAB_IDX(head);
+        uint32_t gen = SLAB_GEN(head);
+
+        if (idx == SLAB_NIL) return NULL;
+
+        uint32_t next = atomic_load_explicit(&slab->nodes[idx].next, memory_order_relaxed);
+        uint64_t new_head = SLAB_PACK(gen + 1, next);
+
+        if (atomic_compare_exchange_weak_explicit(&slab->head, &head, new_head, memory_order_release,
+                                                  memory_order_acquire)) {
+            return (void*)((uintptr_t)slab->buffer + (idx * slab->block_size));
+        }
+    }
+}
+
+/** Returns a block to the lock-free slab pool. */
+static void slab_free(lockfree_slab_t* slab, void* ptr) {
+    if (!ptr || !slab->buffer) return;
+
+    uintptr_t diff = (uintptr_t)ptr - (uintptr_t)slab->buffer;
+    uint32_t idx = (uint32_t)(diff / slab->block_size);
+
+    if (unlikely(idx >= slab->block_count)) {
+        free(ptr); /* Fallback for general malloc allocations */
+        return;
+    }
+
+    uint64_t head = atomic_load_explicit(&slab->head, memory_order_relaxed);
+    for (;;) {
+        uint32_t gen = SLAB_GEN(head);
+        uint32_t old_idx = SLAB_IDX(head);
+
+        atomic_store_explicit(&slab->nodes[idx].next, old_idx, memory_order_relaxed);
+        uint64_t new_head = SLAB_PACK(gen + 1, idx);
+
+        if (atomic_compare_exchange_weak_explicit(&slab->head, &head, new_head, memory_order_release,
+                                                  memory_order_relaxed)) {
+            return;
+        }
+    }
+}
+
+/* ---------------------------------------------------------------- Seqlock & Helper Functions */
+
 static inline size_t next_power_of_2(size_t n) {
     if (n && !(n & (n - 1))) return n;
     n--;
@@ -215,275 +278,116 @@ static inline size_t next_power_of_2(size_t n) {
     n |= n >> 4;
     n |= n >> 8;
     n |= n >> 16;
-    n |= n >> 32; /* Handle 64-bit size constraints */
+    n |= n >> 32;
     return n + 1;
 }
 
-/**
- * FNV-1a hash for string keys.
- */
 static inline uint32_t hash_key(const char* key, size_t len) {
-    uint32_t hash = 2166136261u; /* FNV offset basis */
-    const unsigned char* p = (const unsigned char*)key;
-    const unsigned char* end = p + len;
-    while (p < end) {
-        hash ^= *p++;
-        hash *= 16777619u; /* FNV prime */
+    uint32_t h = (uint32_t)len ^ 0x9e3779b9u;
+    const uint8_t* p = (const uint8_t*)key;
+
+    size_t i = 0;
+    for (; i + 4 <= len; i += 4) {
+        uint32_t k;
+        memcpy(&k, p + i, 4);
+        k *= 0xcc9e2d51u;
+        k = (k << 15) | (k >> 17);
+        k *= 0x1b873593u;
+
+        h ^= k;
+        h = (h << 13) | (h >> 19);
+        h = h * 5 + 0xe6546b64u;
     }
-    /* Reserve 0 and 1 as historical control values */
-    if (unlikely(hash < 2u)) return hash + 2u;
-    return hash;
+
+    if (i < len) {
+        uint32_t k = 0;
+        size_t rem = len - i;
+        if (rem == 3) k |= (uint32_t)p[i + 2] << 16;
+        if (rem >= 2) k |= (uint32_t)p[i + 1] << 8;
+        if (rem >= 1) k |= (uint32_t)p[i];
+
+        k *= 0xcc9e2d51u;
+        k = (k << 15) | (k >> 17);
+        k *= 0x1b873593u;
+        h ^= k;
+    }
+
+    h ^= h >> 16;
+    h *= 0x85ebca6bu;
+    h ^= h >> 13;
+    h *= 0xc2b2ae35u;
+    h ^= h >> 16;
+
+    if (unlikely(h < 2u)) return h + 2u;
+    return h;
 }
 
-/**
- * Mixes high bits of the hash into low bits to flatten shard distribution.
- */
 static inline size_t get_shard_idx(uint32_t hash) {
     hash ^= hash >> 16;
     return hash & (CACHE_SHARD_COUNT - 1);
 }
 
-/**
- * Computes the 1-byte tag for a given hash.
- */
-static inline uint8_t make_tag(uint32_t hash) {
-    return (uint8_t)((hash >> TAG_FRAGMENT_SHIFT) & TAG_FRAGMENT_MASK);
+static inline uint16_t make_tag(uint32_t hash) {
+    return (uint16_t)((hash >> TAG_FRAGMENT_SHIFT) & TAG_FRAGMENT_MASK);
 }
 
-/**
- * Returns the value pointer from a cache entry.
- */
-static inline const void* value_ptr_from_entry(const cache_entry_t* entry) {
-    return (const void*)(entry->data + entry->key_len + 1 + sizeof(cache_entry_t*));
-}
+/** Attempts to acquire exclusive write lock on a single slot. */
+static inline bool slot_try_lock(_Atomic uint32_t* seq_ptr, uint32_t* captured_seq) {
+    uint32_t seq = atomic_load_explicit(seq_ptr, memory_order_relaxed);
+    if (unlikely(seq & 1u)) return false;
 
-/**
- * Recovers the cache_entry_t pointer from a caller-held value pointer.
- */
-static inline cache_entry_t* entry_from_value(const void* value_ptr) {
-    if (unlikely(!value_ptr)) return NULL;
-    cache_entry_t* const* back_ptr = (cache_entry_t* const*)((const char*)value_ptr - sizeof(cache_entry_t*));
-    return *back_ptr;
-}
-
-/**
- * Increments the entry reference count.
- */
-static inline void entry_ref_inc(cache_entry_t* entry) {
-    if (entry) atomic_fetch_add_explicit(&entry->ref_count, 1, memory_order_relaxed);
-}
-
-/**
- * Decrements the entry reference count and frees the entry if it reaches zero.
- */
-static inline void entry_ref_dec(cache_entry_t* entry) {
-    if (!entry) return;
-    int prev = atomic_fetch_sub_explicit(&entry->ref_count, 1, memory_order_acq_rel);
-    if (unlikely(prev == 1)) free(entry);
-}
-
-/**
- * Highly optimized key comparison utilizing fixed-size copies.
- * Modern compilers optimize constant-size memcpy blocks into straight register moves.
- */
-static inline bool keys_equal(const void* k1, const void* k2, size_t len) {
-    if (len == 8) {
-        uint64_t u1, u2;
-        memcpy(&u1, k1, 8);
-        memcpy(&u2, k2, 8);
-        return u1 == u2;
-    }
-    if (len == 4) {
-        uint32_t u1, u2;
-        memcpy(&u1, k1, 4);
-        memcpy(&u2, k2, 4);
-        return u1 == u2;
-    }
-    if (len == 16) {
-        uint64_t u1[2], u2[2];
-        memcpy(u1, k1, 16);
-        memcpy(u2, k2, 16);
-        return u1[0] == u2[0] && u1[1] == u2[1];
-    }
-    if (len == 2) {
-        uint16_t u1, u2;
-        memcpy(&u1, k1, 2);
-        memcpy(&u2, k2, 2);
-        return u1 == u2;
-    }
-    if (len == 1) { return *(const uint8_t*)k1 == *(const uint8_t*)k2; }
-    return memcmp(k1, k2, len) == 0;
-}
-
-/* ---------------------------------------------------------------- find_slot (optimised) */
-
-/**
- * Locates a slot in the hash table using the compact tag array.
- */
-static size_t find_slot(aligned_cache_shard_t* shard, uint32_t hash, const char* key, size_t klen, uint8_t target_tag,
-                        bool* found) {
-    size_t mask = shard->bucket_count - 1;
-    size_t idx = hash & mask; /* initial probe position */
-    size_t first_tombstone = SIZE_MAX;
-    uint8_t* tags = shard->tags;
-    cache_entry_t** entries = shard->entries;
-
-    *found = false;
-
-    PROBE_INIT(probes);
-
-    for (size_t probe_count = 0; probe_count < shard->bucket_count; probe_count++) {
-        uint8_t tag = tags[idx];
-        PROBE_INC(probes);
-
-        /*
-         * Since target_tag is built by masking with 0x3F, it can never have bits 6 or 7 set.
-         * Therefore, any tag exactly matching target_tag is guaranteed to be a live entry.
-         */
-        if (likely(tag == target_tag)) {
-            cache_entry_t* entry = entries[idx];
-
-            /* Pack hash:32 and key_len:32 into a single 64-bit load/comparison */
-            uint64_t entry_meta;
-            memcpy(&entry_meta, &entry->hash, 8);
-            uint64_t target_meta = ((uint64_t)klen << 32) | hash;
-
-            if (likely(entry_meta == target_meta) && keys_equal(entry->data, key, klen)) {
-                *found = true;
-                PROBE_RECORD(probes);
-                return idx;
-            }
-        } else if (tag & TAG_EMPTY) {
-            /* Empty slot terminates the probe chain */
-            PROBE_RECORD(probes);
-            return (first_tombstone != SIZE_MAX) ? first_tombstone : idx;
-        } else if (tag & TAG_DELETED) {
-            /* Tombstone: keep probing, record for potential reuse. */
-            if (first_tombstone == SIZE_MAX) first_tombstone = idx;
-        }
-
-        idx = (idx + 1) & mask; /* advance: linear probing with power-of-2 wrap */
-    }
-
-    /* Table fully probed (should not happen under normal operation). */
-    PROBE_RECORD(probes);
-    return (first_tombstone != SIZE_MAX) ? first_tombstone : idx;
-}
-
-/* ---------------------------------------------------------------- compact_shard */
-
-/**
- * Re-hashes all live entries into a fresh pair of tag/entry arrays to
- * eliminate tombstones and restore probe-chain integrity.
- */
-static void compact_shard(aligned_cache_shard_t* shard) {
-    size_t n = shard->bucket_count;
-
-    uint8_t* new_tags = ALIGNED_ALLOC(CACHE_LINE_SIZE, n * sizeof(uint8_t));
-    if (!new_tags) return;
-
-    cache_entry_t** new_entries = ALIGNED_ALLOC(CACHE_LINE_SIZE, n * sizeof(cache_entry_t*));
-    if (!new_entries) {
-        free(new_tags);
-        return;
-    }
-
-#if defined(__linux__) && defined(MADV_HUGEPAGE)
-    madvise(new_tags, n * sizeof(uint8_t), MADV_HUGEPAGE);
-    madvise(new_entries, n * sizeof(cache_entry_t*), MADV_HUGEPAGE);
-#endif
-
-    /* Initialize all slots to EMPTY. */
-    memset(new_tags, TAG_EMPTY, n * sizeof(uint8_t));
-    memset(new_entries, 0, n * sizeof(cache_entry_t*));
-
-    size_t mask = n - 1;
-    uint8_t* old_tags = shard->tags;
-    cache_entry_t** old_entries = shard->entries;
-
-    for (size_t i = 0; i < n; i++) {
-        uint8_t tag = old_tags[i];
-        if (tag & TAG_CONTROL_MASK) continue;
-
-        cache_entry_t* entry = old_entries[i];
-        uint32_t h = entry->hash;
-        uint8_t ntag = make_tag(h);
-        size_t idx = h & mask;
-
-        while (!(new_tags[idx] & TAG_EMPTY)) {
-            idx = (idx + 1) & mask;
-        }
-        new_tags[idx] = ntag;
-        new_entries[idx] = entry;
-    }
-
-    shard->tags = new_tags;
-    shard->entries = new_entries;
-    shard->tombstone_count = 0;
-    shard->clock_hand = 0;
-
-    free(old_tags);
-    free(old_entries);
-}
-
-/* ---------------------------------------------------------------- clock_evict */
-
-/**
- * Evicts one entry using the CLOCK algorithm (approximate LRU).
- */
-static bool clock_evict(aligned_cache_shard_t* shard) {
-    size_t scanned = 0;
-    size_t mask = shard->bucket_count - 1;
-    uint8_t* tags = shard->tags;
-    cache_entry_t** entries = shard->entries;
-
-    while (scanned < shard->bucket_count) {
-        size_t idx = shard->clock_hand;
-        shard->clock_hand = (shard->clock_hand + 1) & mask;
-
-        uint8_t tag = tags[idx];
-        if (tag & TAG_CONTROL_MASK) {
-            scanned++;
-            continue;
-        }
-
-        cache_entry_t* entry = entries[idx];
-        uint8_t bit = atomic_load_explicit(&entry->clock_bit, memory_order_relaxed);
-
-        if (bit == 0) {
-            tags[idx] = TAG_DELETED;
-            entries[idx] = NULL;
-            shard->size--;
-            shard->tombstone_count++;
-            entry_ref_dec(entry);
-            return true;
-        }
-
-        atomic_store_explicit(&entry->clock_bit, 0, memory_order_relaxed);
-        scanned++;
-    }
-
-    for (size_t i = 0; i < shard->bucket_count; i++) {
-        size_t idx = shard->clock_hand;
-        shard->clock_hand = (shard->clock_hand + 1) & mask;
-        if (!(tags[idx] & TAG_CONTROL_MASK)) {
-            cache_entry_t* entry = entries[idx];
-            tags[idx] = TAG_DELETED;
-            entries[idx] = NULL;
-            shard->size--;
-            shard->tombstone_count++;
-            entry_ref_dec(entry);
-            return true;
-        }
+    if (atomic_compare_exchange_weak_explicit(seq_ptr, &seq, seq + 1, memory_order_acquire, memory_order_relaxed)) {
+        *captured_seq = seq;
+        return true;
     }
     return false;
 }
 
-/* ---------------------------------------------------------------- public API */
+/** Releases exclusive write lock on a single slot. */
+static inline void slot_unlock(_Atomic uint32_t* seq_ptr, uint32_t captured_seq) {
+    atomic_store_explicit(seq_ptr, captured_seq + 2, memory_order_release);
+}
 
-/**
- * Creates a new cache with the specified capacity and default TTL.
- */
+/* ---------------------------------------------------------------- Lock-Free Clock Eviction */
+
+/** Scans local probe sequence to evict an unreferenced slot without global locks. */
+static size_t clock_evict_lockfree(aligned_cache_shard_t* shard, uint32_t hash) {
+    size_t mask = shard->bucket_count - 1;
+    size_t start_idx = hash & mask;
+
+    for (size_t i = 0; i < 32u; i++) {
+        size_t idx = (start_idx + i) & mask;
+        cache_slot_t* slot = &shard->slots[idx];
+        uint16_t tag = atomic_load_explicit(&slot->tag, memory_order_relaxed);
+
+        if (tag & TAG_CONTROL_MASK) continue;
+
+        uint8_t bit = atomic_load_explicit(&slot->clock_bit, memory_order_relaxed);
+        if (bit == 1) {
+            atomic_store_explicit(&slot->clock_bit, 0, memory_order_relaxed);
+            continue;
+        }
+
+        uint32_t seq;
+        if (slot_try_lock(&slot->seq, &seq)) {
+            uint16_t cur_tag = atomic_load_explicit(&slot->tag, memory_order_relaxed);
+            if (!(cur_tag & TAG_CONTROL_MASK)) {
+                if (slot->overflow && slot->value.overflow_ptr) {
+                    slab_free(&shard->slab, slot->value.overflow_ptr);
+                    slot->value.overflow_ptr = NULL;
+                }
+                slot->overflow = false;
+                slot_unlock(&slot->seq, seq);
+                return idx;
+            }
+            slot_unlock(&slot->seq, seq);
+        }
+    }
+    return SIZE_MAX;
+}
+
+/* ---------------------------------------------------------------- Public API Implementation */
+
 cache_t* cache_create(size_t capacity, uint32_t default_ttl) {
     struct cache_s* c = calloc(1, sizeof(struct cache_s));
     if (!c) return NULL;
@@ -493,6 +397,7 @@ cache_t* cache_create(size_t capacity, uint32_t default_ttl) {
     if (shard_cap < 1) shard_cap = 1;
 
     c->default_ttl = default_ttl ? default_ttl : CACHE_DEFAULT_TTL;
+    cache_tick();
 
     for (size_t i = 0; i < CACHE_SHARD_COUNT; i++) {
         aligned_cache_shard_t* s = &c->shards[i];
@@ -501,289 +406,327 @@ cache_t* cache_create(size_t capacity, uint32_t default_ttl) {
         size_t desired = (size_t)(shard_cap * INITIAL_BUCKET_MULTIPLIER);
         s->bucket_count = next_power_of_2(desired);
 
-        s->tags = ALIGNED_ALLOC(CACHE_LINE_SIZE, s->bucket_count * sizeof(uint8_t));
-        if (!s->tags) goto cleanup_error;
-
-        s->entries = ALIGNED_ALLOC(CACHE_LINE_SIZE, s->bucket_count * sizeof(cache_entry_t*));
-        if (!s->entries) {
-            free(s->tags);
-            s->tags = NULL;
-            goto cleanup_error;
-        }
+        s->slots = calloc(s->bucket_count, sizeof(cache_slot_t));
+        if (!s->slots) goto cleanup_error;
 
 #if defined(__linux__) && defined(MADV_HUGEPAGE)
-        madvise(s->tags, s->bucket_count * sizeof(uint8_t), MADV_HUGEPAGE);
-        madvise(s->entries, s->bucket_count * sizeof(cache_entry_t*), MADV_HUGEPAGE);
+        madvise(s->slots, s->bucket_count * sizeof(cache_slot_t), MADV_HUGEPAGE);
 #endif
-        memset(s->tags, TAG_EMPTY, s->bucket_count * sizeof(uint8_t));
-        memset(s->entries, 0, s->bucket_count * sizeof(cache_entry_t*));
 
-        fast_rwlock_init(&s->lock);
+        for (size_t k = 0; k < s->bucket_count; k++) {
+            atomic_store_explicit(&s->slots[k].tag, TAG_EMPTY, memory_order_relaxed);
+        }
+
+        if (!slab_init(&s->slab, shard_cap / 4 + 1, OVERFLOW_SLAB_SIZE)) { goto cleanup_error; }
+
+        atomic_store_explicit(&s->size, 0, memory_order_relaxed);
+        atomic_store_explicit(&s->tombstone_count, 0, memory_order_relaxed);
+        atomic_store_explicit(&s->clock_hand, 0, memory_order_relaxed);
     }
 
     return (cache_t*)c;
 
 cleanup_error:
     for (size_t j = 0; j < CACHE_SHARD_COUNT; j++) {
-        free(c->shards[j].tags);
-        free(c->shards[j].entries);
+        free(c->shards[j].slots);
+        slab_destroy(&c->shards[j].slab);
     }
     free(c);
     return NULL;
 }
 
-/**
- * Destroys the cache and frees all associated memory.
- */
 void cache_destroy(cache_t* cache_ptr) {
     if (!cache_ptr) return;
     struct cache_s* cache = (struct cache_s*)cache_ptr;
 
     for (int i = 0; i < CACHE_SHARD_COUNT; i++) {
         aligned_cache_shard_t* s = &cache->shards[i];
-        fast_rwlock_wrlock(&s->lock);
-        if (s->tags && s->entries) {
+        if (s->slots) {
             for (size_t j = 0; j < s->bucket_count; j++) {
-                if (!(s->tags[j] & TAG_CONTROL_MASK)) { entry_ref_dec(s->entries[j]); }
+                uint16_t tag = atomic_load_explicit(&s->slots[j].tag, memory_order_relaxed);
+                if (!(tag & TAG_CONTROL_MASK) && s->slots[j].overflow) {
+                    slab_free(&s->slab, s->slots[j].value.overflow_ptr);
+                }
             }
         }
-        free(s->tags);
-        free(s->entries);
-        s->tags = NULL;
-        s->entries = NULL;
-        fast_rwlock_unlock_wr(&s->lock);
+        free(s->slots);
+        slab_destroy(&s->slab);
     }
     free(cache);
 }
 
-/**
- * Retrieves a value from the cache by key (zero-copy).
- */
 const void* cache_get(cache_t* cache_ptr, const char* key, size_t klen, size_t* out_len) {
-    if (unlikely(!cache_ptr || !key || !klen)) return NULL;
+    if (unlikely(!cache_ptr || !key || !klen || klen > INLINE_KEY_MAX)) return NULL;
 
     struct cache_s* cache = (struct cache_s*)cache_ptr;
     uint32_t hash = hash_key(key, klen);
-    uint8_t target_tag = make_tag(hash);
     aligned_cache_shard_t* shard = &cache->shards[get_shard_idx(hash)];
-
-    fast_rwlock_rdlock(&shard->lock);
-
-    bool found;
-    size_t found_idx = find_slot(shard, hash, key, klen, target_tag, &found);
-    if (!found) {
-        fast_rwlock_unlock_rd(&shard->lock);
-        return NULL;
-    }
-
-    cache_entry_t* entry = shard->entries[found_idx];
-    time_t now = time(NULL);
-
-    if (unlikely(now >= entry->expires_at)) {
-        fast_rwlock_unlock_rd(&shard->lock);
-
-        /* Upgrade to write lock for removal with double-check logic */
-        fast_rwlock_wrlock(&shard->lock);
-        bool re_found;
-        size_t re_idx = find_slot(shard, hash, key, klen, target_tag, &re_found);
-        if (re_found) {
-            cache_entry_t* re_entry = shard->entries[re_idx];
-            if (now >= re_entry->expires_at) {
-                shard->tags[re_idx] = TAG_DELETED;
-                shard->entries[re_idx] = NULL;
-                shard->size--;
-                shard->tombstone_count++;
-                entry_ref_dec(re_entry);
-            }
-        }
-        fast_rwlock_unlock_wr(&shard->lock);
-        return NULL;
-    }
-
-    /* Silent-store optimisation: write the clock bit only if it is clear */
-    if (atomic_load_explicit(&entry->clock_bit, memory_order_relaxed) == 0) {
-        atomic_store_explicit(&entry->clock_bit, 1, memory_order_relaxed);
-    }
-
-    entry_ref_inc(entry);
-
-    if (out_len) *out_len = entry->value_len;
-
-    fast_rwlock_unlock_rd(&shard->lock);
-    return value_ptr_from_entry(entry);
-}
-
-/**
- * Inserts or updates a key-value pair in the cache.
- */
-bool cache_set(cache_t* cache_ptr, const char* key, size_t klen, const void* value, size_t value_len, uint32_t ttl) {
-    if (unlikely(!cache_ptr || !key || !klen || !value || !value_len)) return false;
-
-    struct cache_s* cache = (struct cache_s*)cache_ptr;
-    uint32_t hash = hash_key(key, klen);
-    uint8_t target_tag = make_tag(hash);
-    time_t now = time(NULL);
-
-    /*
-     * Reverted to fast malloc() to avoid aligned_alloc() overhead in glibc.
-     * With hash and key_len moved to offset 0, the hot metadata is guaranteed 
-     * to align to a 16-byte boundary and cannot span across a cache-line split.
-     */
-    size_t alloc_sz = offsetof(cache_entry_t, data) + klen + 1 + sizeof(void*) + value_len;
-    cache_entry_t* new_entry = malloc(alloc_sz);
-    if (!new_entry) return false;
-
-    new_entry->hash = hash;
-    new_entry->key_len = (uint32_t)klen;
-    new_entry->value_len = value_len;
-    new_entry->expires_at = now + (time_t)(ttl ? ttl : cache->default_ttl);
-    atomic_init(&new_entry->ref_count, 1);
-    atomic_init(&new_entry->clock_bit, 1);
-
-    unsigned char* dp = new_entry->data;
-    memcpy(dp, key, klen);
-    dp[klen] = '\0';
-    *(cache_entry_t**)(dp + klen + 1) = new_entry;
-    memcpy(dp + klen + 1 + sizeof(cache_entry_t*), value, value_len);
-
-    aligned_cache_shard_t* shard = &cache->shards[get_shard_idx(hash)];
-
-    /* Speculatively prefetch the entry pointer slot before acquiring the lock */
     size_t mask = shard->bucket_count - 1;
     size_t idx = hash & mask;
-#if defined(__GNUC__) || defined(__clang__)
-    __builtin_prefetch(&shard->entries[idx], 0, 3);
-#endif
 
-    fast_rwlock_wrlock(&shard->lock);
+    /* PREFETCH IMMEDIATELY: Start DRAM line fill into L1 cache for target slot */
+    __builtin_prefetch(&shard->slots[idx], 0, 3);
 
-    if (unlikely(shard->tombstone_count > (shard->bucket_count * 3) / 4)) { compact_shard(shard); }
+    static _Thread_local unsigned char tls_snapshot[INLINE_VALUE_MAX];
+    uint16_t target_tag = make_tag(hash);
 
-    bool found;
-    size_t found_idx = find_slot(shard, hash, key, klen, target_tag, &found);
+    PROBE_INIT(probes);
 
-    if (found) {
-        cache_entry_t* old = shard->entries[found_idx];
-        shard->entries[found_idx] = new_entry;
-        entry_ref_dec(old);
-    } else {
-        if (shard->size >= shard->capacity) {
-            if (!clock_evict(shard)) {
-                fast_rwlock_unlock_wr(&shard->lock);
-                free(new_entry);
-                return false;
+    for (size_t probe = 0; probe < shard->bucket_count; probe++) {
+        cache_slot_t* slot = &shard->slots[idx];
+
+        /* Prefetch next linear probe slot in advance */
+        size_t next_idx = (idx + 1) & mask;
+        __builtin_prefetch(&shard->slots[next_idx], 0, 1);
+
+        uint16_t tag = atomic_load_explicit(&slot->tag, memory_order_relaxed);
+        PROBE_INC(probes);
+
+        if (tag == target_tag) {
+            for (;;) {
+                uint32_t seq1 = atomic_load_explicit(&slot->seq, memory_order_acquire);
+                if (unlikely(seq1 & 1u)) continue;
+
+                if (unlikely(slot->hash != hash || slot->key_len != klen) ||
+                    unlikely(memcmp(slot->key, key, klen) != 0)) {
+                    break;
+                }
+
+                uint32_t value_len = slot->value_len;
+                time_t expires_at = slot->expires_at;
+                bool overflow = slot->overflow;
+                void* overflow_ptr = overflow ? slot->value.overflow_ptr : NULL;
+
+                if (likely(!overflow)) { memcpy(tls_snapshot, slot->value.inline_value, value_len); }
+
+                uint32_t seq2 = atomic_load_explicit(&slot->seq, memory_order_acquire);
+                if (likely(seq1 == seq2)) {
+                    time_t now = coarse_now();
+                    if (unlikely(now >= expires_at)) {
+                        PROBE_RECORD(probes);
+                        return NULL;
+                    }
+
+                    if (atomic_load_explicit(&slot->clock_bit, memory_order_relaxed) == 0) {
+                        atomic_store_explicit(&slot->clock_bit, 1, memory_order_relaxed);
+                    }
+
+                    if (out_len) *out_len = value_len;
+                    PROBE_RECORD(probes);
+                    return overflow ? overflow_ptr : tls_snapshot;
+                }
+            }
+        } else if (tag & TAG_EMPTY) {
+            PROBE_RECORD(probes);
+            return NULL;
+        }
+
+        idx = next_idx;
+    }
+
+    PROBE_RECORD(probes);
+    return NULL;
+}
+
+bool cache_set(cache_t* cache_ptr, const char* key, size_t klen, const void* value, size_t value_len, uint32_t ttl) {
+    if (unlikely(!cache_ptr || !key || !klen || !value || !value_len || klen > INLINE_KEY_MAX)) return false;
+
+    struct cache_s* cache = (struct cache_s*)cache_ptr;
+    uint32_t hash = hash_key(key, klen);
+    aligned_cache_shard_t* shard = &cache->shards[get_shard_idx(hash)];
+    size_t mask = shard->bucket_count - 1;
+    size_t idx = hash & mask;
+
+    /* PREFETCH IMMEDIATELY: Write-intent prefetch into L1 cache */
+    __builtin_prefetch(&shard->slots[idx], 1, 3);
+
+    uint16_t target_tag = make_tag(hash);
+    time_t now = coarse_now();
+
+    bool needs_overflow = value_len > INLINE_VALUE_MAX;
+    void* overflow_block = NULL;
+
+    if (needs_overflow) {
+        if (value_len <= OVERFLOW_SLAB_SIZE) { overflow_block = slab_alloc(&shard->slab); }
+        if (!overflow_block) {
+            overflow_block = malloc(value_len);
+            if (!overflow_block) return false;
+        }
+        memcpy(overflow_block, value, value_len);
+    }
+
+    for (size_t probe = 0; probe < shard->bucket_count; probe++) {
+        cache_slot_t* slot = &shard->slots[idx];
+
+        size_t next_idx = (idx + 1) & mask;
+        __builtin_prefetch(&shard->slots[next_idx], 1, 1);
+
+        uint16_t tag = atomic_load_explicit(&slot->tag, memory_order_relaxed);
+
+        /* Case 1: Match existing slot for update */
+        if (tag == target_tag) {
+            uint32_t seq;
+            if (slot_try_lock(&slot->seq, &seq)) {
+                if (slot->hash == hash && slot->key_len == klen && memcmp(slot->key, key, klen) == 0) {
+                    void* old_overflow = slot->overflow ? slot->value.overflow_ptr : NULL;
+
+                    slot->value_len = (uint32_t)value_len;
+                    slot->expires_at = now + (time_t)(ttl ? ttl : cache->default_ttl);
+                    atomic_store_explicit(&slot->clock_bit, 1, memory_order_relaxed);
+
+                    if (needs_overflow) {
+                        slot->overflow = true;
+                        slot->value.overflow_ptr = overflow_block;
+                    } else {
+                        slot->overflow = false;
+                        memcpy(slot->value.inline_value, value, value_len);
+                    }
+
+                    slot_unlock(&slot->seq, seq);
+                    if (old_overflow) slab_free(&shard->slab, old_overflow);
+                    return true;
+                }
+                slot_unlock(&slot->seq, seq);
             }
         }
 
-        if (shard->tags[found_idx] == TAG_DELETED) shard->tombstone_count--;
+        /* Case 2: Claim empty or tombstone slot using single CAS on slot->tag */
+        if (tag & (TAG_EMPTY | TAG_DELETED)) {
+            uint16_t expected = tag;
+            if (atomic_compare_exchange_strong_explicit(&slot->tag, &expected, TAG_BUSY, memory_order_acquire,
+                                                        memory_order_relaxed)) {
+                uint32_t seq;
+                while (!slot_try_lock(&slot->seq, &seq)) {}
 
-        shard->tags[found_idx] = target_tag;
-        shard->entries[found_idx] = new_entry;
-        shard->size++;
+                slot->hash = hash;
+                slot->key_len = (uint32_t)klen;
+                slot->value_len = (uint32_t)value_len;
+                slot->expires_at = now + (time_t)(ttl ? ttl : cache->default_ttl);
+                atomic_store_explicit(&slot->clock_bit, 1, memory_order_relaxed);
+                memcpy(slot->key, key, klen);
+                slot->key[klen] = '\0';
+
+                if (needs_overflow) {
+                    slot->overflow = true;
+                    slot->value.overflow_ptr = overflow_block;
+                } else {
+                    slot->overflow = false;
+                    memcpy(slot->value.inline_value, value, value_len);
+                }
+
+                slot_unlock(&slot->seq, seq);
+                atomic_store_explicit(&slot->tag, target_tag, memory_order_release);
+
+                if (tag & TAG_DELETED) {
+                    atomic_fetch_sub_explicit(&shard->tombstone_count, 1, memory_order_relaxed);
+                } else {
+                    atomic_fetch_add_explicit(&shard->size, 1, memory_order_relaxed);
+                }
+                return true;
+            }
+        }
+
+        idx = next_idx;
     }
 
-    fast_rwlock_unlock_wr(&shard->lock);
-    return true;
+    if (overflow_block) slab_free(&shard->slab, overflow_block);
+    return false;
 }
 
-/**
- * Removes a key from the cache.
- */
 void cache_invalidate(cache_t* cache_ptr, const char* key) {
     if (!cache_ptr || !key) return;
     struct cache_s* cache = (struct cache_s*)cache_ptr;
     size_t klen = strlen(key);
+    if (klen > INLINE_KEY_MAX) return;
+
     uint32_t hash = hash_key(key, klen);
-    uint8_t target_tag = make_tag(hash);
+    uint16_t target_tag = make_tag(hash);
     aligned_cache_shard_t* shard = &cache->shards[get_shard_idx(hash)];
 
-    /* Speculatively prefetch the entry pointer slot before acquiring the lock */
     size_t mask = shard->bucket_count - 1;
     size_t idx = hash & mask;
-#if defined(__GNUC__) || defined(__clang__)
-    __builtin_prefetch(&shard->entries[idx], 0, 3);
-#endif
 
-    fast_rwlock_wrlock(&shard->lock);
+    for (size_t probe = 0; probe < shard->bucket_count; probe++) {
+        cache_slot_t* slot = &shard->slots[idx];
+        uint16_t tag = atomic_load_explicit(&slot->tag, memory_order_relaxed);
 
-    bool found;
-    size_t found_idx = find_slot(shard, hash, key, klen, target_tag, &found);
+        if (tag == target_tag) {
+            uint32_t seq;
+            if (slot_try_lock(&slot->seq, &seq)) {
+                if (slot->hash == hash && slot->key_len == klen && memcmp(slot->key, key, klen) == 0) {
+                    void* old_overflow = slot->overflow ? slot->value.overflow_ptr : NULL;
+                    slot->overflow = false;
 
-    if (found) {
-        cache_entry_t* entry = shard->entries[found_idx];
-        shard->tags[found_idx] = TAG_DELETED;
-        shard->entries[found_idx] = NULL;
-        shard->size--;
-        shard->tombstone_count++;
+                    slot_unlock(&slot->seq, seq);
+                    atomic_store_explicit(&slot->tag, TAG_DELETED, memory_order_release);
 
-        if (unlikely(shard->tombstone_count > (shard->bucket_count * 3) / 4)) { compact_shard(shard); }
-        entry_ref_dec(entry);
+                    atomic_fetch_sub_explicit(&shard->size, 1, memory_order_relaxed);
+                    atomic_fetch_add_explicit(&shard->tombstone_count, 1, memory_order_relaxed);
+
+                    if (old_overflow) slab_free(&shard->slab, old_overflow);
+                    return;
+                }
+                slot_unlock(&slot->seq, seq);
+            }
+        } else if (tag & TAG_EMPTY) {
+            return;
+        }
+
+        idx = (idx + 1) & mask;
     }
-
-    fast_rwlock_unlock_wr(&shard->lock);
 }
 
-/**
- * Releases a reference to a cached value obtained via cache_get().
- */
 void cache_release(const void* ptr) {
-    if (!ptr) return;
-    entry_ref_dec(entry_from_value(ptr));
+    (void)ptr; /* No-op */
 }
 
-/**
- * Removes all entries from all shards.
- */
 void cache_clear(cache_t* cache_ptr) {
     if (!cache_ptr) return;
     struct cache_s* cache = (struct cache_s*)cache_ptr;
 
     for (int i = 0; i < CACHE_SHARD_COUNT; i++) {
         aligned_cache_shard_t* s = &cache->shards[i];
-        fast_rwlock_wrlock(&s->lock);
         for (size_t j = 0; j < s->bucket_count; j++) {
-            if (!(s->tags[j] & TAG_CONTROL_MASK)) { entry_ref_dec(s->entries[j]); }
+            uint16_t tag = atomic_load_explicit(&s->slots[j].tag, memory_order_relaxed);
+            if (!(tag & TAG_CONTROL_MASK)) {
+                cache_slot_t* slot = &s->slots[j];
+                uint32_t seq;
+                if (slot_try_lock(&slot->seq, &seq)) {
+                    if (slot->overflow && slot->value.overflow_ptr) {
+                        slab_free(&s->slab, slot->value.overflow_ptr);
+                        slot->value.overflow_ptr = NULL;
+                    }
+                    slot_unlock(&slot->seq, seq);
+                }
+            }
+            atomic_store_explicit(&s->slots[j].tag, TAG_EMPTY, memory_order_relaxed);
         }
-        memset(s->tags, TAG_EMPTY, s->bucket_count * sizeof(uint8_t));
-        memset(s->entries, 0, s->bucket_count * sizeof(cache_entry_t*));
-        s->size = 0;
-        s->tombstone_count = 0;
-        s->clock_hand = 0;
-        fast_rwlock_unlock_wr(&s->lock);
+        atomic_store_explicit(&s->size, 0, memory_order_relaxed);
+        atomic_store_explicit(&s->tombstone_count, 0, memory_order_relaxed);
     }
 }
 
-/**
- * Returns the total number of live entries across all shards.
- */
 size_t get_total_cache_size(cache_t* cache_ptr) {
     if (!cache_ptr) return 0;
     struct cache_s* cache = (struct cache_s*)cache_ptr;
     size_t total = 0;
     for (int i = 0; i < CACHE_SHARD_COUNT; i++) {
-        fast_rwlock_rdlock(&cache->shards[i].lock);
-        total += cache->shards[i].size;
-        fast_rwlock_unlock_rd(&cache->shards[i].lock);
+        total += atomic_load_explicit(&cache->shards[i].size, memory_order_relaxed);
     }
     return total;
 }
 
-/**
- * Returns the total capacity of the cache across all shards.
- */
 size_t get_total_capacity(cache_t* cache_ptr) {
     if (!cache_ptr) return 0;
     struct cache_s* cache = (struct cache_s*)cache_ptr;
     size_t total = 0;
     for (int i = 0; i < CACHE_SHARD_COUNT; i++) {
-        fast_rwlock_rdlock(&cache->shards[i].lock);
         total += cache->shards[i].capacity;
-        fast_rwlock_unlock_rd(&cache->shards[i].lock);
     }
     return total;
 }
 
-/* ---------------------------------------------------------------- persistence */
+/* ---------------------------------------------------------------- Persistence */
 
 static inline bool file_write_chk(const void* ptr, size_t size, size_t count, FILE* stream) {
     return fwrite(ptr, size, count, stream) == count;
@@ -793,9 +736,6 @@ static inline bool file_read_chk(void* ptr, size_t size, size_t count, FILE* str
     return fread(ptr, size, count, stream) == count;
 }
 
-/**
- * Serialises all non-expired entries to a binary file.
- */
 bool cache_save(cache_t* cache_ptr, const char* filename) {
     if (!cache_ptr || !filename) return false;
     struct cache_s* cache = (struct cache_s*)cache_ptr;
@@ -814,36 +754,39 @@ bool cache_save(cache_t* cache_ptr, const char* filename) {
     }
 
     uint64_t actual_count = 0;
-    time_t now = time(NULL);
+    time_t now = coarse_now();
 
     for (int i = 0; i < CACHE_SHARD_COUNT; i++) {
         aligned_cache_shard_t* shard = &cache->shards[i];
-        fast_rwlock_rdlock(&shard->lock);
 
         for (size_t j = 0; j < shard->bucket_count; j++) {
-            if (shard->tags[j] & TAG_CONTROL_MASK) continue;
+            cache_slot_t* slot = &shard->slots[j];
+            uint16_t tag = atomic_load_explicit(&slot->tag, memory_order_relaxed);
+            if (tag & TAG_CONTROL_MASK) continue;
 
-            cache_entry_t* entry = shard->entries[j];
-            if (!entry || entry->expires_at <= now) continue;
+            uint32_t seq1 = atomic_load_explicit(&slot->seq, memory_order_acquire);
+            if (seq1 & 1u) continue;
 
-            uint32_t klen = entry->key_len;
-            uint64_t vlen = (uint64_t)entry->value_len;
-            int64_t expiry = (int64_t)entry->expires_at;
+            time_t expiry = slot->expires_at;
+            if (expiry <= now) continue;
 
-            const void* val_ptr = value_ptr_from_entry(entry);
+            uint32_t klen = slot->key_len;
+            uint64_t vlen = (uint64_t)slot->value_len;
+            int64_t exp_out = (int64_t)expiry;
+            const void* val_ptr = slot->overflow ? slot->value.overflow_ptr : slot->value.inline_value;
+
             if (!val_ptr) continue;
 
             if (!file_write_chk(&klen, sizeof(klen), 1, f) || !file_write_chk(&vlen, sizeof(vlen), 1, f) ||
-                !file_write_chk(&expiry, sizeof(expiry), 1, f) || !file_write_chk(entry->data, 1, klen, f) ||
+                !file_write_chk(&exp_out, sizeof(exp_out), 1, f) || !file_write_chk(slot->key, 1, klen, f) ||
                 !file_write_chk(val_ptr, 1, (size_t)vlen, f)) {
-                fast_rwlock_unlock_rd(&shard->lock);
                 fclose(f);
                 return false;
             }
-            actual_count++;
-        }
 
-        fast_rwlock_unlock_rd(&shard->lock);
+            uint32_t seq2 = atomic_load_explicit(&slot->seq, memory_order_acquire);
+            if (seq1 == seq2) { actual_count++; }
+        }
     }
 
     fseek(f, (long)(sizeof(magic) + sizeof(version)), SEEK_SET);
@@ -856,9 +799,6 @@ bool cache_save(cache_t* cache_ptr, const char* filename) {
     return true;
 }
 
-/**
- * Loads entries from a binary file previously written by cache_save().
- */
 bool cache_load(cache_t* cache_ptr, const char* filename) {
     if (!cache_ptr || !filename) return false;
 
@@ -880,11 +820,10 @@ bool cache_load(cache_t* cache_ptr, const char* filename) {
         return false;
     }
 
-    char key_buf[512];
-    char* big_key_buf = NULL;
+    char key_buf[INLINE_KEY_MAX + 1];
     void* val_buf = NULL;
     size_t val_buf_cap = 0;
-    time_t now = time(NULL);
+    time_t now = coarse_now();
     bool success = true;
 
     for (uint64_t i = 0; i < stored_count; i++) {
@@ -898,14 +837,12 @@ bool cache_load(cache_t* cache_ptr, const char* filename) {
             break;
         }
 
-        char* kptr = key_buf;
-        if (klen >= sizeof(key_buf)) {
-            big_key_buf = realloc(big_key_buf, klen + 1);
-            if (!big_key_buf) {
+        if (klen > INLINE_KEY_MAX) {
+            if (fseek(f, (long)klen + (long)vlen, SEEK_CUR) != 0) {
                 success = false;
                 break;
             }
-            kptr = big_key_buf;
+            continue;
         }
 
         if (vlen > val_buf_cap) {
@@ -918,23 +855,22 @@ bool cache_load(cache_t* cache_ptr, const char* filename) {
             val_buf_cap = vlen;
         }
 
-        if (!file_read_chk(kptr, 1, klen, f) || !file_read_chk(val_buf, 1, (size_t)vlen, f)) {
+        if (!file_read_chk(key_buf, 1, klen, f) || !file_read_chk(val_buf, 1, (size_t)vlen, f)) {
             success = false;
             break;
         }
 
-        kptr[klen] = '\0';
+        key_buf[klen] = '\0';
 
         if ((time_t)expiry > now) {
             uint32_t remaining_ttl = (uint32_t)((time_t)expiry - now);
-            if (!cache_set(cache_ptr, kptr, klen, val_buf, (size_t)vlen, remaining_ttl)) {
+            if (!cache_set(cache_ptr, key_buf, klen, val_buf, (size_t)vlen, remaining_ttl)) {
                 success = false;
                 break;
             }
         }
     }
 
-    free(big_key_buf);
     free(val_buf);
     fclose(f);
     return success;

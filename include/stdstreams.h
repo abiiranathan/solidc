@@ -1,6 +1,6 @@
 /**
  * @file stdstreams.h
- * @brief Standard stream handling utilities.
+ * @brief High-performance standard stream handling utilities with Small String Optimization (SSO).
  *
  * Two-layer API:
  *   Layer 1 — type-specialized fast paths  (string_stream_copy_fast, etc.)
@@ -10,18 +10,15 @@
  *   > 0  → bytes read / written
  *     0  → EOF
  *    -1  → error
- *
- * All allocations have been strictly optimized to prevent fragmentation and
- * excessive malloc overhead. String streams reliably guarantee correct
- * trailing NUL-terminators for unsafe downstream processing.
  */
 
-#ifndef E8CAA280_1C10_4862_B560_47F74D754175
-#define E8CAA280_1C10_4862_B560_47F74D754175
+#ifndef STDSTREAMS_H
+#define STDSTREAMS_H
 
 #include "platform.h"
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <sys/types.h>
 
@@ -30,8 +27,21 @@ extern "C" {
 #endif
 
 /* -----------------------------------------------------------------------
- * Debug / release safety guards — zero overhead in release builds.
+ * Compiler Portability, Attributes & Branch Hints
  * --------------------------------------------------------------------- */
+
+#if defined(__GNUC__) || defined(__clang__)
+#define STREAM_LIKELY(x)   __builtin_expect(!!(x), 1)
+#define STREAM_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define STREAM_INLINE      inline __attribute__((always_inline))
+#define STREAM_RESTRICT    __restrict__
+#else
+#define STREAM_LIKELY(x)   (x)
+#define STREAM_UNLIKELY(x) (x)
+#define STREAM_INLINE      inline
+#define STREAM_RESTRICT
+#endif
+
 #ifndef NDEBUG
 #include <assert.h>
 #define STREAM_ASSERT(x) assert(x)
@@ -39,15 +49,15 @@ extern "C" {
 #define STREAM_ASSERT(x) ((void)0)
 #endif
 
+/** Inline buffer capacity for Small String Optimization (SSO). */
+#define STRING_STREAM_SSO_CAP 128
+
 /* -----------------------------------------------------------------------
- * Terminal helpers
+ * Terminal Helpers
  * --------------------------------------------------------------------- */
 
 /**
  * @brief Read a line from stdin, optionally printing a prompt first.
- *
- * Strips the trailing newline. Overflow characters are safely drained
- * from the input buffer.
  *
  * @param prompt     Optional prompt string (can be NULL).
  * @param buffer     Destination buffer.
@@ -59,206 +69,194 @@ bool readline(const char* prompt, char* buffer, size_t buffer_len);
 /**
  * @brief Read a password from the terminal with echo disabled.
  *
- * Uses termios on POSIX systems, and Console API on Win32.
- *
  * @param prompt     Optional prompt string (can be NULL).
  * @param buffer     Destination buffer.
  * @param buffer_len Total size of the buffer.
- * @return The number of characters stored in @p buffer, or -1 on error.
+ * @return The number of characters stored in buffer, or -1 on error.
  */
 int getpassword(const char* prompt, char* buffer, size_t buffer_len);
 
-/* -----------------------------------------------------------------------
- * Stream type definitions
- * --------------------------------------------------------------------- */
-
 /**
- * @brief Opaque stream handle.
+ * @brief Opaque handle to a stream instance.
  *
- * Wraps FILE* and in-memory string buffers behind a uniform interface.
- * Callers must never dereference the pointer directly.
+ * A @c stream_t may wrap either a `FILE*`-backed stream (see
+ * create_file_stream()) or an in-memory growable string buffer with SSO
+ * (see create_string_stream()). Callers must not access the underlying
+ * structure directly; use the accessor and mutator functions declared in
+ * this header. Not safe for concurrent use on the same handle by multiple
+ * threads without external synchronization.
  */
 typedef struct stream* stream_t;
 
 /**
  * @struct string_stream
- * @brief String stream internal state structure.
+ * @brief String stream internal state structure with SSO support.
  *
- * Exposed only to allow callers to embed it or calculate offsets. Memory
- * is highly optimized via unified contiguous allocation internally. Always
- * treat every field as strictly private — use the public API instead.
+ * @note This layout is exposed for sizing/allocation purposes only.
+ *       Treat all fields as private; use the string_stream_* API to
+ *       read or mutate stream contents. When @c size is small enough
+ *       to fit @c inline_buf, @c data points into @c inline_buf rather
+ *       than a heap allocation.
  */
 typedef struct string_stream {
-    char* data;      /**< Dynamically allocated buffer, always NUL-terminated */
-    size_t size;     /**< Current string length in bytes (excluding NUL) */
-    size_t capacity; /**< Allocated physical capacity (including space for NUL) */
-    size_t pos;      /**< Current read/write seek cursor position */
+    char* data;                             /**< Direct pointer to current data buffer */
+    size_t size;                            /**< Length of string in bytes (excluding NUL) */
+    size_t capacity;                        /**< Physical capacity including NUL byte */
+    size_t pos;                             /**< Seek cursor position */
+    char inline_buf[STRING_STREAM_SSO_CAP]; /**< Small String Optimization stack/inline buffer */
 } string_stream;
 
-/* -----------------------------------------------------------------------
- * Stream result type — mirrors POSIX read/write semantics
- * --------------------------------------------------------------------- */
+/** Signed result type for stream I/O operations; 
+follows the POSIX-style error contract described above. */
 typedef ssize_t stream_result_t;
 
-/* -----------------------------------------------------------------------
- * Lifecycle
- * --------------------------------------------------------------------- */
-
 /**
- * @brief Wrap an existing FILE* in a standardized stream context.
+ * @brief Wraps an existing `FILE*` in a @c stream_t.
  *
- * Ownership of @p fp is conditionally taken only when it is not one of
- * the standards (stdin / stdout / stderr).
- *
- * @param fp Target file pointer.
- * @return Stream handle, or NULL on allocation failure.
+ * @param fp Open file stream to wrap. Ownership of @p fp is not transferred;
+ *           the caller remains responsible for closing it, unless otherwise
+ *           documented by a higher-level API that consumes the result.
+ * @return New stream handle on success, NULL on allocation failure or if
+ *         @p fp is NULL.
+ * @note The returned handle must be released with stream_destroy().
  */
 stream_t create_file_stream(FILE* fp);
 
 /**
- * @brief Allocate a new in-memory string stream.
+ * @brief Creates an in-memory string stream backed by SSO.
  *
- * Combines allocations for caching efficiency. Automatically manages growth
- * sizes exponentially to skip redundant allocations.
+ * Buffers up to #STRING_STREAM_SSO_CAP bytes are stored inline without
+ * heap allocation; larger content transparently spills onto the heap.
  *
- * @param initial_capacity Desired starting size (can be 0).
- * @return Stream handle, or NULL on allocation failure.
+ * @param initial_capacity Suggested initial heap capacity in bytes. May be
+ *                          0, in which case only the inline buffer is used
+ *                          until it is exceeded.
+ * @return New stream handle on success, NULL on allocation failure.
+ * @note The returned handle must be released with stream_destroy().
  */
 stream_t create_string_stream(size_t initial_capacity);
 
 /**
- * @brief Destroy a stream and release all connected resources.
+ * @brief Releases all resources associated with a stream.
  *
- * For file streams, the underlying FILE* is safely closed unless it belongs
- * to the standard standard handles (stdin/stdout/stderr).
- *
- * @param stream Stream to destroy.
+ * @param stream Stream to destroy. May be NULL, in which case this is a
+ *               no-op. For file-backed streams, the wrapped `FILE*` is
+ *               not closed; only the wrapper's own resources are freed.
  */
 void stream_destroy(stream_t stream);
 
-/* -----------------------------------------------------------------------
- * Seeking
- * --------------------------------------------------------------------- */
-
 /**
- * @brief Seek within a stream exactly matching POSIX fseek(3) semantics.
+ * @brief Repositions the stream's internal cursor.
  *
- * @param stream Stream handle.
- * @param offset Relative byte offset.
- * @param whence Target relative origin (SEEK_SET, SEEK_CUR, SEEK_END).
- * @return 0 on success, -1 on bounds violation or error.
+ * @param stream Target stream.
+ * @param offset Offset in bytes, interpreted relative to @p whence.
+ * @param whence One of `SEEK_SET`, `SEEK_CUR`, or `SEEK_END`.
+ * @return 0 on success, -1 on error (invalid stream, invalid whence, or
+ *         resulting position out of range).
  */
 int stream_seek(stream_t stream, long offset, int whence);
 
-/* -----------------------------------------------------------------------
- * File-stream helpers
- * --------------------------------------------------------------------- */
-
 /**
- * @brief Read up to @p count objects of @p size bytes from a *file* stream
- *        into @p ptr, rewinding to the beginning first.
+ * @brief Reads raw data from a file-backed stream.
  *
- * @param s     Source file stream.
- * @param ptr   Destination buffer pointer.
- * @param size  Size in bytes of an individual unit block.
- * @param count Amount of items to fetch.
- * @return Number of objects read, 0 on EOF, (size_t)-1 on error.
+ * Semantics mirror `fread`: reads up to @p count elements of @p size
+ * bytes each into @p ptr.
+ *
+ * @param s     Source stream. Must be file-backed.
+ * @param ptr   Destination buffer; must be at least `size * count` bytes.
+ * @param size  Size in bytes of each element.
+ * @param count Number of elements to read.
+ * @return Number of complete elements successfully read. This may be
+ *         less than @p count on EOF or error; use the underlying
+ *         `FILE*`'s `feof`/`ferror` to disambiguate if needed.
  */
-size_t file_stream_read(stream_t s, void* restrict ptr, size_t size, size_t count);
-
-/* -----------------------------------------------------------------------
- * String-stream helpers
- * --------------------------------------------------------------------- */
+size_t file_stream_read(stream_t s, void* STREAM_RESTRICT ptr, size_t size, size_t count);
 
 /**
- * @brief Append the NUL-terminated string @p str to @p stream.
+ * @brief Appends a NUL-terminated string to a stream.
  *
- * The internal position cursor is explicitly *not* advanced (append
- * semantics). Safe to execute irrespective of current seek states.
- *
- * @param stream Target string stream.
- * @param str    NUL-terminated string literal.
- * @return The number of bytes appended, or -1 on allocation failure.
+ * @param stream Destination stream.
+ * @param str    NUL-terminated string to append. Must not be NULL.
+ * @return 0 on success, -1 on error (e.g. allocation failure for a
+ *         string stream, or write failure for a file-backed stream).
  */
 int string_stream_write(stream_t stream, const char* str);
 
 /**
- * @brief Append the NUL-terminated string @p str to @p stream.
- *  This is faster than string_stream_write when the length of @p str is already known.
- * The internal position cursor is explicitly *not* advanced (append
- * semantics). Safe to execute irrespective of current seek states.
+ * @brief Appends exactly @p n bytes from @p str to a stream.
  *
- * @param stream Target string stream.
- * @param str    NUL-terminated string literal.
- * @param n      Maximum number of bytes to append from @p str (excluding NUL).
- * @return The number of bytes appended, or -1 on allocation failure.
+ * Unlike string_stream_write(), the input need not be NUL-terminated;
+ * embedded NUL bytes are copied verbatim.
+ *
+ * @param stream Destination stream.
+ * @param str    Source buffer; must be at least @p n bytes.
+ * @param n      Number of bytes to append.
+ * @return 0 on success, -1 on error (e.g. allocation failure for a
+ *         string stream, or write failure for a file-backed stream).
  */
 int string_stream_write_len(stream_t stream, const char* str, size_t n);
 
 /**
- * @brief Fetch a read-only view of the underlying strictly NUL-terminated
- *        string data.
+ * @brief Returns a read-only pointer to a string stream's buffered data.
  *
- * @param stream String stream handle.
- * @return Direct buffer pointer or NULL if type invalid.
+ * @param stream Source stream. Must be string-backed.
+ * @return Pointer to a NUL-terminated internal buffer, valid until the
+ *         next mutating call on @p stream or until stream_destroy() is
+ *         called. Returns NULL if @p stream is NULL or not string-backed.
  */
 const char* string_stream_data(stream_t stream);
 
-/* -----------------------------------------------------------------------
- * Delimited read
- * --------------------------------------------------------------------- */
-
 /**
- * @brief Read from @p stream into @p buffer until @p delim is found.
+ * @brief Reads from a stream up to and including a delimiter byte.
  *
- * Heavily optimized out internally if the target matches a string stream.
- * The buffer is reliably NUL-terminated. Delimiter is excluded from results.
- *
- * @param stream       Source stream.
- * @param delim        Delimiter character boundary trigger.
- * @param buffer       Destination array — continuously NUL-terminated.
- * @param buffer_size  Total cap of @p buffer.
- * @return characters stored (≥ 0), or -1 on error / initial EOF.
+ * @param stream      Source stream.
+ * @param delim       Delimiter byte to search for, passed as an `int`
+ *                     (as with `fgetc`); the delimiter itself is included
+ *                     in @p buffer if found.
+ * @param buffer      Destination buffer.
+ * @param buffer_size Size of @p buffer in bytes, including room for the
+ *                     terminating NUL that will be written.
+ * @return Number of bytes written to @p buffer (excluding the NUL
+ *         terminator) on success, 0 on immediate EOF, -1 on error
+ *         (including a @p buffer_size too small to hold any data).
  */
 ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size);
 
-/* -----------------------------------------------------------------------
- * Layer 1 — type-specialised fast paths
- * --------------------------------------------------------------------- */
-
 /**
- * @brief Direct memory-bound string to string copy without generic dispatch.
+ * @brief Fast-path bulk copy between two string streams.
  *
- * Copy all bytes linearly from @p src string to @p dst string.
+ * Bypasses the generic io_copy() chunking logic when both @p dst and
+ * @p src are known to be string-backed, allowing a direct memory copy.
  *
  * @param dst Destination string stream.
- * @param src Target source string stream.
- * @return Bytes copied, or (unsigned long)-1 on allocation failure.
+ * @param src Source string stream.
+ * @return Number of bytes copied.
+ * @note Behavior is undefined if either stream is not string-backed;
+ *       use io_copy() for the generic case.
  */
 unsigned long string_stream_copy_fast(stream_t dst, stream_t src);
 
-/* -----------------------------------------------------------------------
- * Layer 2 — generic copy
- * --------------------------------------------------------------------- */
-
 /**
- * @brief Copy contents universally from @p reader into @p writer.
+ * @brief Copies all remaining data from one stream to another.
  *
- * Uses optimal vtable-bypassing fast-paths seamlessly if types match.
+ * Generic fallback that works for any combination of file-backed and
+ * string-backed streams, reading from @p reader until EOF and writing
+ * each chunk to @p writer.
  *
- * @param writer Destination generalized stream.
- * @param reader Target generalized source stream.
- * @return Total bytes written, or (unsigned long)-1 on error.
+ * @param writer Destination stream.
+ * @param reader Source stream.
+ * @return Total number of bytes copied.
  */
 unsigned long io_copy(stream_t writer, stream_t reader);
 
 /**
- * @brief Copy tightly capped chunk up to @p n bytes.
+ * @brief Copies at most @p n bytes from one stream to another.
  *
- * @param writer Destination generalized stream.
- * @param reader Target generalized source stream.
- * @param n      Maximum ceiling of bytes to shift.
- * @return Total bytes written (≤ n), or (unsigned long)-1 on error.
+ * @param writer Destination stream.
+ * @param reader Source stream.
+ * @param n      Maximum number of bytes to copy.
+ * @return Number of bytes actually copied, which may be less than
+ *         @p n if @p reader reaches EOF first.
  */
 unsigned long io_copy_n(stream_t writer, stream_t reader, size_t n);
 
@@ -266,4 +264,4 @@ unsigned long io_copy_n(stream_t writer, stream_t reader, size_t n);
 }
 #endif
 
-#endif /* E8CAA280_1C10_4862_B560_47F74D754175 */
+#endif /* STDSTREAMS_H */

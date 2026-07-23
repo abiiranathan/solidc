@@ -12,14 +12,10 @@
  * @return Pointer to the unquoted string (may be different from input).
  */
 static char* remove_quotes(char* str) {
-    if (str == NULL) {
-        return NULL;
-    }
+    if (str == NULL) { return NULL; }
 
     size_t len = strlen(str);
-    if (len < 2) {
-        return str;
-    }
+    if (len < 2) { return str; }
 
     // Check for matching quotes
     if ((str[0] == '"' && str[len - 1] == '"') || (str[0] == '\'' && str[len - 1] == '\'')) {
@@ -38,24 +34,21 @@ static char* remove_quotes(char* str) {
  * @return true on success, false if buffer is too small or invalid input.
  */
 static bool interpolate(const char* value, char* result, size_t result_size) {
-    if (value == NULL || result == NULL || result_size == 0) {
-        return false;
-    }
+    if (value == NULL || result == NULL || result_size == 0) { return false; }
 
     size_t result_len = 0;
-    const char* ptr   = value;
+    const char* ptr = value;
     memset(result, 0, result_size);
 
     while (*ptr && result_len < result_size - 1) {
         // Look for variable interpolation pattern: ${VAR_NAME}
         if (*ptr == '$' && *(ptr + 1) == '{') {
             const char* start = ptr + 2;
-            const char* end   = strchr(start, '}');
+            const char* end = strchr(start, '}');
 
             if (end == NULL) {
                 // Malformed interpolation - copy literal characters
-                fprintf(stderr, "Warning: Unclosed variable reference starting at position %td\n",
-                        ptr - value);
+                fprintf(stderr, "Warning: Unclosed variable reference starting at position %td\n", ptr - value);
                 result[result_len++] = *ptr++;
                 continue;
             }
@@ -90,8 +83,7 @@ static bool interpolate(const char* value, char* result, size_t result_size) {
                 memcpy(result + result_len, var_value, var_value_len);
                 result_len += var_value_len;
             } else {
-                fprintf(stderr, "Warning: Environment variable '%s' not found, skipping\n",
-                        var_name);
+                fprintf(stderr, "Warning: Environment variable '%s' not found, skipping\n", var_name);
             }
 
             ptr = end + 1;
@@ -112,19 +104,38 @@ static bool interpolate(const char* value, char* result, size_t result_size) {
 }
 
 /**
+ * Validates that a key is a legal environment variable name.
+ * POSIX restricts portable names to [A-Za-z_][A-Za-z0-9_]*, which also
+ * rules out characters (spaces, '=', etc.) that would corrupt the
+ * environment or indicate a malformed line.
+ * @param key The candidate key. Must be non-NULL and non-empty.
+ * @return true if key is a valid identifier, false otherwise.
+ */
+static bool is_valid_key(const char* key) {
+    if (key == NULL || *key == '\0') { return false; }
+
+    if (!isalpha((unsigned char)key[0]) && key[0] != '_') { return false; }
+
+    for (const char* p = key + 1; *p != '\0'; p++) {
+        if (!isalnum((unsigned char)*p) && *p != '_') { return false; }
+    }
+
+    return true;
+}
+
+/**
  * Processes a single key-value line and sets the environment variable.
  * @param key The environment variable name. Must be non-NULL.
  * @param value The value to set. Must be non-NULL.
  * @return true on success, false on error.
  */
 static bool process_env_pair(char* key, char* value) {
-    if (key == NULL || value == NULL) {
-        return false;
-    }
+    if (key == NULL || value == NULL) { return false; }
 
     // Trim key
     str_trim(key);
-    if (*key == '\0') {
+    if (!is_valid_key(key)) {
+        fprintf(stderr, "Error: Invalid environment variable name '%s'\n", key);
         return false;
     }
 
@@ -141,14 +152,12 @@ static bool process_env_pair(char* key, char* value) {
         }
 
         if (SETENV(key, interpolated_value, 1) != 0) {
-            fprintf(stderr, "Error: Failed to set environment variable '%s': %s\n", key,
-                    strerror(errno));
+            fprintf(stderr, "Error: Failed to set environment variable '%s': %s\n", key, strerror(errno));
             return false;
         }
     } else {
         if (SETENV(key, value, 1) != 0) {
-            fprintf(stderr, "Error: Failed to set environment variable '%s': %s\n", key,
-                    strerror(errno));
+            fprintf(stderr, "Error: Failed to set environment variable '%s': %s\n", key, strerror(errno));
             return false;
         }
     }
@@ -156,47 +165,87 @@ static bool process_env_pair(char* key, char* value) {
     return true;
 }
 
+/**
+ * Strips a trailing, unquoted "#" comment from a line, in place.
+ * A '#' is only treated as a comment start when it is not inside a
+ * single- or double-quoted value, so values like KEY="a#b" survive intact.
+ * @param line The line to strip. Must be non-NULL.
+ */
+static void strip_inline_comment(char* line) {
+    bool in_single = false;
+    bool in_double = false;
+
+    for (char* p = line; *p != '\0'; p++) {
+        if (*p == '\'' && !in_double) {
+            in_single = !in_single;
+        } else if (*p == '"' && !in_single) {
+            in_double = !in_double;
+        } else if (*p == '#' && !in_single && !in_double) {
+            *p = '\0';
+            return;
+        }
+    }
+}
+
 bool load_dotenv(const char* path) {
     if (path == NULL) {
+        fprintf(stderr, "Error: NULL path passed to load_dotenv\n");
         return false;
     }
 
     FILE* file = fopen(path, "r");
     if (file == NULL) {
-        fprintf(stderr, "Error: Cannot open file '%s': %s\n", path, strerror(errno));
+        fprintf(stderr, "Error: Failed to open '%s': %s\n", path, strerror(errno));
         return false;
     }
 
-    char line[MAX_LINE_LENGTH] = {0};
-    size_t line_number         = 0;
-    bool had_errors            = false;
+    char line[MAX_LINE_LENGTH];
+    size_t line_number = 0;
+    bool had_errors = false;
 
     while (fgets(line, sizeof(line), file) != NULL) {
         line_number++;
 
-        // Remove trailing newline
+        // Detect a line that didn't fit in the buffer (no newline and not EOF).
         size_t len = strlen(line);
-        if (len > 0 && line[len - 1] == '\n') {
-            line[len - 1] = '\0';
-        }
-        str_trim(line);
-
-        // Skip empty lines and comments
-        if (*line == '\0' || *line == '#') {
+        if (len == sizeof(line) - 1 && line[len - 1] != '\n' && !feof(file)) {
+            fprintf(stderr, "Warning: Line %zu exceeds maximum length (%d), skipping\n", line_number,
+                    MAX_LINE_LENGTH - 1);
+            had_errors = true;
+            // Discard the remainder of this oversized line before continuing.
+            int c;
+            while ((c = fgetc(file)) != EOF && c != '\n') {}
             continue;
         }
 
+        // Remove trailing newline (and a preceding '\r' for CRLF files).
+        if (len > 0 && line[len - 1] == '\n') { line[--len] = '\0'; }
+        if (len > 0 && line[len - 1] == '\r') { line[--len] = '\0'; }
+
+        strip_inline_comment(line);
+        str_trim(line);
+
+        // Skip empty lines and full-line comments
+        if (*line == '\0' || *line == '#') { continue; }
+
+        // Optional "export " prefix, as supported by shell-style .env files.
+        char* stmt = line;
+        if (strncmp(stmt, "export ", 7) == 0 || strncmp(stmt, "export\t", 7) == 0) {
+            stmt += 7;
+            str_trim(stmt);
+        }
+
         // Find the '=' separator
-        char* equals = strchr(line, '=');
+        char* equals = strchr(stmt, '=');
         if (equals == NULL) {
-            fprintf(stderr, "Warning: Invalid line %zu (no '=' found): %s\n", line_number, line);
+            fprintf(stderr, "Warning: Invalid line %zu (no '=' found): %s\n", line_number, stmt);
             had_errors = true;
             continue;
         }
 
         // Split into key and value
-        *equals     = '\0';
-        char* key   = line;
+        *equals = '\0';
+        char* key = stmt;
         char* value = equals + 1;
 
         if (!process_env_pair(key, value)) {
@@ -206,11 +255,15 @@ bool load_dotenv(const char* path) {
     }
 
     if (ferror(file)) {
-        fprintf(stderr, "Error: Failed to read from file '%s'\n", path);
+        fprintf(stderr, "Error: Failed to read from file '%s': %s\n", path, strerror(errno));
         fclose(file);
         return false;
     }
 
-    fclose(file);
+    if (fclose(file) != 0) {
+        fprintf(stderr, "Error: Failed to close '%s': %s\n", path, strerror(errno));
+        return false;
+    }
+
     return !had_errors;
 }
