@@ -1,7 +1,8 @@
 /**
  * @file cache.h
  * @brief High-performance sharded open-addressing hash cache with 16-bit tags,
- * inline storage, lock-free per-slot seqlock concurrency, and an ABA-safe slab allocator.
+ *        256-byte cache-line aligned storage, lock-free per-slot seqlock concurrency,
+ *        and an ABA-safe slab allocator.
  */
 
 #ifndef CACHE_H
@@ -11,9 +12,9 @@
 extern "C" {
 #endif
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
+#include <stdbool.h>  // for bool, true, false
+#include <stddef.h>   // for size_t
+#include <stdint.h>   // for uint16_t, uint32_t, uint64_t, uint8_t
 
 /** Number of shards used to partition the key space. Must be a power of 2. */
 #define CACHE_SHARD_COUNT 256
@@ -21,141 +22,83 @@ extern "C" {
 /** Default entry time-to-live in seconds if no TTL override is provided. */
 #define CACHE_DEFAULT_TTL 300
 
+/** Maximum key length supported by inline slot storage (in bytes). */
+#define CACHE_MAX_KEY_LEN 64
+
+/** Maximum inline payload length before spilling to the slab allocator (in bytes). */
+#define CACHE_INLINE_VAL_LEN 160
+
+/** Maximum total payload capacity (in bytes) supported per cache entry. */
+#define CACHE_MAX_VALUE_LEN 2048
+
 /**
  * Opaque handle to the cache instance.
  * All internal fields are hidden to preserve ABI compatibility.
  */
 typedef struct cache_s cache_t;
 
-/**
- * Creates and initializes a new lock-free sharded cache.
- *
- * @param capacity Total target capacity in live entries (distributed across shards).
- * @param default_ttl Default time-to-live in seconds (0 defaults to CACHE_DEFAULT_TTL).
- * @return Pointer to initialized cache instance, or NULL on allocation failure.
- * @threadsafety Safe to invoke concurrently with distinct targets.
- */
-cache_t* cache_create(size_t capacity, uint32_t default_ttl);
+/** Configuration parameters for cache instantiation. */
+typedef struct {
+    size_t capacity_per_shard;    /** Requested open-addressing slot capacity per shard. */
+    size_t slab_blocks_per_shard; /** Number of dynamic payload blocks in slab pool per shard. */
+    uint32_t default_ttl_sec;     /** Default expiration timeout in seconds. */
+} cache_config_t;
 
 /**
- * Destroys the cache instance and releases all associated memory pools.
+ * Creates and initializes a new sharded cache instance.
  *
- * @param cache Pointer to the cache instance. If NULL, operation is a no-op.
- * @note Outstanding pointers returned by cache_get() become invalid after destruction.
- * @threadsafety Not thread-safe. Must be called when no other threads are accessing the cache.
+ * @param config Pointer to the cache configuration structure.
+ * @return Pointer to initialized cache_t handle on success, NULL on memory allocation failure.
+ * @note Thread-safe initialization. Must be destroyed with cache_destroy().
+ */
+cache_t* cache_create(const cache_config_t* config);
+
+/**
+ * Destroys a cache instance and frees all allocated memory and resources.
+ *
+ * @param cache Pointer to the cache instance.
+ * @note Not thread-safe with concurrent operations on the same handle.
  */
 void cache_destroy(cache_t* cache);
 
 /**
- * Retrieves a snapshot view of a value associated with the given key.
+ * Stores or updates a key-value pair in the cache using seqlock write semantics.
  *
- * Operations are completely lock-free on the read path via per-slot seqlock validation.
- *
- * @param cache The cache handle.
- * @param key Pointer to key string.
- * @param key_len Length of key in bytes (excluding null terminator).
- * @param out_len Pointer to variable receiving value length in bytes. May be NULL.
- * @return Pointer to value payload (thread-local snapshot for inline values), or NULL on miss/expiry.
- * @note Inline values are returned as pointers to thread-local storage consistent at call time.
- * @threadsafety Safe for concurrent use by multiple goroutines/threads.
+ * @param cache Pointer to the cache instance.
+ * @param key Pointer to key buffer.
+ * @param key_len Length of key in bytes (must be <= CACHE_MAX_KEY_LEN).
+ * @param value Pointer to value buffer.
+ * @param val_len Length of value in bytes (must be <= CACHE_MAX_VALUE_LEN).
+ * @param ttl_sec TTL for this entry in seconds (0 defaults to config.default_ttl_sec).
+ * @return true on success, false if key/value size limits exceeded or shard capacity exhausted.
+ * @note Lock-free per-slot write operation. Safe for concurrent multi-threaded writes.
  */
-const void* cache_get(cache_t* cache, const char* key, size_t key_len, size_t* out_len);
+bool cache_put(cache_t* cache, const void* key, size_t key_len, const void* value, size_t val_len, uint32_t ttl_sec);
 
 /**
- * Deprecated compatibility stub for releasing zero-copy value references.
+ * Retrieves a value from the cache for a given key via optimistic seqlock reading.
  *
- * @param ptr Pointer previously returned by cache_get().
- * @note Kept for API backward compatibility; lock-free inline storage requires no reference counts.
- * @threadsafety Safe for concurrent use.
- */
-void cache_release(const void* ptr);
-
-/**
- * Inserts or updates an entry in the cache using non-blocking CAS operations.
- *
- * Operates without acquiring shard-level locks. Overflow memory for large payloads
- * is allocated from a pre-allocated per-shard lock-free slab pool.
- *
- * @param cache The cache handle.
- * @param key Pointer to key string.
+ * @param cache Pointer to the cache instance.
+ * @param key Pointer to key buffer.
  * @param key_len Length of key in bytes.
- * @param value Pointer to payload buffer.
- * @param value_len Length of payload buffer in bytes.
- * @param ttl_override Custom time-to-live in seconds (0 uses cache default).
- * @return true on successful insertion/update, false on failure (e.g. key too long or full pool).
- * @threadsafety Safe for concurrent use by multiple threads.
+ * @param val_out Output buffer where retrieved value will be copied.
+ * @param val_cap Capacity of val_out buffer in bytes.
+ * @param val_len Output pointer to receive actual payload length (can be NULL).
+ * @return true if key was found and valid (not expired), false on miss or expiration.
+ * @note Lock-free optimistic read loop. Safe for concurrent use across multiple threads.
  */
-bool cache_set(cache_t* cache, const char* key, size_t key_len, const void* value, size_t value_len,
-               uint32_t ttl_override);
+bool cache_get(cache_t* cache, const void* key, size_t key_len, void* val_out, size_t val_cap, size_t* val_len);
 
 /**
- * Atomically invalidates and removes an entry matching key from the cache index.
+ * Evicts an entry from the cache by key.
  *
- * @param cache The cache handle.
- * @param key Null-terminated key string to invalidate.
- * @threadsafety Safe for concurrent use by multiple threads.
+ * @param cache Pointer to the cache instance.
+ * @param key Pointer to key buffer.
+ * @param key_len Length of key in bytes.
+ * @return true if key was found and deleted, false if key was not present.
+ * @note Thread-safe operation. Reclaims associated slab blocks.
  */
-void cache_invalidate(cache_t* cache, const char* key);
-
-/**
- * Resets and clears all entries across all cache shards.
- *
- * @param cache The cache handle.
- * @threadsafety Safe for concurrent use.
- */
-void cache_clear(cache_t* cache);
-
-/**
- * Returns the current total count of live entries stored across all shards.
- *
- * @param cache The cache instance.
- * @return Total live entry count, or 0 if cache is NULL.
- * @threadsafety Thread-safe via atomic counter aggregation.
- */
-size_t get_total_cache_size(cache_t* cache);
-
-/**
- * Returns the maximum configured capacity across all shards.
- *
- * @param cache The cache instance.
- * @return Total capacity, or 0 if cache is NULL.
- * @threadsafety Thread-safe.
- */
-size_t get_total_capacity(cache_t* cache);
-
-/**
- * Serializes current active non-expired cache entries to a binary stream.
- *
- * @param cache_ptr Pointer to cache instance.
- * @param filename Target binary output file path.
- * @return true on successful serialization, false on file I/O error.
- * @threadsafety Safe for concurrent use alongside readers and writers.
- */
-bool cache_save(cache_t* cache_ptr, const char* filename);
-
-/**
- * Deserializes cache entries from a binary snapshot file into the cache.
- *
- * @param cache_ptr Pointer to target cache instance.
- * @param filename Input binary snapshot file path.
- * @return true on successful parse, false on file open or format error.
- * @threadsafety Safe for concurrent use.
- */
-bool cache_load(cache_t* cache_ptr, const char* filename);
-
-/**
- * Advances the internal coarse timestamp used for fast TTL verification.
- *
- * Should be called periodically (e.g., every 100ms) by a background worker thread.
- * @threadsafety Safe for concurrent use across threads.
- */
-void cache_tick(void);
-
-/**
- * Flushes thread-local statistics and prints linear-probing distribution metrics to stderr.
- * @threadsafety Safe for concurrent use.
- */
-void cache_probe_stats_dump(void);
+bool cache_delete(cache_t* cache, const void* key, size_t key_len);
 
 #ifdef __cplusplus
 }
