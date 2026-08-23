@@ -52,21 +52,24 @@ static inline size_t safe_strlcpy(char* dst, const char* src, size_t size) {
 
 // Generate a random string for temporary file/directory names.
 // len must be < 64 bytes.
+/*
+ * Thread-safety notes: on Linux, getrandom(2) is thread-safe and requires
+ * no shared state, so no locking is done at all — the earlier version held
+ * a mutex across the syscall (pure contention) and initialised it with a
+ * check-then-act pattern that could double-initialise under concurrency
+ * (Bug #9).  Other platforms keep the /dev/urandom fallback path; there the
+ * initialiser uses an atomic exchange so exactly one thread ever runs
+ * lock_init.
+ */
 static void random_string(char* str, size_t len) {
-    static Lock rand_lock;
-    static atomic_int initialized = 0;
-
-    // Initialize lock in a thread-safe manner
-    if (!atomic_load(&initialized)) {
-        lock_init(&rand_lock);
-        atomic_store(&initialized, 1);
-    }
-
     const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     const size_t charset_size = sizeof(charset) - 1;  // Exclude null terminator
-    unsigned char buffer[64];                         // Buffer for random bytes (sufficient for typical len)
 
-    lock_acquire(&rand_lock);
+#ifndef __linux__
+    static Lock rand_lock;
+    static atomic_int initialized = 0;
+#endif
+    unsigned char buffer[64];  // Buffer for random bytes (sufficient for typical len)
 
     // Ensure we don't write beyond requested length
     size_t bytes_needed = len < 64 ? len : 64;
@@ -75,35 +78,41 @@ static void random_string(char* str, size_t len) {
     HCRYPTPROV hCryptProv;
     if (!CryptAcquireContextW(&hCryptProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
         str[0] = '\0';  // Fallback to empty string on error
-        lock_release(&rand_lock);
         return;
     }
 
     if (!CryptGenRandom(hCryptProv, bytes_needed, buffer)) {
         CryptReleaseContext(hCryptProv, 0);
         str[0] = '\0';
-        lock_release(&rand_lock);
         return;
     }
     CryptReleaseContext(hCryptProv, 0);
 #else
-    ssize_t bytes_read = -1;
 #ifdef __linux__
-    // Try getrandom (Linux-specific, preferred)
-    bytes_read = getrandom(buffer, bytes_needed, 0);
+    /* Kernel-provided, thread-safe, no descriptor churn. */
+    ssize_t bytes_read = getrandom(buffer, bytes_needed, 0);
+    if (bytes_read != (ssize_t)bytes_needed) {
+        str[0] = '\0';
+        return;
+    }
 #else
+    if (!atomic_exchange(&initialized, 1)) { lock_init(&rand_lock); }
+
+    lock_acquire(&rand_lock);
+    ssize_t bytes_read = -1;
     // Fallback to /dev/urandom for other POSIX systems
     int fd = open("/dev/urandom", O_RDONLY);
     if (fd != -1) {
         bytes_read = read(fd, buffer, bytes_needed);
         close(fd);
     }
-#endif
     if (bytes_read != (ssize_t)bytes_needed) {
-        str[0] = '\0';  // Fallback to empty string on error
+        str[0] = '\0';
         lock_release(&rand_lock);
         return;
     }
+    lock_release(&rand_lock);
+#endif
 #endif
 
     // Convert random bytes to characters from charset
@@ -111,7 +120,6 @@ static void random_string(char* str, size_t len) {
         str[i] = charset[buffer[i % bytes_needed] % charset_size];
     }
     str[len] = '\0';
-    lock_release(&rand_lock);
 }
 
 // Open a directory
@@ -930,14 +938,31 @@ void filepath_dirname(const char* path, char* dirname, size_t size) {
 }
 
 // Get file extension
+/*
+ * Returns the extension of the BASENAME, including the dot, or "" if the
+ * basename has none.  Two subtleties handled here:
+ *   - The search must start AFTER the last separator, otherwise
+ *     "/path/to.dir/file" would report ".dir/file" (Bug #8).
+ *   - A leading dot in the basename marks a hidden file ("~/.bashrc"),
+ *     not an extension, so ".bashrc" yields "".
+ * Multi-part names behave as expected: "archive.tar.gz" -> ".gz".
+ */
 void filepath_extension(const char* path, char* ext, size_t size) {
     if (!path || !ext || size == 0) {
         if (ext) ext[0] = '\0';
         return;
     }
 
-    const char* dot = strrchr(path, '.');
-    safe_strlcpy(ext, dot ? dot : "", size);
+    const char* base = strrchr(path, '/');
+    if (!base) { base = strrchr(path, '\\'); }
+    base = base ? base + 1 : path;
+
+    const char* dot = strrchr(base, '.');
+    if (!dot || dot == base) {
+        ext[0] = '\0';
+        return;
+    }
+    safe_strlcpy(ext, dot, size);
 }
 
 #define BASENAME_MAX 512

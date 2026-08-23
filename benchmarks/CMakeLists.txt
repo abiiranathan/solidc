@@ -5,8 +5,13 @@ target_link_libraries(threadpool_bench PRIVATE solidc)
 add_executable(threadpool_micro  ${CMAKE_CURRENT_SOURCE_DIR}/threadpool_micro.c)
 target_link_libraries(threadpool_micro PRIVATE solidc pthread)
 
+add_executable(file_micro  ${CMAKE_CURRENT_SOURCE_DIR}/file_micro.c)
+target_link_libraries(file_micro PRIVATE solidc pthread)
+
 add_executable(bench_arena ${CMAKE_CURRENT_SOURCE_DIR}/bench_arena.c)
 target_link_libraries(bench_arena PRIVATE solidc)
 
 add_executable(bench_cache ${CMAKE_CURRENT_SOURCE_DIR}/bench_cache.c)
 target_link_libraries(bench_cache PRIVATE solidc)
+add_executable(map_micro  ${CMAKE_CURRENT_SOURCE_DIR}/map_micro.c)
+target_link_libraries(map_micro PRIVATE solidc pthread)

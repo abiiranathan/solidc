@@ -1,63 +1,51 @@
 /**
- * @file src/map.c — find_slot (internal), map_set, map_get, map_remove
+ * @file map.c
+ * @brief Robin Hood hash map — open addressing with linear probing.
  *
- * Why the old implementation was slow
- * ------------------------------------
- * 1. Probing strategy: double hashing with step h2 = (hash>>5)|1.
- *    The step is derived from the primary hash, so two keys that collide
- *    in bucket also tend to collide in their step, lengthening probe chains
- *    (secondary clustering).
+ * Design
+ * ------
  *
- * 2. Tombstones: deleted slots are marked DELETED and never reclaimed until
- *    a full rehash at 50% tombstone ratio.  A map that sees many deletions
- *    degrades to O(n) probe length as tombstones fill the table.
+ * Layout
+ *   keys_values[i*2]   key pointer for slot i    (NULL == empty slot)
+ *   keys_values[i*2+1] value pointer for slot i
+ *   deleted[i]         DIB (distance-from-initial-bucket) of the element
+ *                      in slot i; 0 means "in its natural slot".  The
+ *                      field name is historical — no tombstones exist.
  *
- * This replacement
- * ----------------
- * Robin Hood linear probing — the simplest scheme that beats both problems.
+ * Probing
+ *   Linear probing over a power-of-two capacity (index = (hash + step)
+ *   & mask).  Sequential slots share cache lines, so a probe step usually
+ *   costs no additional memory access.
  *
- *  a) Linear probing has optimal cache behaviour: the probe sequence is
- *     sequential memory addresses.  On a 64-byte cache line that is up to
- *     8 pointer-pair slots loaded in one miss.
+ * Robin Hood invariant
+ *   An element never displaces an element whose DIB is smaller than its
+ *   own current displacement — on insertion, the incoming element swaps
+ *   with any "richer" (closer-to-home) resident and continues.  This keeps
+ *   probe-length variance tight instead of letting early insertions hog
+ *   their natural slots.
  *
- *  b) Robin Hood invariant: an element is always at most as far from its
- *     natural slot as any element it passes during probe.  During insertion
- *     the incoming element "robs" a slot from a richer element (one closer
- *     to its natural slot) by swapping them and continuing.  This keeps
- *     the distribution of probe lengths tight — maximum variance ~O(log n).
+ * Lookup early exit
+ *   While probing for a key at displacement `d`, a resident with DIB < d
+ *   proves the key is absent (it would have been robbed further along).
  *
- *  c) Backward-shift deletion: on remove, forward neighbours are pulled
- *     back into the vacated slot as long as doing so shortens their probe.
- *     No tombstones are ever written.
+ * Deletion
+ *   Backward-shift: after removing an element, forward neighbours move
+ *   into the hole while their DIB is nonzero (moving them shortens their
+ *   probe).  The table therefore never contains tombstones and never
+ *   degrades under deletion-heavy churn.
  *
- * Benchmark comparison (random 50% insert / 50% delete workload, 1M ops):
- *   Old (double hash + tombstone):  ~280 ns/op
- *   New (Robin Hood + back-shift):  ~95 ns/op  (~3× faster)
+ * Resizing
+ *   Doubles capacity when load reaches max_load_factor (default 0.75).
+ *   Rehash re-inserts every element using the same Robin Hood logic.
+ *   Note: elements are re-hashed with the key_len of the call that
+ *   triggered the resize — use consistent key_len values per logical key
+ *   (see the contract comment on map_set in map.h).
  *
- * API is identical.  The only internal change is the probing and deletion
- * logic.  All public map_* functions retain the same signature.
- *
- * Implementation note: rather than patching individual functions in-place,
- * we provide complete replacements for map_set, map_get, map_remove, and
- * the internal find_slot helper.  The rest of map.c (map_create,
- * map_destroy, iterators, thread-safe wrappers) is unchanged.
+ * Hashing
+ *   Keys of <= 8 bytes hash by identity (zero-padded little-endian read),
+ *   which preserves integer ordering in bucket assignment; larger keys go
+ *   through XXH3-64.
  */
-
-/* =========================================================================
- * Internal slot layout (unchanged from original):
- *   keys_values[i*2]   = key   pointer for slot i  (NULL == empty)
- *   keys_values[i*2+1] = value pointer for slot i
- *   deleted[i]         = REMOVED tombstone marker
- *
- * The Robin Hood implementation repurposes `deleted[]` as a probe-distance
- * (DIB) array: deleted[i] holds the distance-from-initial-bucket for the
- * element stored in slot i.  0 means the element is in its natural slot,
- * 1 means it was displaced by 1, etc.  An empty slot is indicated by
- * keys_values[i*2] == NULL.
- *
- * Because DIB replaces the boolean tombstone, `tombstone_count` is always 0
- * and the 50%-tombstone rehash path is never triggered.
- * ========================================================================= */
 #include <limits.h>
 #include <stdalign.h>
 #include <stdbool.h>
@@ -75,23 +63,16 @@
 #include <xxhash.h>
 
 // Default maximum load factor
-#define DEFAULT_MAX_LOAD_FACTOR   0.75f
-#define TOMBSTONE_RATIO_THRESHOLD 0.5f  // Rehash when tombstones > 50% of size
-#define MIN_CAPACITY              8     // Minimum capacity to avoid frequent resizing
-#define MAX(a, b)                 ((a) > (b) ? (a) : (b))
+#define DEFAULT_MAX_LOAD_FACTOR 0.75f
+#define MIN_CAPACITY            8 // Minimum capacity to avoid frequent resizing
+#define MAX(a, b)               ((a) > (b) ? (a) : (b))
 
-/* Distance-from-initial-bucket stored in the (repurposed) deleted[] array. */
+/* DIB (distance-from-initial-bucket) accessors. */
 #define _RH_DIB(m, i)        ((m)->deleted[i])
 #define _RH_SET_DIB(m, i, d) ((m)->deleted[i] = (size_t)(d))
 /* Slot is empty when the key pointer is NULL. */
 #define _RH_EMPTY(m, i) ((m)->keys_values[(i) * 2] == NULL)
 
-/* Compute slot index using capacity bitmask (capacity is always power-of-two). */
-static inline size_t _rh_slot(size_t hash, size_t offset, size_t cap_mask) {
-    return (hash + offset) & cap_mask;
-}
-
-// Optimized map structure with better memory layout
 typedef struct hash_map {
     void** keys_values;            // Interleaved keys and values for better cache locality
     size_t* deleted;               // DIB (distance-from-initial-bucket) array
@@ -105,7 +86,10 @@ typedef struct hash_map {
     Lock lock;                     // Lock for thread safety
 } HashMap;
 
-// Fast hash for small keys (up to 8 bytes) - optimized version
+// Hash for small keys (up to 8 bytes): zero-padded little-endian read.
+// Identity for integers, which suits linear probing.  Measured note:
+// memcpy-based and unrolled-load variants performed identically or worse
+// through the indirect HashFunction call — keep the simple loop.
 static inline uint64_t fast_small_hash(const void* key, size_t size) {
     // Use union to avoid strict aliasing violations
     union {
@@ -125,7 +109,9 @@ static inline uint64_t fast_small_hash(const void* key, size_t size) {
 
 // xxHash implementation with small key optimization
 static inline unsigned long xxhash(const void* key, size_t size) {
-    if (size <= sizeof(uint64_t)) { return fast_small_hash(key, size); }
+    if (size <= sizeof(uint64_t)) {
+        return fast_small_hash(key, size);
+    }
     return XXH3_64bits(key, size);
 }
 
@@ -146,31 +132,37 @@ static inline size_t next_power_of_two(size_t n) {
 
 // Safe capacity growth calculation
 static inline size_t calculate_new_capacity(size_t current) {
-    if (current > SIZE_MAX / 2) { return SIZE_MAX; }
+    if (current > SIZE_MAX / 2) {
+        return SIZE_MAX;
+    }
     size_t new_cap = current * 2;
     return (new_cap < current) ? SIZE_MAX : new_cap;
 }
 
 // Wrapper to match HashFunction signature
-static inline size_t xxhash_wrapper(const void* key, size_t len) {
-    return (size_t)xxhash(key, (size_t)len);
-}
+static inline size_t xxhash_wrapper(const void* key, size_t len) { return (size_t)xxhash(key, (size_t)len); }
 
 // Map creation with better error handling and memory optimization
 HashMap* map_create(const MapConfig* config) {
-    if (!config || !config->key_compare) { return NULL; }
+    if (!config || !config->key_compare) {
+        return NULL;
+    }
 
-    size_t capacity = MAX(MIN_CAPACITY, config->initial_capacity > 0 ? next_power_of_two(config->initial_capacity)
-                                                                     : INITIAL_MAP_SIZE);
+    size_t capacity = MAX(
+        MIN_CAPACITY, config->initial_capacity > 0 ? next_power_of_two(config->initial_capacity) : INITIAL_MAP_SIZE);
 
-    if (capacity > SIZE_MAX / 2) { return NULL; }
+    if (capacity > SIZE_MAX / 2) {
+        return NULL;
+    }
 
     float max_load_factor = config->max_load_factor > 0.1f && config->max_load_factor <= 0.95f
                                 ? config->max_load_factor
                                 : DEFAULT_MAX_LOAD_FACTOR;
 
     HashMap* m = (HashMap*)malloc(sizeof(HashMap));
-    if (!m) { return NULL; }
+    if (!m) {
+        return NULL;
+    }
 
     // Allocate interleaved keys and values for better cache locality
     m->keys_values = (void**)calloc(capacity * 2, sizeof(void*));
@@ -196,18 +188,17 @@ HashMap* map_create(const MapConfig* config) {
 }
 
 // Helper to get key pointer from interleaved array
-static inline void** get_key_ptr(HashMap* m, size_t index) {
-    return &m->keys_values[index * 2];
-}
+static inline void** get_key_ptr(HashMap* m, size_t index) { return &m->keys_values[index * 2]; }
 
 // Helper to get value pointer from interleaved array
-static inline void** get_value_ptr(HashMap* m, size_t index) {
-    return &m->keys_values[index * 2 + 1];
-}
+static inline void** get_value_ptr(HashMap* m, size_t index) { return &m->keys_values[index * 2 + 1]; }
 
-// Resize the map with optimized rehashing and error handling
+// map_resize — grow to @p new_capacity and re-insert every element.
+// Allocation failure leaves the original table untouched.
 static bool map_resize(HashMap* m, size_t new_capacity, size_t key_len) {
-    if (new_capacity <= m->capacity || new_capacity > SIZE_MAX / 2) { return false; }
+    if (new_capacity <= m->capacity || new_capacity > SIZE_MAX / 2) {
+        return false;
+    }
 
     void** new_keys_values = (void**)calloc(new_capacity * 2, sizeof(void*));
     size_t* new_deleted = (size_t*)calloc(new_capacity, sizeof(size_t));
@@ -227,11 +218,9 @@ static bool map_resize(HashMap* m, size_t new_capacity, size_t key_len) {
     m->keys_values = new_keys_values;
     m->deleted = new_deleted;
     m->capacity = new_capacity;
-    size_t old_size = m->size;
     m->size = 0;
 
     // Rehash all active entries using Robin Hood linear probing (matching map_set)
-    bool success = true;
     const size_t mask = new_capacity - 1;
     for (size_t i = 0; i < old_capacity; i++) {
         if (old_keys_values[i * 2] && old_keys_values[i * 2] != NULL) {
@@ -270,29 +259,15 @@ static bool map_resize(HashMap* m, size_t new_capacity, size_t key_len) {
         }
     }
 
-    if (success) {
-        // Free old arrays
-        free(old_keys_values);
-        free(old_deleted);
-    } else {
-        // Restore original state on failure
-        m->keys_values = old_keys_values;
-        m->deleted = old_deleted;
-        m->capacity = old_capacity;
-        m->size = old_size;
-        free(new_keys_values);
-        free(new_deleted);
-        return false;
-    }
-
+    free(old_keys_values);
+    free(old_deleted);
     return true;
 }
 
-size_t map_length(HashMap* m) {
-    return m->size;
-}
+size_t map_length(HashMap* m) { return m->size; }
 
-// Set a key-value pair with optimizations and better error handling
+// map_set — insert or update.  Grows the table first when the insert
+// would push load past max_load_factor.
 bool map_set(HashMap* m, void* key, size_t key_len, void* value) {
     if (!m || !key) return false;
 
@@ -354,7 +329,7 @@ bool map_set(HashMap* m, void* key, size_t key_len, void* value) {
     return false; /* table full (shouldn't happen at <75% load) */
 }
 
-// Get a value by key with optimized probing
+// map_get — lookup using the Robin Hood early exit.
 void* map_get(HashMap* m, void* key, size_t key_len) {
     if (!m || !key) return NULL;
 
@@ -376,7 +351,8 @@ void* map_get(HashMap* m, void* key, size_t key_len) {
     return NULL;
 }
 
-// Remove a key-value pair with tombstone optimization
+// map_remove — locate, then backward-shift displaced neighbours into
+// the vacated run so no tombstone is left behind.
 bool map_remove(HashMap* m, void* key, size_t key_len) {
     if (!m || !key) return false;
 
@@ -428,7 +404,9 @@ void map_destroy(HashMap* m) {
     if (!m) return;
 
     // no cleanup functions are provided
-    if (!m->key_free && !m->value_free) { goto cleanup; }
+    if (!m->key_free && !m->value_free) {
+        goto cleanup;
+    }
 
     void** keys_values = m->keys_values;
     size_t capacity = m->capacity;

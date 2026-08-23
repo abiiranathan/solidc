@@ -88,6 +88,23 @@ void map_destroy(HashMap* m);
 
 // Set a key-value pair in the map
 // This is idempotent. Returns true on success, false on failure.
+//
+// OWNERSHIP & LIFETIME CONTRACT (critical):
+//   - The map stores @p key BY POINTER.  The pointed-to key must remain
+//     valid and UNMODIFIED for as long as the entry lives, because both
+//     the hash on resize and every equality probe re-read its contents.
+//     Passing `&local_var` whose value changes between calls aliases all
+//     previously inserted entries (they share one address) and degrades
+//     the table into duplicate-key chains — measured 500x slowdown at
+//     N=200k in benchmarks.  Use stable storage (heap, static, or a
+//     container that outlives the map).
+//   - If key_free/value_free are configured they take ownership of the
+//     stored pointers; otherwise the caller retains ownership.
+//
+// key_len is the number of bytes to hash from @p key.  All keys in one map
+// must be hashed consistently: use the same key_len for identical logical
+// keys, and note that resize re-hashes stored keys with the key_len of the
+// call that triggered it.
 bool map_set(HashMap* m, void* key, size_t key_len, void* value);
 
 // A thread-safe version of map_set. Returns true on success, false on failure.
