@@ -30,6 +30,7 @@
  */
 
 #include "cstr.h"
+#include "simd.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -734,29 +735,13 @@ size_t cstr_count_substr_cstr(const cstr* s, const cstr* sub) {
  * ---------------------------------------------------------------------- */
 
 void cstr_lower(cstr* s) {
-    char* d = s->data;
-    uint32_t i = 0;
-    uint32_t n = s->length;
-
-    /* Process 8 bytes at a time via 64-bit SWAR */
-    for (; i + 8 <= n; i += 8) {
-        uint64_t chunk;
-        memcpy(&chunk, d + i, 8);
-
-        /* SWAR test for bytes in ASCII range ['A', 'Z'] */
-        uint64_t a = chunk + 0x7F7F7F7F7F7F7F7FULL - 0x4141414141414141ULL;
-        uint64_t z = chunk + 0x7F7F7F7F7F7F7F7FULL - 0x5B5B5B5B5B5B5B5BULL;
-        uint64_t mask = ((a ^ z) & 0x8080808080808080ULL) >> 2;
-
-        chunk |= mask; /* Set bit 5 (0x20) to convert to lowercase */
-        memcpy(d + i, &chunk, 8);
-    }
-
-    /* Scalar cleanup loop */
-    for (; i < n; i++) {
-        unsigned char c = (unsigned char)d[i];
-        if ((unsigned)(c - 'A') <= 25u) d[i] = (char)(c | 0x20u);
-    }
+    /* Delegates to simd_ascii_lower(): true SIMD lanes (SSE2/NEON) classify
+     * ASCII letters exactly, including boundary characters, and never touch
+     * bytes >= 0x80.  The previous GPR-SWAR implementation suffered
+     * cross-byte carry contamination and corrupted both ASCII neighbours
+     * ('[', '{', missing 'a'/'A') and UTF-8 content — see the discussion in
+     * include/simd.h. */
+    simd_ascii_lower(s->data, s->length);
 }
 
 /**
@@ -783,29 +768,8 @@ void cstr_wipe(cstr* s) {
 }
 
 void cstr_upper(cstr* s) {
-    char* d = s->data;
-    uint32_t i = 0;
-    uint32_t n = s->length;
-
-    /* Process 8 bytes at a time via 64-bit SWAR */
-    for (; i + 8 <= n; i += 8) {
-        uint64_t chunk;
-        memcpy(&chunk, d + i, 8);
-
-        /* SWAR test for bytes in ASCII range ['a', 'z'] */
-        uint64_t a = chunk + 0x7F7F7F7F7F7F7F7FULL - 0x6161616161616161ULL;  // 'a' = 0x61
-        uint64_t z = chunk + 0x7F7F7F7F7F7F7F7FULL - 0x7B7B7B7B7B7B7B7BULL;  // 'z' + 1 = 0x7B
-        uint64_t mask = ((a ^ z) & 0x8080808080808080ULL) >> 2;
-
-        chunk &= ~mask; /* Clear bit 5 (0x20) to convert to uppercase */
-        memcpy(d + i, &chunk, 8);
-    }
-
-    /* Scalar cleanup loop */
-    for (; i < n; i++) {
-        unsigned char c = (unsigned char)d[i];
-        if ((unsigned)(c - 'a') <= 25u) d[i] = (char)(c & ~0x20u);
-    }
+    /* Delegates to simd_ascii_upper() — see cstr_lower() and simd.h. */
+    simd_ascii_upper(s->data, s->length);
 }
 
 bool cstr_snakecase(cstr* s) {

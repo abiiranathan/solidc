@@ -29,6 +29,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "simd.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -390,81 +392,28 @@ static inline size_t str_word_count(const char* str) {
 /**
  * @brief Converts all uppercase ASCII characters in a string to lowercase in-place.
  *
- * Uses SWAR (SIMD Within A Register) bit manipulation to process 8 bytes in parallel
- * on modern 64-bit architectures before processing remaining scalar tail bytes.
+ * Delegates to simd_ascii_lower(): true SIMD lanes classify ASCII letters
+ * exactly and never modify bytes >= 0x80, so UTF-8 text passes through
+ * untouched.  (The previous GPR-SWAR implementation corrupted non-ASCII
+ * bytes >= 0xC1 via cross-byte carry propagation.)
  *
  * @param[in,out] str Null-terminated string buffer to mutate in-place.
  */
 static inline void str_lower(char* str) {
     if (!str) return;
-    size_t len = strlen(str);
-    size_t i = 0;
-
-    /* Process 8-byte chunks via SWAR vectorization */
-    for (; i + 8 <= len; i += 8) {
-        uint64_t chunk;
-        memcpy(&chunk, str + i, 8);
-
-        /*
-         * SWAR ASCII check:
-         * Identifies bytes in range ['A', 'Z'] (0x41 to 0x5A) in parallel:
-         * 1. Add offset to trigger overflow bit on characters >= 'A'
-         * 2. Subtract offset to detect characters <= 'Z'
-         * 3. Mask upper sign bit 0x80 to build match mask, shifted right to bit 0x20
-         */
-        uint64_t a = chunk + 0x7F7F7F7F7F7F7F7FULL - 0x4040404040404040ULL;
-        uint64_t z = chunk + 0x7F7F7F7F7F7F7F7FULL - 0x5A5A5A5A5A5A5A5AULL;
-        uint64_t mask = ((a ^ z) & 0x8080808080808080ULL) >> 2;
-
-        chunk |= mask; /* Bitwise OR with 0x20 converts uppercase ASCII to lowercase */
-        memcpy(str + i, &chunk, 8);
-    }
-
-    /* Scalar cleanup for remaining 0-7 bytes */
-    for (; i < len; i++) {
-        unsigned char c = (unsigned char)str[i];
-        if ((unsigned)(c - 'A') <= 25u) str[i] = (char)(c | 0x20u);
-    }
+    simd_ascii_lower(str, strlen(str));
 }
 
 /**
  * @brief Converts all lowercase ASCII characters in a string to uppercase in-place.
  *
- * Uses SWAR (SIMD Within A Register) bit manipulation to process 8 bytes in parallel
- * on modern 64-bit architectures before processing remaining scalar tail bytes.
+ * Delegates to simd_ascii_upper(); UTF-8 safe.  See str_lower().
  *
  * @param[in,out] str Null-terminated string buffer to mutate in-place.
  */
 static inline void str_upper(char* str) {
     if (!str) return;
-    size_t len = strlen(str);
-    size_t i = 0;
-
-    /* Process 8-byte chunks via SWAR vectorization */
-    for (; i + 8 <= len; i += 8) {
-        uint64_t chunk;
-        memcpy(&chunk, str + i, 8);
-
-        /*
-         * SWAR ASCII check:
-         * Identifies bytes in range ['a', 'z'] (0x61 to 0x7A) in parallel:
-         * 1. Add offset to trigger overflow bit on characters >= 'a'
-         * 2. Subtract offset to detect characters <= 'z'
-         * 3. Mask upper sign bit 0x80 to build match mask, shifted right to bit 0x20
-         */
-        uint64_t a = chunk + 0x7F7F7F7F7F7F7F7FULL - 0x6060606060606060ULL;
-        uint64_t z = chunk + 0x7F7F7F7F7F7F7F7FULL - 0x7A7A7A7A7A7A7A7AULL;
-        uint64_t mask = ((a ^ z) & 0x8080808080808080ULL) >> 2;
-
-        chunk &= ~mask; /* Bitwise AND with ~0x20 converts lowercase ASCII to uppercase */
-        memcpy(str + i, &chunk, 8);
-    }
-
-    /* Scalar cleanup for remaining 0-7 bytes */
-    for (; i < len; i++) {
-        unsigned char c = (unsigned char)str[i];
-        if ((unsigned)(c - 'a') <= 25u) str[i] = (char)(c & ~0x20u);
-    }
+    simd_ascii_upper(str, strlen(str));
 }
 
 /**

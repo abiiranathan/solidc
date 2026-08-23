@@ -348,8 +348,7 @@ static inline simd_vec_t simd_sqrt(simd_vec_t v) {
     simd_vec_t result;
     float temp[4];
     vst1q_f32(temp, v);
-    for (int i = 0; i < 4; ++i)
-        temp[i] = sqrtf(temp[i]);
+    for (int i = 0; i < 4; ++i) temp[i] = sqrtf(temp[i]);
     return vld1q_f32(temp);
 #else
     return (simd_vec_t){{sqrtf(v.f[0]), sqrtf(v.f[1]), sqrtf(v.f[2]), sqrtf(v.f[3])}};
@@ -396,8 +395,7 @@ static inline simd_vec_t simd_floor(simd_vec_t v) {
     /* SSE2 Fallback: conversion via scalar math */
     float temp[4];
     _mm_storeu_ps(temp, v);
-    for (int i = 0; i < 4; ++i)
-        temp[i] = floorf(temp[i]);
+    for (int i = 0; i < 4; ++i) temp[i] = floorf(temp[i]);
     return _mm_loadu_ps(temp);
 #endif
 #elif defined(SIMD_ARCH_ARM64)
@@ -405,8 +403,7 @@ static inline simd_vec_t simd_floor(simd_vec_t v) {
 #elif defined(SIMD_ARCH_ARM32)
     float temp[4];
     vst1q_f32(temp, v);
-    for (int i = 0; i < 4; ++i)
-        temp[i] = floorf(temp[i]);
+    for (int i = 0; i < 4; ++i) temp[i] = floorf(temp[i]);
     return vld1q_f32(temp);
 #else
     return (simd_vec_t){{floorf(v.f[0]), floorf(v.f[1]), floorf(v.f[2]), floorf(v.f[3])}};
@@ -421,8 +418,7 @@ static inline simd_vec_t simd_ceil(simd_vec_t v) {
 #else
     float temp[4];
     _mm_storeu_ps(temp, v);
-    for (int i = 0; i < 4; ++i)
-        temp[i] = ceilf(temp[i]);
+    for (int i = 0; i < 4; ++i) temp[i] = ceilf(temp[i]);
     return _mm_loadu_ps(temp);
 #endif
 #elif defined(SIMD_ARCH_ARM64)
@@ -430,8 +426,7 @@ static inline simd_vec_t simd_ceil(simd_vec_t v) {
 #elif defined(SIMD_ARCH_ARM32)
     float temp[4];
     vst1q_f32(temp, v);
-    for (int i = 0; i < 4; ++i)
-        temp[i] = ceilf(temp[i]);
+    for (int i = 0; i < 4; ++i) temp[i] = ceilf(temp[i]);
     return vld1q_f32(temp);
 #else
     return (simd_vec_t){{ceilf(v.f[0]), ceilf(v.f[1]), ceilf(v.f[2]), ceilf(v.f[3])}};
@@ -446,8 +441,7 @@ static inline simd_vec_t simd_round(simd_vec_t v) {
 #else
     float temp[4];
     _mm_storeu_ps(temp, v);
-    for (int i = 0; i < 4; ++i)
-        temp[i] = roundf(temp[i]);
+    for (int i = 0; i < 4; ++i) temp[i] = roundf(temp[i]);
     return _mm_loadu_ps(temp);
 #endif
 #elif defined(SIMD_ARCH_ARM64)
@@ -455,8 +449,7 @@ static inline simd_vec_t simd_round(simd_vec_t v) {
 #elif defined(SIMD_ARCH_ARM32)
     float temp[4];
     vst1q_f32(temp, v);
-    for (int i = 0; i < 4; ++i)
-        temp[i] = roundf(temp[i]);
+    for (int i = 0; i < 4; ++i) temp[i] = roundf(temp[i]);
     return vld1q_f32(temp);
 #else
     return (simd_vec_t){{roundf(v.f[0]), roundf(v.f[1]), roundf(v.f[2]), roundf(v.f[3])}};
@@ -911,24 +904,16 @@ static inline simd_vec_t simd_cross(simd_vec_t a, simd_vec_t b) {
 }
 
 /** @brief Length squared (3D, ignores w) */
-static inline float simd_length_sq3(simd_vec_t v) {
-    return simd_dot3(v, v);
-}
+static inline float simd_length_sq3(simd_vec_t v) { return simd_dot3(v, v); }
 
 /** @brief Length (3D, ignores w) */
-static inline float simd_length3(simd_vec_t v) {
-    return sqrtf(simd_dot3(v, v));
-}
+static inline float simd_length3(simd_vec_t v) { return sqrtf(simd_dot3(v, v)); }
 
 /** @brief Length squared (4D) */
-static inline float simd_length_sq4(simd_vec_t v) {
-    return simd_dot4(v, v);
-}
+static inline float simd_length_sq4(simd_vec_t v) { return simd_dot4(v, v); }
 
 /** @brief Length (4D) */
-static inline float simd_length4(simd_vec_t v) {
-    return sqrtf(simd_dot4(v, v));
-}
+static inline float simd_length4(simd_vec_t v) { return sqrtf(simd_dot4(v, v)); }
 
 /**
  * @brief Normalize Vector (3D).
@@ -1138,5 +1123,182 @@ static inline bool simd_check_all(simd_vec_t mask) {
         r3 = (simd_vec_t){{t0.f[3], t1.f[3], t2.f[3], t3.f[3]}}; \
     } while (0)
 #endif
+
+/* =========================================================================
+ * ASCII Case Conversion (byte-vectorised)
+ * =======================================================================
+ *
+ * WHY NOT GPR-SWAR?
+ * -----------------
+ * The popular 64-bit "SWAR" idiom
+ *
+ *     a = chunk + K1;  z = chunk + K2;
+ *     mask = ((a ^ z) & 0x8080...) >> 2;
+ *
+ * relies on per-lane overflow detection, but general-purpose register
+ * arithmetic propagates carries/borrows ACROSS byte lanes: an overflow in
+ * byte k perturbs the overflow bit computed for byte k+1, corrupting the
+ * classification of neighbouring bytes.  Because the failure depends on
+ * exact neighbour values, it slips through naive unit tests.  Concretely,
+ * that idiom mis-classifies boundary characters ('a', 'A', '[', '{'),
+ * mangles a large share of random mixed-case strings, and silently rewrites
+ * non-ASCII bytes (UTF-8 corruption).
+ *
+ * True SIMD lanes (SSE2 / NEON) have no cross-lane carries, so the same
+ * classification becomes exact - and processes 16 bytes per iteration
+ * instead of 8.
+ *
+ * Classification logic (per lane):
+ *   lo       = b | 0x20                   -- lowercase view
+ *   letter   = ('a' <= lo <= 'z')
+ *   lower    : b | (letter ? 0x20 : 0)
+ *   upper    : b & ~(letter ? 0x20 : 0)
+ *
+ * Note that no separate "is ASCII" test is needed: for any byte >= 0x80,
+ * lo >= 0xA0 falls outside ['a','z'], so UTF-8 continuation/lead bytes are
+ * excluded by the same range check that selects letters.
+ *
+ * x86 note: SSE2 lacks unsigned byte compares, so the range check uses the
+ * standard XOR-bias trick:
+ *   (uint8)x CMP (uint8)y  <=>  (int8)(x ^ 0x80) CMP (int8)(y ^ 0x80)
+ * ======================================================================= */
+
+/**
+ * @brief Converts all ASCII uppercase letters in buf[0..len) to lowercase,
+ *        in place.
+ *
+ * Non-ASCII bytes (>= 0x80) are never modified, making this safe for UTF-8
+ * encoded text.  Processes 16 bytes per iteration on SSE2/NEON targets;
+ * portable branchless scalar fallback otherwise.
+ *
+ * @param[in,out] buf Byte buffer to mutate (any alignment).
+ * @param[in]     len Number of bytes to convert.
+ */
+static inline void simd_ascii_lower(char* buf, size_t len) {
+#if defined(SIMD_ARCH_X86)
+    const __m128i v80 = _mm_set1_epi8((char)(intptr_t)0x80);
+    const __m128i v20 = _mm_set1_epi8(0x20);
+    /* Bounds pre-biased so plain signed cmpgt implements unsigned >= / <=:
+     * uint8 x >= 'a' <=> int8 (x^0x80) > (char)(('a'^0x80)-1)
+     * uint8 x <= 'z' <=> int8 (x^0x80) < (char)(('z'^0x80)+1)
+     * The biased window [0xE1,0xFA] also excludes every byte >= 0x80
+     * automatically, so non-ASCII data needs no separate ASCII mask. */
+    const __m128i lo_bound = _mm_set1_epi8((char)(('a' ^ 0x80) - 1)); /* 0xE0 */
+    const __m128i hi_bound = _mm_set1_epi8((char)(('z' ^ 0x80) + 1)); /* 0xFB */
+
+    size_t i = 0;
+    for (; i + 32 <= len; i += 32) {
+        __m128i v0 = _mm_loadu_si128((const __m128i*)(buf + i));
+        __m128i v1 = _mm_loadu_si128((const __m128i*)(buf + i + 16));
+        __m128i l0 = _mm_xor_si128(_mm_or_si128(v0, v20), v80);
+        __m128i l1 = _mm_xor_si128(_mm_or_si128(v1, v20), v80);
+        __m128i m0 = _mm_and_si128(_mm_cmpgt_epi8(l0, lo_bound), _mm_cmpgt_epi8(hi_bound, l0));
+        __m128i m1 = _mm_and_si128(_mm_cmpgt_epi8(l1, lo_bound), _mm_cmpgt_epi8(hi_bound, l1));
+        _mm_storeu_si128((__m128i*)(buf + i), _mm_or_si128(v0, _mm_and_si128(m0, v20)));
+        _mm_storeu_si128((__m128i*)(buf + i + 16), _mm_or_si128(v1, _mm_and_si128(m1, v20)));
+    }
+    for (; i + 16 <= len; i += 16) {
+        __m128i v = _mm_loadu_si128((const __m128i*)(buf + i));
+        __m128i lob = _mm_xor_si128(_mm_or_si128(v, v20), v80);
+        __m128i m = _mm_and_si128(_mm_cmpgt_epi8(lob, lo_bound), _mm_cmpgt_epi8(hi_bound, lob));
+        _mm_storeu_si128((__m128i*)(buf + i), _mm_or_si128(v, _mm_and_si128(m, v20)));
+    }
+    /* 8-byte chunk via movq: keeps strings of length 8-15 on the vector path. */
+    if (i + 8 <= len) {
+        __m128i v = _mm_loadl_epi64((const __m128i*)(buf + i));
+        __m128i lob = _mm_xor_si128(_mm_or_si128(v, v20), v80);
+        __m128i m = _mm_and_si128(_mm_cmpgt_epi8(lob, lo_bound), _mm_cmpgt_epi8(hi_bound, lob));
+        _mm_storel_epi64((__m128i*)(buf + i), _mm_or_si128(v, _mm_and_si128(m, v20)));
+        i += 8;
+    }
+#elif defined(SIMD_ARCH_ARM)
+    const uint8x16_t v20 = vdupq_n_u8(0x20);
+    const uint8x16_t va = vdupq_n_u8('a');
+    const uint8x16_t vz = vdupq_n_u8('z');
+
+    size_t i = 0;
+    for (; i + 16 <= len; i += 16) {
+        uint8x16_t v = vld1q_u8((const unsigned char*)(buf + i));
+        uint8x16_t lo = vorrq_u8(v, v20);
+        /* Unsigned range check: any byte >= 0x80 maps to lo >= 0xA0 and fails. */
+        uint8x16_t letter = vandq_u8(vcgeq_u8(lo, va), vcleq_u8(lo, vz));
+        vst1q_u8((unsigned char*)(buf + i), vorrq_u8(v, vandq_u8(letter, v20)));
+    }
+#else
+    size_t i = 0;
+#endif
+
+    /* Scalar tail (0-15 bytes on SIMD paths, full range otherwise). */
+    for (; i < len; i++) {
+        unsigned char c = (unsigned char)buf[i];
+        if ((unsigned)((c | 0x20u) - 'a') <= 25u && c < 0x80u) buf[i] = (char)(c | 0x20u);
+    }
+}
+
+/**
+ * @brief Converts all ASCII lowercase letters in buf[0..len) to uppercase,
+ *        in place.
+ *
+ * Non-ASCII bytes (>= 0x80) are never modified, making this safe for UTF-8
+ * encoded text.  See simd_ascii_lower() for design notes on why true SIMD
+ * lanes are used instead of GPR-SWAR.
+ *
+ * @param[in,out] buf Byte buffer to mutate (any alignment).
+ * @param[in]     len Number of bytes to convert.
+ */
+static inline void simd_ascii_upper(char* buf, size_t len) {
+#if defined(SIMD_ARCH_X86)
+    const __m128i v80 = _mm_set1_epi8((char)(intptr_t)0x80);
+    const __m128i v20 = _mm_set1_epi8(0x20);
+    const __m128i lo_bound = _mm_set1_epi8((char)(('a' ^ 0x80) - 1)); /* 0xE0 */
+    const __m128i hi_bound = _mm_set1_epi8((char)(('z' ^ 0x80) + 1)); /* 0xFB */
+
+    size_t i = 0;
+    for (; i + 32 <= len; i += 32) {
+        __m128i v0 = _mm_loadu_si128((const __m128i*)(buf + i));
+        __m128i v1 = _mm_loadu_si128((const __m128i*)(buf + i + 16));
+        __m128i l0 = _mm_xor_si128(_mm_or_si128(v0, v20), v80);
+        __m128i l1 = _mm_xor_si128(_mm_or_si128(v1, v20), v80);
+        __m128i m0 = _mm_and_si128(_mm_cmpgt_epi8(l0, lo_bound), _mm_cmpgt_epi8(hi_bound, l0));
+        __m128i m1 = _mm_and_si128(_mm_cmpgt_epi8(l1, lo_bound), _mm_cmpgt_epi8(hi_bound, l1));
+        _mm_storeu_si128((__m128i*)(buf + i), _mm_andnot_si128(_mm_and_si128(m0, v20), v0));
+        _mm_storeu_si128((__m128i*)(buf + i + 16), _mm_andnot_si128(_mm_and_si128(m1, v20), v1));
+    }
+    for (; i + 16 <= len; i += 16) {
+        __m128i v = _mm_loadu_si128((const __m128i*)(buf + i));
+        __m128i lob = _mm_xor_si128(_mm_or_si128(v, v20), v80);
+        __m128i m = _mm_and_si128(_mm_cmpgt_epi8(lob, lo_bound), _mm_cmpgt_epi8(hi_bound, lob));
+        _mm_storeu_si128((__m128i*)(buf + i), _mm_andnot_si128(_mm_and_si128(m, v20), v));
+    }
+    /* 8-byte chunk via movq: keeps strings of length 8-15 on the vector path. */
+    if (i + 8 <= len) {
+        __m128i v = _mm_loadl_epi64((const __m128i*)(buf + i));
+        __m128i lob = _mm_xor_si128(_mm_or_si128(v, v20), v80);
+        __m128i m = _mm_and_si128(_mm_cmpgt_epi8(lob, lo_bound), _mm_cmpgt_epi8(hi_bound, lob));
+        _mm_storel_epi64((__m128i*)(buf + i), _mm_andnot_si128(_mm_and_si128(m, v20), v));
+        i += 8;
+    }
+#elif defined(SIMD_ARCH_ARM)
+    const uint8x16_t v20 = vdupq_n_u8(0x20);
+    const uint8x16_t va = vdupq_n_u8('a');
+    const uint8x16_t vz = vdupq_n_u8('z');
+
+    size_t i = 0;
+    for (; i + 16 <= len; i += 16) {
+        uint8x16_t v = vld1q_u8((const unsigned char*)(buf + i));
+        uint8x16_t lo = vorrq_u8(v, v20);
+        uint8x16_t letter = vandq_u8(vcgeq_u8(lo, va), vcleq_u8(lo, vz));
+        vst1q_u8((unsigned char*)(buf + i), vbicq_u8(v, vandq_u8(letter, v20)));
+    }
+#else
+    size_t i = 0;
+#endif
+
+    /* Scalar tail (0-15 bytes on SIMD paths, full range otherwise). */
+    for (; i < len; i++) {
+        unsigned char c = (unsigned char)buf[i];
+        if ((unsigned)((c | 0x20u) - 'a') <= 25u && c < 0x80u) buf[i] = (char)(c & ~0x20u);
+    }
+}
 
 #endif /* SIMD_H */

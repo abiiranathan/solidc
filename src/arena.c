@@ -2,6 +2,7 @@
 #include "aligned_alloc.h"
 #include "macros.h"
 
+#include <stdbool.h>
 #include <stdlib.h> /* abort    */
 #include <string.h> /* memset   */
 
@@ -24,6 +25,177 @@
 
 static alignas(64) THREAD_LOCAL char static_buffer[STATIC_BUFFER_SIZE];
 static THREAD_LOCAL bool static_buffer_in_use = false;
+
+/* -------------------------------------------------------------------------
+ * Thread-local overflow-block recycle bin
+ *
+ * Problem
+ * -------
+ * Short-lived arenas that outgrow their first block pay a heavy tax on
+ * every create/destroy cycle: overflow blocks are multi-page allocations
+ * which the system allocator satisfies with mmap() and returns to the OS
+ * on free().  The next arena then faults every page back in.  In the
+ * bundled benchmark (bench_arena, Large scenario) this made cold arenas
+ * ~170x slower than warm ones.
+ *
+ * Mechanism
+ * ---------
+ * arena_destroy() hands its overflow blocks to a per-thread LIFO recycle
+ * bin instead of free(); _arena_alloc_slow() reuses a cached slab (best
+ * fit) before calling aligned_alloc_xp().  Pages therefore stay mapped
+ * and resident: no syscall, no page faults.
+ *
+ * Bounds & hygiene
+ * ----------------
+ * The bin is capped both in block count and total bytes; excess blocks go
+ * straight to free().  The cache is drained by a TLS destructor when a
+ * thread exits, so nothing is ever leaked.  Sanitizer builds disable the
+ * bin entirely for precise leak attribution.  Define
+ * ARENA_BLOCK_CACHE_COUNT=0 to turn recycling off at compile time.
+ * ---------------------------------------------------------------------- */
+
+#ifndef ARENA_BLOCK_CACHE_COUNT
+#define ARENA_BLOCK_CACHE_COUNT 8
+#endif
+#ifndef ARENA_BLOCK_CACHE_BYTES
+#define ARENA_BLOCK_CACHE_BYTES (16u << 20) /* 16 MB per thread */
+#endif
+
+#if defined(__SANITIZE_ADDRESS__) || (defined(__has_feature) && __has_feature(address_sanitizer))
+#undef ARENA_BLOCK_CACHE_COUNT
+#define ARENA_BLOCK_CACHE_COUNT 0 /* sanitizers want exact alloc/free pairing */
+#endif
+
+#if ARENA_BLOCK_CACHE_COUNT > 0
+
+#define ARENA_HAVE_BLOCK_CACHE 1
+
+static THREAD_LOCAL ArenaBlock* blk_cache[ARENA_BLOCK_CACHE_COUNT];
+static THREAD_LOCAL size_t blk_cache_slab[ARENA_BLOCK_CACHE_COUNT]; /* full slab bytes */
+static THREAD_LOCAL size_t blk_cache_count = 0;
+static THREAD_LOCAL size_t blk_cache_bytes = 0;
+
+/* TLS destructor support: drain the bin when the owning thread exits.
+ * Note: POSIX only runs key destructors from pthread_exit(); returning
+ * from main() bypasses them on glibc, so we also hook atexit() which is
+ * guaranteed to run on the main thread during normal shutdown. */
+#if !defined(_WIN32)
+#include <pthread.h>
+
+static void blk_cache_drain(void);
+static void blk_cache_tls_dtor(void* unused);
+static pthread_key_t blk_cache_key;
+static pthread_once_t blk_cache_once = PTHREAD_ONCE_INIT;
+
+static void blk_cache_key_create(void) { pthread_key_create(&blk_cache_key, blk_cache_tls_dtor); }
+
+/* Registered as the pthread key destructor; runs at thread exit. */
+static void blk_cache_tls_dtor(void* unused) {
+    (void)unused;
+    blk_cache_drain();
+}
+
+static void blk_cache_atexit_hook(void) { blk_cache_drain(); }
+
+static void blk_cache_register(void) {
+    pthread_once(&blk_cache_once, blk_cache_key_create);
+    /* Any non-NULL value arms the key destructor for this thread. */
+    pthread_setspecific(blk_cache_key, &(char){0});
+    static bool atexit_registered = false;
+    if (!atexit_registered) {
+        atexit(blk_cache_atexit_hook); /* covers main(), which skips TLS dtors */
+        atexit_registered = true;
+    }
+}
+
+#else
+#include <windows.h>
+
+static DWORD blk_cache_fls_index = FLS_OUT_OF_INDEXES;
+static INIT_ONCE blk_cache_init_once = INIT_ONCE_STATIC_INIT;
+
+static VOID CALLBACK blk_cache_fls_cb(PVOID) { blk_cache_drain(); }
+
+static BOOL CALLBACK blk_cache_init_cb(PINIT_ONCE, PVOID, PVOID*) {
+    blk_cache_fls_index = FlsAlloc(blk_cache_fls_cb);
+    return TRUE;
+}
+
+static void blk_cache_register(void) {
+    InitOnceExecuteOnce(&blk_cache_init_once, blk_cache_init_cb, NULL, NULL);
+    if (blk_cache_fls_index != FLS_OUT_OF_INDEXES) FlsSetValue(blk_cache_fls_index, (PVOID)(uintptr_t)1);
+}
+#endif
+
+/**
+ * Releases every cached slab. Called by the platform TLS destructor and
+ * available for explicit flushing.
+ */
+static void blk_cache_drain(void) {
+    for (size_t i = 0; i < blk_cache_count; i++) { aligned_free_xp(blk_cache[i]); }
+    blk_cache_count = 0;
+    blk_cache_bytes = 0;
+}
+
+/**
+ * Takes the smallest cached slab whose total size is >= @p min_slab bytes,
+ * or NULL when no candidate fits. Best-fit keeps large slabs available for
+ * large requests. On success @p *slab_out receives the actual slab size.
+ */
+static char* blk_cache_take(size_t min_slab, size_t* slab_out) {
+    if (ARENA_UNLIKELY(blk_cache_count == 0)) return NULL;
+
+    size_t best = SIZE_MAX;
+    size_t best_size = SIZE_MAX;
+    for (size_t i = 0; i < blk_cache_count; i++) {
+        if (blk_cache_slab[i] >= min_slab && blk_cache_slab[i] < best_size) {
+            best = i;
+            best_size = blk_cache_slab[i];
+        }
+    }
+    if (best == SIZE_MAX) return NULL;
+
+    char* ptr = (char*)blk_cache[best];
+    blk_cache_bytes -= blk_cache_slab[best];
+    blk_cache[best] = blk_cache[--blk_cache_count];
+    blk_cache_slab[best] = blk_cache_slab[blk_cache_count];
+    *slab_out = best_size;
+    return ptr;
+}
+
+/** Offers a slab to the bin; frees it immediately when the bin is full. */
+static void blk_cache_put(ArenaBlock* block, size_t slab_size) {
+    static THREAD_LOCAL bool registered = false;
+    if (ARENA_UNLIKELY(!registered)) {
+        blk_cache_register();
+        registered = true;
+    }
+
+    if (blk_cache_count >= ARENA_BLOCK_CACHE_COUNT || blk_cache_bytes + slab_size > ARENA_BLOCK_CACHE_BYTES) {
+        aligned_free_xp(block);
+        return;
+    }
+    blk_cache[blk_cache_count] = block;
+    blk_cache_slab[blk_cache_count] = slab_size;
+    blk_cache_count++;
+    blk_cache_bytes += slab_size;
+}
+
+#else
+
+#define ARENA_HAVE_BLOCK_CACHE 0
+static void blk_cache_drain(void) {}
+static char* blk_cache_take(size_t min_slab, size_t* slab_out) {
+    (void)min_slab;
+    (void)slab_out;
+    return NULL;
+}
+static void blk_cache_put(ArenaBlock* block, size_t slab_size) {
+    (void)slab_size;
+    aligned_free_xp(block);
+}
+
+#endif
 
 /* -------------------------------------------------------------------------
  * Internal helpers
@@ -115,11 +287,13 @@ void arena_destroy(Arena* a) {
 
     /* Walk overflow blocks.  Each was allocated as a single slab where the
      * ArenaBlock header lives at the start of the pointer returned by
-     * aligned_alloc_xp, so we free the block pointer itself (not block->base). */
+     * aligned_alloc_xp, so we free the block pointer itself (not block->base).
+     * Blocks are offered to the thread-local recycle bin first so a future
+     * arena can reuse them without syscalls or page faults. */
     block = block ? block->next : NULL;
     while (block) {
         ArenaBlock* next = block->next;
-        aligned_free_xp(block); /* frees the whole slab (header + data) */
+        blk_cache_put(block, (size_t)(block->end - (char*)block));
         block = next;
     }
 
@@ -161,9 +335,15 @@ void* _arena_alloc_slow(Arena* a, size_t size, size_t alignment) {
     /* Round up to page boundary so mmap-based backends work efficiently. */
     next_size = (next_size + a->page_size - 1) & ~(a->page_size - 1);
 
-    /* Single allocation: header at [ptr], usable memory starts immediately
-     * after the header (with any required padding for alignment). */
-    char* ptr = (char*)aligned_alloc_xp(64, next_size);
+    /* Recycle bin first: reusing a cached slab avoids the allocator call
+     * and, more importantly, keeps pages mapped so no page faults occur. */
+    size_t got = 0;
+    char* ptr = blk_cache_take(next_size, &got);
+    if (ptr) {
+        next_size = got; /* adopt the full slab so no capacity is stranded */
+    } else {
+        ptr = (char*)aligned_alloc_xp(64, next_size);
+    }
     if (!ptr) return NULL;
 
     ArenaBlock* block = (ArenaBlock*)ptr;

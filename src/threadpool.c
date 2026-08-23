@@ -45,6 +45,18 @@
  *          Fix: workers_ready startup barrier; every worker spins until
  *          workers_ready == num_workers before entering the main loop.
  *
+ * Bug  #4: threadpool_wait()/threadpool_destroy() detected idle by scanning
+ *          gq.head/tail and every deque's bottom/top for emptiness. A task
+ *          pulled out of one container but not yet finished (mid-batch-pull
+ *          in try_steal, mid-pop in deque_pop_bottom, or just stolen via
+ *          deque_steal_top) is invisible to that scan and not yet counted by
+ *          num_active either → false idle positive → orphaned tasks.
+ *          Fix: num_pending, a single outstanding-task counter incremented
+ *          at submit time (before the task is reachable anywhere) and
+ *          decremented only after task.function() returns. Idle detection
+ *          now reduces to "num_pending == 0" and no longer inspects any
+ *          container.
+ *
  * Perf #1: gq_pull_batch pulled only 1 task per mutex acquisition.
  *          With 8 workers all draining the global queue, that is 8 mutex
  *          round-trips per 8 tasks — O(N) lock acquisitions per batch.
@@ -93,6 +105,10 @@
  *
  * External submitters push to a GlobalQueue (single mutex).
  * Workers drain it in batches during their steal scan.
+ *
+ * Idle/completion tracking is independent of both structures: num_pending
+ * counts tasks that have been submitted but not yet finished, regardless of
+ * which container (if any) currently holds them. See Bug #4 above.
  *
  * MEMORY ORDERS
  *   deque_push_bottom:  task[b]=relaxed, bottom=release
@@ -164,6 +180,11 @@ struct Threadpool {
     /* Idle detection */
     CACHE_ALIGNED Lock idle_lock;
     CACHE_ALIGNED atomic_int num_active;
+    /* Count of submitted-but-not-yet-finished tasks. Incremented at submit
+     * time before the task becomes reachable in any deque/queue, decremented
+     * only after task.function() returns. The sole source of truth for idle
+     * detection — see Bug #4. */
+    CACHE_ALIGNED atomic_size_t num_pending;
     Condition all_idle;
 };
 
@@ -425,6 +446,30 @@ static inline void unpark_one(Threadpool* pool) {
     }
 }
 
+/*
+ * unpark_n — wake up to @p n parked workers with ONE park_lock acquisition
+ * (Perf #7).
+ *
+ * Waking a single worker per submission was fine when each task was heavy,
+ * but with light tasks one worker drains an entire multi-thousand-task
+ * submission alone: it pulls BATCH_SIZE, runs them in a few microseconds,
+ * and repeats while everyone else stays asleep.  Throughput then plateaus
+ * at single-worker speed no matter the thread count.  Waking proportionally
+ * to the work size restores parallel drain; excess signals are harmless
+ * (woken workers that find no work re-park).
+ */
+static inline void unpark_n(Threadpool* pool, size_t n) {
+    int parked = atomic_load_explicit(&pool->num_parked, memory_order_relaxed);
+    if (parked <= 0) return;
+
+    if ((size_t)parked > n) parked = (int)n;
+    lock_acquire(&pool->park_lock);
+    while (parked-- > 0) {
+        cond_signal(&pool->work_available);
+    }
+    lock_release(&pool->park_lock);
+}
+
 static inline void unpark_all(Threadpool* pool) {
     lock_acquire(&pool->park_lock);
     cond_broadcast(&pool->work_available);
@@ -479,6 +524,15 @@ static bool try_steal(worker* self, Task* out) {
     int got = gq_pull_batch(&pool->gq, batch, BATCH_SIZE);
     if (got <= 0) return false;
 
+    /*
+     * Cascade wakeup (Perf #7b): we just removed up to BATCH_SIZE tasks
+     * from the global queue.  If colleagues are sleeping, wake one so the
+     * remaining queued work drains in parallel instead of piling onto us.
+     * The woken worker repeats this when it pulls its own batch, giving
+     * O(work) propagation without any extra submission-side signalling.
+     */
+    unpark_one(pool);
+
     /* Push extras into own deque (owner-only, no lock needed). */
     for (int i = 1; i < got; i++) {
         if (!deque_push_bottom(&self->deque, batch[i])) {
@@ -498,11 +552,30 @@ static bool try_steal(worker* self, Task* out) {
     return true;
 }
 
+/*
+ * Completion accounting — batched flush (Perf #6).
+ *
+ * num_pending is the single idle predicate, but decrementing it once per
+ * task puts one contended RMW on a shared cache line in EVERY task's
+ * critical path.  Each worker instead accumulates completions locally and
+ * flushes them to num_pending when either:
+ *   - PENDING_FLUSH_BATCH completions have accumulated (throughput mode), or
+ *   - it reaches a drain point (no work found / before parking / exit),
+ *     so latency-critical callers are never delayed by a stale balance.
+ *
+ * Correctness: pending is only ever OVERSTATED between flushes, so
+ * wait()/destroy() may observe "busy" slightly longer but can never see a
+ * premature zero.  A worker always flushes before sleeping or exiting,
+ * so no balance is ever stranded.
+ */
+#define PENDING_FLUSH_BATCH 32
+
 static void* worker_thread(void* arg) {
     worker* self = (worker*)arg;
     Threadpool* pool = self->pool;
     Task task;
     int spin = 0;
+    size_t local_done = 0; /* unflushed completion count */
 
     tls_worker_index = self->index;
 
@@ -517,6 +590,20 @@ static void* worker_thread(void* arg) {
         if (deque_pop_bottom(&self->deque, &task)) goto execute;
 
         if (try_steal(self, &task)) goto execute;
+
+        /* Drain point: publish completions so waiters see fresh state. */
+        if (local_done) {
+            size_t done = local_done;
+            local_done = 0;
+            size_t pending = atomic_fetch_sub_explicit(&pool->num_pending, done, memory_order_acq_rel) - done;
+            if (pending == 0) {
+                lock_acquire(&pool->idle_lock);
+                if (atomic_load_explicit(&pool->num_pending, memory_order_relaxed) == 0) {
+                    cond_broadcast(&pool->all_idle);
+                }
+                lock_release(&pool->idle_lock);
+            }
+        }
 
         /* Progressive exponential backoff spin-wait before OS-level yield/park */
         if (spin < YIELD_THRESHOLD) {
@@ -540,30 +627,33 @@ static void* worker_thread(void* arg) {
 
     execute:
         spin = 0;
-        atomic_fetch_add_explicit(&pool->num_active, 1, memory_order_relaxed);
         task.function(task.arg);
-        int active = atomic_fetch_sub_explicit(&pool->num_active, 1, memory_order_acq_rel) - 1;
-        if (active == 0) {
-            bool any_work = false;
-            {
-                uint32_t h = atomic_load_explicit(&pool->gq.head, memory_order_relaxed);
-                uint32_t t = atomic_load_explicit(&pool->gq.tail, memory_order_relaxed);
-                if (h != t) any_work = true;
-            }
-            for (size_t i = 0; i < pool->num_workers && !any_work; i++) {
-                size_t b = atomic_load_explicit(&pool->workers[i]->deque.bottom, memory_order_relaxed);
-                size_t t = atomic_load_explicit(&pool->workers[i]->deque.top, memory_order_relaxed);
-                if ((ptrdiff_t)(b - t) > 0) any_work = true;
-            }
-            if (!any_work) {
+
+        /*
+         * Single source of truth for idle detection (Bug #4 fix). A task is
+         * "pending" from threadpool_submit()/_batch() until this point, so
+         * none of the gq/deque scanning windows described in the bug report
+         * can cause a false idle positive here.
+         *
+         * Perf #6: credit locally; flush to the shared counter only every
+         * PENDING_FLUSH_BATCH tasks or at drain points above.
+         */
+        if (++local_done >= PENDING_FLUSH_BATCH) {
+            size_t done = local_done;
+            local_done = 0;
+            size_t pending = atomic_fetch_sub_explicit(&pool->num_pending, done, memory_order_acq_rel) - done;
+            if (pending == 0) {
                 lock_acquire(&pool->idle_lock);
-                if (atomic_load_explicit(&pool->num_active, memory_order_relaxed) == 0) {
+                if (atomic_load_explicit(&pool->num_pending, memory_order_relaxed) == 0) {
                     cond_broadcast(&pool->all_idle);
                 }
                 lock_release(&pool->idle_lock);
             }
         }
     }
+
+    /* Shutdown with an unflushed balance — publish before exiting. */
+    if (local_done) { atomic_fetch_sub_explicit(&pool->num_pending, local_done, memory_order_acq_rel); }
 
     int alive = atomic_fetch_sub_explicit(&pool->num_threads_alive, 1, memory_order_acq_rel) - 1;
     if (alive == 0) {
@@ -602,6 +692,7 @@ Threadpool* threadpool_create(size_t num_threads) {
     atomic_store_explicit(&pool->num_threads_alive, 0, memory_order_relaxed);
     atomic_store_explicit(&pool->num_parked, 0, memory_order_relaxed);
     atomic_store_explicit(&pool->num_active, 0, memory_order_relaxed);
+    atomic_store_explicit(&pool->num_pending, 0, memory_order_relaxed);
     atomic_store_explicit(&pool->workers_ready, 0, memory_order_relaxed);
 
     pool->num_workers = num_threads;
@@ -620,8 +711,7 @@ Threadpool* threadpool_create(size_t num_threads) {
     }
 
     /* Zero array before spawning; see Bug #3 fix. */
-    for (size_t i = 0; i < num_threads; i++)
-        pool->workers[i] = NULL;
+    for (size_t i = 0; i < num_threads; i++) pool->workers[i] = NULL;
 
     for (size_t i = 0; i < num_threads; i++) {
         if (worker_init(pool, &pool->workers[i], i) != 0) {
@@ -657,6 +747,13 @@ bool threadpool_submit(Threadpool* pool, void (*function)(void*), void* arg) {
 
     Task task = {function, arg};
 
+    /*
+     * Count the task as outstanding before it becomes reachable through any
+     * deque/queue (Bug #4 fix). If it turns out not to have been enqueued
+     * (e.g. gq_push fails on shutdown), the count is backed out below.
+     */
+    atomic_fetch_add_explicit(&pool->num_pending, 1, memory_order_relaxed);
+
     if (tls_worker_index != SIZE_MAX) {
         if (deque_push_bottom(&pool->workers[tls_worker_index]->deque, task)) {
             unpark_one(pool);
@@ -665,7 +762,12 @@ bool threadpool_submit(Threadpool* pool, void (*function)(void*), void* arg) {
     }
 
     bool ok = gq_push(&pool->gq, task);
-    if (ok) unpark_one(pool);
+    if (ok) {
+        unpark_one(pool);
+    } else {
+        /* Never entered the system - undo the optimistic count. */
+        atomic_fetch_sub_explicit(&pool->num_pending, 1, memory_order_relaxed);
+    }
     return ok;
 }
 
@@ -694,7 +796,13 @@ size_t threadpool_submit_batch(Threadpool* pool, void (**functions)(void*), void
          * Worker thread: push directly into own deque one at a time.
          * Spill to global queue if the deque fills (extremely rare at
          * DEQUE_SIZE=4096 but handled correctly).
+         *
+         * num_pending is credited for the full count up front (Bug #4 fix)
+         * and corrected downward for any tasks that are skipped (NULL
+         * function) or fail to enqueue anywhere.
          */
+        atomic_fetch_add_explicit(&pool->num_pending, count, memory_order_relaxed);
+
         size_t pushed = 0;
         for (size_t i = 0; i < count; i++) {
             if (!functions[i]) continue;
@@ -707,14 +815,19 @@ size_t threadpool_submit_batch(Threadpool* pool, void (**functions)(void*), void
                 if (!spill) break;
                 size_t nspill = 0;
                 for (size_t j = i; j < count; j++) {
-                    if (functions[j]) { spill[nspill++] = (Task){functions[j], args ? args[j] : NULL}; }
+                    if (functions[j]) {
+                        spill[nspill++] = (Task){functions[j], args ? args[j] : NULL};
+                    }
                 }
                 pushed += gq_push_batch(&pool->gq, spill, nspill);
                 free(spill);
                 break;
             }
         }
-        if (pushed > 0) unpark_one(pool);
+        if (pushed < count) {
+            atomic_fetch_sub_explicit(&pool->num_pending, count - pushed, memory_order_relaxed);
+        }
+        if (pushed > 0) unpark_n(pool, pushed / BATCH_SIZE + 1);
         return pushed;
     }
 
@@ -732,13 +845,21 @@ size_t threadpool_submit_batch(Threadpool* pool, void (**functions)(void*), void
 
     size_t ntasks = 0;
     for (size_t i = 0; i < count; i++) {
-        if (functions[i]) { tasks[ntasks++] = (Task){functions[i], args ? args[i] : NULL}; }
+        if (functions[i]) {
+            tasks[ntasks++] = (Task){functions[i], args ? args[i] : NULL};
+        }
     }
 
+    /* Credit num_pending for the tasks actually being submitted (Bug #4 fix),
+     * corrected downward if gq_push_batch falls short (e.g. shutdown). */
+    atomic_fetch_add_explicit(&pool->num_pending, ntasks, memory_order_relaxed);
     size_t pushed = gq_push_batch(&pool->gq, tasks, ntasks);
+    if (pushed < ntasks) {
+        atomic_fetch_sub_explicit(&pool->num_pending, ntasks - pushed, memory_order_relaxed);
+    }
     if (tasks != stack_buf) free(tasks);
 
-    if (pushed > 0) unpark_one(pool);
+    if (pushed > 0) unpark_n(pool, pushed / BATCH_SIZE + 1);
     return pushed;
 }
 
@@ -746,21 +867,7 @@ void threadpool_wait(Threadpool* pool) {
     if (!pool) return;
 
     lock_acquire(&pool->idle_lock);
-    for (;;) {
-        if (atomic_load_explicit(&pool->num_active, memory_order_relaxed) == 0) {
-            bool any_work = false;
-            {
-                uint32_t h = atomic_load_explicit(&pool->gq.head, memory_order_acquire);
-                uint32_t t = atomic_load_explicit(&pool->gq.tail, memory_order_acquire);
-                if (h != t) any_work = true;
-            }
-            for (size_t i = 0; i < pool->num_workers && !any_work; i++) {
-                size_t b = atomic_load_explicit(&pool->workers[i]->deque.bottom, memory_order_acquire);
-                size_t t = atomic_load_explicit(&pool->workers[i]->deque.top, memory_order_acquire);
-                if ((ptrdiff_t)(b - t) > 0) any_work = true;
-            }
-            if (!any_work) break;
-        }
+    while (atomic_load_explicit(&pool->num_pending, memory_order_relaxed) != 0) {
         cond_wait(&pool->all_idle, &pool->idle_lock);
     }
     lock_release(&pool->idle_lock);
@@ -770,21 +877,7 @@ void threadpool_destroy(Threadpool* pool, int timeout_ms) {
     if (!pool) return;
 
     lock_acquire(&pool->idle_lock);
-    for (;;) {
-        bool any_work = false;
-        {
-            uint32_t h = atomic_load_explicit(&pool->gq.head, memory_order_acquire);
-            uint32_t t = atomic_load_explicit(&pool->gq.tail, memory_order_acquire);
-            if (h != t) any_work = true;
-        }
-        for (size_t i = 0; i < pool->num_workers && !any_work; i++) {
-            size_t b = atomic_load_explicit(&pool->workers[i]->deque.bottom, memory_order_acquire);
-            size_t t = atomic_load_explicit(&pool->workers[i]->deque.top, memory_order_acquire);
-            if ((ptrdiff_t)(b - t) > 0) any_work = true;
-        }
-        bool busy = atomic_load_explicit(&pool->num_active, memory_order_relaxed) > 0;
-        if (!any_work && !busy) break;
-
+    while (atomic_load_explicit(&pool->num_pending, memory_order_relaxed) != 0) {
         int r = cond_wait_timeout(&pool->all_idle, &pool->idle_lock, timeout_ms);
         if (r == -1) perror("cond_wait_timeout");
     }

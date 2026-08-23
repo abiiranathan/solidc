@@ -20,7 +20,9 @@ void print_cstr(const cstr* s) {
 
 // Helper function to compare cstr with expected C-string
 void ASSERT_cstr_equals(const cstr* s, const char* expected, const char* test_name) {
-    if (!s && !expected) { return; }
+    if (!s && !expected) {
+        return;
+    }
 
     ASSERT(s && expected && "cstr or expected is NULL");
     const char* data = cstr_data_const(s);
@@ -411,6 +413,86 @@ int main(void) {
         cstr_upper(s_long);
         ASSERT_cstr_equals(s_long, expected_long, "cstr_upper long SWAR content");
         cstr_free(s_long);
+    }
+
+    // Regression: GPR-SWAR carry contamination (see simd.h design notes).
+    // The old implementation missed 'a'/'A' and corrupted '[', '{', UTF-8.
+    {
+        printf("\nTesting cstr case-conversion edge cases...\n");
+
+        struct {
+            const char* input;
+            const char* lower;
+            const char* upper;
+        } cases[] = {
+            {"aaaaaaaa", "aaaaaaaa", "AAAAAAAA"}, /* all-'a': old SWAR no-op'd upper */
+            {"AAAAAAAA", "aaaaaaaa", "AAAAAAAA"}, /* all-'A': old SWAR no-op'd lower */
+            {"[a]{b}", "[a]{b}", "[A]{B}"},       /* bracket/brace neighbours */
+            {"z[\\]^_", "z[\\]^_", "Z[\\]^_"},    /* 0x5B-0x5F range */
+            {"`abcdefghijklmno", "`abcdefghijklmno", "`ABCDEFGHIJKLMNO"},
+            {"pqrstuvwxyz{", "pqrstuvwxyz{", "PQRSTUVWXYZ{"},
+            {"Mixed CASE with 1234!", "mixed case with 1234!", "MIXED CASE WITH 1234!"},
+        };
+        for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+            cstr* sl = cstr_new(cases[i].input);
+            cstr_lower(sl);
+            ASSERT_cstr_equals(sl, cases[i].lower, "regression lower");
+            cstr_free(sl);
+
+            cstr* su = cstr_new(cases[i].input);
+            cstr_upper(su);
+            ASSERT_cstr_equals(su, cases[i].upper, "regression upper");
+            cstr_free(su);
+        }
+
+        /* UTF-8 bytes (>= 0x80) must never be modified. */
+        const char* utf8 = "caf\xc3\xa9 na\xc3\xafve r\xc3\xa9sum\xc3\xa9 xx"; /* > 16 bytes */
+        cstr* s8 = cstr_new(utf8);
+        cstr_lower(s8);
+        ASSERT_cstr_equals(s8, utf8, "cstr_lower preserves UTF-8 bytes");
+        cstr_drop(s8);
+        s8 = cstr_new(utf8);
+        cstr_upper(s8);
+        {
+            /* Only ASCII letters change; every high byte must survive. */
+            const char* got = cstr_data_const(s8);
+            int corrupt = 0;
+            for (const char* p = utf8; *p; p++) {
+                if ((unsigned char)*p >= 0x80 && !memchr(got, *p, strlen(utf8))) corrupt++;
+            }
+            ASSERT(corrupt == 0 && "cstr_upper preserves all UTF-8 bytes");
+        }
+        cstr_drop(s8);
+
+        /* Deterministic pseudo-fuzz: mixed-case ASCII round-trips exactly. */
+        unsigned rng = 12345;
+        char in[64], lo[64], up[64];
+        for (int t = 0; t < 2000; t++) {
+            uint32_t len = 1 + (rng >> 8) % 60;
+            for (uint32_t i = 0; i < len; i++) {
+                rng = rng * 1103515245u + 12345u;
+                unsigned r = (rng >> 16) % 10;
+                in[i] = (char)((r < 6) ? ('A' + (rng >> 3) % 26)
+                                       : ((r < 9) ? ('a' + (rng >> 3) % 26) : ('!' + (rng >> 5) % 6)));
+            }
+            in[len] = '\0';
+            for (uint32_t i = 0; i < len; i++) {
+                unsigned char c = (unsigned char)in[i];
+                lo[i] = (char)((c >= 'A' && c <= 'Z') ? c + 32 : c);
+                up[i] = (char)((c >= 'a' && c <= 'z') ? c - 32 : c);
+            }
+            lo[len] = up[len] = '\0';
+
+            cstr* sl = cstr_new(in);
+            cstr_lower(sl);
+            ASSERT_cstr_equals(sl, lo, "fuzz lower");
+            cstr_free(sl);
+
+            cstr* su = cstr_new(in);
+            cstr_upper(su);
+            ASSERT_cstr_equals(su, up, "fuzz upper");
+            cstr_free(su);
+        }
     }
 
     // Test str_snake_case
@@ -1030,8 +1112,7 @@ int main(void) {
             cstr* s = cstr_init(0);
             ASSERT(cstr_resize(s, 100));
 
-            for (int j = 0; j < 100; ++j)
-                ASSERT(cstr_append_char(s, 'a' + (rand() % 26)));
+            for (int j = 0; j < 100; ++j) ASSERT(cstr_append_char(s, 'a' + (rand() % 26)));
             cstr_free(s);
         }
     }
