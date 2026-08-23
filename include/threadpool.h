@@ -43,12 +43,26 @@
  *
  * Internal constants (defined in threadpool.c, not overridable from the header):
  *
- * | Constant         | Value  | Meaning                                    |
- * |------------------|--------|--------------------------------------------|
- * | @c DEQUE_SIZE    | 4096   | Slots per private Chase-Lev deque          |
- * | @c GLOBAL_Q_SIZE | 16384  | Slots in the shared external submission queue |
- * | @c BATCH_SIZE    | 64     | Tasks pulled from the global queue per mutex acquisition |
- * | @c YIELD_THRESHOLD | 8    | Spin rounds before a worker parks on a condvar |
+ * | Constant             | Value  | Meaning                                    |
+ * |----------------------|--------|--------------------------------------------|
+ * | @c DEQUE_SIZE        | 16384  | Slots per private Chase-Lev deque          |
+ * | @c GLOBAL_Q_SIZE     | 65536  | Slots in the shared external submission queue |
+ * | @c BATCH_SIZE        | 64     | Tasks pulled from the global queue per mutex acquisition |
+ * | @c PENDING_FLUSH_BATCH | 64   | Completions accumulated before flushing the shared idle counter |
+ * | @c YIELD_THRESHOLD   | 8      | PAUSE-backoff rounds before a worker parks on a condvar |
+ * | @c ADAPTIVE_SPIN_NS  | ~4000  | Bounded poll duration in threadpool_wait() before blocking |
+ *
+ * Submissions larger than @c GLOBAL_Q_SIZE stream through in chunks; the
+ * submitter blocks when the queue fills and is woken as consumers drain it.
+ *
+ * ## Idle detection
+ *
+ * A single atomic counter (@c num_pending) tracks accepted-but-incomplete
+ * tasks.  It is credited before a task becomes visible to any consumer and
+ * debited on completion (in batches of PENDING_FLUSH_BATCH), so
+ * "num_pending == 0" is an exact idle predicate — no queue scanning.  A
+ * completing flush that drives the count to zero wakes threadpool_wait()
+ * and destroy() sleepers.
  *
  * ## Lifecycle
  *
