@@ -1,7 +1,7 @@
 #ifndef WIN_STRPTIME_H
 #define WIN_STRPTIME_H
 
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 
 // Define timespec for older MSVC versions
 #if _MSC_VER < 1900

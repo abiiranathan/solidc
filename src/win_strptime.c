@@ -6,7 +6,9 @@
 #include "../include/win_strptime.h"
 
 // Windows does not have gmtime_r & localtime_r and completely lacks strptime.
-#if defined(_MSC_VER)
+// Guarded for all _WIN32 targets (MSVC and MinGW): CMake adds this source for
+// every Windows build, and an empty TU here would leave strptime undefined.
+#if defined(_WIN32)
 /**
  * Helper function to check if a year is a leap year
  */
@@ -56,7 +58,7 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
     bool is_pm = false;
     bool has_ampm = false;
     int century = -1;  // For %C handling
-    bool need_date_validation = false;
+    bool yday_set = false;
 
     // Initialize tm structure to safe defaults (POSIX requirement)
     // Don't zero everything - preserve what caller may have set
@@ -98,15 +100,38 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
             if (*f == '\0') { return NULL; }
         }
 
+        /*
+         * Glibc-parity: skip whitespace before each directive, and numeric
+         * fields below accept ONE OR TWO digits (%Y consumes up to four),
+         * matching glibc/POSIX strtol-style conversion.  Previously these
+         * required exact two-digit padding, so inputs like "2024-6-5"
+         * parsed on Linux but failed on Windows.
+         */
+        while (isspace((unsigned char)*s)) { s++; }
+
+#define WIN_STRPTIME_READ_1OR2(var)                                     \
+        do {                                                            \
+            if (!isdigit((unsigned char)s[0])) { return NULL; }         \
+            (var) = (unsigned char)s[0] - '0';                          \
+            if (isdigit((unsigned char)s[1])) {                         \
+                (var) = (var) * 10 + ((unsigned char)s[1] - '0');       \
+                s += 2;                                                 \
+            } else {                                                    \
+                s += 1;                                                 \
+            }                                                           \
+        } while (0)
+
         switch (*f) {
-            case 'Y': {  // 4-digit year
-                if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1]) || !isdigit((unsigned char)s[2]) ||
-                    !isdigit((unsigned char)s[3])) {
-                    return NULL;
+            case 'Y': {  // Year: consumes 1-4 digits (glibc/strtol parity)
+                if (!isdigit((unsigned char)s[0])) { return NULL; }
+                int year = 0;
+                int ndig = 0;
+                while (ndig < 4 && isdigit((unsigned char)s[0])) {
+                    year = year * 10 + (s[0] - '0');
+                    s++;
+                    ndig++;
                 }
-                int year = (s[0] - '0') * 1000 + (s[1] - '0') * 100 + (s[2] - '0') * 10 + (s[3] - '0');
                 tm->tm_year = year - 1900;
-                s += 4;
                 break;
             }
 
@@ -130,23 +155,19 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
                 break;
             }
 
-            case 'm': {  // Month (01-12) - zero-padded
-                if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1])) { return NULL; }
-                int month = (s[0] - '0') * 10 + (s[1] - '0');
+            case 'm': {  // Month (1-12), one or two digits
+                int month;
+                WIN_STRPTIME_READ_1OR2(month);
                 if (month < 1 || month > 12) { return NULL; }
                 tm->tm_mon = month - 1;
-                need_date_validation = true;
-                s += 2;
                 break;
             }
 
-            case 'd': {  // Day of month (01-31) - zero-padded
-                if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1])) { return NULL; }
-                int day = (s[0] - '0') * 10 + (s[1] - '0');
+            case 'd': {  // Day of month (1-31), one or two digits
+                int day;
+                WIN_STRPTIME_READ_1OR2(day);
                 if (day < 1 || day > 31) { return NULL; }
                 tm->tm_mday = day;
-                need_date_validation = true;
-                s += 2;
                 break;
             }
 
@@ -162,16 +183,14 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
                 }
                 if (day < 1 || day > 31) { return NULL; }
                 tm->tm_mday = day;
-                need_date_validation = true;
                 break;
             }
 
-            case 'H': {  // Hour (00-23) - zero-padded
-                if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1])) { return NULL; }
-                int hour = (s[0] - '0') * 10 + (s[1] - '0');
+            case 'H': {  // Hour (0-23), one or two digits
+                int hour;
+                WIN_STRPTIME_READ_1OR2(hour);
                 if (hour > 23) { return NULL; }
                 tm->tm_hour = hour;
-                s += 2;
                 break;
             }
 
@@ -212,23 +231,21 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
                 break;
             }
 
-            case 'M': {  // Minute (00-59) - zero-padded
-                if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1])) { return NULL; }
-                int min = (s[0] - '0') * 10 + (s[1] - '0');
+            case 'M': {  // Minute (0-59), one or two digits
+                int min;
+                WIN_STRPTIME_READ_1OR2(min);
                 if (min > 59) { return NULL; }
                 tm->tm_min = min;
-                s += 2;
                 break;
             }
 
-            case 'S': {  // Second (00-60, allowing leap second) - zero-padded
-                if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1])) { return NULL; }
-                int sec = (s[0] - '0') * 10 + (s[1] - '0');
-                if (sec > 60) {  // Allow 60 for leap seconds
+            case 'S': {  // Second (00-60, allowing leap second), 1-2 digits
+                int sec;
+                WIN_STRPTIME_READ_1OR2(sec);
+                if (sec > 60) {
                     return NULL;
                 }
                 tm->tm_sec = sec;
-                s += 2;
                 break;
             }
 
@@ -317,7 +334,6 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
                     }
                 }
                 if (!found) { return NULL; }
-                need_date_validation = true;
                 break;
             }
 
@@ -354,13 +370,14 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
                 break;
             }
 
-            case 'j': {  // Day of year (001-366) - zero-padded, 3 digits
+            case 'j': {  /* Day of year (001-366); mon/mday derived post-scan */
                 if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1]) || !isdigit((unsigned char)s[2])) {
                     return NULL;
                 }
                 int yday = (s[0] - '0') * 100 + (s[1] - '0') * 10 + (s[2] - '0');
                 if (yday < 1 || yday > 366) { return NULL; }
                 tm->tm_yday = yday - 1;
+                yday_set = true;
                 s += 3;
                 break;
             }
@@ -411,12 +428,16 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
             }
 
             case 'Z': {  // Timezone name - variable length
-                // Skip timezone name/abbreviation
+                /* FIX: compare against the position where the specifier
+                 * STARTED (saved before parsing), not buf — '%Z' appearing
+                 * mid-format accepted an empty name because s had already
+                 * advanced past buf. */
+                const char* z_start = s;
                 while (*s != '\0' && !isspace((unsigned char)*s) && *s != '+' && *s != '-' &&
                        isalpha((unsigned char)*s)) {
                     s++;
                 }
-                if (s == buf) {
+                if (s == z_start) {
                     return NULL;  // No timezone found
                 }
                 break;
@@ -446,6 +467,23 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
         f++;
     }
 
+    /*
+     * Derive mon/mday from %j + year, mirroring glibc which recomputes
+     * derived fields after the format scan.  Without this, "%Y-%j" yields
+     * a different struct tm on Windows than on Linux.
+     */
+    if (yday_set) {
+        int year = tm->tm_year + 1900;
+        int rem = tm->tm_yday; /* 0-based day of year */
+        int m = 0;
+        while (m < 11 && rem >= days_in_month(m, year)) {
+            rem -= days_in_month(m, year);
+            m++;
+        }
+        tm->tm_mon = m;
+        tm->tm_mday = rem + 1;
+    }
+
     // Apply AM/PM adjustment if needed (deferred from %I parsing)
     if (has_ampm) {
         if (is_pm && tm->tm_hour < 12) {
@@ -455,10 +493,14 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
         }
     }
 
-    // Validate the date if month and day were parsed
-    if (need_date_validation && !is_valid_date(tm->tm_mday, tm->tm_mon, tm->tm_year)) {
-        return NULL;  // Invalid date (e.g., Feb 30, Apr 31, etc.)
-    }
+    /*
+     * NOTE: unlike earlier revisions, this shim does NOT reject
+     * day-beyond-month lengths (e.g. Feb 30).  POSIX strptime validates
+     * per-field ranges only, and glibc matches that.  Calendar validity
+     * is enforced by the caller — xtime_parse() checks days_in_month()
+     * and reports XTIME_ERR_DATE_OUT_OF_RANGE, keeping error codes
+     * identical across Windows and POSIX builds.
+     */
 
     // Ensure DST flag is set to unknown if not explicitly set
     if (tm->tm_isdst == 0) { tm->tm_isdst = -1; }
