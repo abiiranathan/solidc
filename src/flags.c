@@ -231,7 +231,8 @@ static void format_default_value(FlagDataType type, void* default_ptr, char* buf
  * @brief Create a new flag parser
  * @param name Name of the program or command
  * @param description Description shown in help text
- * @return Always returns a valid pointer to the  allocated FlagParser, or exits with status 1 on failure
+ * @return A valid pointer to the allocated FlagParser, or NULL on
+ *         arena allocation failure.
  *
  * The returned parser must be freed with flag_parser_free() when done.
  */
@@ -241,7 +242,10 @@ FlagParser* flag_parser_new(const char* name, const char* description) {
     if (!arena) { return NULL; }
 
     FlagParser* fp = arena_alloc_zero(arena, sizeof(FlagParser));
-    if (!fp) { return NULL; }
+    if (!fp) {
+        arena_destroy(arena);
+        return NULL;
+    }
 
     fp->arena = arena;
     fp->name = arena_strdup(arena, name);
@@ -471,6 +475,46 @@ static Flag* find_flag_short(FlagParser* fp, char c) {
 }
 
 /**
+ * @brief Parse a boolean flag value strictly.
+ *
+ * Accepts (case-insensitive): true/false, yes/no, on/off, 1/0.
+ * Everything else is rejected rather than silently meaning "true".
+ *
+ * @param str Value text
+ * @param out Receives the parsed boolean
+ * @return true when recognized, false otherwise
+ */
+static bool parse_bool_value(const char* str, bool* out) {
+    static const struct { const char* name; bool val; } table[] = {
+        {"true", true}, {"false", false}, {"yes", true}, {"no", false},
+        {"on", true},   {"off", false},   {"1", true},   {"0", false},
+    };
+    for (size_t i = 0; i < sizeof(table) / sizeof(table[0]); i++) {
+        if (strcasecmp(str, table[i].name) == 0) {
+            *out = table[i].val;
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @brief Decide whether an argv token may be consumed as a flag VALUE.
+ *
+ * Tokens not starting with '-' are always consumable.  A token starting
+ * with '-' is still consumable when it parses as a number, so negative
+ * values work without a separator:  --offset -5   -a -2.5
+ */
+static bool is_value_token(const char* s) {
+    if (!s || !*s) return false;
+    if (s[0] != '-') return true;
+    if (s[1] == '\0') return false; /* bare "-" is positional by convention */
+    char* end = NULL;
+    (void)strtod(s, &end);
+    return end != s && *end == '\0';
+}
+
+/**
  * @brief Check if signed integer is within range
  * @param val Value to check
  * @param min Minimum allowed value
@@ -506,8 +550,8 @@ static FlagStatus parse_value(FlagParser* fp, Flag* flag, const char* str) {
 
     switch (flag->type) {
         case TYPE_BOOL: {
-            bool val = true;
-            if (strcasecmp(str, "false") == 0 || strcmp(str, "0") == 0) val = false;
+            bool val = false;
+            if (!parse_bool_value(str, &val)) return FLAG_ERROR_INVALID_ARGUMENT;
             *(bool*)flag->value_ptr = val;
             break;
         }
@@ -696,11 +740,14 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
 
             if (f->type == TYPE_BOOL) {
                 bool b = true;
-                if (val_str && (strcasecmp(val_str, "false") == 0 || strcmp(val_str, "0") == 0)) b = false;
+                if (val_str && !parse_bool_value(val_str, &b)) {
+                    set_error(fp, "Invalid value for --%s: '%s' (expected true/false)", f->name, val_str);
+                    return FLAG_ERROR_INVALID_ARGUMENT;
+                }
                 *(bool*)f->value_ptr = b;
             } else {
                 if (!val_str) {
-                    if (i + 1 < argc && argv[i + 1][0] != '-')
+                    if (i + 1 < argc && is_value_token(argv[i + 1]))
                         val_str = argv[++i];
                     else {
                         set_error(fp, "Flag --%s requires a value", f->name);
@@ -743,7 +790,7 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
                         }
                         break;  // consumed rest
                     } else {
-                        if (i + 1 < argc && argv[i + 1][0] != '-') {
+                        if (i + 1 < argc && is_value_token(argv[i + 1])) {
                             val_str = argv[++i];
                             FlagStatus s = parse_value(fp, f, val_str);
                             if (s != FLAG_OK) {
@@ -1148,7 +1195,7 @@ static void write_zsh_description(FILE* f, const char* str) {
         switch (*p) {
             case '\'':
                 // \' (not '\'') -- see function doc comment.
-                fprintf(f, "\\'\\''");
+                fprintf(f, "'\\''");
                 break;
             case '[':
                 fprintf(f, "\\[");
@@ -1173,9 +1220,9 @@ static void write_zsh_description(FILE* f, const char* str) {
  * @brief Escape text for use inside Zsh subcommand lists ((name\:description)).
  *
  * Escapes single quotes, colons, spaces, parenthesis, and brackets in a
- * single-quoted Zsh string context. Single quotes use the same \' escaping
- * as write_zsh_description, for the same reason: _arguments re-parses the
- * ((value\:desc ...)) list internally.
+ * single-quoted Zsh string context. Apostrophes use the standard '\''
+ * idiom (see write_zsh_description); _arguments re-parses the
+ * ((value\:desc ...)) list internally, so colons stay backslashed.
  */
 static void write_zsh_cmd_desc(FILE* f, const char* str) {
     if (!f || !str) return;
@@ -1183,7 +1230,7 @@ static void write_zsh_cmd_desc(FILE* f, const char* str) {
     for (const char* p = str; *p; ++p) {
         switch (*p) {
             case '\'':
-                fprintf(f, "\\'\\''");
+                fprintf(f, "'\\''");
                 break;
             case ' ':
             case '\t':

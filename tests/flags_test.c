@@ -262,7 +262,63 @@ void* test_unknown_subcmd(void* arg) {
 
 #define NUM_TESTS 6
 
+// =============================================================================
+// REGRESSION: strict bool values, negative-number values, combo flags
+// =============================================================================
+
+static void test_flag_regression_battery(void) {
+    // 1. --bool=garbage must be rejected, not silently true
+    {
+        FlagParser* fp = flag_parser_new("t1", "");
+        ASSERT(fp);
+        static bool b = false;
+        flag_add(fp, TYPE_BOOL, "verbose", 'v', "", &b, false);
+        char* argv[] = {"t1", "--verbose=banana"};
+        FlagStatus st = flag_parse(fp, 2, argv);
+        assert(st != FLAG_OK && "garbage bool value must be rejected");
+        flag_parser_free(fp);
+    }
+
+    // 2. Negative numbers consumable as separate value tokens (long form)
+    {
+        FlagParser* fp = flag_parser_new("t2", "");
+        ASSERT(fp);
+        static int offset = 0;
+        flag_add(fp, TYPE_INT32, "offset", 'o', "", &offset, false);
+        char* argv[] = {"t2", "--offset", "-5"};
+        FlagStatus st = flag_parse(fp, 3, argv);
+        assert(st == FLAG_OK && offset == -5);
+        flag_parser_free(fp);
+    }
+
+    // 3. Same for short flags and doubles
+    {
+        FlagParser* fp = flag_parser_new("t3", "");
+        ASSERT(fp);
+        static double amt = 0;
+        flag_add(fp, TYPE_DOUBLE, "amt", 'a', "", &amt, false);
+        char* argv[] = {"t3", "-a", "-2.5"};
+        FlagStatus st = flag_parse(fp, 3, argv);
+        assert(st == FLAG_OK && amt == -2.5);
+        flag_parser_free(fp);
+    }
+
+    // 4. Strict bool accepted spellings still work
+    {
+        FlagParser* fp = flag_parser_new("t4", "");
+        ASSERT(fp);
+        static bool a = false, b = true;
+        flag_add(fp, TYPE_BOOL, "a", 0, "", &a, false);
+        flag_add(fp, TYPE_BOOL, "b", 0, "", &b, false);
+        char* argv[] = {"t4", "--a=true", "--b=0"};
+        FlagStatus st = flag_parse(fp, 3, argv);
+        assert(st == FLAG_OK && a == true && b == false);
+        flag_parser_free(fp);
+    }
+}
+
 int main(void) {
+    test_flag_regression_battery();
     Thread threads[NUM_TESTS];
     void* (*tests[NUM_TESTS])(void*) = {
         test_server_success, test_db_migration, test_types, test_missing_required, test_overflow, test_unknown_subcmd,

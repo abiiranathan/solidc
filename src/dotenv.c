@@ -8,6 +8,11 @@
 
 /**
  * Removes surrounding quotes from a string in-place.
+ *
+ * Double-quoted values have backslash escapes processed (\" \\ \n \t \r);
+ * unknown escapes keep the escaped character without the backslash, which
+ * matches shell behaviour.  Single-quoted values are fully literal.
+ *
  * @param str The string to unquote. Must be non-NULL.
  * @return Pointer to the unquoted string (may be different from input).
  */
@@ -17,13 +22,36 @@ static char* remove_quotes(char* str) {
     size_t len = strlen(str);
     if (len < 2) { return str; }
 
-    // Check for matching quotes
-    if ((str[0] == '"' && str[len - 1] == '"') || (str[0] == '\'' && str[len - 1] == '\'')) {
+    char first = str[0], last = str[len - 1];
+    bool dbl = (first == '"' && last == '"');
+    bool sgl = (first == '\'' && last == '\'');
+    if (!dbl && !sgl) { return str; }
+
+    if (sgl) {
+        /* Single quotes are fully literal. */
         str[len - 1] = '\0';
         return str + 1;
     }
 
-    return str;
+    /* Double quotes: process backslash escapes in place.  The write
+     * cursor never overtakes the read cursor, so this is safe. */
+    char* w = str + 1;
+    char* inner_end = str + len - 1;
+    for (char* r = str + 1; r < inner_end; r++) {
+        if (*r == '\\' && r + 1 < inner_end) {
+            r++;
+            switch (*r) {
+                case 'n': *w++ = '\n'; break;
+                case 't': *w++ = '\t'; break;
+                case 'r': *w++ = '\r'; break;
+                default:  *w++ = *r;   /* \" -> ", \\ -> \, unknown kept */
+            }
+        } else {
+            *w++ = *r;
+        }
+    }
+    *w = '\0';
+    return str + 1;
 }
 
 /**
@@ -167,23 +195,54 @@ static bool process_env_pair(char* key, char* value) {
 
 /**
  * Strips a trailing, unquoted "#" comment from a line, in place.
- * A '#' is only treated as a comment start when it is not inside a
- * single- or double-quoted value, so values like KEY="a#b" survive intact.
+ *
+ * A '#' starts a comment only when it is outside quotes AND at a word
+ * boundary (start of line, or preceded by whitespace, or immediately
+ * after a closing quote).  This keeps shell-style values such as
+ * KEY=value#anchor intact while still supporting:
+ *   KEY="a#b"          (quoted hash)
+ *   KEY=val # comment  (spaced inline comment)
+ *   KEY="x" # comment  (comment after closing quote)
+ *
+ * Backslash escapes inside double quotes (\") do not affect quote state,
+ * so a comment after an escaped quote is still detected correctly.
+ *
  * @param line The line to strip. Must be non-NULL.
  */
 static void strip_inline_comment(char* line) {
     bool in_single = false;
     bool in_double = false;
+    bool escaped = false; /* inside double quotes: next char is literal */
+    char prev = 0;
 
     for (char* p = line; *p != '\0'; p++) {
-        if (*p == '\'' && !in_double) {
-            in_single = !in_single;
-        } else if (*p == '"' && !in_single) {
-            in_double = !in_double;
-        } else if (*p == '#' && !in_single && !in_double) {
-            *p = '\0';
-            return;
+        char c = *p;
+
+        if (in_single) {
+            if (c == '\'') { in_single = false; }
+        } else if (escaped) {
+            escaped = false; /* verbatim character, no state change */
+        } else if (in_double) {
+            if (c == '\\') {
+                escaped = true;
+            } else if (c == '"') {
+                in_double = false;
+            }
+        } else {
+            if (c == '#') {
+                bool boundary = (prev == '\0' || prev == ' ' || prev == '\t' || prev == '"' || prev == '\'');
+                if (boundary) {
+                    *p = '\0';
+                    return;
+                }
+            } else if (c == '\'') {
+                in_single = true;
+            } else if (c == '"') {
+                in_double = true;
+            }
         }
+
+        prev = c;
     }
 }
 

@@ -275,7 +275,20 @@ static void test_clear(void) {
     dynarray_clear(NULL);  // No-op, void return
 }
 
+// Regression: zero-initialised structs used without dynarray_init() must be
+// rejected gracefully (they used to divide by zero on element_size == 0).
+static void test_zero_init_misuse(void) {
+    dynarray_t a = {0};
+    int v = 5;
+    TEST_ASSERT(!dynarray_push(&a, &v), "push on zero-init must fail");
+    TEST_ASSERT(!dynarray_reserve(&a, 10), "reserve on zero-init must fail");
+    TEST_ASSERT(!dynarray_shrink_to_fit(&a), "shrink on zero-init must fail");
+    TEST_ASSERT(!dynarray_push_n(&a, &v, 3), "push_n on zero-init must fail");
+    dynarray_free(&a);
+}
+
 int main(void) {
+    test_zero_init_misuse();
     test_init();
     test_free();
     test_push();

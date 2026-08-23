@@ -6,6 +6,13 @@
 DYNARRAY_COLD bool dynarray_grow_slowpath(dynarray_t* arr, size_t min_capacity) {
     if (arr == NULL) { return false; }
 
+    /*
+     * Guard against zero-initialised structs used without dynarray_init():
+     * element_size == 0 would divide by zero below and produce a SIGFPE.
+     * A zero-element-size array is meaningless, so refuse to grow.
+     */
+    if (arr->element_size == 0) { return false; }
+
     // Check for overflow before allocating
     if (min_capacity > SIZE_MAX / arr->element_size) { return false; }
 
@@ -68,7 +75,7 @@ bool dynarray_push_n(dynarray_t* arr, const void* elements, size_t count) {
 }
 
 bool dynarray_reserve(dynarray_t* arr, size_t new_capacity) {
-    if (arr == NULL) { return false; }
+    if (arr == NULL || arr->element_size == 0) { return false; }
 
     // Do not shrink below current size
     if (new_capacity < arr->size) { new_capacity = arr->size; }

@@ -31,6 +31,10 @@
 
 #include "../include/unicode.h"
 
+#if defined(__SSE2__)
+#include <emmintrin.h>
+#endif
+
 #include <stdint.h>  // for SIZE_MAX
 #include <stdio.h>   // for fopen, fread, fwrite, fseek, ftell, fclose, printf
 #include <stdlib.h>  // for malloc, realloc, free
@@ -46,11 +50,86 @@ typedef struct {
 
 /**
  * @brief Performs validation, byte length, and codepoint counting in a single pass.
+ *
+ * Perf (Perf #15): ASCII runs — the bulk of most real text — are skipped
+ * 16 bytes at a time with SSE2 (movemask finds the first non-ASCII byte),
+ * falling back to the exact per-sequence scalar classifier otherwise.
+ * Classification semantics are byte-for-byte identical to the scalar loop.
  */
 static inline utf8_analysis_t utf8_analyze(const char* s) {
     utf8_analysis_t analysis = {0, 0};
     if (!s) return analysis;
 
+#if defined(__SSE2__)
+    /*
+     * Two-mode scanner:
+     *   SIMD mode  - skips whole 16-byte ASCII runs (movemask finds the
+     *                first non-ASCII byte instantly).
+     *   Scalar mode- classifies one UTF-8 sequence per iteration using the
+     *                exact original logic, then re-arms SIMD mode as soon
+     *                as the next byte is ASCII again.
+     * strlen() bounds the vector loads so they never cross the NUL.
+     * Classification results are byte-for-byte identical to the pure
+     * scalar loop below.
+     */
+    size_t len = strlen(s);
+    size_t i = 0;
+    int try_simd = 1;
+
+    while (i < len) {
+        if (try_simd && i + 16 <= len) {
+            __m128i v = _mm_loadu_si128((const __m128i*)(s + i));
+            uint32_t hi = (uint32_t)_mm_movemask_epi8(v); /* set where byte >= 0x80 */
+            if (hi == 0) {
+                analysis.valid_bytes += 16;
+                analysis.codepoints += 16;
+                i += 16;
+                continue; /* still a candidate run: stay in SIMD mode */
+            }
+            int pos = __builtin_ctz(hi); /* first non-ASCII byte in this block */
+            analysis.valid_bytes += (size_t)pos;
+            analysis.codepoints += (size_t)pos;
+            i += (size_t)pos;
+            try_simd = 0; /* hand off to the scalar classifier */
+            continue;
+        }
+
+        /* ---- scalar classification of exactly one sequence ---- */
+        unsigned char byte = (unsigned char)s[i];
+        if ((byte & 0x80) == 0) {
+            analysis.valid_bytes++;
+            analysis.codepoints++;
+            i++;
+            try_simd = 1; /* ASCII again: re-arm the vector skipper */
+            continue;
+        }
+
+        try_simd = 0;
+
+        if ((byte & 0xE0) == 0xC0 && i + 1 < len &&
+            ((unsigned char)s[i + 1] & 0xC0) == 0x80) {
+            analysis.valid_bytes += 2;
+            analysis.codepoints++;
+            i += 2;
+        } else if ((byte & 0xF0) == 0xE0 && i + 2 < len &&
+                   ((unsigned char)s[i + 1] & 0xC0) == 0x80 && ((unsigned char)s[i + 2] & 0xC0) == 0x80) {
+            analysis.valid_bytes += 3;
+            analysis.codepoints++;
+            i += 3;
+        } else if ((byte & 0xF8) == 0xF0 && i + 3 < len &&
+                   ((unsigned char)s[i + 1] & 0xC0) == 0x80 && ((unsigned char)s[i + 2] & 0xC0) == 0x80 &&
+                   ((unsigned char)s[i + 3] & 0xC0) == 0x80) {
+            analysis.valid_bytes += 4;
+            analysis.codepoints++;
+            i += 4;
+        } else {
+            i++; /* malformed byte: skip one, matching the legacy loop */
+        }
+
+        if (i < len && ((unsigned char)s[i] & 0x80) == 0) { try_simd = 1; }
+    }
+    return analysis;
+#else
     size_t i = 0;
     while (s[i] != '\0') {
         unsigned char byte = (unsigned char)s[i];
@@ -88,6 +167,7 @@ static inline utf8_analysis_t utf8_analyze(const char* s) {
         }
     }
     return analysis;
+#endif
 }
 
 /* ============================================================================
@@ -295,31 +375,28 @@ size_t utf8_valid_byte_count(const char* s) {
  *
  * UTF-8 character lengths by leading byte:
  * - 0x00-0x7F: 1 byte  (ASCII)
- * - 0xC0-0xDF: 2 bytes
+ * - 0xC2-0xDF: 2 bytes
  * - 0xE0-0xEF: 3 bytes
- * - 0xF0-0xF7: 4 bytes
+ * - 0xF0-0xF4: 4 bytes
  *
  * @param str Pointer to the first byte of a UTF-8 character. Must not be NULL.
  * @return The byte length (1-4), or 0 if the byte cannot start a valid
- *         UTF-8 sequence (a lone continuation byte or 0xF8-0xFF).
+ *         UTF-8 sequence: lone continuation bytes (0x80-0xBF), the always-
+ *         overlong 0xC0/0xC1, out-of-range 0xF5-0xF7, and 0xF8-0xFF.
  * @note This only inspects the leading byte; it does not verify that the
  *       expected continuation bytes are actually present and well-formed.
  */
 size_t utf8_char_length(const char* str) {
     if (!str) { return 0; }
 
-    uint8_t byte = (uint8_t)*str;
-    if (byte <= 0x7F) {
-        return 1;
-    } else if (byte <= 0xDF) {
-        return 2;
-    } else if (byte <= 0xEF) {
-        return 3;
-    } else if (byte <= 0xF7) {
-        return 4;
-    } else {
-        return 0;
-    }
+    uint8_t b = (uint8_t)*str;
+    if (b < 0x80) { return 1; }
+    /* 0xC0/0xC1 would decode to an overlong sequence; 0x80-0xBF are
+     * continuation bytes; 0xF5-0xF7 exceed U+10FFFF; 0xF8-0xFF are invalid. */
+    if ((b & 0xE0) == 0xC0) { return b >= 0xC2 ? 2 : 0; }
+    if ((b & 0xF0) == 0xE0) { return 3; }
+    if ((b & 0xF8) == 0xF0) { return b <= 0xF4 ? 4 : 0; }
+    return 0;
 }
 
 /* ============================================================================
@@ -1531,6 +1608,29 @@ void utf8_toupper(char* str) {
  * ============================================================================ */
 
 /**
+ * Builds a utf8_string from a raw byte span in one allocation.
+ *
+ * Used by utf8_split(): the source span comes from an already-analyzed
+ * utf8_string, so re-running full validation would be wasted work.  The
+ * codepoint count is computed with the cheap leading-byte classification
+ * (same rule as utf8_count_codepoints).
+ */
+static utf8_string* utf8_span_to_string(const char* start, size_t len) {
+    utf8_string* part = utf8_string_alloc(len);
+    if (!part) { return NULL; }
+
+    size_t count = 0;
+    for (size_t i = 0; i < len; i++) {
+        part->data[i] = start[i];
+        if (((unsigned char)start[i] & 0xC0) != 0x80) { count++; }
+    }
+    part->data[len] = '\0';
+    part->length = len;
+    part->count = count;
+    return part;
+}
+
+/**
  * Splits a UTF-8 string into parts using a delimiter.
  *
  * The string is divided at each occurrence of the delimiter. Empty parts
@@ -1576,20 +1676,13 @@ utf8_string** utf8_split(const utf8_string* str, const char* delim, size_t* num_
     utf8_string** parts = (utf8_string**)malloc(count * sizeof(*parts));
     if (!parts) { return NULL; }
 
-    /* Second pass: actually carve out each part. utf8_new() always copies a
-     * NUL-terminated string, so we build each part from a temporary
-     * substring rather than mutating str->data in place. */
+    /* Second pass: carve each part straight into its own single-block
+     * utf8_string — no temporary buffer, no re-validation (Perf #14). */
     size_t index = 0;
     size_t start = 0;
     for (size_t i = 0; i < len;) {
         if (i + delim_len <= len && memcmp(&str->data[i], delim, delim_len) == 0) {
-            char* piece = (char*)malloc(i - start + 1);
-            if (!piece) { goto split_alloc_failed; }
-            memcpy(piece, &str->data[start], i - start);
-            piece[i - start] = '\0';
-
-            parts[index] = utf8_new(piece);
-            free(piece);
+            parts[index] = utf8_span_to_string(&str->data[start], i - start);
             if (!parts[index]) { goto split_alloc_failed; }
             index++;
 
@@ -1604,13 +1697,7 @@ utf8_string** utf8_split(const utf8_string* str, const char* delim, size_t* num_
 
     /* Final trailing part, from `start` to the end of the string. */
     {
-        char* piece = (char*)malloc(len - start + 1);
-        if (!piece) { goto split_alloc_failed; }
-        memcpy(piece, &str->data[start], len - start);
-        piece[len - start] = '\0';
-
-        parts[index] = utf8_new(piece);
-        free(piece);
+        parts[index] = utf8_span_to_string(&str->data[start], len - start);
         if (!parts[index]) { goto split_alloc_failed; }
         index++;
     }
@@ -1722,17 +1809,25 @@ utf8_string* utf8_readfrom(const char* filename) {
         return NULL;
     }
 
-    char* data = (char*)malloc((size_t)length + 1);
-    if (!data) {
+    /*
+     * Perf: read directly into the final single-allocation block instead
+     * of a temporary buffer + utf8_new() copy.  The valid-prefix analysis
+     * still runs (same contract as utf8_new): the string is truncated at
+     * the first malformed sequence, and capacity reflects the full read.
+     */
+    utf8_string* s = utf8_string_alloc((size_t)length);
+    if (!s) {
         fclose(file);
         return NULL;
     }
 
-    size_t bytes = fread(data, 1, (size_t)length, file);
+    size_t bytes = fread(s->data, 1, (size_t)length, file);
     fclose(file);
-    data[bytes] = '\0';
+    s->data[bytes] = '\0';
 
-    utf8_string* s = utf8_new(data);
-    free(data);
+    utf8_analysis_t analysis = utf8_analyze(s->data);
+    s->data[analysis.valid_bytes] = '\0';
+    s->length = analysis.valid_bytes;
+    s->count = analysis.codepoints;
     return s;
 }

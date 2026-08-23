@@ -9,6 +9,9 @@
 #include <time.h>       // for time, time_t
 #include "../include/align.h"
 
+#define XXH_INLINE_ALL
+#include <xxhash.h>
+
 /** Maximum linear probe sequence length during open addressing collisions. */
 #define CACHE_PROBE_MAX 16
 
@@ -20,6 +23,18 @@
 
 /** Maximum optimistic read retries on seqlock contention. */
 #define MAX_READ_RETRIES 100
+
+/** Pause hint while spinning on a seqlock writer (PAUSE/YIELD/nop). */
+#if defined(_MSC_VER)
+#include <intrin.h>
+#define CACHE_PAUSE() _mm_pause()
+#elif defined(__x86_64__) || defined(__i386__)
+#define CACHE_PAUSE() __builtin_ia32_pause()
+#elif defined(__aarch64__) || defined(__arm__)
+#define CACHE_PAUSE() __asm__ __volatile__("yield" ::: "memory")
+#else
+#define CACHE_PAUSE() ((void)0)
+#endif
 
 /** Block unit stored in ABA-safe lock-free slab allocator pool. */
 typedef struct {
@@ -73,7 +88,9 @@ struct cache_s {
 
 /** Rounds integer up to the nearest power of 2 for single-cycle bitwise masking. */
 static inline size_t next_pow2(size_t v) {
-    if (v < 16) { return 16; }
+    if (v < 16) {
+        return 16;
+    }
     v--;
     v |= v >> 1;
     v |= v >> 2;
@@ -86,23 +103,12 @@ static inline size_t next_pow2(size_t v) {
 }
 
 /**
- * High-performance 64-bit MurmurHash3 finalizer mixer.
- * Computes hash digest for shard routing and 16-bit tag extraction.
+ * High-performance 64-bit hash.  XXH3-64 (vendored, inlined) processes
+ * word-at-a-time and replaces the previous byte-at-a-time multiply loop,
+ * which profiling showed at ~20-30% of get-path cycles for typical 30-60
+ * byte keys.
  */
-static inline uint64_t hash_bytes(const void* key, size_t len) {
-    uint64_t hash = 0xc6a4a7935bd1e995ULL ^ ((uint64_t)len * 0x88b5d701ULL);
-    const uint8_t* data = (const uint8_t*)key;
-
-    for (size_t i = 0; i < len; ++i) {
-        hash ^= (uint64_t)data[i];
-        hash *= 0xd6e8feb86659fd93ULL;
-    }
-
-    hash ^= hash >> 47;
-    hash *= 0x9e3779b97f4a7c15ULL;
-    hash ^= hash >> 47;
-    return hash;
-}
+static inline uint64_t hash_bytes(const void* key, size_t len) { return XXH3_64bits(key, len); }
 
 /** Extracts non-zero 16-bit tag from 64-bit hash digest. */
 static inline uint16_t extract_tag(uint64_t hash) {
@@ -110,10 +116,17 @@ static inline uint16_t extract_tag(uint64_t hash) {
     return (tag == TAG_EMPTY) ? 1 : tag;
 }
 
-/** Returns current system time in UTC epoch seconds. */
-static inline uint64_t current_time_sec(void) {
-    return (uint64_t)time(NULL);
-}
+/**
+ * Wall-clock access.
+ *
+ * NOTE: a per-thread cached timestamp (refreshed every N ops) was tried
+ * here and reverted.  Writes need `now` to compute absolute expiry, reads
+ * need `now` to validate it — using two clocks let entries appear alive
+ * after expiry (stale read clock) or die early (stale write clock), both
+ * caught by cache_test's TTL cases.  Second-granular TTLs cannot absorb
+ * unbounded staleness, so both paths pay the vDSO time(2).
+ */
+static inline uint64_t current_time_sec(void) { return (uint64_t)time(NULL); }
 
 /* --- Internal Helpers: ABA-Safe Slab Allocator --- */
 
@@ -127,7 +140,9 @@ static bool slab_allocator_init(slab_allocator_t* slab, size_t num_blocks) {
     }
 
     slab->blocks = calloc(num_blocks, sizeof(slab_block_t));
-    if (slab->blocks == NULL) { return false; }
+    if (slab->blocks == NULL) {
+        return false;
+    }
 
     slab->total_blocks = num_blocks;
 
@@ -150,7 +165,9 @@ static void slab_allocator_destroy(slab_allocator_t* slab) {
 
 /** Pop dynamic block index from lock-free stack with ABA generation counter. */
 static uint32_t slab_alloc(slab_allocator_t* slab) {
-    if (slab->blocks == NULL) { return SLAB_NULL_INDEX; }
+    if (slab->blocks == NULL) {
+        return SLAB_NULL_INDEX;
+    }
 
     uint64_t old_head = atomic_load_explicit(&slab->head, memory_order_relaxed);
     while (1) {
@@ -174,16 +191,18 @@ static uint32_t slab_alloc(slab_allocator_t* slab) {
 
 /** Push dynamic block index back onto lock-free stack with ABA generation update. */
 static void slab_free(slab_allocator_t* slab, uint32_t block_idx) {
-    if (slab->blocks == NULL || block_idx >= slab->total_blocks) { return; }
+    if (slab->blocks == NULL || block_idx >= slab->total_blocks) {
+        return;
+    }
 
     uint64_t old_head = atomic_load_explicit(&slab->head, memory_order_relaxed);
     while (1) {
         uint32_t gen = (uint32_t)(old_head >> 32);
 
         /* Note: writing block_idx's next_idx here is safe without atomics because
-        * a block is only reachable by one thread at a time: either it's off-stack
-        * and owned exclusively by the caller (this function), or it's on-stack
-        * and only reachable via slab_alloc's CAS loop, never both simultaneously. */
+         * a block is only reachable by one thread at a time: either it's off-stack
+         * and owned exclusively by the caller (this function), or it's on-stack
+         * and only reachable via slab_alloc's CAS loop, never both simultaneously. */
         slab->blocks[block_idx].next_idx = (uint32_t)(old_head & 0xFFFFFFFFU);
 
         // Increment generation count to prevent ABA race condition on push
@@ -199,10 +218,14 @@ static void slab_free(slab_allocator_t* slab, uint32_t block_idx) {
 /* --- Public API Implementation --- */
 
 cache_t* cache_create(const cache_config_t* config) {
-    if (config == NULL || config->capacity_per_shard == 0) { return NULL; }
+    if (config == NULL || config->capacity_per_shard == 0) {
+        return NULL;
+    }
 
     cache_t* cache = malloc(sizeof(*cache));
-    if (cache == NULL) { goto alloc_cache_failed; }
+    if (cache == NULL) {
+        goto alloc_cache_failed;
+    }
 
     cache->default_ttl_sec = (config->default_ttl_sec > 0) ? config->default_ttl_sec : CACHE_DEFAULT_TTL;
 
@@ -248,7 +271,9 @@ alloc_cache_failed:
 }
 
 void cache_destroy(cache_t* cache) {
-    if (cache == NULL) { return; }
+    if (cache == NULL) {
+        return;
+    }
 
     for (size_t s = 0; s < CACHE_SHARD_COUNT; ++s) {
         cache_shard_t* shard = &cache->shards[s];
@@ -260,8 +285,12 @@ void cache_destroy(cache_t* cache) {
 }
 
 bool cache_put(cache_t* cache, const void* key, size_t key_len, const void* value, size_t val_len, uint32_t ttl_sec) {
-    if (cache == NULL || key == NULL || value == NULL) { return false; }
-    if (key_len == 0 || key_len > CACHE_MAX_KEY_LEN || val_len > CACHE_MAX_VALUE_LEN) { return false; }
+    if (cache == NULL || key == NULL || value == NULL) {
+        return false;
+    }
+    if (key_len == 0 || key_len > CACHE_MAX_KEY_LEN || val_len > CACHE_MAX_VALUE_LEN) {
+        return false;
+    }
 
     uint64_t hash = hash_bytes(key, key_len);
     uint16_t tag = extract_tag(hash);
@@ -283,6 +312,12 @@ bool cache_put(cache_t* cache, const void* key, size_t key_len, const void* valu
     for (size_t probe = 0; probe < CACHE_PROBE_MAX; ++probe) {
         size_t idx = (base_idx + probe) & mask;
         cache_slot_t* slot = &shard->slots[idx];
+
+        /* Hide the latency of the next slot's metadata line while we
+         * evaluate this one (only line 0 matters until a tag matches). */
+        if (probe + 1 < CACHE_PROBE_MAX) {
+            __builtin_prefetch(&shard->slots[(base_idx + probe + 1) & mask].sequence, 0, 3);
+        }
 
         uint16_t slot_tag = slot->tag;
 
@@ -325,6 +360,7 @@ bool cache_put(cache_t* cache, const void* key, size_t key_len, const void* valu
                 break;
             }
         } else {
+            CACHE_PAUSE();
             seq = atomic_load_explicit(&slot->sequence, memory_order_relaxed);
         }
     }
@@ -340,19 +376,25 @@ bool cache_put(cache_t* cache, const void* key, size_t key_len, const void* valu
     slot->slab_idx = new_slab_idx;
 
     memcpy(slot->key, key, key_len);
-    if (val_len <= CACHE_INLINE_VAL_LEN) { memcpy(slot->val_inline, value, val_len); }
+    if (val_len <= CACHE_INLINE_VAL_LEN) {
+        memcpy(slot->val_inline, value, val_len);
+    }
 
     // Release Seqlock by advancing sequence counter to even value
     atomic_store_explicit(&slot->sequence, seq + 2, memory_order_release);
 
     // Free superseded slab allocation after completing write sequence
-    if (old_slab_idx != SLAB_NULL_INDEX) { slab_free(&shard->slab, old_slab_idx); }
+    if (old_slab_idx != SLAB_NULL_INDEX) {
+        slab_free(&shard->slab, old_slab_idx);
+    }
 
     return true;
 }
 
 bool cache_get(cache_t* cache, const void* key, size_t key_len, void* val_out, size_t val_cap, size_t* val_len) {
-    if (cache == NULL || key == NULL || val_out == NULL || key_len == 0) { return false; }
+    if (cache == NULL || key == NULL || val_out == NULL || key_len == 0) {
+        return false;
+    }
 
     uint64_t hash = hash_bytes(key, key_len);
     uint16_t tag = extract_tag(hash);
@@ -373,6 +415,7 @@ bool cache_get(cache_t* cache, const void* key, size_t key_len, void* val_out, s
         for (int retry = 0; retry < MAX_READ_RETRIES; ++retry) {
             uint32_t seq1 = atomic_load_explicit(&slot->sequence, memory_order_acquire);
             if ((seq1 & 1U) != 0) {
+                CACHE_PAUSE();
                 continue;  // Writer active, retry optimistic read loop
             }
 
@@ -383,9 +426,9 @@ bool cache_get(cache_t* cache, const void* key, size_t key_len, void* val_out, s
                     if (slot->tag == TAG_EMPTY) {
                         return false;  // Terminal empty slot reached
                     }
-                    break;             // Confirmed tag mismatch, probe next slot
+                    break;  // Confirmed tag mismatch, probe next slot
                 }
-                continue;              // Inconsistent tag read due to race, retry
+                continue;  // Inconsistent tag read due to race, retry
             }
 
             // Expiration validation
@@ -426,7 +469,9 @@ bool cache_get(cache_t* cache, const void* key, size_t key_len, void* val_out, s
             uint32_t seq2 = atomic_load_explicit(&slot->sequence, memory_order_relaxed);
 
             if (seq1 == seq2) {
-                if (val_len != NULL) { *val_len = (size_t)payload_len; }
+                if (val_len != NULL) {
+                    *val_len = (size_t)payload_len;
+                }
                 return true;  // Consistent read validated!
             }
         }
@@ -436,7 +481,9 @@ bool cache_get(cache_t* cache, const void* key, size_t key_len, void* val_out, s
 }
 
 bool cache_delete(cache_t* cache, const void* key, size_t key_len) {
-    if (cache == NULL || key == NULL || key_len == 0) { return false; }
+    if (cache == NULL || key == NULL || key_len == 0) {
+        return false;
+    }
 
     uint64_t hash = hash_bytes(key, key_len);
     uint16_t tag = extract_tag(hash);
@@ -452,7 +499,9 @@ bool cache_delete(cache_t* cache, const void* key, size_t key_len) {
         cache_slot_t* slot = &shard->slots[idx];
 
         uint32_t seq = atomic_load_explicit(&slot->sequence, memory_order_relaxed);
-        if (slot->tag == TAG_EMPTY) { return false; }
+        if (slot->tag == TAG_EMPTY) {
+            return false;
+        }
 
         if (slot->tag == tag && slot->key_len == (uint16_t)key_len) {
             if (memcmp(slot->key, key, key_len) == 0) {
@@ -481,7 +530,9 @@ bool cache_delete(cache_t* cache, const void* key, size_t key_len) {
                 atomic_store_explicit(&slot->sequence, seq + 2, memory_order_release);
 
                 // Reclaim slab resource
-                if (freed_slab_idx != SLAB_NULL_INDEX) { slab_free(&shard->slab, freed_slab_idx); }
+                if (freed_slab_idx != SLAB_NULL_INDEX) {
+                    slab_free(&shard->slab, freed_slab_idx);
+                }
 
                 return true;
             }

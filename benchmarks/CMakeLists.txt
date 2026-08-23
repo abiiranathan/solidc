@@ -15,3 +15,6 @@ add_executable(bench_cache ${CMAKE_CURRENT_SOURCE_DIR}/bench_cache.c)
 target_link_libraries(bench_cache PRIVATE solidc)
 add_executable(map_micro  ${CMAKE_CURRENT_SOURCE_DIR}/map_micro.c)
 target_link_libraries(map_micro PRIVATE solidc pthread)
+
+add_executable(csv_micro  ${CMAKE_CURRENT_SOURCE_DIR}/csv_micro.c)
+target_link_libraries(csv_micro PRIVATE solidc pthread)
