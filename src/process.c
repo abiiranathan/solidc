@@ -711,10 +711,31 @@ static ProcessError unix_create_process(ProcessHandle** handle, const char* comm
         stderr_pipe[1] = options->io.stderr_pipe->write_fd;
     }
 
+    /*
+     * Resolve PATH before fork() when using a custom environment
+     * (Bug #18, MT-safety): find_in_path() calls strdup/strtok_r/malloc,
+     * none async-signal-safe.  In the child of a multithreaded parent
+     * these can deadlock on a lock copied in the locked state.
+     */
+    char* resolved_path = NULL;
+    if (!options->inherit_environment) {
+        static const char* const empty_env[] = {NULL};
+        const char* const* env =
+            options->environment ? options->environment : empty_env;
+        resolved_path = find_in_path(command, env);
+    }
+    const char* exec_target = resolved_path ? (const char*)resolved_path : command;
+#ifdef UNIX_PROC_DEBUG
+    fprintf(stderr, "[PROC] resolved=%p target=%s inherit=%d\n", (void*)resolved_path, exec_target, (int)options->inherit_environment);
+#endif
+
     // Fork the process
     pid_t pid = fork();
 
-    if (pid < 0) { return PROCESS_ERROR_FORK_FAILED; }
+    if (pid < 0) {
+        free(resolved_path);
+        return PROCESS_ERROR_FORK_FAILED;
+    }
 
     if (pid == 0) {
         // Child process
@@ -756,16 +777,11 @@ static ProcessError unix_create_process(ProcessHandle** handle, const char* comm
         if (options->inherit_environment) {
             execvp(command, (char* const*)argv);
         } else {
-            // Custom or empty environment - need to search PATH manually
+            /* Custom or empty environment: PATH was resolved pre-fork
+             * (async-signal-safe).  Fall back to the raw command text if
+             * resolution failed but it is still an executable path. */
             const char* const* env = options->environment ? options->environment : (const char* const[]){NULL};
-            char* cmd_path = find_in_path(command, env);
-            if (cmd_path) {
-                execve(cmd_path, (char* const*)argv, (char* const*)env);
-                free(cmd_path);
-            } else {
-                // Try command as-is (might be absolute path)
-                execve(command, (char* const*)argv, (char* const*)env);
-            }
+            execve(exec_target, (char* const*)argv, (char* const*)env);
         }
 
         // If we get here, exec failed
@@ -774,6 +790,8 @@ static ProcessError unix_create_process(ProcessHandle** handle, const char* comm
     }
 
     // Parent process
+    free(resolved_path);
+
     *handle = (ProcessHandle*)malloc(sizeof(ProcessHandle));
     if (!*handle) { return PROCESS_ERROR_MEMORY; }
 
@@ -881,20 +899,21 @@ ProcessError process_wait(ProcessHandle* handle, ProcessResult* result, int time
         // Wait indefinitely
         wait_result = waitpid(handle->pid, &status, 0);
     } else {
-        // Wait with timeout using WNOHANG and a busy-wait loop for the timeout
-        int remaining_timeout_ms = timeout_ms;
+        /*
+         * Bounded wait: poll WNOHANG in fixed slices instead of sleeping the
+         * whole remaining timeout in one nanosleep (Perf #17).  The old code
+         * slept the FULL remainder first and only re-checked afterwards, so
+         * a process exiting at t=50ms still blocked for a 30s timeout.
+         */
+        const long SLICE_MS = 10;
+        long slept_ms = 0;
 
-        // Here, we wait in a loop until the process exits or the timeout is reached
-        while ((wait_result = waitpid(handle->pid, &status, WNOHANG)) == 0 && remaining_timeout_ms > 0) {
-            struct timespec ts;
-            ts.tv_sec = remaining_timeout_ms / 1000;
-            ts.tv_nsec = (remaining_timeout_ms % 1000) * 1000000L;
+        while ((wait_result = waitpid(handle->pid, &status, WNOHANG)) == 0) {
+            if (slept_ms >= timeout_ms) { break; }
 
-            // Sleep for the remaining timeout duration
-            NANOSLEEP(ts.tv_sec, ts.tv_nsec);
-
-            // Adjust remaining timeout
-            remaining_timeout_ms -= (int)((ts.tv_sec * 1000) + (ts.tv_nsec / 1000000));
+            long slice = (timeout_ms - slept_ms < SLICE_MS) ? (timeout_ms - slept_ms) : SLICE_MS;
+            NANOSLEEP(slice / 1000, (slice % 1000) * 1000000L);
+            slept_ms += slice;
         }
     }
 
@@ -1041,10 +1060,28 @@ void process_close_redirection(FileRedirection* redirection) {
 ProcessError process_create_with_redirection(ProcessHandle** handle, const char* command, const char* const argv[],
                                              const ExtProcessOptions* options) {
     if (!handle || !command || !argv || !argv[0]) { return PROCESS_ERROR_INVALID_ARGUMENT; }
+    /*
+     * Resolve PATH before fork() when using a custom environment
+     * (Bug #18, MT-safety): find_in_path() calls strdup/strtok_r/malloc,
+     * none async-signal-safe.  In the child of a multithreaded parent
+     * these can deadlock on a lock copied in the locked state.
+     */
+    char* resolved_path = NULL;
+    if (!options->inherit_environment) {
+        static const char* const empty_env[] = {NULL};
+        const char* const* env =
+            options->environment ? (const char* const*)options->environment : empty_env;
+        resolved_path = find_in_path(command, env);
+    }
+    const char* exec_target = resolved_path ? (const char*)resolved_path : command;
+
     // Fork the process
     pid_t pid = fork();
 
-    if (pid < 0) { return PROCESS_ERROR_FORK_FAILED; }
+    if (pid < 0) {
+        free(resolved_path);
+        return PROCESS_ERROR_FORK_FAILED;
+    }
 
     if (pid == 0) {
         // Child process
@@ -1058,7 +1095,7 @@ ProcessError process_create_with_redirection(ProcessHandle** handle, const char*
         if (options->io.stdin_pipe) {
             if (dup2(options->io.stdin_pipe->read_fd, STDIN_FILENO) == -1) {
                 perror("dup2");
-                return PROCESS_ERROR_IO;
+                _exit(127); /* BUG #19: never return from a forked child */
             };
 
             // Close pipe handles that aren't needed in child
@@ -1070,7 +1107,7 @@ ProcessError process_create_with_redirection(ProcessHandle** handle, const char*
         if (options->io.stdout_pipe) {
             if (dup2(options->io.stdout_pipe->write_fd, STDOUT_FILENO) == -1) {
                 perror("dup2");
-                return PROCESS_ERROR_IO;
+                _exit(127); /* BUG #19: never return from a forked child */
             };
             close(options->io.stdout_pipe->read_fd);
             close(options->io.stdout_pipe->write_fd);
@@ -1078,7 +1115,7 @@ ProcessError process_create_with_redirection(ProcessHandle** handle, const char*
             // Redirect stdout to file
             if (dup2(options->io.stdout_file->fd, STDOUT_FILENO) == -1) {
                 perror("dup2");
-                return PROCESS_ERROR_IO;
+                _exit(127); /* BUG #19: never return from a forked child */
             };
             if (options->io.stdout_file->close_on_exec) { close(options->io.stdout_file->fd); }
         }
@@ -1087,7 +1124,7 @@ ProcessError process_create_with_redirection(ProcessHandle** handle, const char*
         if (options->io.stderr_pipe) {
             if (dup2(options->io.stderr_pipe->write_fd, STDERR_FILENO) == -1) {
                 perror("dup2");
-                return PROCESS_ERROR_IO;
+                _exit(127); /* BUG #19: never return from a forked child */
             };
             close(options->io.stderr_pipe->read_fd);
             close(options->io.stderr_pipe->write_fd);
@@ -1095,13 +1132,13 @@ ProcessError process_create_with_redirection(ProcessHandle** handle, const char*
             // Redirect stderr to file
             if (dup2(options->io.stderr_file->fd, STDERR_FILENO) == -1) {
                 perror("dup2");
-                return PROCESS_ERROR_IO;
+                _exit(127); /* BUG #19: never return from a forked child */
             };
             if (options->io.stderr_file->close_on_exec) { close(options->io.stderr_file->fd); }
         } else if (options->io.merge_stderr) {
             if (dup2(STDOUT_FILENO, STDERR_FILENO) == -1) {
                 perror("dup2");
-                return PROCESS_ERROR_IO;
+                _exit(127); /* BUG #19: never return from a forked child */
             };
         }
 
@@ -1110,14 +1147,17 @@ ProcessError process_create_with_redirection(ProcessHandle** handle, const char*
             if (setsid() < 0) { _exit(127); }
         }
 
-        // Execute the command
+        // Execute the command.  exec_target is PATH-resolved pre-fork for
+        // non-inherited environments (see note at function top).
         if (options->environment) {
-            if (execve(command, (char* const*)argv, (char* const*)options->environment) == -1) { perror("execve"); };
+            if (execve(exec_target, (char* const*)argv, (char* const*)options->environment) == -1) { perror("execve"); };
         } else if (options->inherit_environment) {
             if (execvp(command, (char* const*)argv) == -1) { perror("execvp"); };
         } else {
             char* empty_env[] = {NULL};
-            if (execve(command, (char* const*)argv, empty_env) == -1) { perror("execve"); };
+            /* Pre-fork resolution makes PATH lookup work even here, where
+             * the previous implementation always failed for bare names. */
+            if (execve(exec_target, (char* const*)argv, empty_env) == -1) { perror("execve"); };
         }
 
         // If we get here, exec failed
