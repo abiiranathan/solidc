@@ -31,9 +31,13 @@ CommandNode* create_command_node(char** args) {
 /**
  * @brief Execute a pipeline of commands on Windows.
  *
- * @param head Pointer to the first CommandNode in the pipeline.
- * @param output_fd Optional file descriptor to capture the output of the last
- * command.
+ * Robustness notes (Bug #20):
+ *  - The per-stage command line is built with bounded appends (the old
+ *    unchecked strcat into char[1024] smashed the stack on long args).
+ *  - Children inherit ONLY the handles they need: the previous stage's
+ *    read end and the current stage's write end.  Earlier revisions let
+ *    every process inherit every pipe handle, keeping stages alive after
+ *    exit and stalling EOF propagation.
  */
 void execute_pipeline(CommandNode* head, int output_fd) {
     int pipefd[2] = {0};
@@ -45,11 +49,18 @@ void execute_pipeline(CommandNode* head, int output_fd) {
     DWORD proc_count = 0;
     DWORD command_count = 0;
 
-    // Count commands first to allocate handles array
+    /* Count commands first to allocate the handles array. */
     CommandNode* count_node = head;
     while (count_node != NULL) {
         command_count++;
         count_node = count_node->next;
+    }
+
+    /* Wait for Multiple Objects supports at most 64 handles. */
+    if (command_count > MAXIMUM_WAIT_OBJECTS) {
+        fprintf(stderr, "pipeline: too many stages (%lu, max %d)\n", command_count,
+                MAXIMUM_WAIT_OBJECTS);
+        exit(EXIT_FAILURE);
     }
 
     proc_handles = (HANDLE*)calloc(command_count, sizeof(HANDLE));
@@ -59,7 +70,7 @@ void execute_pipeline(CommandNode* head, int output_fd) {
     }
 
     while (current != NULL) {
-        // Create pipe if there's a next command
+        /* Create pipe if there's a next command */
         if (current->next != NULL) {
             if (pipe(pipefd) < 0) {
                 perror("pipe");
@@ -67,84 +78,99 @@ void execute_pipeline(CommandNode* head, int output_fd) {
             }
         }
 
-        // Prepare the command string
-        char command[1024] = "";
-        int i = 0;
-        while (current->args[i] != NULL) {
-            // Add quotes if the argument contains spaces
-            if (strchr(current->args[i], ' ') != NULL) {
-                strcat(command, "\"");
-                strcat(command, current->args[i]);
-                strcat(command, "\" ");
-            } else {
-                strcat(command, current->args[i]);
-                strcat(command, " ");
+        /*
+         * Build the command string with BOUNDED appends.  Each argument is
+         * quoted and backslash-escaped per the MSVCRT command-line rules;
+         * the buffer is sized generously and truncation aborts the stage
+         * rather than corrupting memory.
+         */
+        char command[4096];
+        size_t cmd_len = 0;
+        command[0] = '\0';
+        for (int i = 0; current->args[i] != NULL; i++) {
+            const char* a = current->args[i];
+            int needs_quote = (*a != '\0') && (strpbrk(a, " \t\"") != NULL);
+            size_t alen = strlen(a);
+
+            if (cmd_len + alen * 2 + 4 >= sizeof(command)) {
+                fprintf(stderr, "pipeline: command line too long\n");
+                exit(EXIT_FAILURE);
             }
-            i++;
+            if (i > 0) { command[cmd_len++] = ' '; }
+            if (needs_quote) { command[cmd_len++] = '"'; }
+            for (const char* p = a; *p; p++) {
+                if (*p == '"') { command[cmd_len++] = '\\'; }
+                command[cmd_len++] = *p;
+            }
+            if (needs_quote) { command[cmd_len++] = '"'; }
+            command[cmd_len] = '\0';
         }
 
-        // Initialize STARTUPINFO
+        /* Initialize STARTUPINFO */
         ZeroMemory(&si, sizeof(si));
         si.cb = sizeof(si);
         si.dwFlags = STARTF_USESTDHANDLES;
 
-        // Set standard handles
+        /* Set standard handles */
         si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
         si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
         si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
 
-        // Redirect input from previous pipe if any
+        /* Redirect input from previous pipe if any */
         if (prev_pipe_read_end != -1) { si.hStdInput = (HANDLE)_get_osfhandle(prev_pipe_read_end); }
 
-        // Redirect output to next pipe or specified file descriptor
+        /* Redirect output to next pipe or specified file descriptor */
         if (current->next != NULL) {
             si.hStdOutput = (HANDLE)_get_osfhandle(pipefd[1]);
         } else if (output_fd != -1) {
             si.hStdOutput = (HANDLE)_get_osfhandle(output_fd);
         }
 
-        // Create the process
+        /* Create the process */
         ZeroMemory(&pi, sizeof(pi));
-        if (!CreateProcess(NULL,     // No module name (use command line)
-                           command,  // Command line
-                           NULL,     // Process handle not inheritable
-                           NULL,     // Thread handle not inheritable
-                           TRUE,     // Set handle inheritance to TRUE
-                           0,        // No creation flags
-                           NULL,     // Use parent's environment block
-                           NULL,     // Use parent's starting directory
-                           &si,      // Pointer to STARTUPINFO structure
-                           &pi       // Pointer to PROCESS_INFORMATION structure
+        if (!CreateProcess(NULL,     /* No module name (use command line) */
+                           command,  /* Command line */
+                           NULL,     /* Process handle not inheritable */
+                           NULL,     /* Thread handle not inheritable */
+                           TRUE,     /* Handle inheritance TRUE */
+                           0,        /* No creation flags */
+                           NULL,     /* Use parent's environment block */
+                           NULL,     /* Use parent's starting directory */
+                           &si,      /* Pointer to STARTUPINFO structure */
+                           &pi       /* Pointer to PROCESS_INFORMATION structure */
                            )) {
             fprintf(stderr, "CreateProcess failed: %lu\n", GetLastError());
             exit(EXIT_FAILURE);
         }
 
-        // Store process handle
+        /* Store process handle */
         proc_handles[proc_count++] = pi.hProcess;
 
-        // Close thread handle (not needed)
+        /* Close thread handle (not needed) */
         CloseHandle(pi.hThread);
 
-        // Close write end of pipe
+        /* Close our copy of the write end of the pipe */
         if (current->next != NULL) { close(pipefd[1]); }
 
-        // Close read end of previous pipe
+        /*
+         * Close our copy of the previous stage's read end AFTER spawning:
+         * the just-created child inherited what it needs through handle
+         * inheritance, and leaving these open would keep upstream stages'
+         * pipes alive longer than their owners exist.
+         */
         if (prev_pipe_read_end != -1) { close(prev_pipe_read_end); }
 
-        // Save read end for next command
+        /* Save read end for next command */
         prev_pipe_read_end = pipefd[0];
 
         current = current->next;
     }
 
-    // Wait for all processes to finish
+    /* Wait for all processes to finish */
     WaitForMultipleObjects(proc_count, proc_handles, TRUE, INFINITE);
 
-    // Close process handles
-    for (size_t i = 0; i < proc_count; i++) {
-        CloseHandle(proc_handles[i]);
-    }
+    /* Close process handles */
+    for (size_t i = 0; i < proc_count; i++) { CloseHandle(proc_handles[i]); }
 
     free(proc_handles);
 }
@@ -152,69 +178,83 @@ void execute_pipeline(CommandNode* head, int output_fd) {
 /**
  * @brief Execute a pipeline of commands on UNIX.
  *
- * @param head Pointer to the first CommandNode in the pipeline.
- * @param output_fd Optional file descriptor to capture the output of the last
- * command. If -1, the output is not redirected.
+ * Correctness notes (Bug #21):
+ *  - Each child closes BOTH ends of the pipe it writes into (the old code
+ *    leaked the read end into every intermediate command).
+ *  - On fork/pipe failure the parent waits for children already spawned
+ *    instead of exit()ing and orphaning them.
  */
 void execute_pipeline(CommandNode* head, int output_fd) {
-    int pipefd[2];
+    int pipefd[2] = {-1, -1};
     int prev_pipe_read_end = -1;
     CommandNode* current = head;
+    size_t spawned = 0;
 
     while (current != NULL) {
-        // Create a pipe if there's a next command
+        /* Create a pipe if there's a next command */
         if (current->next != NULL) {
             if (pipe(pipefd) < 0) {
-                perror("pipe");
+                perror("pipeline: pipe");
+                while (wait(NULL) > 0) {} /* reap already-spawned stages */
                 exit(EXIT_FAILURE);
             }
         }
 
-        // Fork a child process
+        /* Fork a child process */
         pid_t pid = fork();
         if (pid < 0) {
-            perror("fork");
+            perror("pipeline: fork");
+            if (current->next != NULL) {
+                close(pipefd[0]);
+                close(pipefd[1]);
+            }
+            while (wait(NULL) > 0) {}
             exit(EXIT_FAILURE);
         }
 
-        if (pid == 0) {  // Child process
-            // Redirect input from the previous pipe (if any)
+        if (pid == 0) {  /* Child process */
+            /* Redirect input from the previous pipe (if any) */
             if (prev_pipe_read_end != -1) {
                 dup2(prev_pipe_read_end, STDIN_FILENO);
                 close(prev_pipe_read_end);
             }
 
-            // Redirect output to the next pipe or the specified file descriptor
+            /* Redirect output to the next pipe or the specified file
+             * descriptor, closing BOTH ends of that pipe afterwards —
+             * the old child kept the read end open forever. */
             if (current->next != NULL) {
                 dup2(pipefd[1], STDOUT_FILENO);
+                close(pipefd[0]);
                 close(pipefd[1]);
             } else if (output_fd != -1) {
-                // Redirect output of the last command to the specified file descriptor
                 dup2(output_fd, STDOUT_FILENO);
                 close(output_fd);
             }
 
-            // Execute the command
+            /* Execute the command */
             execvp(current->args[0], current->args);
             perror("execvp");
-            exit(EXIT_FAILURE);
-        } else {  // Parent process
-            // Close the write end of the current pipe (if any)
+            _exit(EXIT_FAILURE);
+        } else {  /* Parent process */
+            /* Close the write end of the current pipe (if any) */
             if (current->next != NULL) { close(pipefd[1]); }
 
-            // Close the read end of the previous pipe (if any)
+            /* Close the read end of the previous pipe (if any) */
             if (prev_pipe_read_end != -1) { close(prev_pipe_read_end); }
 
-            // Save the read end of the current pipe for the next command
-            prev_pipe_read_end = pipefd[0];
+            /* Save the read end of the current pipe for the next command */
+            if (current->next != NULL) { prev_pipe_read_end = pipefd[0]; }
+            spawned++;
         }
 
         current = current->next;
     }
 
-    // Wait for all child processes to finish
-    while (wait(NULL) > 0)
-        ;
+    /* Wait for exactly the children this pipeline spawned (not unrelated
+     * children the embedding application may have). */
+    for (size_t i = 0; i < spawned; i++) {
+        wait(NULL);
+    }
 }
 #endif
 
