@@ -27,9 +27,7 @@ int g_tests_failed = 0;
    Helpers
    ================================================== */
 
-void print_header(const char* name) {
-    printf("\n" ANSI_COLOR_YELLOW "=== Testing %s ===" ANSI_COLOR_RESET "\n", name);
-}
+void print_header(const char* name) { printf("\n" ANSI_COLOR_YELLOW "=== Testing %s ===" ANSI_COLOR_RESET "\n", name); }
 
 void assert_bool(const char* name, bool condition) {
     if (!condition) {
@@ -143,17 +141,17 @@ void test_orthonormalize() {
 void test_eigen_symmetric() {
     print_header("Eigen Decomposition (Symmetric 3x3)");
 
-    Mat3 A                = mat3_new_column_major(2, 1, 0, 1, 2, 0, 0, 0, 3);
+    Mat3 A = mat3_new_column_major(2, 1, 0, 1, 2, 0, 0, 0, 3);
     EigenDecomposition ed = mat3_eigen_symmetric(A);
 
     // FIX: Extract column 0 for the eigenvector, not row 0.
     // Eigenvectors are stored as columns in V.
-    Vec3 v0       = {ed.eigenvectors.m[0][0], ed.eigenvectors.m[1][0], ed.eigenvectors.m[2][0]};
+    Vec3 v0 = {ed.eigenvectors.m[0][0], ed.eigenvectors.m[1][0], ed.eigenvectors.m[2][0]};
     float lambda0 = ed.eigenvalues.x;
 
-    Vec3 Av0     = mat3_mul_vec3(A, v0);
+    Vec3 Av0 = mat3_mul_vec3(A, v0);
     SimdVec3 Lv0 = vec3_mul(vec3_load(v0), lambda0);  // lambda * v
-    Vec3 Lv0Vec  = vec3_store(Lv0);
+    Vec3 Lv0Vec = vec3_store(Lv0);
 
     if (vec3_is_close(Av0, Lv0Vec, LOOSE_EPSILON)) {
         printf(ANSI_COLOR_GREEN "[PASS] A*v0 == lambda*v0\n" ANSI_COLOR_RESET);
@@ -185,10 +183,9 @@ void test_svd() {
     // Transpose V manually for check
     Mat3 Vt;
     for (int i = 0; i < 3; i++)
-        for (int j = 0; j < 3; j++)
-            Vt.m[i][j] = V.m[j][i];
+        for (int j = 0; j < 3; j++) Vt.m[i][j] = V.m[j][i];
 
-    Mat3 US    = mat3_mul(U, S_mat);
+    Mat3 US = mat3_mul(U, S_mat);
     Mat3 Recon = mat3_mul(US, Vt);
 
     if (mat3_is_close(A, Recon, LOOSE_EPSILON)) {
@@ -223,7 +220,7 @@ void test_qr() {
     }
 
     // 2. Check Q Orthogonality (Q^T * Q = I)
-    Mat4 Qt  = mat4_transpose(Q);
+    Mat4 Qt = mat4_transpose(Q);
     Mat4 QtQ = mat4_mul(Qt, Q);
     if (mat4_is_close(QtQ, mat4_identity(), LOOSE_EPSILON)) {
         printf(ANSI_COLOR_GREEN "[PASS] Q is Orthogonal\n" ANSI_COLOR_RESET);
@@ -282,10 +279,10 @@ void test_solve_linear() {
     // 2x = 4 -> x=2
     // y = 3
     // z = 1
-    Mat3 A3    = mat3_identity();
+    Mat3 A3 = mat3_identity();
     A3.m[0][0] = 2.0f;
-    Vec3 b3    = {4.0f, 3.0f, 1.0f};
-    Vec3 x3    = mat3_solve(A3, b3);
+    Vec3 b3 = {4.0f, 3.0f, 1.0f};
+    Vec3 x3 = mat3_solve(A3, b3);
     assert_vec3_eq("Mat3 Solve", (Vec3){2.0f, 3.0f, 1.0f}, vec3_load(x3));
 
     // 4x4 System (Permutation)
@@ -307,8 +304,8 @@ void test_graphics_extensions() {
     {
         OrthonormalBasis b = basis_from_normal((Vec3){0.0f, 0.0f, 1.0f});
         assert_float_eq("Basis Normal Preserved", 1.0f, b.v2.z, EPSILON);
-        assert_float_eq("Basis Tangent Unit", 1.0f,
-                        sqrtf(b.v0.x * b.v0.x + b.v0.y * b.v0.y + b.v0.z * b.v0.z), EPSILON);
+        assert_float_eq("Basis Tangent Unit", 1.0f, sqrtf(b.v0.x * b.v0.x + b.v0.y * b.v0.y + b.v0.z * b.v0.z),
+                        EPSILON);
 
         // All pairs mutually orthogonal
         float d01 = b.v0.x * b.v1.x + b.v0.y * b.v1.y + b.v0.z * b.v1.z;
@@ -404,13 +401,13 @@ static float fcol_std(const FMat* m, size_t col) {
     return sqrtf((float)(var / (double)m->rows));
 }
 
-/** Checks reconstruction, orthonormality, and descending order of a decomposition. */static void svd_check_decomposition(const char* name, const FMat* a, const FMat* u, const FMat* s, const FMat* v,
-                                    float tol) {
+/** Checks reconstruction, orthonormality, and descending order of a decomposition. */ static void
+svd_check_decomposition(const char* name, const FMat* a, const FMat* u, const FMat* s, const FMat* v, float tol) {
     const size_t m = a->rows, n = a->cols, k = (m < n) ? m : n;
 
     // Shapes
-    assert_bool(name, u && u->rows == m && u->cols == k && s && s->rows == k && s->cols == 1 && v &&
-                          v->rows == n && v->cols == k);
+    assert_bool(name, u && u->rows == m && u->cols == k && s && s->rows == k && s->cols == 1 && v && v->rows == n &&
+                          v->cols == k);
 
     // Singular values strictly non-negative and descending
     bool ordered = true;
@@ -628,9 +625,8 @@ void test_ml_extensions() {
         FMat z = fmat_copy(&a);
         FMat bias = fmat_from_array(1, 2, (float[]){10.0f, -10.0f});
         assert_bool("Bias Broadcast Runs", fmat_add_row_vector(&z, &bias));
-        assert_bool("Bias Broadcast Values",
-                    fmat_get(&z, 0, 0) == 11.0f && fmat_get(&z, 1, 0) == 13.0f &&
-                    fmat_get(&z, 0, 1) == -8.0f && fmat_get(&z, 1, 1) == -6.0f);
+        assert_bool("Bias Broadcast Values", fmat_get(&z, 0, 0) == 11.0f && fmat_get(&z, 1, 0) == 13.0f &&
+                                                 fmat_get(&z, 0, 1) == -8.0f && fmat_get(&z, 1, 1) == -6.0f);
 
         fmat_destroy(&a);
         fmat_destroy(&b);
@@ -650,10 +646,10 @@ void test_ml_extensions() {
         FMat am = fmat_argmax_rows(&m);
 
         assert_bool("Sum Cols", fmat_get(&sc, 0, 0) == 9.0f && fmat_get(&sc, 0, 1) == 12.0f);
-        assert_bool("Mean Cols", fabsf(fmat_get(&mc, 0, 0) - 3.0f) < EPSILON &&
-                                     fabsf(fmat_get(&mc, 0, 1) - 4.0f) < EPSILON);
-        assert_bool("Argmax Rows", fmat_get(&am, 0, 0) == 1.0f && fmat_get(&am, 1, 0) == 1.0f &&
-                                       fmat_get(&am, 2, 0) == 1.0f);
+        assert_bool("Mean Cols",
+                    fabsf(fmat_get(&mc, 0, 0) - 3.0f) < EPSILON && fabsf(fmat_get(&mc, 0, 1) - 4.0f) < EPSILON);
+        assert_bool("Argmax Rows",
+                    fmat_get(&am, 0, 0) == 1.0f && fmat_get(&am, 1, 0) == 1.0f && fmat_get(&am, 2, 0) == 1.0f);
 
         fmat_destroy(&m);
         fmat_destroy(&sc);
@@ -666,8 +662,8 @@ void test_ml_extensions() {
         FMat m = fmat_from_array(2, 2, (float[]){-1.0f, 0.0f, 2.0f, -3.0f});
 
         FMat r = fmat_relu(&m);
-        assert_bool("ReLU", fmat_get(&r, 0, 0) == 0.0f && fmat_get(&r, 0, 1) == 0.0f &&
-                                fmat_get(&r, 1, 0) == 2.0f && fmat_get(&r, 1, 1) == 0.0f);
+        assert_bool("ReLU", fmat_get(&r, 0, 0) == 0.0f && fmat_get(&r, 0, 1) == 0.0f && fmat_get(&r, 1, 0) == 2.0f &&
+                                fmat_get(&r, 1, 1) == 0.0f);
 
         FMat sg = fmat_sigmoid(&m);
         assert_bool("Sigmoid(0)=0.5", fabsf(fmat_get(&sg, 0, 1) - 0.5f) < EPSILON);
@@ -808,8 +804,8 @@ void test_pinv_pca() {
         FMat b = fmat_from_array(4, 1, (float[]){1, 3, 5, 7});
         FMat x;
         assert_bool("Lstsq Runs", fmat_lstsq(&a, &b, &x));
-        assert_bool("Lstsq Exact Fit", fabsf(fmat_get(&x, 0, 0) - 2.0f) < 1e-3f &&
-                                          fabsf(fmat_get(&x, 1, 0) - 1.0f) < 1e-3f);
+        assert_bool("Lstsq Exact Fit",
+                    fabsf(fmat_get(&x, 0, 0) - 2.0f) < 1e-3f && fabsf(fmat_get(&x, 1, 0) - 1.0f) < 1e-3f);
         fmat_destroy(&a);
         fmat_destroy(&b);
         fmat_destroy(&x);
@@ -822,8 +818,8 @@ void test_pinv_pca() {
         FMat b = fmat_from_array(5, 1, (float[]){-2.1f, 1.2f, 3.8f, 7.1f, 9.8f});
         FMat x;
         assert_bool("Lstsq Noisy Runs", fmat_lstsq(&a, &b, &x));
-        assert_bool("Lstsq Noisy Recovered", fabsf(fmat_get(&x, 0, 0) - 3.0f) < 0.15f &&
-                                                 fabsf(fmat_get(&x, 1, 0) - (-2.0f)) < 0.15f);
+        assert_bool("Lstsq Noisy Recovered",
+                    fabsf(fmat_get(&x, 0, 0) - 3.0f) < 0.15f && fabsf(fmat_get(&x, 1, 0) - (-2.0f)) < 0.15f);
         fmat_destroy(&a);
         fmat_destroy(&b);
         fmat_destroy(&x);
@@ -876,6 +872,61 @@ void test_pinv_pca() {
     }
 }
 
+void test_batch_transform() {
+    print_header("Batch vertex transform (fmat_from_mat4 / fmat_batch_transform)");
+
+    // fmat_from_mat4 copies all 16 elements
+    Mat4 m = mat4_new_column_major(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+    FMat fm = fmat_from_mat4(&m);
+    bool ok = fm.rows == 4 && fm.cols == 4;
+    for (size_t c = 0; ok && c < 4; c++) {
+        for (size_t r = 0; r < 4; r++) {
+            if (fmat_get(&fm, r, c) != m.m[c][r]) ok = false;
+        }
+    }
+    assert_bool("FromMat4 Copies Elements", ok);
+
+    // Batch transform matches per-point mat4_mul_vec4
+    Mat4 model =
+        mat4_compose((Vec3){2.0f, -1.0f, 0.5f}, quat_from_axis_angle((Vec3){1, 2, -1}, 0.7f), (Vec3){1.0f, 1.0f, 1.0f});
+    Mat4 view = mat4_look_at(vec3_load((Vec3){0, 3, -5}), vec3_load((Vec3){0, 0, 0}), vec3_load((Vec3){0, 1, 0}));
+    Mat4 mvp = mat4_mul(mat4_perspective(1.0f, 1.6f, 0.1f, 50.0f), mat4_mul(view, model));
+
+    FMat points = fmat_create(5, 4);
+    for (size_t i = 0; i < 5; i++) {
+        fmat_set(&points, i, 0, (float)i * 0.7f - 1.4f);
+        fmat_set(&points, i, 1, sinf((float)i) * 0.5f);
+        fmat_set(&points, i, 2, cosf((float)i) * 0.5f);
+        fmat_set(&points, i, 3, 1.0f);
+    }
+
+    FMat batch = fmat_batch_transform(&mvp, &points);
+    assert_bool("Batch Transform Runs", batch.data != NULL && batch.rows == 5 && batch.cols == 4);
+
+    ok = true;
+    for (size_t i = 0; i < 5; i++) {
+        Vec4 p = {fmat_get(&points, i, 0), fmat_get(&points, i, 1), fmat_get(&points, i, 2), 1.0f};
+        Vec4 ref = mat4_mul_vec4(mvp, p);
+        for (size_t c = 0; c < 4; c++) {
+            const float got = fmat_get(&batch, i, c);
+            const float expected = (c == 0) ? ref.x : (c == 1) ? ref.y : (c == 2) ? ref.z : ref.w;
+            if (fabsf(got - expected) > 1e-4f) ok = false;
+        }
+    }
+    assert_bool("Batch Transform Matches mat4_mul_vec4", ok);
+
+    // Dimension mismatch is rejected
+    FMat bad = fmat_create(3, 3);
+    FMat out;
+    out = fmat_batch_transform(&mvp, &bad);
+    assert_bool("Batch Transform Rejects Bad Shape", out.data == NULL);
+
+    fmat_destroy(&fm);
+    fmat_destroy(&points);
+    fmat_destroy(&batch);
+    fmat_destroy(&bad);
+}
+
 int main() {
     test_orthonormalize();
     test_eigen_symmetric();
@@ -888,6 +939,7 @@ int main() {
     test_general_svd();
     test_ml_extensions();
     test_pinv_pca();
+    test_batch_transform();
 
     print_header("Summary");
     printf("Total Tests: %d\n", g_tests_passed + g_tests_failed);

@@ -33,3 +33,6 @@ target_link_libraries(ml_prototype PRIVATE ${SOLIDC_LINK_LIB})
 
 add_executable(iris_classifier iris_classifier.c)
 target_link_libraries(iris_classifier PRIVATE ${SOLIDC_LINK_LIB})
+
+add_executable(sw_renderer sw_renderer.c)
+target_link_libraries(sw_renderer PRIVATE ${SOLIDC_LINK_LIB})

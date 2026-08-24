@@ -596,6 +596,72 @@ static inline FMat fmat_mul(const FMat* a, const FMat* b) {
     return out;
 }
 
+/**
+ * @brief Copies a fixed-size Mat4 into a dynamically allocated FMat.
+ * Useful for feeding Mat4 transforms into fmat_* batch operations.
+ */
+static inline FMat fmat_from_mat4(const Mat4* m) {
+    FMat out = {0, 0, NULL};
+    if (!m) return out;
+    out = fmat_create(4, 4);
+    if (!out.data) return out;
+    // Mat4 stores column-major (m[col][row]); FMat is row-major, so the
+    // copy transposes indices to keep both representing the same matrix.
+    for (size_t c = 0; c < 4; c++) {
+        for (size_t r = 0; r < 4; r++) {
+            fmat_set(&out, r, c, m->m[c][r]);
+        }
+    }
+    return out;
+}
+
+/**
+ * @brief Transforms N homogeneous 4-component points by a 4x4 matrix.
+ *
+ * This is the batched vertex-transform workhorse of a software graphics
+ * pipeline: instead of per-point function calls, the whole vertex buffer
+ * goes through one GEMM. Points are rows [x y z w] of an N x 4 matrix.
+ *
+ * @param m     4 x 4 transform (e.g., model-view-projection).
+ * @param points N x 4 row-major homogeneous points.
+ * @return New N x 4 matrix of transformed points, or an invalid matrix
+ *         ({NULL}) on bad input or allocation failure.
+ */
+static inline FMat fmat_batch_transform(const Mat4* m, const FMat* points) {
+    if (!m || !fmat_valid(points) || points->cols != 4) {
+        FMat empty = {0, 0, NULL};
+        return empty;
+    }
+    // Row-vector times matrix: p' = p * M matches mat4_mul_vec4 semantics
+    // (column-major M). Compute it as a single GEMM via transpose trick:
+    // (P * M)^T = M^T * P^T, so transpose both and flip the product.
+    FMat pt_t = fmat_transpose(points); /* 4 x N */
+    if (!pt_t.data) {
+        FMat empty = {0, 0, NULL};
+        return empty;
+    }
+
+    FMat mt = fmat_create(4, 4);
+    if (!mt.data) {
+        fmat_destroy(&pt_t);
+        FMat empty = {0, 0, NULL};
+        return empty;
+    }
+    for (size_t c = 0; c < 4; c++) {
+        for (size_t r = 0; r < 4; r++) {
+            fmat_set(&mt, c, r, m->m[r][c]); /* mt = M^T */
+        }
+    }
+
+    FMat out_t = fmat_mul(&mt, &pt_t); /* 4 x N */
+    fmat_destroy(&mt);
+    fmat_destroy(&pt_t);
+
+    FMat out = fmat_transpose(&out_t); /* N x 4 */
+    fmat_destroy(&out_t);
+    return out;
+}
+
 /* --- One-sided Jacobi SVD internals ------------------------------------- */
 
 #define FMAT_SVD_MAX_SWEEPS 60
