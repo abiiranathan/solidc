@@ -450,7 +450,7 @@ int main(void) {
         cstr* s8 = cstr_new(utf8);
         cstr_lower(s8);
         ASSERT_cstr_equals(s8, utf8, "cstr_lower preserves UTF-8 bytes");
-        cstr_drop(s8);
+        cstr_free(s8); /* heap-allocated cstr: free(), not drop() */
         s8 = cstr_new(utf8);
         cstr_upper(s8);
         {
@@ -462,7 +462,7 @@ int main(void) {
             }
             ASSERT(corrupt == 0 && "cstr_upper preserves all UTF-8 bytes");
         }
-        cstr_drop(s8);
+        cstr_free(s8);
 
         /* Deterministic pseudo-fuzz: mixed-case ASCII round-trips exactly. */
         unsigned rng = 12345;
@@ -502,7 +502,9 @@ int main(void) {
         // 1. CamelCase -> snake_case with SSO promotion
         cstr* s1 = cstr_new("HelloWorldMyDearFriend");
         ASSERT(s1);
-        ASSERT(!cstr_allocated(s1));  // Starts in SSO mode (len 22 <= SSO cap 16? No, 22 > 15, so heap or SSO)
+        /* len 22 exceeds the SSO capacity, so this string must already be
+         * heap-allocated (SSO promotion happened at construction). */
+        ASSERT(cstr_allocated(s1));
         ASSERT(cstr_snakecase(s1));
         ASSERT_cstr_equals(s1, "hello_world_my_dear_friend", "str_snake_case CamelCase content");
         cstr_free(s1);

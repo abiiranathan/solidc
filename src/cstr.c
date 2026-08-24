@@ -346,7 +346,9 @@ bool cstr_insert_cstr(cstr* s, size_t index, const cstr* insert) {
 
     char* pos = s->data + index;
     memmove(pos + n, pos, s->length - index + 1);
-    memcpy(pos, insert->data, n);
+    /* memmove, not memcpy: insert may alias s (self-insert), making the
+     * regions overlap after the shift above. */
+    memmove(pos, insert->data, n);
     s->length = new_len;
     return true;
 }
@@ -772,60 +774,80 @@ void cstr_upper(cstr* s) {
     simd_ascii_upper(s->data, s->length);
 }
 
+/*
+ * Underscore injection decision for snake_case, evaluated on the ORIGINAL
+ * input (mirrors str_snake_should_underscore() in str.h):
+ *   lower -> UPPER   myVar     -> my_var
+ *   UPPER -> UPPERlower (acronym end)  XMLParser -> xml_parser
+ */
+static inline bool cstr_snake_should_underscore(const char* d, uint32_t i, uint32_t len) {
+    (void)len;
+    if (i == 0) return false;
+
+    unsigned char c = (unsigned char)d[i];
+    unsigned char prev = (unsigned char)d[i - 1];
+    unsigned char next = (i + 1 < len) ? (unsigned char)d[i + 1] : (unsigned char)'x';
+
+    bool curr_upper = (unsigned)(c - 'A') <= 25u;
+    bool prev_lower = (unsigned)(prev - 'a') <= 25u || (unsigned)(prev - '0') <= 9u;
+    bool prev_upper = (unsigned)(prev - 'A') <= 25u;
+
+    if (!curr_upper) return false;
+    if (prev_lower) return true; /* lower -> UPPER: myVar -> my_var */
+    /* Acronym end: UPPER -> UPPER -> lower: XMLParser -> xml_parser */
+    return prev_upper && (unsigned)(next - 'a') <= 25u;
+}
+
 bool cstr_snakecase(cstr* s) {
     uint32_t orig = s->length;
     if (orig == 0) return true;
 
-    /* First pass: count required extra capacity */
-    const char* d = s->data;
-    uint32_t extra = 0;
-    for (uint32_t i = 0; i < orig; i++) {
-        unsigned char c = (unsigned char)d[i];
-        if (c == ' ' || c == '-') {
-            /* Will replace space/hyphen with '_' (0 extra bytes) */
-            continue;
-        }
-        /* Insert '_' before uppercase if preceded by lowercase/number */
-        if (i > 0 && (unsigned)(c - 'A') <= 25u) {
-            unsigned char prev = (unsigned char)d[i - 1];
-            if (prev != '_' && prev != ' ' && prev != '-' && (unsigned)(prev - 'A') > 25u) { extra++; }
-        }
+    /*
+     * FIX (corruption): the previous implementation converted in place with
+     * two forward cursors.  Once an inserted '_' pushed the write cursor
+     * past the read cursor, the loop re-read its own output ("HelloWorld"
+     * became "hello_wwwwww...").  Build the result in a scratch buffer
+     * first; worst case doubles every byte ('_' before each char).
+     */
+    size_t max_out = (size_t)orig * 2;
+    char stack_tmp[512];
+    char* tmp = stack_tmp;
+    bool heap_tmp = max_out + 1 > sizeof(stack_tmp);
+    if (heap_tmp) {
+        tmp = (char*)malloc(max_out + 1);
+        if (!tmp) return false;
     }
 
-    uint32_t new_len = orig + extra;
-    if (CSTR_UNLIKELY(!cstr_ensure_cap(s, new_len + 1))) return false;
-
-    /* Second pass: convert in-place */
-    d = s->data;
-    uint32_t r = 0, w = 0;
+    const char* d = s->data;
+    size_t w = 0;
     bool last_was_underscore = false;
 
-    while (r < orig) {
-        unsigned char c = (unsigned char)d[r++];
+    for (uint32_t i = 0; i < orig; i++) {
+        unsigned char c = (unsigned char)d[i];
+
+        /* Collapse spaces/hyphens/underscores into one '_' */
         if (c == ' ' || c == '-' || c == '_') {
             if (!last_was_underscore && w > 0) {
-                s->data[w++] = '_';
+                tmp[w++] = '_';
                 last_was_underscore = true;
             }
             continue;
         }
 
-        /* Insert '_' before uppercase if preceded by lowercase/digit */
-        if ((unsigned)(c - 'A') <= 25u) {
-            if (w > 0 && !last_was_underscore) {
-                unsigned char prev = (unsigned char)s->data[w - 1];
-                if ((unsigned)(prev - 'a') <= 25u || (unsigned)(prev - '0') <= 9u) { s->data[w++] = '_'; }
-            }
-            s->data[w++] = (char)(c | 0x20u); /* Lowercase */
-            last_was_underscore = false;
-        } else {
-            s->data[w++] = (char)c;
-            last_was_underscore = false;
+        bool curr_upper = (unsigned)(c - 'A') <= 25u;
+        if (curr_upper && cstr_snake_should_underscore(d, i, orig) && !last_was_underscore && w > 0) {
+            tmp[w++] = '_';
         }
+
+        tmp[w++] = (char)(curr_upper ? (c | 0x20u) : c);
+        last_was_underscore = false;
     }
 
+    memcpy(s->data, tmp, w);
     s->data[w] = '\0';
-    s->length = w;
+    s->length = (uint32_t)w;
+
+    if (heap_tmp) free(tmp);
     return true;
 }
 
@@ -859,7 +881,10 @@ void cstr_camelcase(cstr* s) {
             d[w++] = (char)((unsigned)(c - 'a') <= 25u ? (c & ~0x20u) : c);
             cap = false;
         } else {
-            d[w++] = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
+            /* FIX: interior characters keep their original case.  The old
+             * code lowercased everything not preceded by a separator,
+             * destroying camel-case capitals ("HelloWorld" -> "helloworld"). */
+            d[w++] = (char)c;
         }
     }
     d[w] = '\0';
@@ -886,7 +911,9 @@ void cstr_pascalcase(cstr* s) {
             d[w++] = (char)((unsigned)(c - 'a') <= 25u ? (c & ~0x20u) : c);
             new_word = false;
         } else {
-            d[w++] = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
+            /* FIX: interior characters keep their original case (same bug
+             * class as cstr_camelcase: "helloWorld" -> "Helloworld"). */
+            d[w++] = (char)c;
         }
     }
     d[w] = '\0';
@@ -896,16 +923,25 @@ void cstr_pascalcase(cstr* s) {
 void cstr_titlecase(cstr* s) {
     uint32_t len = s->length;
     char* d = s->data;
+    /*
+     * FIX: a letter is capitalized when the previous character was NOT a
+     * letter (word boundary), not just after whitespace.  The old code
+     * only reset its flag on isspace(), so "foo-bar_baz" kept "bar"/"baz"
+     * lowercase; the documented contract (and tests) require
+     * "Foo-Bar_Baz".
+     */
     bool cap = true;
     for (uint32_t i = 0; i < len; i++) {
         unsigned char c = (unsigned char)d[i];
-        if (isspace(c)) {
+        if (!isalpha(c)) {
             cap = true;
-        } else if (cap) {
+            continue; /* punctuation/digits/space pass through unchanged */
+        }
+        if (cap) {
             d[i] = (char)toupper(c);
             cap = false;
         } else {
-            d[i] = (char)tolower(c);
+            d[i] = (char)tolower(c); /* normalize interior capitals */
         }
     }
 }
