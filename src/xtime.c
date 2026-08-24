@@ -11,7 +11,7 @@
 // Windows CRT provides _s variants; adapt them to the _r call sites below.
 // NULL-return contract matches POSIX so error checks keep working.
 #include <time.h>
-#define gmtime_r(timep, result) (((gmtime_s)((result), (timep)) == 0) ? (result) : NULL)
+#define gmtime_r(timep, result)    (((gmtime_s)((result), (timep)) == 0) ? (result) : NULL)
 #define localtime_r(timep, result) (((localtime_s)((result), (timep)) == 0) ? (result) : NULL)
 #endif
 

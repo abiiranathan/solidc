@@ -286,13 +286,13 @@ int dir_walk(const char* path, WalkDirCallback callback, void* data);
  * Valid only during the callback invocation. Do not store the pointer.
  */
 typedef struct LazyFileAttributes {
-    int dirfd;                  /**< Directory fd for lazy stat (internal) */
-    const char* name;           /**< Entry name (internal) */
-    unsigned char d_type;       /**< d_type from dirent (DT_* constants) */
-    FileAttributes cached;      /**< Cached full attributes */
-    bool has_stat;              /**< Whether cached contains valid stat data */
-    bool is_dir_cached;         /**< Whether is_dir is cached */
-    bool is_dir_value;          /**< Cached is_dir result */
+    int dirfd;             /**< Directory fd for lazy stat (internal) */
+    const char* name;      /**< Entry name (internal) */
+    unsigned char d_type;  /**< d_type from dirent (DT_* constants) */
+    FileAttributes cached; /**< Cached full attributes */
+    bool has_stat;         /**< Whether cached contains valid stat data */
+    bool is_dir_cached;    /**< Whether is_dir is cached */
+    bool is_dir_value;     /**< Cached is_dir result */
 } LazyFileAttributes;
 
 /**

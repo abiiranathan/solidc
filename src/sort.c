@@ -36,8 +36,8 @@
 /* ========================================================================= */
 
 #define SW_INSERTION_THRESHOLD 24
-#define SW_NINTHER_THRESHOLD 128
-#define SW_STACK_TMP_MAX 64
+#define SW_NINTHER_THRESHOLD   128
+#define SW_STACK_TMP_MAX       64
 
 typedef int (*sw_cmp)(const void*, const void*);
 
@@ -152,8 +152,10 @@ static int sw_precheck(char* base, size_t n, size_t sz, sw_cmp cmp, char* tmp) {
     int asc = 1, desc = 1;
     for (size_t i = 1; i < n; i++) {
         int c = cmp(base + i * sz, base + (i - 1) * sz);
-        if (c < 0) asc = 0;
-        else if (c > 0) desc = 0;
+        if (c < 0)
+            asc = 0;
+        else if (c > 0)
+            desc = 0;
         if (!asc && !desc) return 0;
     }
     if (asc) return 1;
@@ -242,240 +244,241 @@ void sol_qsort(void* base, size_t n, size_t size, int (*compar)(const void*, con
  *   TO_KEY(k,x)   / FROM_KEY(k,x) — statements mapping element <-> key var
  *   LESS(a,b)     — strict less-than on T
  */
-#define SOLIDC_SORT_DEF(suffix, T, U, WIDTH, TO_KEY, FROM_KEY, LESS)                                                   \
-    static inline bool solidc_lt_##suffix(T a, T b);                                                                   \
-    static inline bool solidc_lt_##suffix(T a, T b) { return LESS; }                                                   \
-                                                                                                                       \
-    static inline size_t solidc_med3_idx_##suffix(const T* a, size_t x, size_t y, size_t z) {                           \
-        return solidc_lt_##suffix(a[y], a[x])                                                                          \
-                   ? (solidc_lt_##suffix(a[z], a[y]) ? y : (solidc_lt_##suffix(a[z], a[x]) ? z : x))                    \
-                   : (solidc_lt_##suffix(a[y], a[z]) ? y : (solidc_lt_##suffix(a[x], a[z]) ? x : z));                   \
-    }                                                                                                                  \
-                                                                                                                       \
-    static inline size_t solidc_pivot_index_##suffix(const T* a, size_t n) {                                            \
-        if (n > 128) {                                                                                                 \
-            size_t s = n / 8;                                                                                          \
-            size_t m1 = solidc_med3_idx_##suffix(a, 0, s, 2 * s);                                                       \
-            size_t m2 = solidc_med3_idx_##suffix(a, 3 * s, 4 * s, 5 * s);                                               \
-            size_t m3 = solidc_med3_idx_##suffix(a, 6 * s, 7 * s, n - 1);                                               \
-            return solidc_med3_idx_##suffix(a, m1, m2, m3);                                                             \
-        }                                                                                                              \
-        return solidc_med3_idx_##suffix(a, 0, n / 2, n - 1);                                                            \
-    }                                                                                                                  \
-                                                                                                                       \
-    /* Branchless Lomuto over a[0..len): returns count < pv.  Every element                                            \
-     * is written through conditional moves -- no data-dependent branches. */                                           \
-    static inline size_t solidc_partition_##suffix(T* a, size_t len, T pv) {                                            \
-        size_t store = 0;                                                                                              \
-        for (size_t i = 0; i < len; i++) {                                                                             \
-            T v = a[i];                                                                                                \
-            unsigned lt = (unsigned)solidc_lt_##suffix(v, pv);                                                          \
-            T d = a[store];                                                                                            \
-            a[store] = lt ? v : d;                                                                                     \
-            if (i != store) a[i] = lt ? d : v;                                                                         \
-            store += lt;                                                                                               \
-        }                                                                                                              \
-        return store;                                                                                                  \
-    }                                                                                                                  \
-                                                                                                                       \
-    /* Equality-band extraction on region a[0..len).  Moves == pv to the                                              \
-     * FRONT and returns their count.  gt_disc selects the discriminator:                                             \
-     *   true  -> region members are >= pv (pivot was the minimum)                                                   \
-     *   false -> region members are <= pv (pivot was the maximum)                                                   \
-     * Cold path: only runs on degenerate splits. */                                                                   \
-    static inline size_t solidc_split_eq_##suffix(T* a, size_t len, T pv, bool gt_disc) {                                \
-        size_t st = 0;                                                                                                 \
-        for (size_t i = 0; i < len; i++) {                                                                             \
-            T v = a[i];                                                                                                \
-            unsigned side =                                                                                            \
-                (unsigned)(gt_disc ? solidc_lt_##suffix(pv, v) : solidc_lt_##suffix(v, pv));                            \
-            T d = a[st];                                                                                               \
-            a[st] = side ? d : v;                                                                                      \
-            if (i != st) a[i] = side ? v : d;                                                                          \
-            st += (size_t)(1u - side);                                                                                  \
-        }                                                                                                              \
-        return st;                                                                                                     \
-    }                                                                                                                  \
-                                                                                                                       \
-    static inline void solidc_isort_##suffix(T* a, size_t n) {                                                         \
-        for (size_t i = 1; i < n; i++) {                                                                              \
-            T v = a[i];                                                                                                \
-            size_t j = i;                                                                                              \
-            while (j > 0 && solidc_lt_##suffix(v, a[j - 1])) {                                                          \
-                a[j] = a[j - 1];                                                                                       \
-                j--;                                                                                                   \
-            }                                                                                                          \
-            a[j] = v;                                                                                                  \
-        }                                                                                                              \
-    }                                                                                                                  \
-                                                                                                                       \
-    static inline void solidc_sift_##suffix(T* a, size_t root, size_t end) {                                            \
-        for (;;) {                                                                                                    \
-            size_t c = 2 * root + 1;                                                                                   \
-            if (c >= end) break;                                                                                      \
-            if (c + 1 < end && solidc_lt_##suffix(a[c], a[c + 1])) c++;                                                \
-            if (!solidc_lt_##suffix(a[root], a[c])) break;                                                             \
-            T t = a[root];                                                                                            \
-            a[root] = a[c];                                                                                            \
-            a[c] = t;                                                                                                  \
-            root = c;                                                                                                  \
-        }                                                                                                             \
-    }                                                                                                                  \
-                                                                                                                       \
-    static void solidc_heapsort_##suffix(T* a, size_t n) {                                                             \
-        if (n < 2) return;                                                                                            \
-        for (size_t i = n / 2; i-- > 0;) solidc_sift_##suffix(a, i, n);                                                \
-        for (size_t e = n; e-- > 1;) {                                                                                \
-            T t = a[0];                                                                                                \
-            a[0] = a[e];                                                                                               \
-            a[e] = t;                                                                                                  \
-            solidc_sift_##suffix(a, 0, e);                                                                              \
-        }                                                                                                              \
-    }                                                                                                                  \
-                                                                                                                       \
-    /* ---- LSD radix on order-preserving unsigned keys ---- */                                                        \
-    static void solidc_radix_##suffix(T* a, T* tmp, size_t n) {                                                        \
-        U (*to_key)(T) = solidc_to_key_##suffix;                                                                       \
-        T (*from_key)(U) = solidc_from_key_##suffix;                                                                   \
-                                                                                                                       \
-        U* src = (U*)a;                                                                                                \
-        U* dst = (U*)tmp;                                                                                              \
-        for (size_t i = 0; i < n; i++) src[i] = to_key(a[i]);                                                           \
-                                                                                                                       \
-        uint32_t hist[WIDTH][256];                                                                                     \
-        memset(hist, 0, sizeof(hist));                                                                                  \
-        for (size_t i = 0; i < n; i++) {                                                                               \
-            U k = src[i];                                                                                              \
-            for (uint32_t b = 0; b < WIDTH; b++) hist[b][(k >> (8 * b)) & 0xFF]++;                                       \
-        }                                                                                                              \
-                                                                                                                       \
-        U* from = src;                                                                                                 \
-        U* to = dst;                                                                                                    \
-        for (uint32_t b = 0; b < WIDTH; b++) {                                                                          \
-            /* Skip uniform columns: every byte identical => no reordering. */                                         \
-            uint32_t col_total = 0;                                                                                    \
-            for (uint32_t s = 0; s < 256; s++) col_total += hist[b][s];                                                 \
-            (void)col_total;                                                                                            \
-            bool uniform = false;                                                                                      \
-            for (uint32_t s = 0; s < 256; s++)                                                                          \
-                if (hist[b][s] == n) {                                                                                  \
-                    uniform = true;                                                                                    \
-                    break;                                                                                             \
-                }                                                                                                      \
-            if (uniform) continue;                                                                                     \
-                                                                                                                       \
-            uint32_t pos[256];                                                                                         \
-            uint32_t sum = 0;                                                                                          \
-            for (uint32_t s = 0; s < 256; s++) {                                                                        \
-                pos[s] = sum;                                                                                          \
-                sum += hist[b][s];                                                                                     \
-            }                                                                                                          \
-            for (size_t i = 0; i < n; i++) {                                                                            \
-                U k = from[i];                                                                                         \
-                to[pos[(k >> (8 * b)) & 0xFF]++] = k;                                                                   \
-            }                                                                                                          \
-            U* t = from;                                                                                               \
-            from = to;                                                                                                 \
-            to = t;                                                                                                    \
-        }                                                                                                              \
-                                                                                                                       \
-        if (from != src) memcpy(src, from, n * sizeof(U));                                                              \
-        for (size_t i = 0; i < n; i++) a[i] = from_key(((U*)a)[i]);                                                     \
-    }                                                                                                                  \
-                                                                                                                       \
-    static void solidc_sort_rec_##suffix(T* a, size_t n, size_t depth, T* radix_buf) {                                  \
-        while (n > 24) {                                                                                               \
-            if (depth-- == 0) {                                                                                        \
-                solidc_heapsort_##suffix(a, n);                                                                         \
-                return;                                                                                                \
-            }                                                                                                          \
-                                                                                                                       \
-            /* Structured-data pre-check (see generic path comment). */                                                \
-            {                                                                                                         \
-                int asc = 1, desc = 1;                                                                                 \
-                for (size_t i = 1; i < n; i++) {                                                                        \
-                    if (solidc_lt_##suffix(a[i], a[i - 1])) asc = 0;                                                    \
-                    else if (solidc_lt_##suffix(a[i - 1], a[i])) desc = 0;                                              \
-                    if (!asc && !desc) break;                                                                           \
-                }                                                                                                      \
-                if (asc) return;                                                                                       \
-                if (desc) {                                                                                            \
-                    for (size_t i = 0, j = n - 1; i < j; i++, j--) {                                                    \
-                        T t = a[i];                                                                                    \
-                        a[i] = a[j];                                                                                   \
-                        a[j] = t;                                                                                      \
-                    }                                                                                                  \
-                    return;                                                                                            \
-                }                                                                                                      \
-            }                                                                                                          \
-                                                                                                                       \
-            /* Large arrays: radix dominates once the column skips cannot                                             \
-             * save work either. */                                                                                    \
-            if (radix_buf && n >= SOLIDC_RADIX_MIN) {                                                                  \
-                solidc_radix_##suffix(a, radix_buf, n);                                                                 \
-                return;                                                                                                \
-            }                                                                                                          \
-                                                                                                                       \
-            /* Pivot instance moved out of the partitioned range so the                                               \
-             * recursion ALWAYS shrinks without any equality scan. */                                                   \
-            size_t pidx = solidc_pivot_index_##suffix(a, n);                                                            \
-            T pv = a[pidx];                                                                                            \
-            a[pidx] = a[n - 1];                                                                                        \
-                                                                                                                       \
-            size_t store = solidc_partition_##suffix(a, n - 1, pv);                                                     \
-            /* Swap the pivot into its final slot -- a[store] holds a real                                             \
-             * element (>= pv) that must move to the right side, so a plain                                            \
-             * assignment would DESTROY it (caught by multiset tests). */                                               \
-            T displaced = a[store];                                                                                     \
-            a[store] = pv;                                                                                             \
-            a[n - 1] = displaced;                                                                                       \
-            size_t left = store;                                                                                       \
-            size_t right = n - store - 1;                                                                              \
-                                                                                                                       \
-            if (left != 0 && right != 0) {                                                                              \
-                /* Healthy split: plain two-way recursion.  No equality                                                \
-                 * pass on random data -- the saw_eq trap is gone. */                                                   \
-                if (left <= right) {                                                                                   \
-                    solidc_sort_rec_##suffix(a, left, depth, radix_buf);                                                \
-                    a += store + 1;                                                                                    \
-                    n = right;                                                                                          \
-                } else {                                                                                               \
-                    solidc_sort_rec_##suffix(a + store + 1, right, depth, radix_buf);                                   \
-                    n = left;                                                                                          \
-                }                                                                                                      \
-                continue;                                                                                              \
-            }                                                                                                          \
-                                                                                                                       \
-            /* Degenerate split (pivot was an extreme value): extract the                                             \
-             * equality band so duplicate-heavy inputs stay linear. */                                                  \
-            if (left == 0) {                                                                                           \
-                /* Pivot was the minimum: a[1..n) are all >= pv. */                                                     \
-                size_t eq = solidc_split_eq_##suffix(a + 1, n - 1, pv, true);                                            \
-                if (eq == n - 1) return; /* every element == pv */                                                     \
-                a += 1 + eq;                                                                                           \
-                n -= 1 + eq; /* continue with the strictly-greater tail */                                              \
-            } else {                                                                                                   \
-                /* Pivot was the maximum: a[0..left) are all <= pv. */                                                  \
-                size_t eq = solidc_split_eq_##suffix(a, left, pv, false);                                               \
-                if (eq == left) return;                                                                                \
-                solidc_sort_rec_##suffix(a + eq, left - eq, depth, radix_buf);                                           \
-                return;                                                                                                \
-            }                                                                                                          \
-        }                                                                                                              \
-        if (n > 1) solidc_isort_##suffix(a, n);                                                                         \
-    }                                                                                                                  \
-                                                                                                                       \
-    void sol_sort_##suffix(T* a, size_t n) {                                                                           \
-        if (!a || n < 2) return;                                                                                       \
-        T* radix_buf = NULL;                                                                                            \
-        if (n >= SOLIDC_RADIX_MIN) {                                                                                    \
-            radix_buf = malloc(n * sizeof(T));                                                                          \
-            /* malloc failure simply disables the radix path. */                                                        \
-        }                                                                                                              \
-        size_t depth = 0;                                                                                              \
-        for (size_t v = n; v; v >>= 1) depth++;                                                                         \
-        solidc_sort_rec_##suffix(a, n, depth * 2, radix_buf);                                                           \
-        free(radix_buf);                                                                                               \
+#define SOLIDC_SORT_DEF(suffix, T, U, WIDTH, TO_KEY, FROM_KEY, LESS)                                     \
+    static inline bool solidc_lt_##suffix(T a, T b);                                                     \
+    static inline bool solidc_lt_##suffix(T a, T b) { return LESS; }                                     \
+                                                                                                         \
+    static inline size_t solidc_med3_idx_##suffix(const T* a, size_t x, size_t y, size_t z) {            \
+        return solidc_lt_##suffix(a[y], a[x])                                                            \
+                   ? (solidc_lt_##suffix(a[z], a[y]) ? y : (solidc_lt_##suffix(a[z], a[x]) ? z : x))     \
+                   : (solidc_lt_##suffix(a[y], a[z]) ? y : (solidc_lt_##suffix(a[x], a[z]) ? x : z));    \
+    }                                                                                                    \
+                                                                                                         \
+    static inline size_t solidc_pivot_index_##suffix(const T* a, size_t n) {                             \
+        if (n > 128) {                                                                                   \
+            size_t s = n / 8;                                                                            \
+            size_t m1 = solidc_med3_idx_##suffix(a, 0, s, 2 * s);                                        \
+            size_t m2 = solidc_med3_idx_##suffix(a, 3 * s, 4 * s, 5 * s);                                \
+            size_t m3 = solidc_med3_idx_##suffix(a, 6 * s, 7 * s, n - 1);                                \
+            return solidc_med3_idx_##suffix(a, m1, m2, m3);                                              \
+        }                                                                                                \
+        return solidc_med3_idx_##suffix(a, 0, n / 2, n - 1);                                             \
+    }                                                                                                    \
+                                                                                                         \
+    /* Branchless Lomuto over a[0..len): returns count < pv.  Every element                              \
+     * is written through conditional moves -- no data-dependent branches. */                            \
+    static inline size_t solidc_partition_##suffix(T* a, size_t len, T pv) {                             \
+        size_t store = 0;                                                                                \
+        for (size_t i = 0; i < len; i++) {                                                               \
+            T v = a[i];                                                                                  \
+            unsigned lt = (unsigned)solidc_lt_##suffix(v, pv);                                           \
+            T d = a[store];                                                                              \
+            a[store] = lt ? v : d;                                                                       \
+            if (i != store) a[i] = lt ? d : v;                                                           \
+            store += lt;                                                                                 \
+        }                                                                                                \
+        return store;                                                                                    \
+    }                                                                                                    \
+                                                                                                         \
+    /* Equality-band extraction on region a[0..len).  Moves == pv to the                                 \
+     * FRONT and returns their count.  gt_disc selects the discriminator:                                \
+     *   true  -> region members are >= pv (pivot was the minimum)                                       \
+     *   false -> region members are <= pv (pivot was the maximum)                                       \
+     * Cold path: only runs on degenerate splits. */                                                     \
+    static inline size_t solidc_split_eq_##suffix(T* a, size_t len, T pv, bool gt_disc) {                \
+        size_t st = 0;                                                                                   \
+        for (size_t i = 0; i < len; i++) {                                                               \
+            T v = a[i];                                                                                  \
+            unsigned side = (unsigned)(gt_disc ? solidc_lt_##suffix(pv, v) : solidc_lt_##suffix(v, pv)); \
+            T d = a[st];                                                                                 \
+            a[st] = side ? d : v;                                                                        \
+            if (i != st) a[i] = side ? v : d;                                                            \
+            st += (size_t)(1u - side);                                                                   \
+        }                                                                                                \
+        return st;                                                                                       \
+    }                                                                                                    \
+                                                                                                         \
+    static inline void solidc_isort_##suffix(T* a, size_t n) {                                           \
+        for (size_t i = 1; i < n; i++) {                                                                 \
+            T v = a[i];                                                                                  \
+            size_t j = i;                                                                                \
+            while (j > 0 && solidc_lt_##suffix(v, a[j - 1])) {                                           \
+                a[j] = a[j - 1];                                                                         \
+                j--;                                                                                     \
+            }                                                                                            \
+            a[j] = v;                                                                                    \
+        }                                                                                                \
+    }                                                                                                    \
+                                                                                                         \
+    static inline void solidc_sift_##suffix(T* a, size_t root, size_t end) {                             \
+        for (;;) {                                                                                       \
+            size_t c = 2 * root + 1;                                                                     \
+            if (c >= end) break;                                                                         \
+            if (c + 1 < end && solidc_lt_##suffix(a[c], a[c + 1])) c++;                                  \
+            if (!solidc_lt_##suffix(a[root], a[c])) break;                                               \
+            T t = a[root];                                                                               \
+            a[root] = a[c];                                                                              \
+            a[c] = t;                                                                                    \
+            root = c;                                                                                    \
+        }                                                                                                \
+    }                                                                                                    \
+                                                                                                         \
+    static void solidc_heapsort_##suffix(T* a, size_t n) {                                               \
+        if (n < 2) return;                                                                               \
+        for (size_t i = n / 2; i-- > 0;) solidc_sift_##suffix(a, i, n);                                  \
+        for (size_t e = n; e-- > 1;) {                                                                   \
+            T t = a[0];                                                                                  \
+            a[0] = a[e];                                                                                 \
+            a[e] = t;                                                                                    \
+            solidc_sift_##suffix(a, 0, e);                                                               \
+        }                                                                                                \
+    }                                                                                                    \
+                                                                                                         \
+    /* ---- LSD radix on order-preserving unsigned keys ---- */                                          \
+    static void solidc_radix_##suffix(T* a, T* tmp, size_t n) {                                          \
+        U (*to_key)(T) = solidc_to_key_##suffix;                                                         \
+        T (*from_key)(U) = solidc_from_key_##suffix;                                                     \
+                                                                                                         \
+        U* src = (U*)a;                                                                                  \
+        U* dst = (U*)tmp;                                                                                \
+        for (size_t i = 0; i < n; i++) src[i] = to_key(a[i]);                                            \
+                                                                                                         \
+        uint32_t hist[WIDTH][256];                                                                       \
+        memset(hist, 0, sizeof(hist));                                                                   \
+        for (size_t i = 0; i < n; i++) {                                                                 \
+            U k = src[i];                                                                                \
+            for (uint32_t b = 0; b < WIDTH; b++) hist[b][(k >> (8 * b)) & 0xFF]++;                       \
+        }                                                                                                \
+                                                                                                         \
+        U* from = src;                                                                                   \
+        U* to = dst;                                                                                     \
+        for (uint32_t b = 0; b < WIDTH; b++) {                                                           \
+            /* Skip uniform columns: every byte identical => no reordering. */                           \
+            uint32_t col_total = 0;                                                                      \
+            for (uint32_t s = 0; s < 256; s++) col_total += hist[b][s];                                  \
+            (void)col_total;                                                                             \
+            bool uniform = false;                                                                        \
+            for (uint32_t s = 0; s < 256; s++)                                                           \
+                if (hist[b][s] == n) {                                                                   \
+                    uniform = true;                                                                      \
+                    break;                                                                               \
+                }                                                                                        \
+            if (uniform) continue;                                                                       \
+                                                                                                         \
+            uint32_t pos[256];                                                                           \
+            uint32_t sum = 0;                                                                            \
+            for (uint32_t s = 0; s < 256; s++) {                                                         \
+                pos[s] = sum;                                                                            \
+                sum += hist[b][s];                                                                       \
+            }                                                                                            \
+            for (size_t i = 0; i < n; i++) {                                                             \
+                U k = from[i];                                                                           \
+                to[pos[(k >> (8 * b)) & 0xFF]++] = k;                                                    \
+            }                                                                                            \
+            U* t = from;                                                                                 \
+            from = to;                                                                                   \
+            to = t;                                                                                      \
+        }                                                                                                \
+                                                                                                         \
+        if (from != src) memcpy(src, from, n * sizeof(U));                                               \
+        for (size_t i = 0; i < n; i++) a[i] = from_key(((U*)a)[i]);                                      \
+    }                                                                                                    \
+                                                                                                         \
+    static void solidc_sort_rec_##suffix(T* a, size_t n, size_t depth, T* radix_buf) {                   \
+        while (n > 24) {                                                                                 \
+            if (depth-- == 0) {                                                                          \
+                solidc_heapsort_##suffix(a, n);                                                          \
+                return;                                                                                  \
+            }                                                                                            \
+                                                                                                         \
+            /* Structured-data pre-check (see generic path comment). */                                  \
+            {                                                                                            \
+                int asc = 1, desc = 1;                                                                   \
+                for (size_t i = 1; i < n; i++) {                                                         \
+                    if (solidc_lt_##suffix(a[i], a[i - 1]))                                              \
+                        asc = 0;                                                                         \
+                    else if (solidc_lt_##suffix(a[i - 1], a[i]))                                         \
+                        desc = 0;                                                                        \
+                    if (!asc && !desc) break;                                                            \
+                }                                                                                        \
+                if (asc) return;                                                                         \
+                if (desc) {                                                                              \
+                    for (size_t i = 0, j = n - 1; i < j; i++, j--) {                                     \
+                        T t = a[i];                                                                      \
+                        a[i] = a[j];                                                                     \
+                        a[j] = t;                                                                        \
+                    }                                                                                    \
+                    return;                                                                              \
+                }                                                                                        \
+            }                                                                                            \
+                                                                                                         \
+            /* Large arrays: radix dominates once the column skips cannot                                \
+             * save work either. */                                                                      \
+            if (radix_buf && n >= SOLIDC_RADIX_MIN) {                                                    \
+                solidc_radix_##suffix(a, radix_buf, n);                                                  \
+                return;                                                                                  \
+            }                                                                                            \
+                                                                                                         \
+            /* Pivot instance moved out of the partitioned range so the                                  \
+             * recursion ALWAYS shrinks without any equality scan. */                                    \
+            size_t pidx = solidc_pivot_index_##suffix(a, n);                                             \
+            T pv = a[pidx];                                                                              \
+            a[pidx] = a[n - 1];                                                                          \
+                                                                                                         \
+            size_t store = solidc_partition_##suffix(a, n - 1, pv);                                      \
+            /* Swap the pivot into its final slot -- a[store] holds a real                               \
+             * element (>= pv) that must move to the right side, so a plain                              \
+             * assignment would DESTROY it (caught by multiset tests). */                                \
+            T displaced = a[store];                                                                      \
+            a[store] = pv;                                                                               \
+            a[n - 1] = displaced;                                                                        \
+            size_t left = store;                                                                         \
+            size_t right = n - store - 1;                                                                \
+                                                                                                         \
+            if (left != 0 && right != 0) {                                                               \
+                /* Healthy split: plain two-way recursion.  No equality                                  \
+                 * pass on random data -- the saw_eq trap is gone. */                                    \
+                if (left <= right) {                                                                     \
+                    solidc_sort_rec_##suffix(a, left, depth, radix_buf);                                 \
+                    a += store + 1;                                                                      \
+                    n = right;                                                                           \
+                } else {                                                                                 \
+                    solidc_sort_rec_##suffix(a + store + 1, right, depth, radix_buf);                    \
+                    n = left;                                                                            \
+                }                                                                                        \
+                continue;                                                                                \
+            }                                                                                            \
+                                                                                                         \
+            /* Degenerate split (pivot was an extreme value): extract the                                \
+             * equality band so duplicate-heavy inputs stay linear. */                                   \
+            if (left == 0) {                                                                             \
+                /* Pivot was the minimum: a[1..n) are all >= pv. */                                      \
+                size_t eq = solidc_split_eq_##suffix(a + 1, n - 1, pv, true);                            \
+                if (eq == n - 1) return; /* every element == pv */                                       \
+                a += 1 + eq;                                                                             \
+                n -= 1 + eq; /* continue with the strictly-greater tail */                               \
+            } else {                                                                                     \
+                /* Pivot was the maximum: a[0..left) are all <= pv. */                                   \
+                size_t eq = solidc_split_eq_##suffix(a, left, pv, false);                                \
+                if (eq == left) return;                                                                  \
+                solidc_sort_rec_##suffix(a + eq, left - eq, depth, radix_buf);                           \
+                return;                                                                                  \
+            }                                                                                            \
+        }                                                                                                \
+        if (n > 1) solidc_isort_##suffix(a, n);                                                          \
+    }                                                                                                    \
+                                                                                                         \
+    void sol_sort_##suffix(T* a, size_t n) {                                                             \
+        if (!a || n < 2) return;                                                                         \
+        T* radix_buf = NULL;                                                                             \
+        if (n >= SOLIDC_RADIX_MIN) {                                                                     \
+            radix_buf = malloc(n * sizeof(T));                                                           \
+            /* malloc failure simply disables the radix path. */                                         \
+        }                                                                                                \
+        size_t depth = 0;                                                                                \
+        for (size_t v = n; v; v >>= 1) depth++;                                                          \
+        solidc_sort_rec_##suffix(a, n, depth * 2, radix_buf);                                            \
+        free(radix_buf);                                                                                 \
     }
 
 /* ---- per-type key mappings ---- */
