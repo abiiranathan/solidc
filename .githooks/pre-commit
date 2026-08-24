@@ -1,0 +1,33 @@
+#!/bin/sh
+# Pre-commit hook: runs clang-format on staged C sources and headers.
+# Installed via:  git config core.hooksPath .githooks
+#
+# Silently does nothing when clang-format is not installed.
+
+if ! command -v clang-format >/dev/null 2>&1; then
+    exit 0
+fi
+
+# Staged .c/.h files that are added, copied, or modified (skip deletions).
+FILES=$(git diff --cached --name-only --diff-filter=ACM -- '*.c' '*.h')
+[ -z "$FILES" ] && exit 0
+
+clang-format -i $FILES || {
+    echo "pre-commit: clang-format failed; commit aborted." >&2
+    exit 1
+}
+
+# Re-stage anything the formatter touched.
+CHANGED=""
+for f in $FILES; do
+    if ! git diff --quiet -- "$f"; then
+        CHANGED="$CHANGED $f"
+    fi
+done
+
+if [ -n "$CHANGED" ]; then
+    git add $CHANGED
+    echo "pre-commit: reformatted and re-staged:$CHANGED"
+fi
+
+exit 0

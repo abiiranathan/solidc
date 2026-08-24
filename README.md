@@ -38,6 +38,17 @@ make release    # Release build or debug
 make install    # May require root if prefix is /usr/local
 ```
 
+### 3. Enable Git Hooks (Optional)
+
+Format staged C sources automatically before every commit:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The pre-commit hook runs `clang-format` on staged `.c`/`.h` files and re-stages
+the result. It is a no-op if `clang-format` is not installed.
+
 ---
 
 ## 📦 Library Modules
