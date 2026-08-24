@@ -236,7 +236,8 @@ uint32_t solidc_crc32_hash(const void* key, size_t len) {
  * Block loads go through memcpy() so they are alignment- and
  * strict-aliasing-safe; every mainstream compiler folds them into a
  * single unaligned load instruction.
- */uint32_t solidc_murmur_hash(const char* key, uint32_t len, uint32_t seed) {
+ */
+uint32_t solidc_murmur_hash(const char* key, uint32_t len, uint32_t seed) {
     if (!key && len > 0) return 0;
 
     const uint8_t* data = (const uint8_t*)key;
@@ -310,7 +311,9 @@ static void crc32c_build_tables(void) {
     const uint32_t poly = 0x82F63B78u;
     for (uint32_t i = 0; i < 256; i++) {
         uint32_t crc = i;
-        for (int k = 0; k < 8; k++) { crc = (crc >> 1) ^ (poly & (0u - (crc & 1u))); }
+        for (int k = 0; k < 8; k++) {
+            crc = (crc >> 1) ^ (poly & (0u - (crc & 1u)));
+        }
         crc32c_table[0][i] = crc;
     }
     for (int t = 1; t < 8; t++) {
@@ -381,7 +384,9 @@ __attribute__((target("sse4.2"))) static uint32_t crc32c_hw(const unsigned char*
         data += 2;
         len -= 2;
     }
-    if (len) { crc = _mm_crc32_u8((uint32_t)crc, *data); }
+    if (len) {
+        crc = _mm_crc32_u8((uint32_t)crc, *data);
+    }
 
     return (uint32_t)~crc;
 }
@@ -407,7 +412,9 @@ uint32_t solidc_crc32c_hash(const void* key, size_t len) {
     if (len == 0) return 0;
 
 #if defined(HASH_ARCH_X86) && defined(HASH_GNU_TARGET_ATTR)
-    if (crc32c_use_hw()) { return crc32c_hw((const unsigned char*)key, len); }
+    if (crc32c_use_hw()) {
+        return crc32c_hw((const unsigned char*)key, len);
+    }
 #endif
 
     crc32c_init_once();
@@ -419,10 +426,9 @@ uint32_t solidc_crc32c_hash(const void* key, size_t len) {
         uint64_t v;
         memcpy(&v, data, 8);
         v ^= (uint64_t)crc;
-        crc = crc32c_table[7][v & 0xFF] ^ crc32c_table[6][(v >> 8) & 0xFF] ^
-              crc32c_table[5][(v >> 16) & 0xFF] ^ crc32c_table[4][(v >> 24) & 0xFF] ^
-              crc32c_table[3][(v >> 32) & 0xFF] ^ crc32c_table[2][(v >> 40) & 0xFF] ^
-              crc32c_table[1][(v >> 48) & 0xFF] ^ crc32c_table[0][(v >> 56) & 0xFF];
+        crc = crc32c_table[7][v & 0xFF] ^ crc32c_table[6][(v >> 8) & 0xFF] ^ crc32c_table[5][(v >> 16) & 0xFF] ^
+              crc32c_table[4][(v >> 24) & 0xFF] ^ crc32c_table[3][(v >> 32) & 0xFF] ^
+              crc32c_table[2][(v >> 40) & 0xFF] ^ crc32c_table[1][(v >> 48) & 0xFF] ^ crc32c_table[0][(v >> 56) & 0xFF];
         data += 8;
         len -= 8;
     }

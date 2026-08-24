@@ -37,11 +37,11 @@ typedef struct swiss_map SwissMap;
 
 typedef struct {
     size_t initial_capacity;
-    KeyCmpFunction key_compare;    /* Required */
-    KeyFreeFunction key_free;      /* Optional */
-    ValueFreeFunction value_free;  /* Optional */
-    float max_load_factor;         /* Optional, clamped to (0.1, 0.875] */
-    HashFunction hash_func;        /* Optional, defaults to xxhash3/small-key identity */
+    KeyCmpFunction key_compare;   /* Required */
+    KeyFreeFunction key_free;     /* Optional */
+    ValueFreeFunction value_free; /* Optional */
+    float max_load_factor;        /* Optional, clamped to (0.1, 0.875] */
+    HashFunction hash_func;       /* Optional, defaults to xxhash3/small-key identity */
 } SwissConfig;
 
 #define SwissConfigInt    (&(SwissConfig){.key_compare = key_compare_int})
