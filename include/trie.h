@@ -3,7 +3,7 @@
  * @brief Trie data structure implementation for efficient string storage and retrieval.
  */
 
-#include "arena.h"    // Include the Arena library
+#include "arena.h"  // Include the Arena library
 
 #include <stdbool.h>  // for bool type
 #include <stdint.h>   // for uint32_t

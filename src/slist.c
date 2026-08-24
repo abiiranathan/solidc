@@ -35,9 +35,7 @@ void slist_free(slist* list) {
     free(list);
 }
 
-size_t slist_size(const slist* list) {
-    return list ? list->size : 0;
-}
+size_t slist_size(const slist* list) { return list ? list->size : 0; }
 
 void slist_clear(slist* list) {
     if (!list) return;
@@ -194,15 +192,11 @@ void slist_insert_before(slist* list, void* elem, void* before) {
 }
 
 void slist_print_asint(const slist* list) {
-    SLIST_FOR_EACH(list, node) {
-        printf("%d ", *(int*)node->data);
-    }
+    SLIST_FOR_EACH(list, node) { printf("%d ", *(int*)node->data); }
     printf("\n");
 }
 
 void slist_print_aschar(const slist* list) {
-    SLIST_FOR_EACH(list, node) {
-        printf("%c ", *(char*)node->data);
-    }
+    SLIST_FOR_EACH(list, node) { printf("%c ", *(char*)node->data); }
     printf("\n");
 }

@@ -29,9 +29,7 @@ void socket_initialize() {
     WSAStartup(MAKEWORD(2, 2), &wsaData);
 }
 
-void socket_cleanup() {
-    WSACleanup();
-}
+void socket_cleanup() { WSACleanup(); }
 #else
 void socket_initialize(void) {
     // do nothing
@@ -82,7 +80,9 @@ int socket_close(Socket* sock) {
 
 // Bind a socket to an address
 int socket_bind(Socket* sock, const struct sockaddr* addr, socklen_t addrlen) {
-    if (!sock || !addr || addrlen == 0) { return -1; }
+    if (!sock || !addr || addrlen == 0) {
+        return -1;
+    }
 
     /*
      * FIX (security): the POSIX path previously converted bind() failures
@@ -91,7 +91,9 @@ int socket_bind(Socket* sock, const struct sockaddr* addr, socklen_t addrlen) {
      */
 #ifdef _WIN32
     int ret = bind(sock->handle, addr, addrlen);
-    if (ret != 0) { printLastErrorMessage("bind"); }
+    if (ret != 0) {
+        printLastErrorMessage("bind");
+    }
     return ret;
 #else
     return bind(sock->handle, addr, addrlen);
@@ -99,15 +101,21 @@ int socket_bind(Socket* sock, const struct sockaddr* addr, socklen_t addrlen) {
 }
 
 int socket_listen(Socket* sock, int backlog) {
-    if (!sock) { return -1; }
+    if (!sock) {
+        return -1;
+    }
     /* Negative backlogs are platform-defined; reject them explicitly. */
-    if (backlog < 0) { return -1; }
+    if (backlog < 0) {
+        return -1;
+    }
     return listen(sock->handle, backlog);
 }
 
 // Accept an incoming connection
 Socket* socket_accept(Socket* sock, struct sockaddr* addr, socklen_t* addrlen) {
-    if (!sock) { return NULL; }
+    if (!sock) {
+        return NULL;
+    }
     Socket* client = (Socket*)malloc(sizeof(Socket));
     if (!client) {
         perror("malloc");
@@ -133,7 +141,9 @@ Socket* socket_accept(Socket* sock, struct sockaddr* addr, socklen_t* addrlen) {
 
 // Connect to a remote socket
 int socket_connect(Socket* sock, const struct sockaddr* addr, socklen_t addrlen) {
-    if (!sock || !addr || addrlen == 0) { return -1; }
+    if (!sock || !addr || addrlen == 0) {
+        return -1;
+    }
     return connect(sock->handle, addr, addrlen);
 }
 
@@ -152,7 +162,9 @@ See man 2 recv for more information.
 check socket_error() for EINTR and retry themselves.
  */
 ssize_t socket_recv(Socket* sock, void* buffer, size_t size, int flags) {
-    if (!sock || !buffer || size == 0) { return -1; }
+    if (!sock || !buffer || size == 0) {
+        return -1;
+    }
     return recv(sock->handle, buffer, size, flags);
 }
 
@@ -168,14 +180,14 @@ See man 2 send for more information.
 @note EINTR is NOT retried internally; see socket_recv().
 */
 ssize_t socket_send(Socket* sock, const void* buffer, size_t size, int flags) {
-    if (!sock || !buffer || size == 0) { return -1; }
+    if (!sock || !buffer || size == 0) {
+        return -1;
+    }
     return send(sock->handle, buffer, size, flags);
 }
 
 // Get the socket file descriptor
-int socket_fd(Socket* sock) {
-    return sock ? sock->handle : -1;
-}
+int socket_fd(Socket* sock) { return sock ? sock->handle : -1; }
 
 int socket_error(void) {
 #ifdef _WIN32
@@ -213,7 +225,9 @@ void socket_strerror(int err, char* buffer, size_t size) {
 
 // Get the socket option
 int socket_get_option(Socket* sock, int level, int optname, void* optval, socklen_t* optlen) {
-    if (!sock || !optval || !optlen) { return -1; }
+    if (!sock || !optval || !optlen) {
+        return -1;
+    }
 #ifdef _WIN32
     return getsockopt(sock->handle, level, optname, (char*)optval, optlen);
 #else
@@ -223,7 +237,9 @@ int socket_get_option(Socket* sock, int level, int optname, void* optval, sockle
 
 // Set the socket option
 int socket_set_option(Socket* sock, int level, int optname, const void* optval, socklen_t optlen) {
-    if (!sock || !optval || optlen == 0) { return -1; }
+    if (!sock || !optval || optlen == 0) {
+        return -1;
+    }
 #ifdef _WIN32
     return setsockopt(sock->handle, level, optname, (const char*)optval, optlen);
 #else
@@ -232,7 +248,9 @@ int socket_set_option(Socket* sock, int level, int optname, const void* optval, 
 }
 
 int socket_reuse_port(Socket* sock, int enable) {
-    if (!sock) { return -1; }
+    if (!sock) {
+        return -1;
+    }
 #ifdef _WIN32
     // Enable SO_REUSEADDR
     if (setsockopt(sock->handle, SOL_SOCKET, SO_REUSEADDR, (char*)&enable, sizeof(int)) == SOCKET_ERROR) {
@@ -251,11 +269,15 @@ int socket_reuse_port(Socket* sock, int enable) {
 #else
     int ret = 0;
     // Always set SO_REUSEADDR
-    if (setsockopt(sock->handle, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) != 0) { ret = -1; }
+    if (setsockopt(sock->handle, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) != 0) {
+        ret = -1;
+    }
 
 // SO_REUSEPORT is available on Linux and modern BSD/macOS
 #ifdef SO_REUSEPORT
-    if (setsockopt(sock->handle, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) != 0) { ret = -1; }
+    if (setsockopt(sock->handle, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) != 0) {
+        ret = -1;
+    }
 #endif
 
     return ret;
@@ -264,26 +286,36 @@ int socket_reuse_port(Socket* sock, int enable) {
 
 // Get the socket address
 int socket_get_address(Socket* sock, struct sockaddr* addr, socklen_t* addrlen) {
-    if (!sock || !addr || !addrlen) { return -1; }
+    if (!sock || !addr || !addrlen) {
+        return -1;
+    }
     return getsockname(sock->handle, addr, addrlen);
 }
 
 // Get the socket peer address
 int socket_get_peer_address(Socket* sock, struct sockaddr* addr, socklen_t* addrlen) {
-    if (!sock || !addr || !addrlen) { return -1; }
+    if (!sock || !addr || !addrlen) {
+        return -1;
+    }
     return getpeername(sock->handle, addr, addrlen);
 }
 
 int socket_type(Socket* sock) {
-    if (!sock) { return -1; }
+    if (!sock) {
+        return -1;
+    }
     int type = 0;
     socklen_t len = sizeof(type);
-    if (socket_get_option(sock, SOL_SOCKET, SO_TYPE, &type, &len) == 0) { return type; }
+    if (socket_get_option(sock, SOL_SOCKET, SO_TYPE, &type, &len) == 0) {
+        return type;
+    }
     return -1;
 }
 
 int socket_family(Socket* sock) {
-    if (!sock) { return -1; }
+    if (!sock) {
+        return -1;
+    }
     int domain = -1;
 #ifdef _WIN32
     /*
@@ -294,12 +326,16 @@ int socket_family(Socket* sock) {
      */
     struct sockaddr_storage addr;
     socklen_t addr_len = sizeof(addr);
-    if (getsockname(sock->handle, (struct sockaddr*)&addr, &addr_len) == 0) { domain = addr.ss_family; }
+    if (getsockname(sock->handle, (struct sockaddr*)&addr, &addr_len) == 0) {
+        domain = addr.ss_family;
+    }
 #elif defined(__APPLE__)
     // macOS doesn't support SO_DOMAIN, use getsockname instead
     struct sockaddr_storage addr;
     socklen_t addr_len = sizeof(addr);
-    if (getsockname(sock->handle, (struct sockaddr*)&addr, &addr_len) == 0) { domain = addr.ss_family; }
+    if (getsockname(sock->handle, (struct sockaddr*)&addr, &addr_len) == 0) {
+        domain = addr.ss_family;
+    }
 #else
     socklen_t len = sizeof(domain);
     socket_get_option(sock, SOL_SOCKET, SO_DOMAIN, &domain, &len);
@@ -309,7 +345,9 @@ int socket_family(Socket* sock) {
 
 // set non-blocking mode
 int socket_set_non_blocking(Socket* sock, int enable) {
-    if (!sock) { return -1; }
+    if (!sock) {
+        return -1;
+    }
 #ifdef _WIN32
     u_long mode = enable ? 1 : 0;
     return ioctlsocket(sock->handle, FIONBIO, &mode);
@@ -339,7 +377,9 @@ struct sockaddr_in* socket_ipv4_address(const char* ip, uint16_t port) {
      * and parse failures now return NULL.
      */
     struct in_addr parsed;
-    if (!ip || inet_pton(AF_INET, ip, &parsed) != 1) { return NULL; }
+    if (!ip || inet_pton(AF_INET, ip, &parsed) != 1) {
+        return NULL;
+    }
 
     struct sockaddr_in* addr = (struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
     if (!addr) {

@@ -127,12 +127,12 @@ extern "C" {
 /** Internal: applied to functions that abort on OOM so callers skip NULL checks. */
 #define ARENA_NONNULL_ ARENA_ATTR_RETURNS_NONNULL
 
-#else                  /* !ARENA_ABORT_ON_OOM */
+#else /* !ARENA_ABORT_ON_OOM */
 
 #define ARENA_NONNULL_ /* nothing — callers must check for NULL */
 /* ARENA_UNREACHABLE() is already defined in the compiler-helpers block above. */
 
-#endif                 /* ARENA_ABORT_ON_OOM */
+#endif /* ARENA_ABORT_ON_OOM */
 
 /* -------------------------------------------------------------------------
  * Tuning constants
@@ -324,9 +324,7 @@ static ARENA_INLINE void arena_restore(Arena* a, ArenaCheckpoint cp) {
  * @param a Arena to query.
  * @return  Total committed bytes.
  */
-static ARENA_INLINE size_t arena_committed_size(const Arena* a) {
-    return a->total_committed;
-}
+static ARENA_INLINE size_t arena_committed_size(const Arena* a) { return a->total_committed; }
 
 /**
  * Returns the number of bytes consumed by live allocations.
@@ -500,11 +498,15 @@ static ARENA_NONNULL_ ARENA_INLINE ARENA_ATTR_MALLOC ARENA_ATTR_ALLOC_SIZE(2) vo
  */
 static ARENA_INLINE void* arena_realloc(Arena* arena, void* old_ptr, size_t old_size, size_t new_size,
                                         size_t alignment) {
-    if (!old_ptr || old_size == 0) { return arena_alloc_align(arena, new_size, alignment); }
+    if (!old_ptr || old_size == 0) {
+        return arena_alloc_align(arena, new_size, alignment);
+    }
 
     if (new_size == 0) {
         /* Shrink to nothing: reclaim bytes only if this was the last alloc. */
-        if ((char*)old_ptr + old_size == arena->curr) { arena->curr = (char*)old_ptr; }
+        if ((char*)old_ptr + old_size == arena->curr) {
+            arena->curr = (char*)old_ptr;
+        }
         /* NULL here is a defined contract value, not an OOM — do not invoke
          * ARENA_OOM_HANDLER. */
         return NULL;

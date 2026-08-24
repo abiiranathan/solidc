@@ -75,9 +75,7 @@ static inline bool cmp_special_cases(double a, double b) {
     return (isnan(a) && isnan(b)) || (isinf(a) && isinf(b) && signbit(a) == signbit(b));
 }
 
-static inline bool cmp_is_zero(double a) {
-    return fabs(a) <= DBL_EPSILON;
-}
+static inline bool cmp_is_zero(double a) { return fabs(a) <= DBL_EPSILON; }
 
 static inline int64_t cmp_double_to_int64(double d) {
     union {
@@ -106,7 +104,9 @@ static inline bool cmp_ulps(double a, double b, uint64_t max_ulps) {
     int64_t a_int = cmp_double_to_int64(a);
     int64_t b_int = cmp_double_to_int64(b);
 
-    if ((a_int < 0) != (b_int < 0)) { return a_int == INT64_MIN && b_int == INT64_MIN; }
+    if ((a_int < 0) != (b_int < 0)) {
+        return a_int == INT64_MIN && b_int == INT64_MIN;
+    }
     return (uint64_t)llabs(a_int - b_int) <= max_ulps;
 }
 

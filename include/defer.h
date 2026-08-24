@@ -171,7 +171,9 @@ typedef void (^_defer_block_t)(void);
  * @param blk Pointer to the block variable going out of scope.
  */
 static inline void _defer_cleanup_block(_defer_block_t* blk) {
-    if (blk && *blk) { (*blk)(); }
+    if (blk && *blk) {
+        (*blk)();
+    }
 }
 
 /*
@@ -351,9 +353,7 @@ static inline void _defer_cleanup_block(_defer_block_t* blk) {
  * @endcode
  */
 #define defer_call(fn) \
-    defer {            \
-        (fn)();        \
-    }
+    defer { (fn)(); }
 
 /**
  * @brief Execute a function pointer with a single void* argument at scope exit.
@@ -370,9 +370,7 @@ static inline void _defer_cleanup_block(_defer_block_t* blk) {
  * @endcode
  */
 #define defer_call1(fn, arg) \
-    defer {                  \
-        (fn)((arg));         \
-    }
+    defer { (fn)((arg)); }
 
 /**
  * @brief Restore a variable to a saved value at scope exit.
@@ -392,9 +390,7 @@ static inline void _defer_cleanup_block(_defer_block_t* blk) {
  * @endcode
  */
 #define defer_restore(var, saved_val) \
-    defer {                           \
-        (var) = (saved_val);          \
-    }
+    defer { (var) = (saved_val); }
 
 /* =========================================================================
  * §3  POSIX wrappers
@@ -491,10 +487,8 @@ static inline void _defer_cleanup_block(_defer_block_t* blk) {
  *   // ... critical section ...
  * @endcode
  */
-#define defer_mutex_unlock(mu)       \
-    defer {                          \
-        pthread_mutex_unlock(&(mu)); \
-    }
+#define defer_mutex_unlock(mu) \
+    defer { pthread_mutex_unlock(&(mu)); }
 
 /**
  * @brief Release a pthread read-write lock at scope exit.
@@ -510,10 +504,8 @@ static inline void _defer_cleanup_block(_defer_block_t* blk) {
  *   defer_rwlock_unlock(table->rw);
  * @endcode
  */
-#define defer_rwlock_unlock(rw)       \
-    defer {                           \
-        pthread_rwlock_unlock(&(rw)); \
-    }
+#define defer_rwlock_unlock(rw) \
+    defer { pthread_rwlock_unlock(&(rw)); }
 
 #endif /* DEFER_NO_PTHREAD */
 

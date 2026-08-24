@@ -106,7 +106,7 @@ typedef struct string_stream {
     char inline_buf[STRING_STREAM_SSO_CAP]; /**< Small String Optimization stack/inline buffer */
 } string_stream;
 
-/** Signed result type for stream I/O operations; 
+/** Signed result type for stream I/O operations;
 follows the POSIX-style error contract described above. */
 typedef ssize_t stream_result_t;
 

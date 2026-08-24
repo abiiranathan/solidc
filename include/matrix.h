@@ -117,9 +117,7 @@ static inline void mat4_print(Mat4 m, const char* name) {
 // Matrix Initialization
 // ======================
 
-static inline Mat3 mat3_identity(void) {
-    return (Mat3){{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}};
-}
+static inline Mat3 mat3_identity(void) { return (Mat3){{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}}; }
 
 static inline bool mat3_equal(Mat3 a, Mat3 b) {
     static float EPSILON = 1e-6f;
@@ -583,7 +581,9 @@ static inline Mat4 mat4_inverse(Mat4 m) {
     float det = simd_dot4(input_col0, col0);
 
     // 5. Check Singularity
-    if (fabsf(det) < 1e-8f) { return mat4_identity(); }
+    if (fabsf(det) < 1e-8f) {
+        return mat4_identity();
+    }
 
     // 6. Scale by 1/Det
     simd_vec_t inv_det_vec = simd_set1(1.0f / det);

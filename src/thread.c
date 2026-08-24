@@ -8,7 +8,7 @@
 #include <time.h>    // for nanosleep
 
 #ifdef _WIN32
-#include <process.h>      // for Windows threading
+#include <process.h>  // for Windows threading
 #else
 #include <sys/syscall.h>  // for syscall numbers
 #endif
@@ -48,9 +48,7 @@ static inline int win_error_to_errno(DWORD win_error) {
  * @param handle Thread handle to validate.
  * @return 1 if valid, 0 if invalid.
  */
-static inline int is_valid_thread_handle(HANDLE handle) {
-    return (handle != NULL && handle != INVALID_HANDLE_VALUE);
-}
+static inline int is_valid_thread_handle(HANDLE handle) { return (handle != NULL && handle != INVALID_HANDLE_VALUE); }
 #endif
 
 /* Windows-specific thread parameter wrapper */
@@ -95,11 +93,15 @@ DWORD WINAPI thread_start_wrapper(LPVOID lpParameter) {
 #endif
 
 int thread_create(Thread* thread, ThreadStartRoutine start_routine, void* data) {
-    if (thread == NULL || start_routine == NULL) { return EINVAL; }
+    if (thread == NULL || start_routine == NULL) {
+        return EINVAL;
+    }
 
 #ifdef _WIN32
     ThreadParams* params = (ThreadParams*)malloc(sizeof(ThreadParams));
-    if (params == NULL) { return ENOMEM; }
+    if (params == NULL) {
+        return ENOMEM;
+    }
 
     params->start_routine = start_routine;
     params->data = data;
@@ -136,11 +138,15 @@ int thread_create(Thread* thread, ThreadStartRoutine start_routine, void* data) 
 }
 
 int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine start_routine, void* data) {
-    if (thread == NULL || attr == NULL || start_routine == NULL) { return EINVAL; }
+    if (thread == NULL || attr == NULL || start_routine == NULL) {
+        return EINVAL;
+    }
 
 #ifdef _WIN32
     ThreadParams* params = (ThreadParams*)malloc(sizeof(ThreadParams));
-    if (params == NULL) { return ENOMEM; }
+    if (params == NULL) {
+        return ENOMEM;
+    }
 
     params->start_routine = start_routine;
     params->data = data;
@@ -177,10 +183,14 @@ int thread_create_attr(Thread* thread, ThreadAttr* attr, ThreadStartRoutine star
 
 int thread_join(Thread tid, void** retval) {
 #ifdef _WIN32
-    if (!is_valid_thread_handle(tid)) { return EINVAL; }
+    if (!is_valid_thread_handle(tid)) {
+        return EINVAL;
+    }
 
     DWORD wait_result = WaitForSingleObject(tid, INFINITE);
-    if (wait_result != WAIT_OBJECT_0) { return win_error_to_errno(GetLastError()); }
+    if (wait_result != WAIT_OBJECT_0) {
+        return win_error_to_errno(GetLastError());
+    }
 
     // Retrieve the thread's parameters to get the actual return value
     // We stored the ThreadParams pointer in thread-local storage conceptually,
@@ -229,7 +239,9 @@ void thread_exit(void* retval) {
 
 int thread_detach(Thread tid) {
 #ifdef _WIN32
-    if (!is_valid_thread_handle(tid)) { return EINVAL; }
+    if (!is_valid_thread_handle(tid)) {
+        return EINVAL;
+    }
 
     // On Windows, "detaching" means we close our reference to the handle.
     // The thread continues to run, and the system will clean up when it exits.
@@ -238,7 +250,9 @@ int thread_detach(Thread tid) {
     // becomes invalid and cannot be used for any operations, including join.
     // This matches POSIX semantics where you cannot join a detached thread.
 
-    if (!CloseHandle(tid)) { return win_error_to_errno(GetLastError()); }
+    if (!CloseHandle(tid)) {
+        return win_error_to_errno(GetLastError());
+    }
     return 0;
 
 #else  // POSIX
@@ -248,24 +262,22 @@ int thread_detach(Thread tid) {
 }
 
 #ifdef _WIN32
-DWORD thread_self() {
-    return GetCurrentThreadId();
-}
+DWORD thread_self() { return GetCurrentThreadId(); }
 #else
-pthread_t thread_self() {
-    return pthread_self();
-}
+pthread_t thread_self() { return pthread_self(); }
 #endif
 
 /* Thread Attribute Management */
 
 int thread_attr_init(ThreadAttr* attr) {
-    if (attr == NULL) { return EINVAL; }
+    if (attr == NULL) {
+        return EINVAL;
+    }
 
 #ifdef _WIN32
     // Initialize to safe defaults with explicit zeroing for security
     memset(attr, 0, sizeof(ThreadAttr));
-    attr->stackSize = 0;                   // Use system default stack size
+    attr->stackSize = 0;  // Use system default stack size
     attr->sa.nLength = sizeof(SECURITY_ATTRIBUTES);
     attr->sa.lpSecurityDescriptor = NULL;  // Default security
     attr->sa.bInheritHandle = FALSE;       // Don't inherit handles by default
@@ -278,7 +290,9 @@ int thread_attr_init(ThreadAttr* attr) {
 }
 
 int thread_attr_destroy(ThreadAttr* attr) {
-    if (attr == NULL) { return EINVAL; }
+    if (attr == NULL) {
+        return EINVAL;
+    }
 
 #ifdef _WIN32
     // Explicitly zero out the structure for security
@@ -294,7 +308,9 @@ int thread_attr_destroy(ThreadAttr* attr) {
 /* Utility Functions */
 
 void sleep_ms(int ms) {
-    if (ms <= 0) { return; }
+    if (ms <= 0) {
+        return;
+    }
 
 #ifdef _WIN32
     // Sleep takes DWORD; INT_MAX always fits, so no further range check needed.
@@ -308,7 +324,9 @@ void sleep_ms(int ms) {
     // Handle EINTR by continuing to sleep for remaining time
     struct timespec remaining;
     while (nanosleep(&ts, &remaining) == -1) {
-        if (errno != EINTR) { break; }
+        if (errno != EINTR) {
+            break;
+        }
         ts = remaining;
     }
 #endif
@@ -379,7 +397,9 @@ int get_ppid() {
     DWORD parent_pid = (DWORD)-1;
 
     snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (snapshot == INVALID_HANDLE_VALUE) { return -1; }
+    if (snapshot == INVALID_HANDLE_VALUE) {
+        return -1;
+    }
 
     pe32.dwSize = sizeof(PROCESSENTRY32);
     if (!Process32First(snapshot, &pe32)) {
@@ -396,7 +416,9 @@ int get_ppid() {
 
     CloseHandle(snapshot);
 
-    if (parent_pid == (DWORD)-1 || parent_pid > INT_MAX) { return -1; }
+    if (parent_pid == (DWORD)-1 || parent_pid > INT_MAX) {
+        return -1;
+    }
     return (int)parent_pid;
 }
 
@@ -412,7 +434,9 @@ unsigned int get_uid() {
     unsigned int uid_hash = (unsigned int)-1;
 
     // Open current process token
-    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) { return (unsigned int)-1; }
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
+        return (unsigned int)-1;
+    }
 
     // Get required buffer size
     GetTokenInformation(token, TokenUser, NULL, 0, &token_info_length);
@@ -465,7 +489,9 @@ unsigned int get_gid() {
     unsigned int gid_hash = (unsigned int)-1;
 
     // Open current process token
-    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) { return (unsigned int)-1; }
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
+        return (unsigned int)-1;
+    }
 
     // Get required buffer size
     GetTokenInformation(token, TokenPrimaryGroup, NULL, 0, &token_info_length);
@@ -517,7 +543,9 @@ static char win_username_buffer[UNLEN + 1];
 char* get_username() {
     DWORD username_len = UNLEN + 1;
 
-    if (!GetUserNameA(win_username_buffer, &username_len)) { return NULL; }
+    if (!GetUserNameA(win_username_buffer, &username_len)) {
+        return NULL;
+    }
 
     return win_username_buffer;
 }
@@ -538,7 +566,9 @@ char* get_groupname() {
     char* result = NULL;
 
     // Open current process token
-    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) { return NULL; }
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
+        return NULL;
+    }
 
     // Get required buffer size for primary group
     GetTokenInformation(token, TokenPrimaryGroup, NULL, 0, &token_info_length);
@@ -585,22 +615,20 @@ char* get_groupname() {
     return result;
 }
 
-#else   // POSIX
+#else  // POSIX
 
 int get_ppid() {
     pid_t ppid = getppid();
     // POSIX guarantees ppid fits in int, but be defensive
-    if (ppid < 0 || ppid > INT_MAX) { return -1; }
+    if (ppid < 0 || ppid > INT_MAX) {
+        return -1;
+    }
     return (int)ppid;
 }
 
-unsigned int get_uid() {
-    return (unsigned int)getuid();
-}
+unsigned int get_uid() { return (unsigned int)getuid(); }
 
-unsigned int get_gid() {
-    return (unsigned int)getgid();
-}
+unsigned int get_gid() { return (unsigned int)getgid(); }
 
 char* get_username() {
     struct passwd* pw = getpwuid(getuid());

@@ -168,8 +168,8 @@ static inline void mat3_svd(Mat3 A, Mat3* U, Vec3* S, Mat3* V) {
         float sigma = s_arr[i];
         if (sigma > 1e-6f) {
             Vec3 v_col = {V->m[i][0], V->m[i][1], V->m[i][2]};
-            SimdVec3 Av = vec3_add(vec3_add(vec3_mul(colA[0], v_col.x), vec3_mul(colA[1], v_col.y)),
-                                   vec3_mul(colA[2], v_col.z));
+            SimdVec3 Av =
+                vec3_add(vec3_add(vec3_mul(colA[0], v_col.x), vec3_mul(colA[1], v_col.y)), vec3_mul(colA[2], v_col.z));
             SimdVec3 u_col = vec3_mul(Av, 1.0f / sigma);
             Vec3 res = vec3_store(u_col);
             U->m[i][0] = res.x;
@@ -250,7 +250,9 @@ static inline void mat4_power_iteration(Mat4 A, Vec4* eigenvector, float* eigenv
         *eigenvalue = vec4_dot(Av, v);
         Av = vec4_normalize(Av);
 
-        if (fabsf(*eigenvalue - lambda_old) < tol) { break; }
+        if (fabsf(*eigenvalue - lambda_old) < tol) {
+            break;
+        }
         lambda_old = *eigenvalue;
         v = Av;
     }
@@ -359,7 +361,9 @@ static inline Vec4 backward_substitution_mat4(Mat4 U, Vec4 b) {
 
 static inline Vec4 mat4_solve(Mat4 A, Vec4 b) {
     Mat4 L, U, P;
-    if (!mat4_lu(A, &L, &U, &P)) { return (Vec4){0}; }
+    if (!mat4_lu(A, &L, &U, &P)) {
+        return (Vec4){0};
+    }
     Vec4 Pb;
     Pb.x = P.m[0][0] * b.x + P.m[1][0] * b.y + P.m[2][0] * b.z + P.m[3][0] * b.w;
     Pb.y = P.m[0][1] * b.x + P.m[1][1] * b.y + P.m[2][1] * b.z + P.m[3][1] * b.w;

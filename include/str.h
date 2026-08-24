@@ -100,9 +100,7 @@ static inline const char* str_search_impl(const char* hs, size_t hlen, const cha
  * @return `true` if NULL or empty string `""`, `false` otherwise.
  * @note Safe for concurrent use.
  */
-static inline bool str_is_empty(const char* str) {
-    return !str || str[0] == '\0';
-}
+static inline bool str_is_empty(const char* str) { return !str || str[0] == '\0'; }
 
 /**
  * @brief Checks whether a string is NULL, empty, or consists solely of white-space characters.
@@ -433,9 +431,7 @@ static inline void str_capitalize(char* str) {
  * @param[in] c Character byte to check.
  * @return `true` if separator character; `false` otherwise.
  */
-static inline bool str_is_sep(unsigned char c) {
-    return c == '_' || c == '-' || isspace(c);
-}
+static inline bool str_is_sep(unsigned char c) { return c == '_' || c == '-' || isspace(c); }
 
 /**
  * @brief Converts a string to camelCase in-place (e.g. "hello_world" -> "helloWorld").
@@ -452,8 +448,7 @@ static inline void str_camelcase(char* str) {
     size_t len = strlen(str);
 
     /* Strip leading separator characters */
-    while (r < len && str_is_sep((unsigned char)str[r]))
-        r++;
+    while (r < len && str_is_sep((unsigned char)str[r])) r++;
 
     /* First word starts lowercase */
     if (r < len) {
@@ -491,8 +486,7 @@ static inline void str_pascalcase(char* str) {
     size_t len = strlen(str);
 
     /* Strip leading separators */
-    while (r < len && str_is_sep((unsigned char)str[r]))
-        r++;
+    while (r < len && str_is_sep((unsigned char)str[r])) r++;
 
     bool new_word = true;
     while (r < len) {
@@ -545,8 +539,7 @@ static inline void str_ltrim(char* str) {
     if (!str || !*str) return;
     size_t len = strlen(str);
     size_t start = 0;
-    while (start < len && isspace((unsigned char)str[start]))
-        start++;
+    while (start < len && isspace((unsigned char)str[start])) start++;
     if (start == 0) return;
     memmove(str, str + start, len - start + 1);
 }
@@ -559,8 +552,7 @@ static inline void str_ltrim(char* str) {
 static inline void str_rtrim(char* str) {
     if (!str || !*str) return;
     size_t len = strlen(str);
-    while (len > 0 && isspace((unsigned char)str[len - 1]))
-        len--;
+    while (len > 0 && isspace((unsigned char)str[len - 1])) len--;
     str[len] = '\0';
 }
 
@@ -586,16 +578,14 @@ static inline void str_trim_chars(char* str, const char* chars) {
     size_t len = strlen(str);
     size_t start = 0;
 
-    while (start < len && str[start] != '\0' && strchr(chars, str[start]))
-        start++;
+    while (start < len && str[start] != '\0' && strchr(chars, str[start])) start++;
     if (start == len) {
         str[0] = '\0';
         return;
     }
 
     size_t end = len - 1;
-    while (end > start && str[end] != '\0' && strchr(chars, str[end]))
-        end--;
+    while (end > start && str[end] != '\0' && strchr(chars, str[end])) end--;
 
     size_t new_len = end - start + 1;
     if (start) memmove(str, str + start, new_len);
@@ -649,7 +639,9 @@ static inline void str_remove_char(char* str, char c) {
         /* Vectorized search for next matching instance */
         char* match = (char*)memchr(read_ptr, (unsigned char)c, rem);
         if (!match) {
-            if (write_ptr != read_ptr) { memmove(write_ptr, read_ptr, rem); }
+            if (write_ptr != read_ptr) {
+                memmove(write_ptr, read_ptr, rem);
+            }
             write_ptr += rem;
             break;
         }
@@ -657,7 +649,9 @@ static inline void str_remove_char(char* str, char c) {
         /* Copy chunk between last read position and match position */
         size_t chunk_len = (size_t)(match - read_ptr);
         if (chunk_len > 0) {
-            if (write_ptr != read_ptr) { memmove(write_ptr, read_ptr, chunk_len); }
+            if (write_ptr != read_ptr) {
+                memmove(write_ptr, read_ptr, chunk_len);
+            }
             write_ptr += chunk_len;
         }
 
@@ -810,8 +804,7 @@ static inline char* str_repeat(const char* str, size_t n) {
     char* r = (char*)malloc(total + 1);
     if (!r) return NULL;
 
-    for (size_t i = 0; i < n; i++)
-        memcpy(r + i * slen, str, slen);
+    for (size_t i = 0; i < n; i++) memcpy(r + i * slen, str, slen);
     r[total] = '\0';
     return r;
 }
@@ -910,7 +903,9 @@ static inline bool str_snake_should_underscore(const char* str, size_t i, size_t
     unsigned char c = (unsigned char)str[i];
     unsigned char prev = (unsigned char)str[i - 1];
 
-    if (c == ' ' || c == '-' || c == '_' || prev == ' ' || prev == '-' || prev == '_') { return false; }
+    if (c == ' ' || c == '-' || c == '_' || prev == ' ' || prev == '-' || prev == '_') {
+        return false;
+    }
 
     bool curr_upper = (unsigned)(c - 'A') <= 25u;
     bool prev_lower = (unsigned)(prev - 'a') <= 25u || (unsigned)(prev - '0') <= 9u;
@@ -950,7 +945,9 @@ static inline char* str_to_snakecase(const char* str) {
     /* Pass 1: Pre-calculate exact memory buffer requirements without reallocations */
     size_t extra = 0;
     for (size_t i = 0; i < orig; i++) {
-        if (str_snake_should_underscore(str, i, orig)) { extra++; }
+        if (str_snake_should_underscore(str, i, orig)) {
+            extra++;
+        }
     }
 
     if (extra > SIZE_MAX - orig - 1) return NULL;
@@ -973,7 +970,9 @@ static inline char* str_to_snakecase(const char* str) {
         }
 
         if (str_snake_should_underscore(str, i, orig)) {
-            if (!last_was_underscore && w > 0) { r[w++] = '_'; }
+            if (!last_was_underscore && w > 0) {
+                r[w++] = '_';
+            }
         }
 
         r[w++] = (char)((unsigned)(c - 'A') <= 25u ? (c | 0x20u) : c);
@@ -1218,8 +1217,7 @@ static inline char** str_split(const char* str, const char* delim, size_t* count
     return result;
 
 split_err:
-    for (size_t i = 0; i < count; i++)
-        free(result[i]);
+    for (size_t i = 0; i < count; i++) free(result[i]);
     free(result);
     return NULL;
 }
@@ -1233,8 +1231,7 @@ split_err:
  */
 static inline void str_free_split(char** parts) {
     if (!parts) return;
-    for (size_t i = 0; parts[i]; i++)
-        free(parts[i]);
+    for (size_t i = 0; parts[i]; i++) free(parts[i]);
     free(parts);
 }
 
@@ -1254,7 +1251,9 @@ static inline char* str_join(const char** strings, size_t count, const char* del
         return empty;
     }
 
-    if (count == 1) { return strings[0] ? str_dup(strings[0]) : NULL; }
+    if (count == 1) {
+        return strings[0] ? str_dup(strings[0]) : NULL;
+    }
 
     size_t dlen = delim ? strlen(delim) : 0;
     size_t total = 0;

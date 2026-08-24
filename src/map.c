@@ -64,7 +64,7 @@
 
 // Default maximum load factor
 #define DEFAULT_MAX_LOAD_FACTOR 0.75f
-#define MIN_CAPACITY            8 // Minimum capacity to avoid frequent resizing
+#define MIN_CAPACITY            8  // Minimum capacity to avoid frequent resizing
 #define MAX(a, b)               ((a) > (b) ? (a) : (b))
 
 /* DIB (distance-from-initial-bucket) accessors. */

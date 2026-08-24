@@ -140,9 +140,7 @@ size_t map_length(HashMap* m);
 // Get the capacity of the map
 size_t map_capacity(HashMap* m);
 
-static inline bool key_compare_int(const void* a, const void* b) {
-    return a && b && *(const int*)a == *(const int*)b;
-}
+static inline bool key_compare_int(const void* a, const void* b) { return a && b && *(const int*)a == *(const int*)b; }
 
 static inline bool key_compare_char_ptr(const void* a, const void* b) {
     return a && b && strcmp((const char*)a, (const char*)b) == 0;

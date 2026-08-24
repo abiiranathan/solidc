@@ -13,80 +13,110 @@
 #ifdef _WIN32
 
 int lock_init(Lock* lock) {
-    if (lock == NULL) { return -1; }
+    if (lock == NULL) {
+        return -1;
+    }
     InitializeCriticalSection(lock);
     return 0;
 }
 
 int lock_acquire(Lock* lock) {
-    if (lock == NULL) { return -1; }
+    if (lock == NULL) {
+        return -1;
+    }
 
     EnterCriticalSection(lock);
     return 0;
 }
 
 int lock_release(Lock* lock) {
-    if (lock == NULL) { return -1; }
+    if (lock == NULL) {
+        return -1;
+    }
 
     LeaveCriticalSection(lock);
     return 0;
 }
 
 int lock_free(Lock* lock) {
-    if (lock == NULL) { return 0; }
+    if (lock == NULL) {
+        return 0;
+    }
 
     DeleteCriticalSection(lock);
     return 0;
 }
 
 int lock_try_acquire(Lock* lock) {
-    if (lock == NULL) { return -1; }
+    if (lock == NULL) {
+        return -1;
+    }
 
-    if (TryEnterCriticalSection(lock)) { return 0; }
+    if (TryEnterCriticalSection(lock)) {
+        return 0;
+    }
     return -1;
 }
 
 int lock_wait(Lock* lock, Condition* condition, int timeout_ms) {
-    if (lock == NULL || condition == NULL) { return -1; }
+    if (lock == NULL || condition == NULL) {
+        return -1;
+    }
 
     DWORD timeout = (timeout_ms < 0) ? INFINITE : (DWORD)timeout_ms;
-    if (SleepConditionVariableCS(condition, lock, timeout)) { return 0; }
+    if (SleepConditionVariableCS(condition, lock, timeout)) {
+        return 0;
+    }
     return -1;
 }
 
 int cond_init(Condition* condition) {
-    if (condition == NULL) { return -1; }
+    if (condition == NULL) {
+        return -1;
+    }
 
     InitializeConditionVariable(condition);
     return 0;
 }
 
 int cond_signal(Condition* condition) {
-    if (condition == NULL) { return -1; }
+    if (condition == NULL) {
+        return -1;
+    }
 
     WakeConditionVariable(condition);
     return 0;
 }
 
 int cond_broadcast(Condition* condition) {
-    if (condition == NULL) { return -1; }
+    if (condition == NULL) {
+        return -1;
+    }
 
     WakeAllConditionVariable(condition);
     return 0;
 }
 
 int cond_wait(Condition* condition, Lock* lock) {
-    if (condition == NULL || lock == NULL) { return -1; }
+    if (condition == NULL || lock == NULL) {
+        return -1;
+    }
 
-    if (SleepConditionVariableCS(condition, lock, INFINITE)) { return 0; }
+    if (SleepConditionVariableCS(condition, lock, INFINITE)) {
+        return 0;
+    }
     return -1;
 }
 
 int cond_wait_timeout(Condition* condition, Lock* lock, int timeout_ms) {
-    if (condition == NULL || lock == NULL) { return -1; }
+    if (condition == NULL || lock == NULL) {
+        return -1;
+    }
 
     DWORD timeout = (timeout_ms < 0) ? INFINITE : (DWORD)timeout_ms;
-    if (SleepConditionVariableCS(condition, lock, timeout)) { return 0; }
+    if (SleepConditionVariableCS(condition, lock, timeout)) {
+        return 0;
+    }
 
     return -1;
 }
@@ -100,7 +130,9 @@ int cond_free(Condition* condition) {
 #else  // POSIX implementation
 
 int lock_init(Lock* lock) {
-    if (lock == NULL) { return -1; }
+    if (lock == NULL) {
+        return -1;
+    }
 
     int ret = pthread_mutex_init(lock, NULL);
     if (ret != 0) {
@@ -111,7 +143,9 @@ int lock_init(Lock* lock) {
 }
 
 int lock_acquire(Lock* lock) {
-    if (lock == NULL) { return -1; }
+    if (lock == NULL) {
+        return -1;
+    }
 
     int ret = pthread_mutex_lock(lock);
     if (ret != 0) {
@@ -132,7 +166,9 @@ int lock_acquire(Lock* lock) {
 }
 
 int lock_release(Lock* lock) {
-    if (lock == NULL) { return -1; }
+    if (lock == NULL) {
+        return -1;
+    }
 
     int ret = pthread_mutex_unlock(lock);
     if (ret != 0) {
@@ -158,7 +194,9 @@ int lock_free(Lock* lock) {
 }
 
 int lock_try_acquire(Lock* lock) {
-    if (lock == NULL) { return -1; }
+    if (lock == NULL) {
+        return -1;
+    }
 
     int ret = pthread_mutex_trylock(lock);
     switch (ret) {
@@ -180,7 +218,9 @@ int lock_wait(Lock* lock, Condition* condition, int timeout_ms) {
 }
 
 int cond_init(Condition* condition) {
-    if (condition == NULL) { return -1; }
+    if (condition == NULL) {
+        return -1;
+    }
 
     /*
      * Hardening: condition variables are created on the MONOTONIC clock so
@@ -222,7 +262,9 @@ int cond_init(Condition* condition) {
 }
 
 int cond_signal(Condition* condition) {
-    if (condition == NULL) { return -1; }
+    if (condition == NULL) {
+        return -1;
+    }
 
     int ret = pthread_cond_signal(condition);
     if (ret != 0) {
@@ -234,7 +276,9 @@ int cond_signal(Condition* condition) {
 }
 
 int cond_broadcast(Condition* condition) {
-    if (condition == NULL) { return -1; }
+    if (condition == NULL) {
+        return -1;
+    }
 
     int ret = pthread_cond_broadcast(condition);
     if (ret != 0) {
@@ -246,7 +290,9 @@ int cond_broadcast(Condition* condition) {
 }
 
 int cond_wait(Condition* condition, Lock* lock) {
-    if (condition == NULL || lock == NULL) { return -1; }
+    if (condition == NULL || lock == NULL) {
+        return -1;
+    }
 
     int ret = pthread_cond_wait(condition, lock);
     if (ret != 0) {
@@ -257,7 +303,9 @@ int cond_wait(Condition* condition, Lock* lock) {
 }
 
 int cond_wait_timeout(Condition* condition, Lock* lock, int timeout_ms) {
-    if (condition == NULL || lock == NULL) { return -1; }
+    if (condition == NULL || lock == NULL) {
+        return -1;
+    }
 
     if (timeout_ms < 0) {
         // Negative timeout means wait indefinitely

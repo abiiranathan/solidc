@@ -108,12 +108,10 @@ bool readline(const char* prompt, char* buffer, size_t buffer_len) {
             int c;
 #if HAS_POSIX_UNLOCKED_IO
             flockfile(stdin);
-            while ((c = getc_unlocked(stdin)) != EOF && c != '\n')
-                ;
+            while ((c = getc_unlocked(stdin)) != EOF && c != '\n');
             funlockfile(stdin);
 #else
-            while ((c = getchar()) != EOF && c != '\n')
-                ;
+            while ((c = getchar()) != EOF && c != '\n');
 #endif
         }
     }
@@ -212,17 +210,11 @@ static int file_read_char_impl(void* handle) {
 #endif
 }
 
-static int file_eof_impl(void* handle) {
-    return feof((FILE*)handle);
-}
+static int file_eof_impl(void* handle) { return feof((FILE*)handle); }
 
-static int file_flush_impl(void* handle) {
-    return fflush((FILE*)handle);
-}
+static int file_flush_impl(void* handle) { return fflush((FILE*)handle); }
 
-static int file_seek_impl(void* handle, long offset, int whence) {
-    return fseek((FILE*)handle, offset, whence);
-}
+static int file_seek_impl(void* handle, long offset, int whence) { return fseek((FILE*)handle, offset, whence); }
 
 stream_t create_file_stream(FILE* fp) {
     if (STREAM_UNLIKELY(!fp)) return NULL;
@@ -281,7 +273,9 @@ static ssize_t string_write_impl(void* handle, const void* ptr, size_t n) {
     memcpy(ss->data + ss->pos, ptr, n);
     ss->pos += n;
 
-    if (ss->pos > ss->size) { ss->size = ss->pos; }
+    if (ss->pos > ss->size) {
+        ss->size = ss->pos;
+    }
     ss->data[ss->size] = '\0';
 
     return (ssize_t)n;
@@ -442,7 +436,9 @@ ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size)
      */
     if (ftell(fp) >= 0) {
         size_t got = fread(buffer, 1, max_bytes, fp);
-        if (got == 0) { return feof(fp) ? 0 : -1; }
+        if (got == 0) {
+            return feof(fp) ? 0 : -1;
+        }
 
         const char* hit = (const char*)memchr(buffer, delim, got);
         if (hit) {
@@ -510,7 +506,9 @@ unsigned long string_stream_copy_fast(stream_t dst, stream_t src) {
 
     memcpy(d->data + d->pos, s->data + s->pos, n);
 
-    if (d->pos + n > d->size) { d->size = d->pos + n; }
+    if (d->pos + n > d->size) {
+        d->size = d->pos + n;
+    }
     d->data[d->size] = '\0';
 
     d->pos += n;
@@ -533,7 +531,9 @@ unsigned long io_copy(stream_t writer, stream_t reader) {
         if (curr >= 0 && fseek(fp, 0, SEEK_END) == 0) {
             long end = ftell(fp);
             fseek(fp, curr, SEEK_SET);
-            if (end > curr) { string_stream_ensure_capacity((string_stream*)writer->handle, (size_t)(end - curr) + 1); }
+            if (end > curr) {
+                string_stream_ensure_capacity((string_stream*)writer->handle, (size_t)(end - curr) + 1);
+            }
         }
     }
 
@@ -597,7 +597,9 @@ void stream_destroy(stream_t stream) {
         free(stream);
     } else if (stream->type == STRING_STREAM) {
         string_stream* ss = (string_stream*)stream->handle;
-        if (ss && ss->data && ss->data != ss->inline_buf) { free(ss->data); }
+        if (ss && ss->data && ss->data != ss->inline_buf) {
+            free(ss->data);
+        }
         // Free single contiguous block allocation containing both stream and string_stream
         free(stream);
     }

@@ -299,7 +299,7 @@ extern "C" {
 
 #endif /* SOLIDC_GCC || SOLIDC_CLANG */
 
-#else  /* NDEBUG — strip all runtime assertions */
+#else /* NDEBUG — strip all runtime assertions */
 
 #define ASSERT(cond)             UNUSED(cond)
 #define ASSERT_TRUE(cond)        UNUSED(cond)
@@ -648,9 +648,7 @@ static inline uint64_t get_time_ns(void) {
  *
  * @return Milliseconds since an unspecified epoch (suitable for intervals only).
  */
-static inline uint64_t get_time_ms(void) {
-    return get_time_ns() / UINT64_C(1000000);
-}
+static inline uint64_t get_time_ms(void) { return get_time_ns() / UINT64_C(1000000); }
 
 /* =========================================================================
  * POSIX COMPATIBILITY SHIMS (MSVC)
@@ -855,34 +853,26 @@ static inline uint64_t bswap64(uint64_t x) {
  * cpu_has_sse2 — check at runtime whether the executing CPU supports SSE2.
  * @return Non-zero if supported, 0 otherwise.
  */
-static inline int cpu_has_sse2(void) {
-    return !!__builtin_cpu_supports("sse2");
-}
+static inline int cpu_has_sse2(void) { return !!__builtin_cpu_supports("sse2"); }
 
 /**
  * cpu_has_avx — check at runtime whether the executing CPU supports AVX.
  * @return Non-zero if supported, 0 otherwise.
  */
-static inline int cpu_has_avx(void) {
-    return !!__builtin_cpu_supports("avx");
-}
+static inline int cpu_has_avx(void) { return !!__builtin_cpu_supports("avx"); }
 
 /**
  * cpu_has_avx2 — check at runtime whether the executing CPU supports AVX2.
  * @return Non-zero if supported, 0 otherwise.
  */
-static inline int cpu_has_avx2(void) {
-    return !!__builtin_cpu_supports("avx2");
-}
+static inline int cpu_has_avx2(void) { return !!__builtin_cpu_supports("avx2"); }
 
 /**
  * cpu_has_avx512f — check at runtime whether the executing CPU supports
  * AVX-512 Foundation.
  * @return Non-zero if supported, 0 otherwise.
  */
-static inline int cpu_has_avx512f(void) {
-    return !!__builtin_cpu_supports("avx512f");
-}
+static inline int cpu_has_avx512f(void) { return !!__builtin_cpu_supports("avx512f"); }
 
 #elif SOLIDC_MSVC
 
@@ -932,29 +922,21 @@ static inline int cpu_has_avx2(void) {
 static inline int cpu_has_avx512f(void) {
     int regs[4];
     __cpuid(regs, 0);
-    if (regs[0] < 7) return 0;  /* leaf 7 unsupported */
+    if (regs[0] < 7) return 0; /* leaf 7 unsupported */
     __cpuidex(regs, 7, 0);
     return (regs[1] >> 16) & 1; /* EBX */
 }
 
-#else               /* Unknown x86 compiler — fall back to compile-time result */
+#else /* Unknown x86 compiler — fall back to compile-time result */
 
-static inline int cpu_has_sse2(void) {
-    return HAS_SSE2;
-}
-static inline int cpu_has_avx(void) {
-    return HAS_AVX;
-}
-static inline int cpu_has_avx2(void) {
-    return HAS_AVX2;
-}
-static inline int cpu_has_avx512f(void) {
-    return HAS_AVX512F;
-}
+static inline int cpu_has_sse2(void) { return HAS_SSE2; }
+static inline int cpu_has_avx(void) { return HAS_AVX; }
+static inline int cpu_has_avx2(void) { return HAS_AVX2; }
+static inline int cpu_has_avx512f(void) { return HAS_AVX512F; }
 
-#endif              /* SOLIDC_GCC || SOLIDC_CLANG */
+#endif /* SOLIDC_GCC || SOLIDC_CLANG */
 
-#endif              /* x86 / x64 */
+#endif /* x86 / x64 */
 
 #if defined(__aarch64__) || defined(_M_ARM64)
 
@@ -963,9 +945,7 @@ static inline int cpu_has_avx512f(void) {
  * NEON (Advanced SIMD) is mandatory on AArch64, so this always returns 1.
  * @return Always 1 on AArch64.
  */
-static inline int cpu_has_neon(void) {
-    return 1;
-}
+static inline int cpu_has_neon(void) { return 1; }
 
 #elif defined(__arm__) && defined(__linux__)
 
@@ -977,9 +957,7 @@ static inline int cpu_has_neon(void) {
  * Queries AT_HWCAP via getauxval() for the HWCAP_NEON bit. Linux/AArch32 only.
  * @return Non-zero if supported, 0 otherwise.
  */
-static inline int cpu_has_neon(void) {
-    return (getauxval(AT_HWCAP) & HWCAP_NEON) != 0;
-}
+static inline int cpu_has_neon(void) { return (getauxval(AT_HWCAP) & HWCAP_NEON) != 0; }
 
 #elif defined(__arm__) || defined(_M_ARM)
 
@@ -989,9 +967,7 @@ static inline int cpu_has_neon(void) {
  * AArch32); falls back to the compile-time result.
  * @return The value of HAS_NEON.
  */
-static inline int cpu_has_neon(void) {
-    return HAS_NEON;
-}
+static inline int cpu_has_neon(void) { return HAS_NEON; }
 
 #endif /* ARM variants */
 

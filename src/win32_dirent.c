@@ -23,14 +23,14 @@ SOFTWARE.
 #ifdef _WIN32
 #ifdef __cplusplus
 extern "C" {
-#endif                 /* __cplusplus */
+#endif /* __cplusplus */
 
-#include <ctype.h>     // for isdigit
+#include <ctype.h>  // for isdigit
 #include <errno.h>
-#include <shlwapi.h>   // for PathIsRelativeW
+#include <shlwapi.h>  // for PathIsRelativeW
 #include <stdint.h>
-#include <stdlib.h>    // for malloc, free
-#include <string.h>    // for memcpy, memset
+#include <stdlib.h>  // for malloc, free
+#include <string.h>  // for memcpy, memset
 #include <sys/types.h>
 #include <windows.h>   // for Windows API
 #include <winioctl.h>  // for FSCTL_GET_REPARSE_POINT
@@ -160,8 +160,8 @@ static void __seterrno(int value) {
 static int __islink(const wchar_t* name, char* buffer) {
     DWORD io_result = 0;
     DWORD bytes_returned = 0;
-    HANDLE hFile = CreateFileW(name, 0, 0, NULL, OPEN_EXISTING,
-                               FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, 0);
+    HANDLE hFile =
+        CreateFileW(name, 0, 0, NULL, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, 0);
     if (hFile == INVALID_HANDLE_VALUE) return 0;
 
     io_result = (DWORD)DeviceIoControl(hFile, FSCTL_GET_REPARSE_POINT, NULL, 0, buffer,
@@ -202,8 +202,8 @@ static __ino_t __inode(const wchar_t* name) {
     HANDLE hKernel32 = GetModuleHandleW(L"kernel32.dll");
     if (!hKernel32) return value;
 
-    pfnGetFileInformationByHandleEx fnGetFileInformationByHandleEx = (pfnGetFileInformationByHandleEx)(void*)
-        GetProcAddress(hKernel32, "GetFileInformationByHandleEx");
+    pfnGetFileInformationByHandleEx fnGetFileInformationByHandleEx =
+        (pfnGetFileInformationByHandleEx)(void*)GetProcAddress(hKernel32, "GetFileInformationByHandleEx");
 
     if (!fnGetFileInformationByHandleEx) return value;
 
@@ -287,8 +287,8 @@ static DIR* __internal_opendir(wchar_t* wname, int size) {
         data->entries[data->index].d_off = data->index + 1;  // POSIX fix: offset to next entry
 
         if (++data->index == data->count) {
-            tmp_entries = (struct dirent*)realloc(data->entries,
-                                                  sizeof(struct dirent) * (size_t)data->count * grow_factor);
+            tmp_entries =
+                (struct dirent*)realloc(data->entries, sizeof(struct dirent) * (size_t)data->count * grow_factor);
             if (!tmp_entries) goto out_of_memory;
             data->entries = tmp_entries;
             data->count *= grow_factor;
@@ -387,8 +387,8 @@ DIR* fdopendir(intptr_t fd) {
         return NULL;
     }
 
-    pfnGetFinalPathNameByHandleW fnGetFinalPathNameByHandleW = (pfnGetFinalPathNameByHandleW)(void*)
-        GetProcAddress(hKernel32, "GetFinalPathNameByHandleW");
+    pfnGetFinalPathNameByHandleW fnGetFinalPathNameByHandleW =
+        (pfnGetFinalPathNameByHandleW)(void*)GetProcAddress(hKernel32, "GetFinalPathNameByHandleW");
     if (!fnGetFinalPathNameByHandleW) {
         errno = EINVAL;
         return NULL;
@@ -422,7 +422,9 @@ struct dirent* readdir(DIR* dirp) {
         errno = EBADF;
         return NULL;
     }
-    if (data->index < data->count) { return &data->entries[data->index++]; }
+    if (data->index < data->count) {
+        return &data->entries[data->index++];
+    }
     return NULL;
 }
 
@@ -436,7 +438,9 @@ struct dirent* readdir(DIR* dirp) {
  */
 int readdir_r(DIR* dirp, struct dirent* entry, struct dirent** result) {
     struct __dir* data = (struct __dir*)dirp;
-    if (!data || !entry || !result) { return EINVAL; }
+    if (!data || !entry || !result) {
+        return EINVAL;
+    }
     if (data->index < data->count) {
         memcpy(entry, &data->entries[data->index++], sizeof(struct dirent));
         *result = entry;
@@ -455,7 +459,9 @@ int readdir_r(DIR* dirp, struct dirent* entry, struct dirent** result) {
 void seekdir(DIR* dirp, long int offset) {
     if (dirp) {
         struct __dir* data = (struct __dir*)dirp;
-        if (offset >= 0 && offset <= data->count) { data->index = offset; }
+        if (offset >= 0 && offset <= data->count) {
+            data->index = offset;
+        }
     }
 }
 
@@ -464,9 +470,7 @@ void seekdir(DIR* dirp, long int offset) {
  *
  * @param dirp The directory stream.
  */
-void rewinddir(DIR* dirp) {
-    seekdir(dirp, 0);
-}
+void rewinddir(DIR* dirp) { seekdir(dirp, 0); }
 
 /**
  * @brief Returns the current position of the directory stream.
@@ -528,8 +532,7 @@ int scandir(const char* dirp, struct dirent*** namelist, int (*filter)(const str
             entries[index] = (struct dirent*)malloc(sizeof(struct dirent));
             if (!entries[index]) {
                 closedir(d);
-                for (i = 0; i < index; ++i)
-                    free(entries[i]);
+                for (i = 0; i < index; ++i) free(entries[i]);
                 free(entries);
                 __seterrno(ENOMEM);
                 return -1;
@@ -539,8 +542,7 @@ int scandir(const char* dirp, struct dirent*** namelist, int (*filter)(const str
                 tmp_entries = (struct dirent**)realloc(entries, sizeof(struct dirent*) * count * 2);
                 if (!tmp_entries) {
                     closedir(d);
-                    for (i = 0; i < index; ++i)
-                        free(entries[i]);
+                    for (i = 0; i < index; ++i) free(entries[i]);
                     free(entries);
                     __seterrno(ENOMEM);
                     return -1;

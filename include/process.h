@@ -108,10 +108,10 @@ typedef struct {
 #ifndef _WIN32
 // Extend ProcessIO structure with file redirections
 typedef struct {
-    PipeHandle* stdin_pipe;        // stdin pipe
-    PipeHandle* stdout_pipe;       // stdout pipe
-    PipeHandle* stderr_pipe;       // stderr pipe
-    bool merge_stderr;             // whether to merge stdout and stderr.
+    PipeHandle* stdin_pipe;   // stdin pipe
+    PipeHandle* stdout_pipe;  // stdout pipe
+    PipeHandle* stderr_pipe;  // stderr pipe
+    bool merge_stderr;        // whether to merge stdout and stderr.
 
     FileRedirection* stdout_file;  // stdout redirections
     FileRedirection* stderr_file;  // stderr redirections

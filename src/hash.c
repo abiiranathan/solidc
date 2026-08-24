@@ -95,7 +95,9 @@ uint32_t solidc_elf_hash(const void* key) {
     while (*str) {
         hash = (hash << 4) + (*str++);
         x = hash & 0xF0000000UL;
-        if (x != 0) { hash ^= (x >> 24); }
+        if (x != 0) {
+            hash ^= (x >> 24);
+        }
         hash &= ~x;
     }
 

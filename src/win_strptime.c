@@ -23,7 +23,9 @@ static inline bool is_leap_year(int year) {
  */
 static inline int days_in_month(int month, int year) {
     static const int days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    if (month < 0 || month > 11) { return 0; }
+    if (month < 0 || month > 11) {
+        return 0;
+    }
     if (month == 1 && is_leap_year(year)) {  // February in leap year
         return 29;
     }
@@ -34,8 +36,12 @@ static inline int days_in_month(int month, int year) {
  * Helper function to validate a date
  */
 static inline bool is_valid_date(int day, int month, int year) {
-    if (month < 0 || month > 11) { return false; }
-    if (day < 1) { return false; }
+    if (month < 0 || month > 11) {
+        return false;
+    }
+    if (day < 1) {
+        return false;
+    }
     return day <= days_in_month(month, year);
 }
 
@@ -51,7 +57,9 @@ static inline bool is_valid_date(int day, int month, int year) {
  * - Support for additional format specifiers
  */
 char* strptime(const char* buf, const char* fmt, struct tm* tm) {
-    if (buf == NULL || fmt == NULL || tm == NULL) { return NULL; }
+    if (buf == NULL || fmt == NULL || tm == NULL) {
+        return NULL;
+    }
 
     const char* s = buf;
     const char* f = fmt;
@@ -70,16 +78,16 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
     while (*f != '\0') {
         // Handle whitespace: any whitespace in format matches zero or more in input
         if (isspace((unsigned char)*f)) {
-            while (isspace((unsigned char)*f))
-                f++;
-            while (isspace((unsigned char)*s))
-                s++;
+            while (isspace((unsigned char)*f)) f++;
+            while (isspace((unsigned char)*s)) s++;
             continue;
         }
 
         if (*f != '%') {
             // Literal character match (case-sensitive)
-            if (*f != *s) { return NULL; }
+            if (*f != *s) {
+                return NULL;
+            }
             f++;
             s++;
             continue;
@@ -97,7 +105,9 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
         if (*f == 'E' || *f == 'O') {
             has_modifier = true;
             f++;  // Skip modifier (we'll ignore it for basic implementation)
-            if (*f == '\0') { return NULL; }
+            if (*f == '\0') {
+                return NULL;
+            }
         }
 
         /*
@@ -107,23 +117,29 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
          * required exact two-digit padding, so inputs like "2024-6-5"
          * parsed on Linux but failed on Windows.
          */
-        while (isspace((unsigned char)*s)) { s++; }
+        while (isspace((unsigned char)*s)) {
+            s++;
+        }
 
-#define WIN_STRPTIME_READ_1OR2(var)                                     \
-        do {                                                            \
-            if (!isdigit((unsigned char)s[0])) { return NULL; }         \
-            (var) = (unsigned char)s[0] - '0';                          \
-            if (isdigit((unsigned char)s[1])) {                         \
-                (var) = (var) * 10 + ((unsigned char)s[1] - '0');       \
-                s += 2;                                                 \
-            } else {                                                    \
-                s += 1;                                                 \
-            }                                                           \
-        } while (0)
+#define WIN_STRPTIME_READ_1OR2(var)                           \
+    do {                                                      \
+        if (!isdigit((unsigned char)s[0])) {                  \
+            return NULL;                                      \
+        }                                                     \
+        (var) = (unsigned char)s[0] - '0';                    \
+        if (isdigit((unsigned char)s[1])) {                   \
+            (var) = (var) * 10 + ((unsigned char)s[1] - '0'); \
+            s += 2;                                           \
+        } else {                                              \
+            s += 1;                                           \
+        }                                                     \
+    } while (0)
 
         switch (*f) {
             case 'Y': {  // Year: consumes 1-4 digits (glibc/strtol parity)
-                if (!isdigit((unsigned char)s[0])) { return NULL; }
+                if (!isdigit((unsigned char)s[0])) {
+                    return NULL;
+                }
                 int year = 0;
                 int ndig = 0;
                 while (ndig < 4 && isdigit((unsigned char)s[0])) {
@@ -136,7 +152,9 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
             }
 
             case 'y': {  // 2-digit year (00-99)
-                if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1])) { return NULL; }
+                if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1])) {
+                    return NULL;
+                }
                 int year = (s[0] - '0') * 10 + (s[1] - '0');
                 // POSIX: 69-99 -> 1969-1999, 00-68 -> 2000-2068
                 if (century >= 0) {
@@ -149,7 +167,9 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
             }
 
             case 'C': {  // Century (00-99)
-                if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1])) { return NULL; }
+                if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1])) {
+                    return NULL;
+                }
                 century = (s[0] - '0') * 10 + (s[1] - '0');
                 s += 2;
                 break;
@@ -158,7 +178,9 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
             case 'm': {  // Month (1-12), one or two digits
                 int month;
                 WIN_STRPTIME_READ_1OR2(month);
-                if (month < 1 || month > 12) { return NULL; }
+                if (month < 1 || month > 12) {
+                    return NULL;
+                }
                 tm->tm_mon = month - 1;
                 break;
             }
@@ -166,22 +188,30 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
             case 'd': {  // Day of month (1-31), one or two digits
                 int day;
                 WIN_STRPTIME_READ_1OR2(day);
-                if (day < 1 || day > 31) { return NULL; }
+                if (day < 1 || day > 31) {
+                    return NULL;
+                }
                 tm->tm_mday = day;
                 break;
             }
 
             case 'e': {  // Day of month (1-31, space-padded)
                 // Skip leading whitespace/zero
-                if (*s == ' ' || *s == '0') { s++; }
-                if (!isdigit((unsigned char)s[0])) { return NULL; }
+                if (*s == ' ' || *s == '0') {
+                    s++;
+                }
+                if (!isdigit((unsigned char)s[0])) {
+                    return NULL;
+                }
                 int day = (s[0] - '0');
                 s++;
                 if (isdigit((unsigned char)s[0])) {
                     day = day * 10 + (s[0] - '0');
                     s++;
                 }
-                if (day < 1 || day > 31) { return NULL; }
+                if (day < 1 || day > 31) {
+                    return NULL;
+                }
                 tm->tm_mday = day;
                 break;
             }
@@ -189,44 +219,62 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
             case 'H': {  // Hour (0-23), one or two digits
                 int hour;
                 WIN_STRPTIME_READ_1OR2(hour);
-                if (hour > 23) { return NULL; }
+                if (hour > 23) {
+                    return NULL;
+                }
                 tm->tm_hour = hour;
                 break;
             }
 
             case 'k': {  // Hour (0-23) - space-padded
-                if (*s == ' ') { s++; }
-                if (!isdigit((unsigned char)s[0])) { return NULL; }
+                if (*s == ' ') {
+                    s++;
+                }
+                if (!isdigit((unsigned char)s[0])) {
+                    return NULL;
+                }
                 int hour = (s[0] - '0');
                 s++;
                 if (isdigit((unsigned char)s[0])) {
                     hour = hour * 10 + (s[0] - '0');
                     s++;
                 }
-                if (hour > 23) { return NULL; }
+                if (hour > 23) {
+                    return NULL;
+                }
                 tm->tm_hour = hour;
                 break;
             }
 
             case 'I': {  // Hour (01-12) - zero-padded
-                if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1])) { return NULL; }
+                if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1])) {
+                    return NULL;
+                }
                 int hour = (s[0] - '0') * 10 + (s[1] - '0');
-                if (hour < 1 || hour > 12) { return NULL; }
+                if (hour < 1 || hour > 12) {
+                    return NULL;
+                }
                 tm->tm_hour = hour;
                 s += 2;
                 break;
             }
 
             case 'l': {  // Hour (1-12) - space-padded
-                if (*s == ' ') { s++; }
-                if (!isdigit((unsigned char)s[0])) { return NULL; }
+                if (*s == ' ') {
+                    s++;
+                }
+                if (!isdigit((unsigned char)s[0])) {
+                    return NULL;
+                }
                 int hour = (s[0] - '0');
                 s++;
                 if (isdigit((unsigned char)s[0])) {
                     hour = hour * 10 + (s[0] - '0');
                     s++;
                 }
-                if (hour < 1 || hour > 12) { return NULL; }
+                if (hour < 1 || hour > 12) {
+                    return NULL;
+                }
                 tm->tm_hour = hour;
                 break;
             }
@@ -234,7 +282,9 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
             case 'M': {  // Minute (0-59), one or two digits
                 int min;
                 WIN_STRPTIME_READ_1OR2(min);
-                if (min > 59) { return NULL; }
+                if (min > 59) {
+                    return NULL;
+                }
                 tm->tm_min = min;
                 break;
             }
@@ -266,7 +316,9 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
 
             case 'r': {  // 12-hour time with AM/PM (%I:%M:%S %p)
                 char* result = strptime(s, "%I:%M:%S %p", tm);
-                if (result == NULL) { return NULL; }
+                if (result == NULL) {
+                    return NULL;
+                }
                 s = result;
                 has_ampm = true;  // Mark that AM/PM was handled
                 break;
@@ -274,28 +326,36 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
 
             case 'R': {  // Time in HH:MM format
                 char* result = strptime(s, "%H:%M", tm);
-                if (result == NULL) { return NULL; }
+                if (result == NULL) {
+                    return NULL;
+                }
                 s = result;
                 break;
             }
 
             case 'T': {  // Time in HH:MM:SS format
                 char* result = strptime(s, "%H:%M:%S", tm);
-                if (result == NULL) { return NULL; }
+                if (result == NULL) {
+                    return NULL;
+                }
                 s = result;
                 break;
             }
 
             case 'D': {  // Date in MM/DD/YY format
                 char* result = strptime(s, "%m/%d/%y", tm);
-                if (result == NULL) { return NULL; }
+                if (result == NULL) {
+                    return NULL;
+                }
                 s = result;
                 break;
             }
 
             case 'F': {  // Date in YYYY-MM-DD format (ISO 8601)
                 char* result = strptime(s, "%Y-%m-%d", tm);
-                if (result == NULL) { return NULL; }
+                if (result == NULL) {
+                    return NULL;
+                }
                 s = result;
                 break;
             }
@@ -333,7 +393,9 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
                         }
                     }
                 }
-                if (!found) { return NULL; }
+                if (!found) {
+                    return NULL;
+                }
                 break;
             }
 
@@ -366,16 +428,20 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
                         }
                     }
                 }
-                if (!found) { return NULL; }
+                if (!found) {
+                    return NULL;
+                }
                 break;
             }
 
-            case 'j': {  /* Day of year (001-366); mon/mday derived post-scan */
+            case 'j': { /* Day of year (001-366); mon/mday derived post-scan */
                 if (!isdigit((unsigned char)s[0]) || !isdigit((unsigned char)s[1]) || !isdigit((unsigned char)s[2])) {
                     return NULL;
                 }
                 int yday = (s[0] - '0') * 100 + (s[1] - '0') * 10 + (s[2] - '0');
-                if (yday < 1 || yday > 366) { return NULL; }
+                if (yday < 1 || yday > 366) {
+                    return NULL;
+                }
                 tm->tm_yday = yday - 1;
                 yday_set = true;
                 s += 3;
@@ -383,18 +449,26 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
             }
 
             case 'u': {  // Weekday (1-7, Monday=1)
-                if (!isdigit((unsigned char)s[0])) { return NULL; }
+                if (!isdigit((unsigned char)s[0])) {
+                    return NULL;
+                }
                 int wday = s[0] - '0';
-                if (wday < 1 || wday > 7) { return NULL; }
+                if (wday < 1 || wday > 7) {
+                    return NULL;
+                }
                 tm->tm_wday = (wday == 7) ? 0 : wday;  // Convert to 0-6 (Sunday=0)
                 s++;
                 break;
             }
 
             case 'w': {  // Weekday (0-6, Sunday=0)
-                if (!isdigit((unsigned char)s[0])) { return NULL; }
+                if (!isdigit((unsigned char)s[0])) {
+                    return NULL;
+                }
                 int wday = s[0] - '0';
-                if (wday > 6) { return NULL; }
+                if (wday > 6) {
+                    return NULL;
+                }
                 tm->tm_wday = wday;
                 s++;
                 break;
@@ -412,7 +486,9 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
                         return NULL;
                     }
                     // Optional colon
-                    if (*s == ':') { s++; }
+                    if (*s == ':') {
+                        s++;
+                    }
                     // Consume minutes (2 digits)
                     if (isdigit((unsigned char)s[0]) && isdigit((unsigned char)s[1])) {
                         s += 2;
@@ -446,7 +522,9 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
             case 'n':  // Any whitespace
             case 't': {
                 // Match one or more whitespace characters
-                if (!isspace((unsigned char)*s)) { return NULL; }
+                if (!isspace((unsigned char)*s)) {
+                    return NULL;
+                }
                 while (isspace((unsigned char)*s)) {
                     s++;
                 }
@@ -454,7 +532,9 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
             }
 
             case '%': {  // Literal '%'
-                if (*s != '%') { return NULL; }
+                if (*s != '%') {
+                    return NULL;
+                }
                 s++;
                 break;
             }
@@ -503,7 +583,9 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
      */
 
     // Ensure DST flag is set to unknown if not explicitly set
-    if (tm->tm_isdst == 0) { tm->tm_isdst = -1; }
+    if (tm->tm_isdst == 0) {
+        tm->tm_isdst = -1;
+    }
 
     return (char*)s;
 }

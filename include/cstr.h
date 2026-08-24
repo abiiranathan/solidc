@@ -136,9 +136,7 @@ typedef struct {
 
 /** True when string data lives on the heap. */
 CSTR_INLINE bool cstr_is_heap(const cstr* s) CSTR_PURE;
-CSTR_INLINE bool cstr_is_heap(const cstr* s) {
-    return (s->capacity & CSTR_HEAP_FLAG) != 0;
-}
+CSTR_INLINE bool cstr_is_heap(const cstr* s) { return (s->capacity & CSTR_HEAP_FLAG) != 0; }
 
 /**
  * @brief Securely zero out string memory (guaranteed not optimized away).
@@ -147,9 +145,7 @@ void cstr_wipe(cstr* s);
 
 /** Extract actual heap capacity (strip flag bit). */
 CSTR_INLINE uint32_t cstr_heap_cap(const cstr* s) CSTR_PURE;
-CSTR_INLINE uint32_t cstr_heap_cap(const cstr* s) {
-    return s->capacity & ~CSTR_HEAP_FLAG;
-}
+CSTR_INLINE uint32_t cstr_heap_cap(const cstr* s) { return s->capacity & ~CSTR_HEAP_FLAG; }
 
 /* -------------------------------------------------------------------------
  * Public API — information
@@ -159,9 +155,7 @@ CSTR_INLINE uint32_t cstr_heap_cap(const cstr* s) {
  * @brief Length of the string, excluding NUL.
  */
 CSTR_INLINE size_t cstr_len(const cstr* s) CSTR_PURE;
-CSTR_INLINE size_t cstr_len(const cstr* s) {
-    return CSTR_LIKELY(s != NULL) ? (size_t)s->length : 0;
-}
+CSTR_INLINE size_t cstr_len(const cstr* s) { return CSTR_LIKELY(s != NULL) ? (size_t)s->length : 0; }
 
 /**
  * @brief Current storage capacity (bytes available before reallocation).
@@ -175,15 +169,11 @@ CSTR_INLINE size_t cstr_capacity(const cstr* s) {
 
 /** True if the string is empty or NULL. */
 CSTR_INLINE bool cstr_empty(const cstr* s) CSTR_PURE;
-CSTR_INLINE bool cstr_empty(const cstr* s) {
-    return CSTR_UNLIKELY(s == NULL) || s->length == 0;
-}
+CSTR_INLINE bool cstr_empty(const cstr* s) { return CSTR_UNLIKELY(s == NULL) || s->length == 0; }
 
 /** True if the string is heap-allocated (i.e. not in SSO mode). */
 CSTR_INLINE bool cstr_allocated(const cstr* s) CSTR_PURE;
-CSTR_INLINE bool cstr_allocated(const cstr* s) {
-    return CSTR_LIKELY(s != NULL) && cstr_is_heap(s);
-}
+CSTR_INLINE bool cstr_allocated(const cstr* s) { return CSTR_LIKELY(s != NULL) && cstr_is_heap(s); }
 
 /* -------------------------------------------------------------------------
  * Public API — data access
@@ -194,17 +184,13 @@ CSTR_INLINE bool cstr_allocated(const cstr* s) {
  * Never NULL for a valid cstr.
  */
 CSTR_INLINE char* cstr_data(cstr* s) CSTR_PURE;
-CSTR_INLINE char* cstr_data(cstr* s) {
-    return CSTR_LIKELY(s != NULL) ? s->data : NULL;
-}
+CSTR_INLINE char* cstr_data(cstr* s) { return CSTR_LIKELY(s != NULL) ? s->data : NULL; }
 
 /**
  * @brief Const pointer to the NUL-terminated string data.
  */
 CSTR_INLINE const char* cstr_data_const(const cstr* s) CSTR_PURE;
-CSTR_INLINE const char* cstr_data_const(const cstr* s) {
-    return CSTR_LIKELY(s != NULL) ? s->data : NULL;
-}
+CSTR_INLINE const char* cstr_data_const(const cstr* s) { return CSTR_LIKELY(s != NULL) ? s->data : NULL; }
 
 /**
  * @brief Character at index, or NUL if out of range.
@@ -302,9 +288,7 @@ bool cstr_reserve(cstr* s, size_t capacity) CSTR_NONNULL(1);
 
 /** Alias kept for compatibility. */
 CSTR_INLINE bool cstr_resize(cstr* s, size_t capacity) CSTR_NONNULL(1);
-CSTR_INLINE bool cstr_resize(cstr* s, size_t capacity) {
-    return cstr_reserve(s, capacity);
-}
+CSTR_INLINE bool cstr_resize(cstr* s, size_t capacity) { return cstr_reserve(s, capacity); }
 
 /**
  * @brief Shrink heap allocation to fit the current length (frees wasted memory).
@@ -343,9 +327,7 @@ bool cstr_ncat(cstr* dest, const cstr* src, size_t n) CSTR_NONNULL(1, 2);
 
 /** Alias: concatenate two cstrs. */
 CSTR_INLINE bool cstr_cat(cstr* dest, const cstr* src) CSTR_NONNULL(1, 2);
-CSTR_INLINE bool cstr_cat(cstr* dest, const cstr* src) {
-    return cstr_append_cstr(dest, src);
-}
+CSTR_INLINE bool cstr_cat(cstr* dest, const cstr* src) { return cstr_append_cstr(dest, src); }
 
 /**
  * @brief Append without capacity check — caller guarantees space.
@@ -430,9 +412,7 @@ bool cstr_copy(cstr* dest, const cstr* src) CSTR_NONNULL(1, 2);
 
 /** Alias for cstr_copy. */
 CSTR_INLINE bool cstr_assign(cstr* dest, const cstr* src) CSTR_NONNULL(1, 2);
-CSTR_INLINE bool cstr_assign(cstr* dest, const cstr* src) {
-    return cstr_copy(dest, src);
-}
+CSTR_INLINE bool cstr_assign(cstr* dest, const cstr* src) { return cstr_copy(dest, src); }
 
 /* -------------------------------------------------------------------------
  * Case conversion & formatting
@@ -492,14 +472,10 @@ int cstr_rfind(const cstr* s, const char* substr) CSTR_NONNULL(1, 2) CSTR_PURE;
 int cstr_rfind_cstr(const cstr* s, const cstr* substr) CSTR_NONNULL(1, 2) CSTR_PURE;
 
 CSTR_INLINE bool cstr_contains(const cstr* s, const char* substr) CSTR_NONNULL(1, 2) CSTR_PURE;
-CSTR_INLINE bool cstr_contains(const cstr* s, const char* substr) {
-    return cstr_find(s, substr) != CSTR_NPOS;
-}
+CSTR_INLINE bool cstr_contains(const cstr* s, const char* substr) { return cstr_find(s, substr) != CSTR_NPOS; }
 
 CSTR_INLINE bool cstr_contains_cstr(const cstr* s, const cstr* sub) CSTR_NONNULL(1, 2) CSTR_PURE;
-CSTR_INLINE bool cstr_contains_cstr(const cstr* s, const cstr* sub) {
-    return cstr_find_cstr(s, sub) != CSTR_NPOS;
-}
+CSTR_INLINE bool cstr_contains_cstr(const cstr* s, const cstr* sub) { return cstr_find_cstr(s, sub) != CSTR_NPOS; }
 
 /** Count occurrences (non-overlapping). */
 size_t cstr_count_substr(const cstr* s, const char* substr) CSTR_NONNULL(1, 2) CSTR_PURE;

@@ -80,19 +80,13 @@ static inline uint64_t hashset_default_hash(const void* key, size_t key_size) {
     return hash;
 }
 
-static inline bool hashset_default_equals(const void* a, const void* b, size_t ks) {
-    return memcmp(a, b, ks) == 0;
-}
+static inline bool hashset_default_equals(const void* a, const void* b, size_t ks) { return memcmp(a, b, ks) == 0; }
 
 /* Return slot index for probe step i starting from base. */
-static inline size_t _hs_slot(size_t base, size_t i, size_t mask) {
-    return (base + i) & mask;
-}
+static inline size_t _hs_slot(size_t base, size_t i, size_t mask) { return (base + i) & mask; }
 
 /* Pointer to key stored in slot idx. */
-static inline void* _hs_key(const hashset_t* s, size_t idx) {
-    return (void*)(s->keys + idx * s->key_size);
-}
+static inline void* _hs_key(const hashset_t* s, size_t idx) { return (void*)(s->keys + idx * s->key_size); }
 
 static inline hashset_t* hashset_create(size_t key_size, size_t initial_capacity,
                                         uint64_t (*hash_fn)(const void*, size_t),
@@ -101,8 +95,7 @@ static inline hashset_t* hashset_create(size_t key_size, size_t initial_capacity
 
     /* Round up to next power-of-two. */
     size_t cap = HASHSET_DEFAULT_CAPACITY;
-    while (cap < initial_capacity)
-        cap <<= 1;
+    while (cap < initial_capacity) cap <<= 1;
 
     hashset_t* set = (hashset_t*)malloc(sizeof(hashset_t));
     if (!set) return NULL;
@@ -185,8 +178,7 @@ static inline bool _hs_rehash(hashset_t* set, size_t new_cap) {
         size_t idx = (size_t)(h & mask);
 
         /* Linear probe in new table (no deletions yet, so no DELETED slots). */
-        while (new_meta[idx] != _HS_EMPTY)
-            idx = (idx + 1) & mask;
+        while (new_meta[idx] != _HS_EMPTY) idx = (idx + 1) & mask;
 
         new_meta[idx] = fp;
         memcpy(new_keys + idx * set->key_size, k, set->key_size);
@@ -332,15 +324,9 @@ static inline bool hashset_remove(hashset_t* set, const void* key) {
  * Accessors
  * ========================================================================= */
 
-static inline size_t hashset_size(const hashset_t* s) {
-    return s ? s->size : 0;
-}
-static inline size_t hashset_capacity(const hashset_t* s) {
-    return s ? s->capacity : 0;
-}
-static inline bool hashset_isempty(const hashset_t* s) {
-    return !s || s->size == 0;
-}
+static inline size_t hashset_size(const hashset_t* s) { return s ? s->size : 0; }
+static inline size_t hashset_capacity(const hashset_t* s) { return s ? s->capacity : 0; }
+static inline bool hashset_isempty(const hashset_t* s) { return !s || s->size == 0; }
 
 static inline void hashset_clear(hashset_t* set) {
     if (!set) return;

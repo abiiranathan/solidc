@@ -33,20 +33,18 @@
 
 typedef struct trie_node {
     uint16_t nchildren;
-    uint8_t nalloc;    /* TRIE_INLINE_CAP when inline; blob capacity otherwise */
-    bool is_heap;      /* false: inline storage, true: arena blob              */
+    uint8_t nalloc; /* TRIE_INLINE_CAP when inline; blob capacity otherwise */
+    bool is_heap;   /* false: inline storage, true: arena blob              */
     bool is_end_of_word;
     uint32_t frequency;
-    void* blob;        /* heap/arena storage when is_heap                      */
+    void* blob; /* heap/arena storage when is_heap                      */
     uint8_t ichars[TRIE_INLINE_CAP];
     struct trie_node* ichild[TRIE_INLINE_CAP];
 } trie_node;
 
 /* Const is dropped deliberately: search paths only read through these,
  * while insert paths need mutable access to the same storage. */
-static inline uint8_t* node_chars(const trie_node* n) {
-    return n->is_heap ? (uint8_t*)n->blob : (uint8_t*)n->ichars;
-}
+static inline uint8_t* node_chars(const trie_node* n) { return n->is_heap ? (uint8_t*)n->blob : (uint8_t*)n->ichars; }
 
 static inline trie_node** node_children(const trie_node* n) {
     /* Heap blobs are laid out [chars | pad | children]: the pointer array
@@ -65,9 +63,7 @@ typedef struct _trie {
  * ========================================================================= */
 
 /** Allocate a zeroed node from the trie's arena. */
-static trie_node* node_alloc(trie_t* t) {
-    return (trie_node*)arena_alloc_zero(t->arena, sizeof(trie_node));
-}
+static trie_node* node_alloc(trie_t* t) { return (trie_node*)arena_alloc_zero(t->arena, sizeof(trie_node)); }
 
 /**
  * Grows the node's child storage to @p want slots.
@@ -81,15 +77,16 @@ static trie_node* node_alloc(trie_t* t) {
  */
 static bool node_reserve(trie_t* t, trie_node* n, uint8_t want) {
     void* nb = arena_alloc(t->arena, TRIE_CHILD_OFF(want) + (size_t)want * sizeof(trie_node*));
-    if (!nb) { return false; }
+    if (!nb) {
+        return false;
+    }
 
     uint8_t* new_chars = (uint8_t*)nb;
     trie_node** new_children = (trie_node**)((char*)nb + TRIE_CHILD_OFF(want));
 
     if (n->is_heap) {
         memcpy(new_chars, n->blob, (size_t)n->nchildren);
-        memcpy(new_children, (char*)n->blob + TRIE_CHILD_OFF(n->nalloc),
-               (size_t)n->nchildren * sizeof(trie_node*));
+        memcpy(new_children, (char*)n->blob + TRIE_CHILD_OFF(n->nalloc), (size_t)n->nchildren * sizeof(trie_node*));
     } else {
         memcpy(new_chars, n->ichars, (size_t)n->nchildren);
         memcpy(new_children, n->ichild, (size_t)n->nchildren * sizeof(trie_node*));
@@ -112,12 +109,16 @@ static bool node_reserve(trie_t* t, trie_node* n, uint8_t want) {
  */
 static inline int child_index(const trie_node* n, uint8_t c) {
     const uint8_t nc = n->nchildren;
-    if (nc == 0) { return -1; }
+    if (nc == 0) {
+        return -1;
+    }
 
     const uint8_t* ch = node_chars(n);
     if (nc <= 8) {
         for (uint8_t i = 0; i < nc; i++) {
-            if (ch[i] == c) { return i; }
+            if (ch[i] == c) {
+                return i;
+            }
         }
         return -1;
     }
@@ -157,8 +158,12 @@ static trie_node* child_find_or_create(trie_t* t, trie_node* n, uint8_t c) {
         if (n->nchildren == cur_cap) {
             uint32_t want = (uint32_t)cur_cap * 2;
             if (want > 255) want = 255;
-            if ((uint8_t)want == cur_cap) { return NULL; /* hard cap */ }
-            if (!node_reserve(t, n, (uint8_t)want)) { return NULL; }
+            if ((uint8_t)want == cur_cap) {
+                return NULL; /* hard cap */
+            }
+            if (!node_reserve(t, n, (uint8_t)want)) {
+                return NULL;
+            }
         }
     }
 
@@ -288,12 +293,8 @@ uint32_t trie_get_frequency(const trie_t* t, const char* word) {
     return cur->is_end_of_word ? cur->frequency : 0;
 }
 
-size_t trie_get_word_count(const trie_t* t) {
-    return t ? t->word_count : 0;
-}
-bool trie_is_empty(const trie_t* t) {
-    return !t || t->word_count == 0;
-}
+size_t trie_get_word_count(const trie_t* t) { return t ? t->word_count : 0; }
+bool trie_is_empty(const trie_t* t) { return !t || t->word_count == 0; }
 
 /* =========================================================================
  * Autocomplete (DFS with arena allocation — same API as original)

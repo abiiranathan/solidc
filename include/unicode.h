@@ -55,8 +55,8 @@ extern "C" {
  *       and free(s) all continue to work exactly as before.
  */
 typedef struct utf8_string {
-    char*
-        data; /**< Null-terminated UTF-8 string data. Points into this struct's own allocation; never free or realloc it separately. */
+    char* data; /**< Null-terminated UTF-8 string data. Points into this struct's own allocation; never free or realloc
+                   it separately. */
     size_t length;   /**< Total number of bytes in use (excluding null terminator). */
     size_t count;    /**< Number of Unicode codepoints (characters). */
     size_t capacity; /**< Bytes allocated for data, excluding the implicit null terminator byte. */

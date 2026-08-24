@@ -132,7 +132,9 @@ static void blk_cache_register(void) {
  * available for explicit flushing.
  */
 static void blk_cache_drain(void) {
-    for (size_t i = 0; i < blk_cache_count; i++) { aligned_free_xp(blk_cache[i]); }
+    for (size_t i = 0; i < blk_cache_count; i++) {
+        aligned_free_xp(blk_cache[i]);
+    }
     blk_cache_count = 0;
     blk_cache_bytes = 0;
 }
@@ -277,13 +279,17 @@ void arena_destroy(Arena* a) {
 
     /* Free the first block's buffer only if we heap-allocated it.
      * Static/stack/TLS-backed buffers are caller-owned and must not be freed. */
-    if (block && !block->is_static) { aligned_free_xp(block->base); }
+    if (block && !block->is_static) {
+        aligned_free_xp(block->base);
+    }
 
     /* If the first block was the TLS static buffer, mark it available again
-     * so the next arena_create() can reuse it without leaking capacity. 
+     * so the next arena_create() can reuse it without leaking capacity.
      Comparing block->base == static_buffer is a bug if the arena switched threads.
      */
-    if (block && block->is_static && a->tls_in_use_origin) { *a->tls_in_use_origin = false; }
+    if (block && block->is_static && a->tls_in_use_origin) {
+        *a->tls_in_use_origin = false;
+    }
 
     /* Walk overflow blocks.  Each was allocated as a single slab where the
      * ArenaBlock header lives at the start of the pointer returned by

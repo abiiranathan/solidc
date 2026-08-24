@@ -114,9 +114,13 @@ static inline int epoll_ctl(int epfd, int op, int fd, struct epoll_event* event)
     }
 
     /* Handle Edge Triggering */
-    if (event && (event->events & EPOLLET)) { k_flags |= EV_CLEAR; }
+    if (event && (event->events & EPOLLET)) {
+        k_flags |= EV_CLEAR;
+    }
     /* Handle One Shot */
-    if (event && (event->events & EPOLLONESHOT)) { k_flags |= EV_ONESHOT; }
+    if (event && (event->events & EPOLLONESHOT)) {
+        k_flags |= EV_ONESHOT;
+    }
 
     /* Prepare READ filter */
     if (op == EPOLL_CTL_DEL || (event && (event->events & (EPOLLIN | EPOLLPRI | EPOLLRDHUP)))) {
@@ -199,8 +203,12 @@ static inline int epoll_wait(int epfd, struct epoll_event* events, int maxevents
                 ev_flags |= EPOLLOUT;
             }
 
-            if (k_events[i].flags & EV_ERROR) { ev_flags |= EPOLLERR; }
-            if (k_events[i].flags & EV_EOF) { ev_flags |= EPOLLHUP; }
+            if (k_events[i].flags & EV_ERROR) {
+                ev_flags |= EPOLLERR;
+            }
+            if (k_events[i].flags & EV_EOF) {
+                ev_flags |= EPOLLHUP;
+            }
 
             events[i].events = ev_flags;
             events[i].data.ptr = k_events[i].udata;
@@ -229,7 +237,9 @@ static inline int epoll_wait(int epfd, struct epoll_event* events, int maxevents
  */
 static inline int set_nonblocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1) { return -1; }
+    if (flags == -1) {
+        return -1;
+    }
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 

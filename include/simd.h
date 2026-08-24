@@ -936,8 +936,8 @@ static inline simd_vec_t simd_normalize3(simd_vec_t v) {
          * from v.  Bitwise AND/OR do not propagate NaN/Inf lanes. */
         {
             __m128 www = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3, 3, 3, 3));
-            const __m128i keep_xyz = _mm_set_epi32(0, -1, -1, -1);   /* zero W lane */
-            const __m128i keep_w   = _mm_set_epi32(-1, 0, 0, 0);     /* keep W only */
+            const __m128i keep_xyz = _mm_set_epi32(0, -1, -1, -1); /* zero W lane */
+            const __m128i keep_w = _mm_set_epi32(-1, 0, 0, 0);     /* keep W only */
             result = _mm_and_ps(result, _mm_castsi128_ps(keep_xyz));
             www = _mm_and_ps(www, _mm_castsi128_ps(keep_w));
             return _mm_or_ps(result, www);
@@ -992,7 +992,7 @@ static inline simd_vec_t simd_normalize3_fast(simd_vec_t v) {
     {
         __m128 www = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3, 3, 3, 3));
         const __m128i keep_xyz = _mm_set_epi32(0, -1, -1, -1);
-        const __m128i keep_w   = _mm_set_epi32(-1, 0, 0, 0);
+        const __m128i keep_w = _mm_set_epi32(-1, 0, 0, 0);
         result = _mm_and_ps(result, _mm_castsi128_ps(keep_xyz));
         www = _mm_and_ps(www, _mm_castsi128_ps(keep_w));
         return _mm_or_ps(result, www);

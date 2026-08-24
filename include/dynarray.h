@@ -113,13 +113,19 @@ void dynarray_free(dynarray_t* arr);
  * @return true on success, false on allocation failure.
  */
 static DYNARRAY_INLINE bool dynarray_push(dynarray_t* arr, const void* element) {
-    if (DYNARRAY_UNLIKELY(arr == NULL || element == NULL)) { return false; }
+    if (DYNARRAY_UNLIKELY(arr == NULL || element == NULL)) {
+        return false;
+    }
 
     if (DYNARRAY_UNLIKELY(arr->size >= arr->capacity)) {
         // Fast 1.5x capacity growth via bitwise shifts: cap + (cap >> 1)
         size_t new_cap = arr->capacity + (arr->capacity >> 1);
-        if (DYNARRAY_UNLIKELY(new_cap <= arr->capacity)) { new_cap = arr->capacity + 1; }
-        if (DYNARRAY_UNLIKELY(!dynarray_grow_slowpath(arr, new_cap))) { return false; }
+        if (DYNARRAY_UNLIKELY(new_cap <= arr->capacity)) {
+            new_cap = arr->capacity + 1;
+        }
+        if (DYNARRAY_UNLIKELY(!dynarray_grow_slowpath(arr, new_cap))) {
+            return false;
+        }
     }
 
     unsigned char* dest = (unsigned char*)arr->data + (arr->size * arr->element_size);
@@ -138,7 +144,9 @@ bool dynarray_push_n(dynarray_t* arr, const void* elements, size_t count);
  * Removes and returns the last element from the array.
  */
 static DYNARRAY_INLINE bool dynarray_pop(dynarray_t* arr, void* out_element) {
-    if (DYNARRAY_UNLIKELY(arr == NULL || arr->size == 0)) { return false; }
+    if (DYNARRAY_UNLIKELY(arr == NULL || arr->size == 0)) {
+        return false;
+    }
 
     arr->size--;
 
@@ -151,7 +159,9 @@ static DYNARRAY_INLINE bool dynarray_pop(dynarray_t* arr, void* out_element) {
     if (DYNARRAY_UNLIKELY(arr->capacity > DYNARRAY_INITIAL_CAPACITY &&
                           arr->size < arr->capacity / DYNARRAY_SHRINK_THRESHOLD)) {
         size_t new_capacity = arr->capacity >> 1;  // Faster capacity / 2
-        if (new_capacity < DYNARRAY_INITIAL_CAPACITY) { new_capacity = DYNARRAY_INITIAL_CAPACITY; }
+        if (new_capacity < DYNARRAY_INITIAL_CAPACITY) {
+            new_capacity = DYNARRAY_INITIAL_CAPACITY;
+        }
         dynarray_grow_slowpath(arr, new_capacity);
     }
 
@@ -162,7 +172,9 @@ static DYNARRAY_INLINE bool dynarray_pop(dynarray_t* arr, void* out_element) {
  * Gets a mutable pointer to the element at the specified index.
  */
 static DYNARRAY_INLINE void* dynarray_get(const dynarray_t* arr, size_t index) {
-    if (DYNARRAY_UNLIKELY(arr == NULL || index >= arr->size)) { return NULL; }
+    if (DYNARRAY_UNLIKELY(arr == NULL || index >= arr->size)) {
+        return NULL;
+    }
     return (unsigned char*)arr->data + (index * arr->element_size);
 }
 
@@ -170,7 +182,9 @@ static DYNARRAY_INLINE void* dynarray_get(const dynarray_t* arr, size_t index) {
  * Gets a read-only pointer to the element at the specified index.
  */
 static DYNARRAY_INLINE const void* dynarray_get_const(const dynarray_t* arr, size_t index) {
-    if (DYNARRAY_UNLIKELY(arr == NULL || index >= arr->size)) { return NULL; }
+    if (DYNARRAY_UNLIKELY(arr == NULL || index >= arr->size)) {
+        return NULL;
+    }
     return (const unsigned char*)arr->data + (index * arr->element_size);
 }
 
@@ -178,7 +192,9 @@ static DYNARRAY_INLINE const void* dynarray_get_const(const dynarray_t* arr, siz
  * Sets the element at the specified index.
  */
 static DYNARRAY_INLINE bool dynarray_set(dynarray_t* arr, size_t index, const void* element) {
-    if (DYNARRAY_UNLIKELY(arr == NULL || element == NULL || index >= arr->size)) { return false; }
+    if (DYNARRAY_UNLIKELY(arr == NULL || element == NULL || index >= arr->size)) {
+        return false;
+    }
 
     unsigned char* dest = (unsigned char*)arr->data + (index * arr->element_size);
     dynarray_fast_copy(dest, element, arr->element_size);
@@ -190,17 +206,11 @@ bool dynarray_reserve(dynarray_t* arr, size_t new_capacity);
 bool dynarray_shrink_to_fit(dynarray_t* arr);
 void dynarray_clear(dynarray_t* arr);
 
-static inline size_t dynarray_size(const dynarray_t* arr) {
-    return arr ? arr->size : 0;
-}
+static inline size_t dynarray_size(const dynarray_t* arr) { return arr ? arr->size : 0; }
 
-static inline size_t dynarray_capacity(const dynarray_t* arr) {
-    return arr ? arr->capacity : 0;
-}
+static inline size_t dynarray_capacity(const dynarray_t* arr) { return arr ? arr->capacity : 0; }
 
-static inline bool dynarray_is_empty(const dynarray_t* arr) {
-    return arr == NULL || arr->size == 0;
-}
+static inline bool dynarray_is_empty(const dynarray_t* arr) { return arr == NULL || arr->size == 0; }
 
 /* -------------------------------------------------------------------------- */
 /* Zero-Overhead Type-Safe Accessor Macros                                   */

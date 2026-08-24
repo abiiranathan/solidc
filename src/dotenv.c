@@ -17,15 +17,21 @@
  * @return Pointer to the unquoted string (may be different from input).
  */
 static char* remove_quotes(char* str) {
-    if (str == NULL) { return NULL; }
+    if (str == NULL) {
+        return NULL;
+    }
 
     size_t len = strlen(str);
-    if (len < 2) { return str; }
+    if (len < 2) {
+        return str;
+    }
 
     char first = str[0], last = str[len - 1];
     bool dbl = (first == '"' && last == '"');
     bool sgl = (first == '\'' && last == '\'');
-    if (!dbl && !sgl) { return str; }
+    if (!dbl && !sgl) {
+        return str;
+    }
 
     if (sgl) {
         /* Single quotes are fully literal. */
@@ -41,10 +47,17 @@ static char* remove_quotes(char* str) {
         if (*r == '\\' && r + 1 < inner_end) {
             r++;
             switch (*r) {
-                case 'n': *w++ = '\n'; break;
-                case 't': *w++ = '\t'; break;
-                case 'r': *w++ = '\r'; break;
-                default:  *w++ = *r;   /* \" -> ", \\ -> \, unknown kept */
+                case 'n':
+                    *w++ = '\n';
+                    break;
+                case 't':
+                    *w++ = '\t';
+                    break;
+                case 'r':
+                    *w++ = '\r';
+                    break;
+                default:
+                    *w++ = *r; /* \" -> ", \\ -> \, unknown kept */
             }
         } else {
             *w++ = *r;
@@ -62,7 +75,9 @@ static char* remove_quotes(char* str) {
  * @return true on success, false if buffer is too small or invalid input.
  */
 static bool interpolate(const char* value, char* result, size_t result_size) {
-    if (value == NULL || result == NULL || result_size == 0) { return false; }
+    if (value == NULL || result == NULL || result_size == 0) {
+        return false;
+    }
 
     size_t result_len = 0;
     const char* ptr = value;
@@ -140,12 +155,18 @@ static bool interpolate(const char* value, char* result, size_t result_size) {
  * @return true if key is a valid identifier, false otherwise.
  */
 static bool is_valid_key(const char* key) {
-    if (key == NULL || *key == '\0') { return false; }
+    if (key == NULL || *key == '\0') {
+        return false;
+    }
 
-    if (!isalpha((unsigned char)key[0]) && key[0] != '_') { return false; }
+    if (!isalpha((unsigned char)key[0]) && key[0] != '_') {
+        return false;
+    }
 
     for (const char* p = key + 1; *p != '\0'; p++) {
-        if (!isalnum((unsigned char)*p) && *p != '_') { return false; }
+        if (!isalnum((unsigned char)*p) && *p != '_') {
+            return false;
+        }
     }
 
     return true;
@@ -158,7 +179,9 @@ static bool is_valid_key(const char* key) {
  * @return true on success, false on error.
  */
 static bool process_env_pair(char* key, char* value) {
-    if (key == NULL || value == NULL) { return false; }
+    if (key == NULL || value == NULL) {
+        return false;
+    }
 
     // Trim key
     str_trim(key);
@@ -219,7 +242,9 @@ static void strip_inline_comment(char* line) {
         char c = *p;
 
         if (in_single) {
-            if (c == '\'') { in_single = false; }
+            if (c == '\'') {
+                in_single = false;
+            }
         } else if (escaped) {
             escaped = false; /* verbatim character, no state change */
         } else if (in_double) {
@@ -273,19 +298,26 @@ bool load_dotenv(const char* path) {
             had_errors = true;
             // Discard the remainder of this oversized line before continuing.
             int c;
-            while ((c = fgetc(file)) != EOF && c != '\n') {}
+            while ((c = fgetc(file)) != EOF && c != '\n') {
+            }
             continue;
         }
 
         // Remove trailing newline (and a preceding '\r' for CRLF files).
-        if (len > 0 && line[len - 1] == '\n') { line[--len] = '\0'; }
-        if (len > 0 && line[len - 1] == '\r') { line[--len] = '\0'; }
+        if (len > 0 && line[len - 1] == '\n') {
+            line[--len] = '\0';
+        }
+        if (len > 0 && line[len - 1] == '\r') {
+            line[--len] = '\0';
+        }
 
         strip_inline_comment(line);
         str_trim(line);
 
         // Skip empty lines and full-line comments
-        if (*line == '\0' || *line == '#') { continue; }
+        if (*line == '\0' || *line == '#') {
+            continue;
+        }
 
         // Optional "export " prefix, as supported by shell-style .env files.
         char* stmt = line;

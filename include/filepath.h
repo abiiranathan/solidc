@@ -62,7 +62,7 @@ extern "C" {
  * @note Must be closed with dir_close() to prevent resource leaks.
  */
 typedef struct {
-    char* path;                 /**< Directory path being traversed. */
+    char* path; /**< Directory path being traversed. */
 #ifdef _WIN32
     HANDLE handle;              /**< Windows directory search handle. */
     WIN32_FIND_DATAW find_data; /**< Current directory entry data. */

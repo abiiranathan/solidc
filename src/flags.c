@@ -50,28 +50,28 @@ struct Flag {
  * their own flags and handlers.
  */
 struct FlagParser {
-    Arena* arena;                        /**< Memory arena for all allocations */
-    char* name;                          /**< Name of this parser/command */
-    char* description;                   /**< Description shown in help */
-    char* footer;                        /**< Optional footer text for help */
+    Arena* arena;      /**< Memory arena for all allocations */
+    char* name;        /**< Name of this parser/command */
+    char* description; /**< Description shown in help */
+    char* footer;      /**< Optional footer text for help */
 
-    Flag* flags;                         /**< Dynamic array of registered flags */
-    size_t flag_count;                   /**< Number of registered flags */
-    size_t flag_capacity;                /**< Allocated capacity for flags array */
+    Flag* flags;          /**< Dynamic array of registered flags */
+    size_t flag_count;    /**< Number of registered flags */
+    size_t flag_capacity; /**< Allocated capacity for flags array */
 
-    FlagParser** subcommands;            /**< Dynamic array of subcommand parsers */
-    size_t cmd_count;                    /**< Number of registered subcommands */
-    size_t cmd_capacity;                 /**< Allocated capacity for subcommands array */
+    FlagParser** subcommands; /**< Dynamic array of subcommand parsers */
+    size_t cmd_count;         /**< Number of registered subcommands */
+    size_t cmd_capacity;      /**< Allocated capacity for subcommands array */
 
     void (*handler)(void* user_data);    /**< Handler function for this command */
     void (*pre_invoke)(void* user_data); /**< Pre-invocation setup function */
 
-    char** positional_args;              /**< Array of positional arguments */
-    size_t pos_count;                    /**< Number of positional arguments */
-    size_t pos_capacity;                 /**< Allocated capacity for positional args */
+    char** positional_args; /**< Array of positional arguments */
+    size_t pos_count;       /**< Number of positional arguments */
+    size_t pos_capacity;    /**< Allocated capacity for positional args */
 
-    char last_error[ERR_BUF_SIZE];       /**< Last error message */
-    FlagParser* active_subcommand;       /**< Active subcommand after parsing */
+    char last_error[ERR_BUF_SIZE]; /**< Last error message */
+    FlagParser* active_subcommand; /**< Active subcommand after parsing */
 };
 
 // --- Memory Helpers ---
@@ -239,7 +239,9 @@ static void format_default_value(FlagDataType type, void* default_ptr, char* buf
 FlagParser* flag_parser_new(const char* name, const char* description) {
     // Create arena with default size
     Arena* arena = arena_create(0);
-    if (!arena) { return NULL; }
+    if (!arena) {
+        return NULL;
+    }
 
     FlagParser* fp = arena_alloc_zero(arena, sizeof(FlagParser));
     if (!fp) {
@@ -283,7 +285,9 @@ void flag_parser_set_footer(FlagParser* parser, const char* footer) {
  * for global setup or initialization.
  */
 void flag_set_pre_invoke(FlagParser* fp, void (*pre_invoke)(void* user_data)) {
-    if (fp) { fp->pre_invoke = pre_invoke; }
+    if (fp) {
+        fp->pre_invoke = pre_invoke;
+    }
 }
 
 // --- Registration ---
@@ -317,7 +321,9 @@ Flag* flag_add(FlagParser* fp, FlagDataType type, const char* name, char short_n
         size_t new_cap = (fp->flag_capacity == 0) ? INITIAL_CAPACITY : fp->flag_capacity * 2;
         Flag* new_flags = arena_alloc(fp->arena, sizeof(Flag) * new_cap);
         if (!new_flags) return NULL;
-        if (fp->flags) { memcpy(new_flags, fp->flags, fp->flag_count * sizeof(Flag)); }
+        if (fp->flags) {
+            memcpy(new_flags, fp->flags, fp->flag_count * sizeof(Flag));
+        }
         fp->flags = new_flags;
         fp->flag_capacity = new_cap;
     }
@@ -361,7 +367,9 @@ FlagParser* flag_add_subcommand(FlagParser* fp, const char* name, const char* de
         size_t new_cap = (fp->cmd_capacity == 0) ? INITIAL_CAPACITY : fp->cmd_capacity * 2;
         FlagParser** new_cmds = arena_alloc(fp->arena, sizeof(FlagParser*) * new_cap);
         if (!new_cmds) return NULL;
-        if (fp->subcommands) { memcpy(new_cmds, fp->subcommands, fp->cmd_count * sizeof(FlagParser*)); }
+        if (fp->subcommands) {
+            memcpy(new_cmds, fp->subcommands, fp->cmd_count * sizeof(FlagParser*));
+        }
         fp->subcommands = new_cmds;
         fp->cmd_capacity = new_cap;
     }
@@ -392,15 +400,21 @@ FlagParser* flag_add_subcommand(FlagParser* fp, const char* name, const char* de
  * after parsing, use flag_parse_and_invoke() instead.
  */
 bool flag_invoke_subcommand(FlagParser* fp, void (*pre_invoke)(void* user_data), void* user_data) {
-    if (!fp || !fp->active_subcommand) { return false; }
+    if (!fp || !fp->active_subcommand) {
+        return false;
+    }
 
     FlagParser* sub = fp->active_subcommand;
 
     // Run pre-invocation callback if provided
-    if (pre_invoke) { pre_invoke(user_data); }
+    if (pre_invoke) {
+        pre_invoke(user_data);
+    }
 
     // Invoke the subcommand handler if it exists
-    if (sub->handler) { sub->handler(user_data); }
+    if (sub->handler) {
+        sub->handler(user_data);
+    }
 
     return true;
 }
@@ -485,7 +499,10 @@ static Flag* find_flag_short(FlagParser* fp, char c) {
  * @return true when recognized, false otherwise
  */
 static bool parse_bool_value(const char* str, bool* out) {
-    static const struct { const char* name; bool val; } table[] = {
+    static const struct {
+        const char* name;
+        bool val;
+    } table[] = {
         {"true", true}, {"false", false}, {"yes", true}, {"no", false},
         {"on", true},   {"off", false},   {"1", true},   {"0", false},
     };
@@ -521,9 +538,7 @@ static bool is_value_token(const char* s) {
  * @param max Maximum allowed value
  * @return true if in range
  */
-static bool check_range_int(long long val, long long min, long long max) {
-    return (val >= min && val <= max);
-}
+static bool check_range_int(long long val, long long min, long long max) { return (val >= min && val <= max); }
 
 /**
  * @brief Check if unsigned integer is within range
@@ -531,9 +546,7 @@ static bool check_range_int(long long val, long long min, long long max) {
  * @param max Maximum allowed value
  * @return true if in range
  */
-static bool check_range_uint(unsigned long long val, unsigned long long max) {
-    return (val <= max);
-}
+static bool check_range_uint(unsigned long long val, unsigned long long max) { return (val <= max); }
 
 /**
  * @brief Parse a string value into a flag's data type
@@ -698,7 +711,9 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
                     exit(EXIT_FAILURE);
                 }
 
-                if (fp->positional_args) { memcpy(new_pos, fp->positional_args, fp->pos_count * sizeof(char*)); }
+                if (fp->positional_args) {
+                    memcpy(new_pos, fp->positional_args, fp->pos_count * sizeof(char*));
+                }
                 fp->positional_args = new_pos;
                 fp->pos_capacity = new_cap;
             }
@@ -867,14 +882,20 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
  * ```
  */
 FlagStatus flag_parse_and_invoke(FlagParser* fp, int argc, char** argv, void* user_data) {
-    if (!fp || argc < 1) { return FLAG_ERROR_INVALID_ARGUMENT; }
+    if (!fp || argc < 1) {
+        return FLAG_ERROR_INVALID_ARGUMENT;
+    }
 
     // Parse all arguments
     FlagStatus status = flag_parse(fp, argc, argv);
-    if (status != FLAG_OK) { return status; }
+    if (status != FLAG_OK) {
+        return status;
+    }
 
     // Run pre-invocation callback (Global setup)
-    if (fp->pre_invoke) { fp->pre_invoke(user_data); }
+    if (fp->pre_invoke) {
+        fp->pre_invoke(user_data);
+    }
 
     // Find the deepest active subcommand (The "Leaf" command)
     FlagParser* target = fp;
@@ -883,7 +904,9 @@ FlagStatus flag_parse_and_invoke(FlagParser* fp, int argc, char** argv, void* us
     }
 
     // Run the handler for the target command
-    if (target->handler) { target->handler(user_data); }
+    if (target->handler) {
+        target->handler(user_data);
+    }
 
     return FLAG_OK;
 }
@@ -979,7 +1002,9 @@ static void print_flag_row(Flag* f, size_t max_width) {
     pos += snprintf(left + pos, sizeof(left) - (size_t)pos, "--%s", f->name);
 
     // Type column
-    if (f->type != TYPE_BOOL) { pos += snprintf(left + pos, sizeof(left) - (size_t)pos, "=%s", type_to_str(f->type)); }
+    if (f->type != TYPE_BOOL) {
+        pos += snprintf(left + pos, sizeof(left) - (size_t)pos, "=%s", type_to_str(f->type));
+    }
 
     // Print Left Column aligned, then Description
     printf("%-*s  %s", (int)max_width, left, f->description ? f->description : "");
@@ -990,7 +1015,9 @@ static void print_flag_row(Flag* f, size_t max_width) {
     } else if (f->default_ptr) {
         char default_str[MAX_DEFAULT_STR];
         format_default_value(f->type, f->default_ptr, default_str, sizeof(default_str));
-        if (default_str[0] != '\0') { printf(" (default: %s)", default_str); }
+        if (default_str[0] != '\0') {
+            printf(" (default: %s)", default_str);
+        }
     }
     printf("\n");
 }
@@ -1076,8 +1103,7 @@ const char* flag_get_error(FlagParser* fp) {
 
     if (root->active_subcommand) {
         root = fp->active_subcommand;
-        while (root->active_subcommand)
-            root = root->active_subcommand;
+        while (root->active_subcommand) root = root->active_subcommand;
     }
     return root->last_error;
 }
@@ -1096,9 +1122,7 @@ FlagParser* flag_active_subcommand(FlagParser* parser) {
  * @param fp Parser to query
  * @return Number of positional arguments
  */
-int flag_positional_count(FlagParser* fp) {
-    return fp ? (int)fp->pos_count : 0;
-}
+int flag_positional_count(FlagParser* fp) { return fp ? (int)fp->pos_count : 0; }
 
 /**
  * @brief Get positional argument at index
@@ -1268,7 +1292,9 @@ static void write_shell_identifier(FILE* f, const char* str) {
     if (!str || !f) return;
 
     // First char must be letter or underscore
-    if (!isalpha(*str) && *str != '_') { fputc('_', f); }
+    if (!isalpha(*str) && *str != '_') {
+        fputc('_', f);
+    }
 
     for (const char* p = str; *p; p++) {
         if (isalnum(*p) || *p == '_') {
@@ -1326,7 +1352,9 @@ static void write_bash_dq(FILE* f, const char* str) {
     if (!f || !str) return;
 
     for (const char* p = str; *p; ++p) {
-        if (*p == '"' || *p == '\\' || *p == '$' || *p == '`') { fputc('\\', f); }
+        if (*p == '"' || *p == '\\' || *p == '$' || *p == '`') {
+            fputc('\\', f);
+        }
         fputc(*p, f);
     }
 }
@@ -1482,7 +1510,9 @@ static void gen_bash_completion(FlagParser* fp, FILE* f) {
             fprintf(f, ")\n");
 
             // Type-specific hints
-            if (flag->type == TYPE_STRING) { fprintf(f, "            COMPREPLY=( $(compgen -f -- \"$cur\") )\n"); }
+            if (flag->type == TYPE_STRING) {
+                fprintf(f, "            COMPREPLY=( $(compgen -f -- \"$cur\") )\n");
+            }
 
             fprintf(f, "            return 0\n");
             fprintf(f, "            ;;\n");
@@ -1558,8 +1588,7 @@ static void write_zsh_args(FILE* f, FlagParser* p, int indent) {
     for (size_t i = 0; i < p->flag_count; i++) {
         Flag* flag = &p->flags[i];
 
-        for (int j = 0; j < indent; j++)
-            fprintf(f, "    ");
+        for (int j = 0; j < indent; j++) fprintf(f, "    ");
 
         if (flag->type == TYPE_BOOL) {
             /*
@@ -1624,13 +1653,11 @@ static void write_zsh_subcommand_cases(FILE* f, FlagParser* p, int depth) {
     for (size_t i = 0; i < p->cmd_count; i++) {
         FlagParser* sub = p->subcommands[i];
 
-        for (int j = 0; j < depth; j++)
-            fprintf(f, "    ");
+        for (int j = 0; j < depth; j++) fprintf(f, "    ");
         write_zsh_description(f, sub->name);
         fprintf(f, ")\n");
 
-        for (int j = 0; j < depth; j++)
-            fprintf(f, "    ");
+        for (int j = 0; j < depth; j++) fprintf(f, "    ");
         fprintf(f, "    _arguments -C \\\n");
 
         // Write flags for this subcommand
@@ -1638,53 +1665,45 @@ static void write_zsh_subcommand_cases(FILE* f, FlagParser* p, int depth) {
 
         // Add nested subcommands if any
         if (sub->cmd_count > 0) {
-            for (int j = 0; j < depth + 2; j++)
-                fprintf(f, "    ");
+            for (int j = 0; j < depth + 2; j++) fprintf(f, "    ");
             fprintf(f, "'1:command:((");
             for (size_t k = 0; k < sub->cmd_count; k++) {
                 if (k > 0) fprintf(f, " ");
                 write_zsh_description(f, sub->subcommands[k]->name);
                 fprintf(f, "\\:");
-                if (sub->subcommands[k]->description) { write_zsh_cmd_desc(f, sub->subcommands[k]->description); }
+                if (sub->subcommands[k]->description) {
+                    write_zsh_cmd_desc(f, sub->subcommands[k]->description);
+                }
             }
             fprintf(f, "))' \\\n");
 
-            for (int j = 0; j < depth + 2; j++)
-                fprintf(f, "    ");
+            for (int j = 0; j < depth + 2; j++) fprintf(f, "    ");
             fprintf(f, "'*::arg:->args' \\\n");
         }
 
-        for (int j = 0; j < depth; j++)
-            fprintf(f, "    ");
+        for (int j = 0; j < depth; j++) fprintf(f, "    ");
         fprintf(f, "        && ret=0\n");
 
         // Handle nested state
         if (sub->cmd_count > 0) {
-            for (int j = 0; j < depth; j++)
-                fprintf(f, "    ");
+            for (int j = 0; j < depth; j++) fprintf(f, "    ");
             fprintf(f, "    case $state in\n");
-            for (int j = 0; j < depth; j++)
-                fprintf(f, "    ");
+            for (int j = 0; j < depth; j++) fprintf(f, "    ");
             fprintf(f, "        args)\n");
-            for (int j = 0; j < depth; j++)
-                fprintf(f, "    ");
+            for (int j = 0; j < depth; j++) fprintf(f, "    ");
             fprintf(f, "            case $line[1] in\n");
 
             write_zsh_subcommand_cases(f, sub, depth + 4);
 
-            for (int j = 0; j < depth; j++)
-                fprintf(f, "    ");
+            for (int j = 0; j < depth; j++) fprintf(f, "    ");
             fprintf(f, "            esac\n");
-            for (int j = 0; j < depth; j++)
-                fprintf(f, "    ");
+            for (int j = 0; j < depth; j++) fprintf(f, "    ");
             fprintf(f, "            ;;\n");
-            for (int j = 0; j < depth; j++)
-                fprintf(f, "    ");
+            for (int j = 0; j < depth; j++) fprintf(f, "    ");
             fprintf(f, "    esac\n");
         }
 
-        for (int j = 0; j < depth; j++)
-            fprintf(f, "    ");
+        for (int j = 0; j < depth; j++) fprintf(f, "    ");
         fprintf(f, "    ;;\n");
     }
 }
@@ -1725,7 +1744,9 @@ static void gen_zsh_completion(FlagParser* fp, FILE* f) {
             if (i > 0) fprintf(f, " ");
             write_zsh_description(f, fp->subcommands[i]->name);
             fprintf(f, "\\:");
-            if (fp->subcommands[i]->description) { write_zsh_cmd_desc(f, fp->subcommands[i]->description); }
+            if (fp->subcommands[i]->description) {
+                write_zsh_cmd_desc(f, fp->subcommands[i]->description);
+            }
         }
         fprintf(f, "))' \\\n");
         fprintf(f, "        '*::arg:->args' \\\n");
@@ -1801,7 +1822,9 @@ static void completion_handler(void* user_data) {
     }
 
     if (_comp_ctx.output && out != stdout) {
-        if (fclose(out) != 0) { fprintf(stderr, "Warning: Error closing output file: %s\n", strerror(errno)); }
+        if (fclose(out) != 0) {
+            fprintf(stderr, "Warning: Error closing output file: %s\n", strerror(errno));
+        }
         printf("Completion script written to: %s\n", _comp_ctx.output);
     }
 

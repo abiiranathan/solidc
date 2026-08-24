@@ -43,7 +43,9 @@
 #define TEMP_PREF_PREFIX_LEN 12
 
 static inline size_t safe_strlcpy(char* dst, const char* src, size_t size) {
-    if (!dst || !src || size == 0) { return 0; }
+    if (!dst || !src || size == 0) {
+        return 0;
+    }
     size_t n = strnlen(src, size - 1);
     memcpy(dst, src, n);
     dst[n] = '\0';
@@ -96,7 +98,9 @@ static void random_string(char* str, size_t len) {
         return;
     }
 #else
-    if (!atomic_exchange(&initialized, 1)) { lock_init(&rand_lock); }
+    if (!atomic_exchange(&initialized, 1)) {
+        lock_init(&rand_lock);
+    }
 
     lock_acquire(&rand_lock);
     ssize_t bytes_read = -1;
@@ -184,9 +188,13 @@ void dir_close(Directory* dir) {
     if (!dir) return;
 
 #ifdef _WIN32
-    if (dir->handle != INVALID_HANDLE_VALUE) { FindClose(dir->handle); }
+    if (dir->handle != INVALID_HANDLE_VALUE) {
+        FindClose(dir->handle);
+    }
 #else
-    if (dir->dir) { closedir(dir->dir); }
+    if (dir->dir) {
+        closedir(dir->dir);
+    }
 #endif
     free(dir->path);
     free(dir);
@@ -211,7 +219,9 @@ char* dir_next(Directory* dir) {
     }
 #else
     struct dirent* entry = readdir(dir->dir);
-    if (entry) { return entry->d_name; }
+    if (entry) {
+        return entry->d_name;
+    }
 #endif
     return NULL;
 }
@@ -246,13 +256,17 @@ static int map_dirent_attrs(const struct dirent* entry, const char* path, FileAt
     attr->attrs = FATTR_NONE;
 
     // Check for hidden file based on name
-    if (entry->d_name[0] == '.') { attr->attrs |= FATTR_HIDDEN; }
+    if (entry->d_name[0] == '.') {
+        attr->attrs |= FATTR_HIDDEN;
+    }
 
     // Use standard POSIX macros on st_mode instead of non-standard DT_ constants
     if (S_ISREG(st.st_mode)) {
         attr->attrs |= FATTR_FILE;
         // Optional: Check executable bits here if needed
-        if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) { attr->attrs |= FATTR_EXECUTABLE; }
+        if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
+            attr->attrs |= FATTR_EXECUTABLE;
+        }
     } else if (S_ISDIR(st.st_mode)) {
         attr->attrs |= FATTR_DIR;
     } else if (S_ISLNK(st.st_mode)) {
@@ -293,7 +307,9 @@ static int delete_single_directory(const char* path) {
         return -1;
     }
 #else
-    if (rmdir(path) == -1) { return -1; }
+    if (rmdir(path) == -1) {
+        return -1;
+    }
 #endif
     return 0;
 }
@@ -307,13 +323,17 @@ int dir_create(const char* path) {
 
 #ifdef _WIN32
     if (!CreateDirectoryA(path, NULL)) {
-        if (GetLastError() == ERROR_ALREADY_EXISTS) { return 0; }
+        if (GetLastError() == ERROR_ALREADY_EXISTS) {
+            return 0;
+        }
         errno = GetLastError() == ERROR_ACCESS_DENIED ? EACCES : EIO;
         return -1;
     }
 #else
     if (mkdir(path, 0755) == -1) {
-        if (errno == EEXIST) { return 0; }
+        if (errno == EEXIST) {
+            return 0;
+        }
         return -1;
     }
 #endif
@@ -428,7 +448,9 @@ static int dir_walk_depth_first_helper(const char* path, WalkDirCallback callbac
         FileAttributes attr;
         if (map_dirent_attrs(entry, fullpath, &attr) != 0) continue;
 
-        if (attr.attrs == FATTR_NONE) { populate_file_attrs(fullpath, &attr); }
+        if (attr.attrs == FATTR_NONE) {
+            populate_file_attrs(fullpath, &attr);
+        }
 
         if (fattr_is_dir(&attr)) {
             if (dir_walk_depth_first_helper(fullpath, callback, data, depth + 1) != 0) {
@@ -478,7 +500,9 @@ int dir_remove(const char* path, bool recursive) {
     }
 
     if (recursive) {
-        if (dir_walk_depth_first(path, dir_remove_callback, NULL) != 0) { return -1; };
+        if (dir_walk_depth_first(path, dir_remove_callback, NULL) != 0) {
+            return -1;
+        };
         // fallthrough and remove root directory.
     }
     return delete_single_directory(path);
@@ -519,18 +543,24 @@ char** dir_list(const char* path, size_t* count) {
     if (!dir) return NULL;
 
     list = (char**)calloc(capacity, sizeof(char*));
-    if (!list) { goto error; }
+    if (!list) {
+        goto error;
+    }
 
     while ((name = dir_next(dir)) != NULL) {
         if (size >= capacity) {
             capacity *= 2;
             char** tmp = (char**)realloc(list, capacity * sizeof(char*));
-            if (!tmp) { goto error; }
+            if (!tmp) {
+                goto error;
+            }
             list = tmp;
         }
 
         list[size] = strdup(name);
-        if (!list[size]) { goto error; }
+        if (!list[size]) {
+            goto error;
+        }
         size++;
     }
 
@@ -557,11 +587,15 @@ void dir_list_with_callback(const char* path, void (*callback)(const char* name)
     if (!path || !callback || *path == '\0') return;
 
     Directory* dir = dir_open(path);
-    if (!dir) { return; }
+    if (!dir) {
+        return;
+    }
 
     char* name = NULL;
     while ((name = dir_next(dir)) != NULL) {
-        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) { continue; }
+        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
+            continue;
+        }
         callback(name);
     }
 
@@ -570,44 +604,60 @@ void dir_list_with_callback(const char* path, void (*callback)(const char* name)
 
 // Check if path is a directory
 bool is_dir(const char* path) {
-    if (!path || *path == '\0') { return false; }
+    if (!path || *path == '\0') {
+        return false;
+    }
 
 #ifdef _WIN32
     DWORD attr = GetFileAttributesA(path);
-    if (attr == INVALID_FILE_ATTRIBUTES) { return false; }
+    if (attr == INVALID_FILE_ATTRIBUTES) {
+        return false;
+    }
     return (attr & FILE_ATTRIBUTE_DIRECTORY) != 0;
 #else
     struct stat st;
-    if (stat(path, &st) != 0) { return false; }
+    if (stat(path, &st) != 0) {
+        return false;
+    }
     return S_ISDIR(st.st_mode);
 #endif
 }
 
 // Check if path is a file
 bool is_file(const char* path) {
-    if (!path || *path == '\0') { return false; }
+    if (!path || *path == '\0') {
+        return false;
+    }
 
 #ifdef _WIN32
     DWORD attr = GetFileAttributesA(path);
-    if (attr == INVALID_FILE_ATTRIBUTES) { return false; }
+    if (attr == INVALID_FILE_ATTRIBUTES) {
+        return false;
+    }
     return (attr & FILE_ATTRIBUTE_DIRECTORY) == 0;
 #else
     struct stat st;
-    if (stat(path, &st) != 0) { return false; }
+    if (stat(path, &st) != 0) {
+        return false;
+    }
     return S_ISREG(st.st_mode);
 #endif
 }
 
 // Check if path is a symbolic link
 bool is_symlink(const char* path) {
-    if (!path || *path == '\0') { return false; }
+    if (!path || *path == '\0') {
+        return false;
+    }
 
 #ifdef _WIN32
     // Windows supports symbolic links since Vista, but we keep original behavior
     return false;
 #else
     struct stat st;
-    if (lstat(path, &st) != 0) { return false; }
+    if (lstat(path, &st) != 0) {
+        return false;
+    }
     return S_ISLNK(st.st_mode);
 #endif
 }
@@ -669,7 +719,9 @@ static int dir_walk_helper(const char* path, WalkDirCallback callback, void* dat
         }
 
         FileAttributes attr;
-        if (map_dirent_attrs(entry, fullpath, &attr) != 0) { continue; }
+        if (map_dirent_attrs(entry, fullpath, &attr) != 0) {
+            continue;
+        }
 
         if (attr.attrs == FATTR_NONE) {
             if (populate_file_attrs(fullpath, &attr) != 0) continue;
@@ -713,7 +765,9 @@ static inline WalkDirOption dir_size_callback(const FileAttributes* attr, const 
     (void)path;
     (void)name;
 
-    if (!attr || !data) { return DirStop; }
+    if (!attr || !data) {
+        return DirStop;
+    }
 
     if (fattr_is_file(attr)) {
         ssize_t* size = (ssize_t*)data;
@@ -730,7 +784,9 @@ ssize_t dir_size(const char* path) {
     }
 
     ssize_t size = 0;
-    if (dir_walk(path, dir_size_callback, &size) != 0) { return -1; }
+    if (dir_walk(path, dir_size_callback, &size) != 0) {
+        return -1;
+    }
     return size;
 }
 
@@ -767,7 +823,9 @@ bool filepath_makedirs(const char* path) {
         }
 
         *p = old;
-        if (*p != '\0') { p++; }
+        if (*p != '\0') {
+            p++;
+        }
     }
 
     free(temp_path);
@@ -797,7 +855,9 @@ char* get_tempdir(void) {
     return temp;
 #else
     const char* temp = GETENV("TMPDIR");
-    if (!temp) { temp = "/tmp"; }
+    if (!temp) {
+        temp = "/tmp";
+    }
     char* result = strdup(temp);
     if (!result) {
         errno = ENOMEM;
@@ -810,7 +870,9 @@ char* get_tempdir(void) {
 // Make a temporary file
 char* make_tempfile(void) {
     char* tmpdir = get_tempdir();
-    if (!tmpdir) { return NULL; }
+    if (!tmpdir) {
+        return NULL;
+    }
 
     char pattern[TEMP_PREF_PREFIX_LEN + 7] = {0};
     random_string(pattern, TEMP_PREF_PREFIX_LEN);
@@ -851,7 +913,9 @@ char* make_tempfile(void) {
 // Make a temporary directory
 char* make_tempdir(void) {
     char* tmpdir = get_tempdir();
-    if (!tmpdir) { return NULL; }
+    if (!tmpdir) {
+        return NULL;
+    }
 
     char pattern[TEMP_PREF_PREFIX_LEN + 7] = {0};
     random_string(pattern, TEMP_PREF_PREFIX_LEN);
@@ -915,7 +979,9 @@ void filepath_basename(const char* path, char* basename, size_t size) {
     }
 
     const char* base = strrchr(path, '/');
-    if (!base) { base = strrchr(path, '\\'); }
+    if (!base) {
+        base = strrchr(path, '\\');
+    }
     base = base ? base + 1 : path;
     safe_strlcpy(basename, base, size);
 }
@@ -928,7 +994,9 @@ void filepath_dirname(const char* path, char* dirname, size_t size) {
     }
 
     const char* base = strrchr(path, '/');
-    if (!base) { base = strrchr(path, '\\'); }
+    if (!base) {
+        base = strrchr(path, '\\');
+    }
     if (!base) {
         dirname[0] = '\0';
     } else {
@@ -954,7 +1022,9 @@ void filepath_extension(const char* path, char* ext, size_t size) {
     }
 
     const char* base = strrchr(path, '/');
-    if (!base) { base = strrchr(path, '\\'); }
+    if (!base) {
+        base = strrchr(path, '\\');
+    }
     base = base ? base + 1 : path;
 
     const char* dot = strrchr(base, '.');
@@ -1002,7 +1072,9 @@ char* filepath_absolute(const char* path) {
     }
 #else
     char* abs = realpath(path, NULL);
-    if (!abs) { return NULL; }
+    if (!abs) {
+        return NULL;
+    }
 #endif
     return abs;
 }
@@ -1056,7 +1128,9 @@ char* filepath_expanduser(const char* path) {
         return NULL;
     }
 
-    if (path[0] != '~') { return strdup(path); }
+    if (path[0] != '~') {
+        return strdup(path);
+    }
 
     const char* home = user_home_dir();
     if (!home) {
@@ -1066,7 +1140,9 @@ char* filepath_expanduser(const char* path) {
 
     size_t pathLen = strlen(path);
     bool isHome = pathLen == 1 || (pathLen == 2 && (path[1] == '/' || path[1] == '\\'));
-    if (isHome) { return strdup(home); }
+    if (isHome) {
+        return strdup(home);
+    }
 
     size_t len = strlen(home) + pathLen + 1;
     char* expanded = (char*)malloc(len);
@@ -1077,7 +1153,9 @@ char* filepath_expanduser(const char* path) {
 
     const char* suffix = path + 1;
     // Skip leading separator after ~
-    if (*suffix == '/' || *suffix == '\\') { suffix++; }
+    if (*suffix == '/' || *suffix == '\\') {
+        suffix++;
+    }
     snprintf(expanded, len, "%s%c%s", home, PATH_SEP, suffix);
     return expanded;
 }
@@ -1090,7 +1168,9 @@ bool filepath_expanduser_buf(const char* path, char* expanded, size_t len) {
         return false;
     }
 
-    if (path[0] != '~') { return safe_strlcpy(expanded, path, len) < len; }
+    if (path[0] != '~') {
+        return safe_strlcpy(expanded, path, len) < len;
+    }
 
     const char* home = user_home_dir();
     if (!home) {
@@ -1100,7 +1180,9 @@ bool filepath_expanduser_buf(const char* path, char* expanded, size_t len) {
 
     size_t pathLen = strlen(path);
     bool isHome = pathLen == 1 || (pathLen == 2 && (path[1] == '/' || path[1] == '\\'));
-    if (isHome) { return safe_strlcpy(expanded, home, len) < len; }
+    if (isHome) {
+        return safe_strlcpy(expanded, home, len) < len;
+    }
 
     size_t homeLen = strlen(home);
     if (homeLen + pathLen + 1 > len) {
@@ -1173,7 +1255,9 @@ void filepath_split(const char* path, char* dir, char* name, size_t dir_size, si
     }
 
     const char* p = strrchr(path, '/');
-    if (!p) { p = strrchr(path, '\\'); }
+    if (!p) {
+        p = strrchr(path, '\\');
+    }
 
     if (!p) {
         dir[0] = '\0';

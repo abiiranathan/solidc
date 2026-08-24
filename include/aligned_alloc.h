@@ -68,7 +68,9 @@ extern "C" {
  *       aligned_free_xp().
  */
 static inline void* aligned_alloc_xp(size_t alignment, size_t size) {
-    if ((alignment & (alignment - 1)) != 0 || alignment < sizeof(void*)) { return NULL; }
+    if ((alignment & (alignment - 1)) != 0 || alignment < sizeof(void*)) {
+        return NULL;
+    }
 
     /* Round size up to a multiple of alignment.
      * Required by C11 aligned_alloc() and harmless for
@@ -79,7 +81,9 @@ static inline void* aligned_alloc_xp(size_t alignment, size_t size) {
     return _aligned_malloc(size, alignment);
 #else
     void* ptr = NULL;
-    if (posix_memalign(&ptr, alignment, size) != 0) { return NULL; }
+    if (posix_memalign(&ptr, alignment, size) != 0) {
+        return NULL;
+    }
     return ptr;
 #endif
 }

@@ -8,7 +8,7 @@
 #ifndef FLAGS_H
 #define FLAGS_H
 
-#include "cstr.h"      // String comparison
+#include "cstr.h"  // String comparison
 
 #include <errno.h>     // errno
 #include <inttypes.h>  // Printing int types

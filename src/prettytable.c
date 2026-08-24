@@ -82,7 +82,9 @@ void prettytable_config_init(prettytable_config* config) {
  * Get display length of text using custom or default strlen.
  */
 static inline int get_text_length(const prettytable_config* cfg, const char* text) {
-    if (cfg->get_length) { return cfg->get_length(cfg->user_data, text); }
+    if (cfg->get_length) {
+        return cfg->get_length(cfg->user_data, text);
+    }
     return (int)strlen(text);
 }
 
@@ -107,7 +109,9 @@ static void calculate_column_widths(const prettytable_config* cfg, int* widths) 
         for (int col = 0; col < cfg->num_cols; col++) {
             const char* value = cfg->get_cell(cfg->user_data, row, col);
             int len = get_text_length(cfg, value);
-            if (len > widths[col]) { widths[col] = len; }
+            if (len > widths[col]) {
+                widths[col] = len;
+            }
         }
     }
 }
@@ -127,7 +131,9 @@ static inline void print_separator(const prettytable_config* cfg, const int* wid
             fputs(style->horizontal, out);
         }
 
-        if (col < cfg->num_cols - 1) { fputs(mid, out); }
+        if (col < cfg->num_cols - 1) {
+            fputs(mid, out);
+        }
     }
     fputs(right, out);
     fputc('\n', out);
@@ -150,7 +156,9 @@ static inline void print_row(const prettytable_config* cfg, const int* widths, c
 }
 
 int prettytable_print(const prettytable_config* config) {
-    if (!config || !config->get_cell) { return -1; }
+    if (!config || !config->get_cell) {
+        return -1;
+    }
 
     if (config->num_cols <= 0) {
         fprintf(config->output ? config->output : stderr, "(No columns)\n");
@@ -199,7 +207,9 @@ int prettytable_print(const prettytable_config* config) {
     print_separator(cfg, widths, style->bottom_left, style->bottom_mid, style->bottom_right);
 
     // Print row count if requested
-    if (cfg->show_row_count) { fprintf(cfg->output, "(%d row%s)\n", cfg->num_rows, cfg->num_rows == 1 ? "" : "s"); }
+    if (cfg->show_row_count) {
+        fprintf(cfg->output, "(%d row%s)\n", cfg->num_rows, cfg->num_rows == 1 ? "" : "s");
+    }
 
     free(block);
     return 0;

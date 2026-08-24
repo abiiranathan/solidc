@@ -8,9 +8,7 @@
 #define ALIGNMENT_MASK (ALIGNMENT - 1)
 
 // Round up to proper alignment
-static inline size_t aligned_size(size_t n) {
-    return (n + ALIGNMENT_MASK) & ~(ALIGNMENT_MASK);
-}
+static inline size_t aligned_size(size_t n) { return (n + ALIGNMENT_MASK) & ~(ALIGNMENT_MASK); }
 
 // Node allocation: single malloc (node + element)
 static list_node_t* list_node_new(size_t elem_size, void* data) {
@@ -58,9 +56,7 @@ void list_clear(list_t* list) {
     list->size = 0;
 }
 
-size_t list_size(const list_t* list) {
-    return list ? list->size : 0;
-}
+size_t list_size(const list_t* list) { return list ? list->size : 0; }
 
 void list_push_back(list_t* list, void* elem) {
     if (!list) return;
@@ -119,8 +115,7 @@ void list_pop_front(list_t* list) {
 void* list_get(const list_t* list, size_t index) {
     if (!list || index >= list->size) return NULL;
     list_node_t* cur = list->head;
-    for (size_t i = 0; i < index; i++)
-        cur = cur->next;
+    for (size_t i = 0; i < index; i++) cur = cur->next;
     return cur ? cur->data : NULL;
 }
 
@@ -148,8 +143,7 @@ void list_insert(list_t* list, size_t index, void* elem) {
     }
 
     list_node_t* cur = list->head;
-    for (size_t i = 0; i < index; i++)
-        cur = cur->next;
+    for (size_t i = 0; i < index; i++) cur = cur->next;
 
     list_node_t* node = list_node_new(list->elem_size, elem);
     if (!node) return;
@@ -168,8 +162,7 @@ void list_remove(list_t* list, void* elem) {
     if (idx == -1) return;
 
     list_node_t* cur = list->head;
-    for (int i = 0; i < idx; i++)
-        cur = cur->next;
+    for (int i = 0; i < idx; i++) cur = cur->next;
 
     if (cur->prev)
         cur->prev->next = cur->next;
