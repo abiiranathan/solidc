@@ -747,25 +747,27 @@ static ProcessError unix_create_process(ProcessHandle** handle, const char* comm
 
         // Handle standard input
         if (options->io.stdin_pipe) {
-            dup2(stdin_pipe[0], STDIN_FILENO);
+            /* BUG #19 class: a failed dup2 must abort the child, otherwise
+             * exec runs with the wrong stdio attached. */
+            if (dup2(stdin_pipe[0], STDIN_FILENO) == -1) { _exit(127); }
             close(stdin_pipe[0]);
             close(stdin_pipe[1]);
         }
 
         // Handle standard output
         if (options->io.stdout_pipe) {
-            dup2(stdout_pipe[1], STDOUT_FILENO);
+            if (dup2(stdout_pipe[1], STDOUT_FILENO) == -1) { _exit(127); }
             close(stdout_pipe[0]);
             close(stdout_pipe[1]);
         }
 
         // Handle standard error
         if (options->io.stderr_pipe) {
-            dup2(stderr_pipe[1], STDERR_FILENO);
+            if (dup2(stderr_pipe[1], STDERR_FILENO) == -1) { _exit(127); }
             close(stderr_pipe[0]);
             close(stderr_pipe[1]);
         } else if (options->io.merge_stderr) {
-            dup2(STDOUT_FILENO, STDERR_FILENO);
+            if (dup2(STDOUT_FILENO, STDERR_FILENO) == -1) { _exit(127); }
         }
 
         // Detach from parent if requested
@@ -793,7 +795,14 @@ static ProcessError unix_create_process(ProcessHandle** handle, const char* comm
     free(resolved_path);
 
     *handle = (ProcessHandle*)malloc(sizeof(ProcessHandle));
-    if (!*handle) { return PROCESS_ERROR_MEMORY; }
+    if (!*handle) {
+        /* The child already exists; returning an error here would leak it
+         * as an unparented process.  Terminate and reap so the failure is
+         * atomic from the caller's perspective. */
+        kill(pid, SIGKILL);
+        waitpid(pid, NULL, 0);
+        return PROCESS_ERROR_MEMORY;
+    }
 
     (*handle)->pid = pid;
     (*handle)->detached = options->detached;
@@ -851,9 +860,13 @@ static inline void set_process_result(int status, ProcessResult* result) {
 void NANOSLEEP(long seconds, long nanoseconds) {
 #ifdef _WIN32
     // On Windows, Sleep works in milliseconds,
-    // so we convert seconds and nanoseconds to milliseconds
-    unsigned long total_milliseconds = (unsigned)(seconds * 1000 + nanoseconds / 1000000);
-    Sleep(total_milliseconds);
+    // so we convert seconds and nanoseconds to milliseconds.
+    // Clamp to avoid signed overflow on extreme inputs.
+    if (seconds < 0) seconds = 0;
+    if (nanoseconds < 0) nanoseconds = 0;
+    unsigned long total_milliseconds = (unsigned long)seconds * 1000ul + (unsigned long)nanoseconds / 1000000ul;
+    if (total_milliseconds > 0xFFFFFFFEul) total_milliseconds = 0xFFFFFFFEul; /* Sleep's documented max - 1 */
+    Sleep((DWORD)total_milliseconds);
 #else
     // On Linux/Unix, we can use nanosleep directly
     struct timespec req;
@@ -1215,13 +1228,13 @@ ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd
         // Redirect stdout to the write end of the stdout pipe
         if (dup2(stdout_pipe[1], STDOUT_FILENO) < 0) {
             perror("dup2 (stdout)");
-            exit(EXIT_FAILURE);
+            _exit(127);
         }
 
         // Redirect stderr to the write end of the stderr pipe
         if (dup2(stderr_pipe[1], STDERR_FILENO) < 0) {
             perror("dup2 (stderr)");
-            exit(EXIT_FAILURE);
+            _exit(127);
         }
 
         // Close the write ends of the pipes (they are now duplicated to
@@ -1233,7 +1246,7 @@ ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd
         execv(cmd, (char* const*)args);
         // If execv fails, print an error and exit
         perror("execv");
-        exit(EXIT_FAILURE);
+        _exit(127);
     }
 
     // Parent process
@@ -1263,7 +1276,7 @@ ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd
             for (int i = 0; output_fds[i] != -1; i++) {
                 if (write(output_fds[i], buffer, (size_t)n) < 0) {
                     perror("write (stdout tee)");
-                    exit(EXIT_FAILURE);
+                    _exit(127);
                 }
             }
         }
@@ -1271,10 +1284,10 @@ ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd
         // Check for read errors
         if (n < 0) {
             perror("read (stdout tee)");
-            exit(EXIT_FAILURE);
+            _exit(127);
         }
 
-        exit(EXIT_SUCCESS);
+        _exit(0);
     }
 
     child_count++;
@@ -1301,7 +1314,7 @@ ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd
             for (int i = 0; error_fds[i] != -1; i++) {
                 if (write(error_fds[i], buffer, (size_t)n) < 0) {
                     perror("write (stderr tee)");
-                    exit(EXIT_FAILURE);
+                    _exit(127);
                 }
             }
         }
@@ -1309,10 +1322,10 @@ ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd
         // Check for read errors
         if (n < 0) {
             perror("read (stderr tee)");
-            exit(EXIT_FAILURE);
+            _exit(127);
         }
 
-        exit(EXIT_SUCCESS);
+        _exit(0);
     }
 
     child_count++;
