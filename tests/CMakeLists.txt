@@ -11,6 +11,7 @@ set(TEST_MODULES
     process
     threadpool
     map
+    swiss
     socket
     stdstreams
     str_to_num

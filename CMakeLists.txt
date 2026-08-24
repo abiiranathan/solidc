@@ -125,6 +125,7 @@ set(SOURCES
     src/list.c
     src/lock.c
     src/map.c
+    src/map_swiss.c
     src/pipeline.c
     src/process.c
     src/slist.c
