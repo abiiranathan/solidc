@@ -303,13 +303,25 @@ static regex_status_t sub_impl(const regex_t* re, regex_ctx_t* ctx, const char* 
 
     PCRE2_SIZE result_len = (PCRE2_SIZE)*out_len;
 
+    /*
+     * FIX: PCRE2_SUBSTITUTE_OVERFLOW_LENGTH was missing, so the documented
+     * "check out_len for required capacity" contract never worked — pcre2
+     * bailed out with NOMEMORY without reporting how big the buffer must
+     * be.  With the flag set, an undersized buffer returns
+     * PCRE2_ERROR_NOMEMORY and result_len holds the required size
+     * (including NUL), which we forward via out_len.
+     */
     int rc = pcre2_substitute(re->code, (PCRE2_SPTR8)subject, (PCRE2_SIZE)subject_len, 0 /* start offset */,
-                              pcre2_flags | PCRE2_SUBSTITUTE_EXTENDED, ctx->match_data, NULL /* match context */,
-                              (PCRE2_SPTR8)replacement, PCRE2_ZERO_TERMINATED, (PCRE2_UCHAR8*)out_buf, &result_len);
+                              pcre2_flags | PCRE2_SUBSTITUTE_EXTENDED | PCRE2_SUBSTITUTE_OVERFLOW_LENGTH,
+                              ctx->match_data, NULL /* match context */, (PCRE2_SPTR8)replacement,
+                              PCRE2_ZERO_TERMINATED, (PCRE2_UCHAR8*)out_buf, &result_len);
 
     if (rc == PCRE2_ERROR_NOMATCH || rc == 0) { return REGEX_NO_MATCH; }
     if (rc == PCRE2_ERROR_NOMEMORY) {
-        /* result_len now holds the required size including NUL. */
+        /* result_len now holds the required size including NUL.
+         * Guard against a bogus zero from the engine so callers can
+         * always distinguish "no info" from "need 0 bytes". */
+        if (result_len == 0) { result_len = *out_len + 1; }
         *out_len = (size_t)result_len;
         return REGEX_ERROR;
     }
