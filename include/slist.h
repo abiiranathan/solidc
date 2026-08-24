@@ -43,7 +43,9 @@ typedef struct {
 /**
  * Creates a new empty singly-linked list.
  * @param elem_size Size in bytes of each element to be stored in the list.
- * @return Pointer to newly allocated list on success, NULL on allocation failure.
+ *                  Must be greater than zero.
+ * @return Pointer to newly allocated list on success, NULL on allocation
+ *         failure or if @p elem_size is zero.
  * @note Caller must free the list using slist_free() when done.
  */
 slist* slist_new(size_t elem_size);
@@ -71,9 +73,11 @@ void slist_clear(slist* list);
 
 /**
  * Creates a new list node with a copy of the provided data.
- * @param elem_size Size in bytes of the element data.
- * @param data Pointer to the element data to copy into the node. Must not be NULL.
- * @return Pointer to newly allocated node on success, NULL on allocation failure.
+ * @param elem_size Size in bytes of the element data. Must be greater than zero.
+ * @param data Pointer to the element data to copy into the node. May be NULL,
+ *             in which case the payload is left uninitialized.
+ * @return Pointer to newly allocated node on success, NULL on allocation
+ *         failure, zero @p elem_size, or size overflow.
  * @note Internal helper function. Caller is responsible for freeing returned node.
  */
 slist_node_t* slist_node_new(size_t elem_size, void* data);
@@ -140,10 +144,13 @@ void* slist_get(const slist* list, size_t index);
 
 /**
  * Finds the index of the first occurrence of an element in the list.
- * Compares element addresses, not content (pointer equality).
+ * Compares element CONTENT byte-by-byte with memcmp() over @c elem_size,
+ * not pointer identity.
  * @param list Pointer to the list. Must not be NULL.
  * @param elem Pointer to the element data to find. Must not be NULL.
- * @return Zero-based index of the element if found, -1 otherwise.
+ * @return Zero-based index of the element if found, -1 otherwise
+ *         (including when @p elem is NULL). Indices above INT_MAX are
+ *         unreachable through this int return value.
  */
 int slist_index_of(const slist* list, void* elem);
 
@@ -188,6 +195,8 @@ void slist_print_aschar(const slist* list);
  * Usage: SLIST_FOR_EACH(my_list, node) { ... use node->data ... }
  * @param list Pointer to the list to iterate over.
  * @param node Name of the slist_node_t* variable to use in the loop body.
+ * @warning Do not free the current node or otherwise invalidate it inside
+ *          the loop body; the loop dereferences @p node->next afterwards.
  */
 #define SLIST_FOR_EACH(list, node) for (slist_node_t * (node) = (list)->head; (node); (node) = (node)->next)
 

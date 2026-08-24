@@ -1,19 +1,24 @@
 #include "../include/slist.h"
 
 #include <stdalign.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define ALIGNMENT      8U
+/* Payload must be suitably aligned for any fundamental type, since callers
+ * store ints, doubles, long doubles, ... by value in the inline buffer. */
+#define ALIGNMENT      (alignof(max_align_t))
 #define ALIGNMENT_MASK (ALIGNMENT - 1)
 
-// Round up to proper alignment
+// Round up to proper alignment. Returns 0 on overflow.
 static inline size_t aligned_size(size_t n) {
-    return (n + ALIGNMENT_MASK) & ~(ALIGNMENT_MASK);
+    if (n > SIZE_MAX - ALIGNMENT_MASK) return 0;
+    return (n + ALIGNMENT_MASK) & ~(size_t)ALIGNMENT_MASK;
 }
 
 slist* slist_new(size_t elem_size) {
+    if (elem_size == 0) return NULL; /* zero-sized elements are meaningless and unsafe */
     slist* list = (slist*)malloc(sizeof(slist));
     if (!list) return NULL;
 
@@ -48,13 +53,18 @@ void slist_clear(slist* list) {
 }
 
 slist_node_t* slist_node_new(size_t elem_size, void* data) {
-    size_t total_size = sizeof(slist_node_t) + aligned_size(elem_size);
+    if (elem_size == 0) return NULL;
+
+    /* Overflow guard: node header + aligned payload must not wrap. */
+    size_t payload = aligned_size(elem_size);
+    if (payload == 0 || payload > SIZE_MAX - sizeof(slist_node_t)) return NULL;
+    size_t total_size = sizeof(slist_node_t) + payload;
     slist_node_t* node = (slist_node_t*)malloc(total_size);
     if (!node) return NULL;
 
     node->next = NULL;
     node->data = (void*)(node + 1);  // data lives right after struct
-    memcpy(node->data, data, elem_size);
+    if (data) memcpy(node->data, data, elem_size);
     return node;
 }
 
@@ -152,7 +162,7 @@ void* slist_get(const slist* list, size_t index) {
 }
 
 int slist_index_of(const slist* list, void* elem) {
-    if (!list) return -1;
+    if (!list || !elem) return -1;
 
     slist_node_t* current = list->head;
     int index = 0;
@@ -171,8 +181,14 @@ void slist_insert_after(slist* list, void* elem, void* after) {
 
 void slist_insert_before(slist* list, void* elem, void* before) {
     int idx = slist_index_of(list, before);
+    /*
+     * FIX (off-by-one): inserting "immediately before" the node at idx
+     * means occupying idx itself and shifting the rest right.  The old
+     * code inserted at idx-1, which landed before the PREDECESSOR of the
+     * target element instead.
+     */
     if (idx > 0 && (size_t)idx < list->size)
-        slist_insert(list, (size_t)idx - 1, elem);
+        slist_insert(list, (size_t)idx, elem);
     else if (idx == 0)
         slist_push_front(list, elem);
 }
