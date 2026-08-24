@@ -56,6 +56,45 @@ typedef struct {
  * falling back to the exact per-sequence scalar classifier otherwise.
  * Classification semantics are byte-for-byte identical to the scalar loop.
  */
+/*
+ * Returns the byte length of a FULLY valid UTF-8 sequence starting at u,
+ * where len bytes are available in the buffer, or 0 if the sequence is
+ * malformed or invalid (overlong encodings, surrogate halves
+ * U+D800..U+DFFF, and codepoints above U+10FFFF are all rejected).
+ *
+ * Semantics match utf8_to_codepoint(): a sequence is accepted only when it
+ * decodes to a legal scalar value, not merely when its continuation bytes
+ * have the right shape.
+ */
+static inline unsigned utf8_seq_length(const unsigned char* u, size_t len) {
+    unsigned char b = u[0];
+    uint32_t cp;
+
+    if ((b & 0x80) == 0) { return 1; }
+
+    if ((b & 0xE0) == 0xC0) {
+        if (len < 2 || (u[1] & 0xC0) != 0x80) { return 0; }
+        cp = (((uint32_t)b & 0x1FU) << 6) | (u[1] & 0x3F);
+        if (cp < 0x80) { return 0; /* overlong */ }
+        return 2;
+    }
+    if ((b & 0xF0) == 0xE0) {
+        if (len < 3 || (u[1] & 0xC0) != 0x80 || (u[2] & 0xC0) != 0x80) { return 0; }
+        cp = (((uint32_t)b & 0x0FU) << 12) | (((uint32_t)u[1] & 0x3F) << 6) | (u[2] & 0x3F);
+        if (cp < 0x800) { return 0; /* overlong */ }
+        if (cp >= 0xD800 && cp <= 0xDFFF) { return 0; /* surrogate */ }
+        return 3;
+    }
+    if ((b & 0xF8) == 0xF0) {
+        if (len < 4 || (u[1] & 0xC0) != 0x80 || (u[2] & 0xC0) != 0x80 || (u[3] & 0xC0) != 0x80) { return 0; }
+        cp = (((uint32_t)b & 0x07U) << 18) | (((uint32_t)u[1] & 0x3F) << 12) | (((uint32_t)u[2] & 0x3F) << 6) |
+             (u[3] & 0x3F);
+        if (cp < 0x10000 || cp > UNICODE_MAX_CODEPOINT) { return 0; /* overlong / out of range */ }
+        return 4;
+    }
+    return 0; /* lone continuation byte or invalid leading byte */
+}
+
 static inline utf8_analysis_t utf8_analyze(const char* s) {
     utf8_analysis_t analysis = {0, 0};
     if (!s) return analysis;
@@ -66,8 +105,8 @@ static inline utf8_analysis_t utf8_analyze(const char* s) {
      *   SIMD mode  - skips whole 16-byte ASCII runs (movemask finds the
      *                first non-ASCII byte instantly).
      *   Scalar mode- classifies one UTF-8 sequence per iteration using the
-     *                exact original logic, then re-arms SIMD mode as soon
-     *                as the next byte is ASCII again.
+     *                exact full-validation logic, then re-arms SIMD mode as
+     *                soon as the next byte is ASCII again.
      * strlen() bounds the vector loads so they never cross the NUL.
      * Classification results are byte-for-byte identical to the pure
      * scalar loop below.
@@ -95,73 +134,29 @@ static inline utf8_analysis_t utf8_analyze(const char* s) {
         }
 
         /* ---- scalar classification of exactly one sequence ---- */
-        unsigned char byte = (unsigned char)s[i];
-        if ((byte & 0x80) == 0) {
-            analysis.valid_bytes++;
-            analysis.codepoints++;
-            i++;
-            try_simd = 1; /* ASCII again: re-arm the vector skipper */
-            continue;
-        }
-
         try_simd = 0;
 
-        if ((byte & 0xE0) == 0xC0 && i + 1 < len &&
-            ((unsigned char)s[i + 1] & 0xC0) == 0x80) {
-            analysis.valid_bytes += 2;
+        unsigned seq = utf8_seq_length((const unsigned char*)s + i, len - i);
+        if (seq > 0) {
+            analysis.valid_bytes += seq;
             analysis.codepoints++;
-            i += 2;
-        } else if ((byte & 0xF0) == 0xE0 && i + 2 < len &&
-                   ((unsigned char)s[i + 1] & 0xC0) == 0x80 && ((unsigned char)s[i + 2] & 0xC0) == 0x80) {
-            analysis.valid_bytes += 3;
-            analysis.codepoints++;
-            i += 3;
-        } else if ((byte & 0xF8) == 0xF0 && i + 3 < len &&
-                   ((unsigned char)s[i + 1] & 0xC0) == 0x80 && ((unsigned char)s[i + 2] & 0xC0) == 0x80 &&
-                   ((unsigned char)s[i + 3] & 0xC0) == 0x80) {
-            analysis.valid_bytes += 4;
-            analysis.codepoints++;
-            i += 4;
+            i += seq;
         } else {
-            i++; /* malformed byte: skip one, matching the legacy loop */
+            i++; /* malformed or invalid sequence: skip one leading byte */
         }
 
         if (i < len && ((unsigned char)s[i] & 0x80) == 0) { try_simd = 1; }
     }
     return analysis;
 #else
+    size_t len = strlen(s);
     size_t i = 0;
-    while (s[i] != '\0') {
-        unsigned char byte = (unsigned char)s[i];
-        if ((byte & 0x80) == 0) {
-            analysis.valid_bytes++;
+    while (i < len) {
+        unsigned seq = utf8_seq_length((const unsigned char*)s + i, len - i);
+        if (seq > 0) {
+            analysis.valid_bytes += seq;
             analysis.codepoints++;
-            i++;
-        } else if ((byte & 0xE0) == 0xC0 && s[i + 1] != '\0') {
-            if (((unsigned char)s[i + 1] & 0xC0) == 0x80) {
-                analysis.valid_bytes += 2;
-                analysis.codepoints++;
-                i += 2;
-            } else {
-                i++;
-            }
-        } else if ((byte & 0xF0) == 0xE0 && s[i + 1] != '\0' && s[i + 2] != '\0') {
-            if (((unsigned char)s[i + 1] & 0xC0) == 0x80 && ((unsigned char)s[i + 2] & 0xC0) == 0x80) {
-                analysis.valid_bytes += 3;
-                analysis.codepoints++;
-                i += 3;
-            } else {
-                i++;
-            }
-        } else if ((byte & 0xF8) == 0xF0 && s[i + 1] != '\0' && s[i + 2] != '\0' && s[i + 3] != '\0') {
-            if (((unsigned char)s[i + 1] & 0xC0) == 0x80 && ((unsigned char)s[i + 2] & 0xC0) == 0x80 &&
-                ((unsigned char)s[i + 3] & 0xC0) == 0x80) {
-                analysis.valid_bytes += 4;
-                analysis.codepoints++;
-                i += 4;
-            } else {
-                i++;
-            }
+            i += seq;
         } else {
             i++;
         }

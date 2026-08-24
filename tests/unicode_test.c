@@ -277,10 +277,11 @@ void test_basic_operations() {
 
     // Test UTF-8 reverse (with multibyte chars)
     rev = utf8_new("A世B");
-    utf8_reverse(rev);
-    size_t len = utf8_valid_byte_count(rev->data);
+    utf8_string* rev2 = utf8_reverse(rev); /* returns a NEW string */
+    size_t len = utf8_valid_byte_count(rev2->data);
     // Check if reversed string has the same length
     record_test("Reverse UTF-8 length", len == utf8_valid_byte_count("B世A"), NULL);
+    utf8_free(rev2);
 
     // Test case conversion
     utf8_string* case_test = utf8_new("Hello");
