@@ -98,6 +98,20 @@ bool mat4_is_close(Mat4 a, Mat4 b, float tol) {
     return true;
 }
 
+void assert_mat4_eq(const char* name, Mat4 expected, Mat4 actual) {
+    if (!mat4_is_close(expected, actual, EPSILON)) {
+        printf(ANSI_COLOR_RED "[FAIL] %s: Matrix mismatch\n" ANSI_COLOR_RESET, name);
+        printf("Expected:\n");
+        mat4_print(expected, "  E");
+        printf("Got:\n");
+        mat4_print(actual, "  A");
+        g_tests_failed++;
+    } else {
+        printf(ANSI_COLOR_GREEN "[PASS] %s\n" ANSI_COLOR_RESET, name);
+        g_tests_passed++;
+    }
+}
+
 /* ==================================================
    Tests
    ================================================== */
@@ -286,6 +300,75 @@ void test_solve_linear() {
     assert_vec4_eq("Mat4 Solve (Permuted)", (Vec4){1.0f, 2.0f, 3.0f, 4.0f}, vec4_load(x4));
 }
 
+void test_graphics_extensions() {
+    print_header("Graphics Extensions (decompose, tangent basis)");
+
+    // --- basis_from_normal ---
+    {
+        OrthonormalBasis b = basis_from_normal((Vec3){0.0f, 0.0f, 1.0f});
+        assert_float_eq("Basis Normal Preserved", 1.0f, b.v2.z, EPSILON);
+        assert_float_eq("Basis Tangent Unit", 1.0f,
+                        sqrtf(b.v0.x * b.v0.x + b.v0.y * b.v0.y + b.v0.z * b.v0.z), EPSILON);
+
+        // All pairs mutually orthogonal
+        float d01 = b.v0.x * b.v1.x + b.v0.y * b.v1.y + b.v0.z * b.v1.z;
+        float d02 = b.v0.x * b.v2.x + b.v0.y * b.v2.y + b.v0.z * b.v2.z;
+        float d12 = b.v1.x * b.v2.x + b.v1.y * b.v2.y + b.v1.z * b.v2.z;
+        assert_bool("Basis Orthogonal", fabsf(d01) < EPSILON && fabsf(d02) < EPSILON && fabsf(d12) < EPSILON);
+
+        // Right-handed: v0 x v1 == v2
+        SimdVec3 cx = vec3_cross(vec3_load(b.v0), vec3_load(b.v1));
+        assert_float_eq("Basis Right-Handed", 1.0f, vec3_dot(cx, vec3_load(b.v2)), EPSILON);
+
+        // Works for a normal parallel to the X helper axis too
+        OrthonormalBasis bx = basis_from_normal((Vec3){1.0f, 0.0f, 0.0f});
+        assert_float_eq("Basis Degenerate Axis", 1.0f, bx.v2.x, EPSILON);
+
+        // Zero normal falls back to canonical basis
+        OrthonormalBasis bz = basis_from_normal((Vec3){0.0f, 0.0f, 0.0f});
+        assert_float_eq("Basis Zero-Normal Fallback", 1.0f, bz.v2.z, EPSILON);
+    }
+
+    // --- mat4_decompose on a known TRS ---
+    {
+        Vec3 t = {3.0f, -7.0f, 11.0f};
+        Quat r = quat_from_axis_angle((Vec3){1.0f, 2.0f, -0.5f}, 1.1f);
+        Vec3 s = {2.0f, 3.0f, 0.5f};
+
+        Mat4 M = mat4_compose(t, r, s);
+        Vec3 out_s, out_t;
+        Quat out_r;
+        mat4_decompose(M, &out_s, &out_r, &out_t);
+
+        // Compare against matrix_test-style expectations via roundtrip
+        assert_mat4_eq("Decompose Roundtrip", M, mat4_compose(out_t, out_r, out_s));
+
+        Vec3 got_t = out_t;
+        assert_vec3_eq("Decompose Translation", (Vec3){3.0f, -7.0f, 11.0f}, vec3_load(got_t));
+        assert_bool("Decompose Scale", fabsf(out_s.x - 2.0f) < EPSILON && fabsf(out_s.y - 3.0f) < EPSILON &&
+                                           fabsf(out_s.z - 0.5f) < EPSILON);
+
+        // Rotation comparison through matrices (q ~ -q)
+        assert_mat4_eq("Decompose Rotation", mat4_from_quat(r), mat4_from_quat(out_r));
+
+        // Decompose matches manual extraction from the raw matrix
+        Mat4 manual = mat4_mul(mat4_translate(t), mat4_mul(mat4_from_quat(r), mat4_scale(s)));
+        assert_mat4_eq("Compose Equals T*R*S", manual, M);
+    }
+
+    // --- Mirrored transform keeps scale sign information ---
+    {
+        Vec3 t = {0.0f, 0.0f, 0.0f};
+        Quat id = quat_identity();
+        Vec3 s = {-2.0f, 1.0f, 1.0f};  // Mirror across YZ plane
+        Mat4 M = mat4_compose(t, id, s);
+        Vec3 out_s, out_t;
+        Quat out_r;
+        mat4_decompose(M, &out_s, &out_r, &out_t);
+        assert_bool("Decompose Mirror Scale", out_s.x < 0.0f);
+    }
+}
+
 int main() {
     test_orthonormalize();
     test_eigen_symmetric();
@@ -294,6 +377,7 @@ int main() {
     test_power_iteration();
     test_matrix_properties();
     test_solve_linear();
+    test_graphics_extensions();
 
     print_header("Summary");
     printf("Total Tests: %d\n", g_tests_passed + g_tests_failed);

@@ -387,6 +387,91 @@ static inline Vec3 mat3_solve(Mat3 A, Vec3 b) {
     return backward_substitution_mat3(U, y);
 }
 
+/* ==================================================
+   Graphics Extensions
+   ================================================== */
+
+/**
+ * @brief Decomposes a TRS model matrix into scale, rotation, and translation.
+ *
+ * Inverse of mat4_compose(). The matrix is assumed to have the form T*R*S
+ * (no skew/shear), which is what scene graphs produce.
+ *
+ * @param[in]  m           Model matrix to decompose.
+ * @param[out] out_scale   Absolute scale per axis. Negative X indicates a
+ *                         mirrored transform (negative determinant).
+ * @param[out] out_rotation Unit rotation quaternion.
+ * @param[out] out_translation World position.
+ */
+static inline void mat4_decompose(Mat4 m, Vec3* out_scale, Quat* out_rotation, Vec3* out_translation) {
+    SimdVec3 c0 = {.v = m.cols[0]};
+    SimdVec3 c1 = {.v = m.cols[1]};
+    SimdVec3 c2 = {.v = m.cols[2]};
+    SimdVec3 c3 = {.v = m.cols[3]};
+
+    *out_translation = vec3_store(c3);
+
+    // Scale is the length of each rotated basis column.
+    float sx = vec3_length(c0);
+    float sy = vec3_length(c1);
+    float sz = vec3_length(c2);
+
+    // Mirror detection via the sign of the upper-3x3 determinant.
+    Mat3 rot_only;
+    if (sx > 1e-12f && sy > 1e-12f && sz > 1e-12f) {
+        rot_only = (Mat3){{{c0.x / sx, c0.y / sx, c0.z / sx},
+                           {c1.x / sy, c1.y / sy, c1.z / sy},
+                           {c2.x / sz, c2.y / sz, c2.z / sz}}};
+        if (mat3_determinant(rot_only) < 0.0f) {
+            sx = -sx;
+            // Re-normalize column 0 with the corrected sign.
+            rot_only.m[0][0] = -rot_only.m[0][0];
+            rot_only.m[0][1] = -rot_only.m[0][1];
+            rot_only.m[0][2] = -rot_only.m[0][2];
+        }
+    } else {
+        rot_only = mat3_identity();
+    }
+
+    *out_scale = (Vec3){sx, sy, sz};
+
+    Mat4 rot4 = mat4_identity();
+    for (int c = 0; c < 3; c++) {
+        for (int r = 0; r < 3; r++) {
+            rot4.m[c][r] = rot_only.m[c][r];
+        }
+    }
+    *out_rotation = quat_from_mat4(rot4);
+}
+
+/**
+ * @brief Builds a tangent-space orthonormal basis around a surface normal.
+ *
+ * Returns two unit vectors perpendicular to @p normal (and to each other),
+ * suitable for tangent/bitangent frames in normal mapping, TBN matrices,
+ * and hemisphere sampling.
+ *
+ * @param normal Surface normal (normalized internally; zero-safe).
+ * @return OrthonormalBasis with v0 = tangent, v1 = bitangent, v2 = normal.
+ */
+static inline OrthonormalBasis basis_from_normal(Vec3 normal) {
+    SimdVec3 n = vec3_load(normal);
+    float len_sq = vec3_length_sq(n);
+    if (len_sq < 1e-12f) {
+        return (OrthonormalBasis){(Vec3){1, 0, 0}, (Vec3){0, 1, 0}, (Vec3){0, 0, 1}};
+    }
+    n = vec3_mul(n, 1.0f / sqrtf(len_sq));
+
+    // Pick the world axis the normal is LEAST parallel to so the cross
+    // product is well-conditioned.
+    SimdVec3 helper = (fabsf(n.x) < 0.9f) ? vec3_load((Vec3){1, 0, 0}) : vec3_load((Vec3){0, 1, 0});
+
+    SimdVec3 tangent = vec3_normalize(vec3_cross(helper, n));
+    SimdVec3 bitangent = vec3_cross(n, tangent);
+
+    return (OrthonormalBasis){vec3_store(tangent), vec3_store(bitangent), vec3_store(n)};
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -1227,6 +1227,161 @@ static inline SimdVec4 vec4_abs(SimdVec4 v) { return (SimdVec4){.v = simd_abs(v.
  */
 static inline float vec4_sum(SimdVec4 v) { return simd_hadd(v.v); }
 
+/* ==================================================
+   Graphics Extensions (neg / clamp / homogeneous / geometry)
+   ================================================== */
+
+/** @brief Component-wise negation of a 2D vector. */
+static inline SimdVec2 vec2_neg(SimdVec2 v) { return (SimdVec2){.v = simd_neg(v.v)}; }
+
+/** @brief Component-wise negation of a 3D vector. */
+static inline SimdVec3 vec3_neg(SimdVec3 v) { return (SimdVec3){.v = simd_neg(v.v)}; }
+
+/** @brief Component-wise negation of a 4D vector. */
+static inline SimdVec4 vec4_neg(SimdVec4 v) { return (SimdVec4){.v = simd_neg(v.v)}; }
+
+/**
+ * @brief Clamps a 2D vector component-wise into [lo, hi].
+ */
+static inline SimdVec2 vec2_clamp(SimdVec2 v, float lo, float hi) {
+    simd_vec_t vlo = simd_set1(lo);
+    simd_vec_t vhi = simd_set1(hi);
+    return (SimdVec2){.v = simd_min(simd_max(v.v, vlo), vhi)};
+}
+
+/**
+ * @brief Clamps a 3D vector component-wise into [lo, hi].
+ */
+static inline SimdVec3 vec3_clamp(SimdVec3 v, float lo, float hi) {
+    simd_vec_t vlo = simd_set1(lo);
+    simd_vec_t vhi = simd_set1(hi);
+    return (SimdVec3){.v = simd_min(simd_max(v.v, vlo), vhi)};
+}
+
+/**
+ * @brief Clamps a 4D vector component-wise into [lo, hi].
+ */
+static inline SimdVec4 vec4_clamp(SimdVec4 v, float lo, float hi) {
+    simd_vec_t vlo = simd_set1(lo);
+    simd_vec_t vhi = simd_set1(hi);
+    return (SimdVec4){.v = simd_min(simd_max(v.v, vlo), vhi)};
+}
+
+/** @brief Returns the sum of all components (x+y). */
+static inline float vec2_sum(SimdVec2 v) { return v.x + v.y; }
+
+/** @brief Returns the sum of all components (x+y+z). */
+static inline float vec3_sum(SimdVec3 v) { return v.x + v.y + v.z; }
+
+/**
+ * @brief Promotes a 3D point to homogeneous coordinates (w = 1).
+ *
+ * A W of 1 means translations in a Mat4 affect this vector, which is
+ * what you want for positions/vertices.
+ */
+static inline Vec4 vec4_from_point(Vec3 p) { return (Vec4){p.x, p.y, p.z, 1.0f}; }
+
+/**
+ * @brief Promotes a 3D direction to homogeneous coordinates (w = 0).
+ *
+ * A W of 0 makes a Mat4's translation column vanish under multiplication,
+ * which is what you want for directions/normals.
+ */
+static inline Vec4 vec4_from_direction(Vec3 d) { return (Vec4){d.x, d.y, d.z, 0.0f}; }
+
+/**
+ * @brief Perspective-divides a homogeneous vector back into 3D space.
+ *
+ * Performs (x/w, y/w, z/w). This is the projection step that maps clip
+ * space to NDC after a Mat4_perspective multiply.
+ *
+ * @param v Homogeneous vector (e.g., clip-space position).
+ * @return SimdVec3 NDC position.
+ *
+ * @warning If w is 0 or very small, the result is undefined (division
+ *          happens without guard for speed; callers behind the camera
+ *          should be clipped before reaching here).
+ */
+static inline SimdVec3 vec4_perspective_divide(SimdVec4 v) {
+    float inv_w = 1.0f / v.w;
+    return (SimdVec3){.v = simd_mul(v.v, simd_set1(inv_w))};
+}
+
+/**
+ * @brief Scalar triple product a · (b × c).
+ *
+ * Equals the signed volume of the parallelepiped spanned by a, b, c.
+ * Zero when the three vectors are coplanar — useful for back-face and
+ * degenerate-triangle detection.
+ */
+static inline float vec3_triple_product(SimdVec3 a, SimdVec3 b, SimdVec3 c) { return vec3_dot(a, vec3_cross(b, c)); }
+
+/**
+ * @brief Computes barycentric coordinates of p relative to triangle (a, b, c).
+ *
+ * All arguments are 3D points. The returned weights satisfy
+ * p ≈ u*a + v*b + w*c with u+v+w = 1 (exact for points in the plane).
+ * Weights outside [0,1] indicate the point lies outside the triangle.
+ *
+ * @param a First triangle vertex (weight .x / u)
+ * @param b Second triangle vertex (weight .y / v)
+ * @param c Third triangle vertex (weight .z / w)
+ * @param p The query point
+ * @return Vec3 Barycentric weights (u, v, w)
+ */
+static inline Vec3 vec3_barycentric(SimdVec3 a, SimdVec3 b, SimdVec3 c, SimdVec3 p) {
+    SimdVec3 v0 = vec3_sub(b, a);
+    SimdVec3 v1 = vec3_sub(c, a);
+    SimdVec3 v2 = vec3_sub(p, a);
+
+    float d00 = vec3_dot(v0, v0);
+    float d01 = vec3_dot(v0, v1);
+    float d11 = vec3_dot(v1, v1);
+    float d20 = vec3_dot(v2, v0);
+    float d21 = vec3_dot(v2, v1);
+
+    float denom = d00 * d11 - d01 * d01;
+    if (fabsf(denom) < 1e-12f) {
+        // Degenerate triangle: weights are meaningless; return centroid weight.
+        return (Vec3){1.0f / 3.0f, 1.0f / 3.0f, 1.0f / 3.0f};
+    }
+
+    float v = (d11 * d20 - d01 * d21) / denom;
+    float w = (d00 * d21 - d01 * d20) / denom;
+    float u = 1.0f - v - w;
+    return (Vec3){u, v, w};
+}
+
+/**
+ * @brief Refracts an incident vector through a surface (Snell's law).
+ *
+ * @param i Incident direction (normalized, pointing toward surface).
+ * @param n Surface normal (normalized, pointing against i).
+ * @param eta Ratio of indices of refraction (from-side / to-side),
+ *            e.g., air-to-water ≈ 1.0/1.33.
+ * @return Refracted direction (normalized if i was), or the zero vector
+ *         on total internal reflection.
+ */
+static inline SimdVec3 vec3_refract(SimdVec3 i, SimdVec3 n, float eta) {
+    float cosi = -vec3_dot(i, n);
+    float k = 1.0f - eta * eta * (1.0f - cosi * cosi);
+    if (k < 0.0f) {
+        return (SimdVec3){{0}};  // Total internal reflection
+    }
+    return vec3_add(vec3_mul(i, eta), vec3_mul(n, eta * cosi - sqrtf(k)));
+}
+
+/**
+ * @brief Flips a normal so it faces against the incident direction.
+ *
+ * Returns n if dot(n, i) < 0 (already facing), otherwise -n. Common at
+ * ray-surface intersections where the geometric normal may point away
+ * from the viewer.
+ */
+static inline SimdVec3 vec3_faceforward(SimdVec3 n, SimdVec3 i) {
+    return (vec3_dot(n, i) < 0.0f) ? n : vec3_neg(n);
+}
+
 #ifdef __cplusplus
 }
 #endif

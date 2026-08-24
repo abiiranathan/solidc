@@ -325,6 +325,88 @@ void test_extensions_ml() {
     assert_float_eq("Vec4 Sum", -2.0f, vec4_sum(a), EPSILON); // 1 - 2 + 3 - 4 = -2
 }
 
+void test_graphics_extensions() {
+    print_header("Graphics Extensions (neg/clamp/homogeneous/geometry)");
+
+    // --- Negation ---
+    assert_vec3_eq("Vec3 Neg", (Vec3){-1.0f, 2.0f, -3.0f}, vec3_neg(vec3_load((Vec3){1.0f, -2.0f, 3.0f})));
+    assert_vec2_eq("Vec2 Neg", (Vec2){-1.0f, 2.0f}, vec2_neg(vec2_load((Vec2){1.0f, -2.0f})));
+    assert_vec4_eq("Vec4 Neg", (Vec4){-1.0f, 2.0f, -3.0f, 4.0f}, vec4_neg(vec4_load((Vec4){1.0f, -2.0f, 3.0f, -4.0f})));
+
+    // --- Clamp ---
+    assert_vec3_eq("Vec3 Clamp", (Vec3){0.5f, 1.5f, 1.5f}, vec3_clamp(vec3_load((Vec3){-1.0f, 2.0f, 99.0f}), 0.5f, 1.5f));
+
+    // --- Sums ---
+    assert_float_eq("Vec2 Sum", 3.0f, vec2_sum(vec2_load((Vec2){1.0f, 2.0f})), EPSILON);
+    assert_float_eq("Vec3 Sum", 6.0f, vec3_sum(vec3_load((Vec3){1.0f, 2.0f, 3.0f})), EPSILON);
+
+    // --- Homogeneous constructors ---
+    Vec4 pt = vec4_from_point((Vec3){1.0f, 2.0f, 3.0f});
+    assert_bool("Vec4 From Point w=1", pt.w == 1.0f);
+    Vec4 dir = vec4_from_direction((Vec3){1.0f, 2.0f, 3.0f});
+    assert_bool("Vec4 From Direction w=0", dir.w == 0.0f);
+
+    // --- Perspective divide ---
+    assert_vec3_eq("Perspective Divide", (Vec3){1.0f, 2.0f, 3.0f},
+                   vec4_perspective_divide(vec4_load((Vec4){2.0f, 4.0f, 6.0f, 2.0f})));
+
+    // --- Triple product: signed volume of unit cube corner ---
+    SimdVec3 ex = vec3_load((Vec3){1, 0, 0});
+    SimdVec3 ey = vec3_load((Vec3){0, 1, 0});
+    SimdVec3 ez = vec3_load((Vec3){0, 0, 1});
+    assert_float_eq("Triple Product (unit axes)", 1.0f, vec3_triple_product(ex, ey, ez), EPSILON);
+    // Coplanar vectors span no volume
+    assert_float_eq("Triple Product (coplanar)", 0.0f, vec3_triple_product(ex, ey,
+        vec3_load((Vec3){1.0f, 1.0f, 0.0f})), EPSILON);
+
+    // --- Barycentric coordinates ---
+    {
+        SimdVec3 a = vec3_load((Vec3){0.0f, 0.0f, 0.0f});
+        SimdVec3 b = vec3_load((Vec3){1.0f, 0.0f, 0.0f});
+        SimdVec3 c = vec3_load((Vec3){0.0f, 1.0f, 0.0f});
+        SimdVec3 p = vec3_load((Vec3){0.25f, 0.25f, 0.0f});
+        Vec3 wgt = vec3_barycentric(a, b, c, p);
+        // p = u*a + v*b + w*c with u+v+w=1
+        assert_float_eq("Barycentric Sum", 1.0f, wgt.x + wgt.y + wgt.z, EPSILON);
+        assert_float_eq("Barycentric v (along b)", 0.25f, wgt.y, EPSILON);
+        assert_float_eq("Barycentric w (along c)", 0.25f, wgt.z, EPSILON);
+
+        // Vertex itself yields a pure weight
+        Vec3 wv = vec3_barycentric(a, b, c, b);
+        assert_bool("Barycentric At Vertex B", fabsf(wv.y - 1.0f) < EPSILON && fabsf(wv.x) < EPSILON &&
+                                                     fabsf(wv.z) < EPSILON);
+    }
+
+    // --- Refraction ---
+    {
+        // Straight-through: eta = 1 keeps direction unchanged
+        SimdVec3 i = vec3_normalize(vec3_load((Vec3){0.3f, -1.0f, 0.0f}));
+        SimdVec3 n = vec3_load((Vec3){0.0f, 1.0f, 0.0f});
+        SimdVec3 r = vec3_refract(i, n, 1.0f);
+        assert_vec3_eq("Refract Eta=1 Passes Through", vec3_store(i), r);
+
+        // Total internal reflection: glass(1.5) -> air at 60 deg incidence
+        float s60 = sinf(60.0f * 3.14159265358979323846f / 180.0f);
+        float c60 = cosf(60.0f * 3.14159265358979323846f / 180.0f);
+        SimdVec3 ti = vec3_normalize(vec3_load((Vec3){s60, -c60, 0.0f}));
+        SimdVec3 tr = vec3_refract(ti, n, 1.5f);
+        Vec3 zero = {0};
+        Vec3 got = vec3_store(tr);
+        assert_bool("Refract TIR Returns Zero", fabsf(got.x - zero.x) < EPSILON &&
+                                                  fabsf(got.y - zero.y) < EPSILON && fabsf(got.z - zero.z) < EPSILON);
+    }
+
+    // --- Face-forward ---
+    {
+        SimdVec3 nf = vec3_load((Vec3){0.0f, 1.0f, 0.0f});
+        SimdVec3 i_above = vec3_load((Vec3){0.0f, -1.0f, 0.0f});  // hits from above
+        SimdVec3 i_below = vec3_load((Vec3){0.0f, 1.0f, 0.0f});   // comes from behind
+        assert_bool("FaceForward Keeps Opposing", vec3_dot(nf, i_above) < 0.0f);
+        SimdVec3 flipped = vec3_faceforward(nf, i_below);
+        assert_vec3_eq("FaceForward Flips Aligned", (Vec3){0.0f, -1.0f, 0.0f}, flipped);
+    }
+}
+
 int main() {
     test_architecture();
     test_vec2_full();
@@ -334,6 +416,7 @@ int main() {
     test_comparison_utils();
     test_extensions();
     test_extensions_ml();
+    test_graphics_extensions();
 
     print_header("Summary");
     printf("Total Tests: %d\n", g_tests_passed + g_tests_failed);

@@ -667,6 +667,476 @@ static inline Mat4 mat4_scalar_mul(Mat4 a, float s) {
     return res;
 }
 
+/* ==================================================
+   Graphics Extensions: Mat3 utilities
+   ================================================== */
+
+/**
+ * @brief Transposes a 3x3 matrix.
+ */
+static inline Mat3 mat3_transpose(Mat3 m) {
+    Mat3 r;
+    for (int c = 0; c < 3; c++) {
+        for (int row = 0; row < 3; row++) {
+            r.m[c][row] = m.m[row][c];
+        }
+    }
+    return r;
+}
+
+/**
+ * @brief Inverts a 3x3 matrix using the adjugate method.
+ *
+ * @return The inverse, or the identity matrix if the input is singular
+ *         (|det| < 1e-8), matching mat4_inverse()'s fallback behavior.
+ */
+static inline Mat3 mat3_inverse(Mat3 m) {
+    float m00 = m.m[0][0], m01 = m.m[1][0], m02 = m.m[2][0];
+    float m10 = m.m[0][1], m11 = m.m[1][1], m12 = m.m[2][1];
+    float m20 = m.m[0][2], m21 = m.m[1][2], m22 = m.m[2][2];
+
+    // Cofactors of the first column and row pieces (adjugate columns)
+    float c00 = m11 * m22 - m12 * m21;
+    float c01 = m02 * m21 - m01 * m22;
+    float c02 = m01 * m12 - m02 * m11;
+
+    float det = m00 * c00 + m10 * c01 + m20 * c02;
+    if (fabsf(det) < 1e-8f) {
+        return mat3_identity();
+    }
+    float inv_det = 1.0f / det;
+
+    Mat3 inv;
+    // Adjugate / det; adjugate is the transpose of the cofactor matrix.
+    inv.m[0][0] = c00 * inv_det;
+    inv.m[1][0] = c01 * inv_det;
+    inv.m[2][0] = c02 * inv_det;
+
+    inv.m[0][1] = (m12 * m20 - m10 * m22) * inv_det;
+    inv.m[1][1] = (m00 * m22 - m02 * m20) * inv_det;
+    inv.m[2][1] = (m02 * m10 - m00 * m12) * inv_det;
+
+    inv.m[0][2] = (m10 * m21 - m11 * m20) * inv_det;
+    inv.m[1][2] = (m01 * m20 - m00 * m21) * inv_det;
+    inv.m[2][2] = (m00 * m11 - m01 * m10) * inv_det;
+    return inv;
+}
+
+/**
+ * @brief Computes the normal matrix for a model transform.
+ *
+ * Normals must be transformed by the inverse-transpose of the model
+ * matrix's upper-left 3x3 to remain correct under non-uniform scaling.
+ * Extracts that 3x3, inverts it, and transposes it.
+ *
+ * @param model The model (world) transform.
+ * @return Mat3 Use as: normal_world = mat3_mul_vec3(normal_matrix, normal_local).
+ */
+static inline Mat3 mat3_normal_matrix(Mat4 model) {
+    Mat3 upper;
+    for (int c = 0; c < 3; c++) {
+        for (int r = 0; r < 3; r++) {
+            upper.m[c][r] = model.m[c][r];
+        }
+    }
+    return mat3_transpose(mat3_inverse(upper));
+}
+
+/* ==================================================
+   Graphics Extensions: point/direction transforms & picking
+   ================================================== */
+
+/**
+ * @brief Transforms a 3D point by a 4x4 matrix (w = 1, perspective-divided).
+ *
+ * Equivalent to mat4_mul_vec4(m, vec4_from_point(p)) followed by division
+ * by w. This is the correct way to transform vertex positions through an
+ * MVP matrix when you want world/object-space results rather than clip space.
+ *
+ * @warning If w ends up 0 or near-zero (point at/behind the camera plane),
+ *          the result is undefined. Clip before dividing in production paths.
+ */
+static inline Vec3 mat4_transform_point(Mat4 m, Vec3 p) {
+    Vec4 h = mat4_mul_vec4(m, vec4_from_point(p));
+    float inv_w = 1.0f / h.w;
+    return (Vec3){h.x * inv_w, h.y * inv_w, h.z * inv_w};
+}
+
+/**
+ * @brief Transforms a 3D direction by a 4x4 matrix (w = 0, no translation).
+ *
+ * Uses only the upper-left 3x3 of the matrix, so translations are ignored.
+ * Correct for directions/tangents; for surface normals under non-uniform
+ * scale use mat3_normal_matrix() instead.
+ */
+static inline Vec3 mat4_transform_direction(Mat4 m, Vec3 d) {
+    Vec4 h = mat4_mul_vec4(m, vec4_from_direction(d));
+    return (Vec3){h.x, h.y, h.z};
+}
+
+/**
+ * @brief Creates a centered 2D orthographic projection over pixel coordinates.
+ *
+ * Maps (0,0) to the bottom-left and (width,height) to the top-right of NDC,
+ * with z in [-1, 1]. Typical use: UI/screen-space rendering where geometry
+ * is specified directly in window pixels.
+ */
+static inline Mat4 mat4_ortho_2d(float width, float height) {
+    return mat4_ortho(0.0f, width, 0.0f, height, -1.0f, 1.0f);
+}
+
+/**
+ * @brief Perspective projection with an infinite far plane (OpenGL convention).
+ *
+ * Same [-1, 1] depth convention as mat4_perspective(), but the far plane is
+ * pushed to infinity, which maximizes depth-buffer precision. Pair with a
+ * reversed-Z depth test for best results.
+ *
+ * @param fov_radians Vertical field of view.
+ * @param aspect     Width / height of the viewport.
+ * @param near       Distance to the near plane (> 0).
+ */
+static inline Mat4 mat4_infinite_perspective(float fov_radians, float aspect, float near) {
+    float f = 1.0f / tanf(fov_radians / 2.0f);
+    Mat4 m;
+    m.cols[0] = simd_set(f / aspect, 0.0f, 0.0f, 0.0f);
+    m.cols[1] = simd_set(0.0f, f, 0.0f, 0.0f);
+    m.cols[2] = simd_set(0.0f, 0.0f, -1.0f, -1.0f);
+    m.cols[3] = simd_set(0.0f, 0.0f, -2.0f * near, 0.0f);
+    return m;
+}
+
+/**
+ * @brief Converts window/pixel coordinates to normalized device coordinates.
+ *
+ * Follows the common top-left-origin screen convention: (0,0) maps to
+ * NDC (-1, 1). Depth is passed through unchanged, so pick your own z
+ * convention (typically -1..1 for OpenGL-style projections).
+ *
+ * @param sx Horizontal position in pixels.
+ * @param sy Vertical position in pixels (top-left origin).
+ * @param width Viewport width in pixels.
+ * @param height Viewport height in pixels.
+ * @return Vec3 NDC position (z copied from input).
+ */
+static inline Vec3 screen_to_ndc(float sx, float sy, float z, float width, float height) {
+    float x = 2.0f * sx / width - 1.0f;
+    float y = 1.0f - 2.0f * sy / height;
+    return (Vec3){x, y, z};
+}
+
+/**
+ * @brief Unprojects an NDC coordinate back into world space.
+ *
+ * Applies inverse_view_proj as a homogeneous transform and divides by w.
+ * For ray picking: unproject at z = -1 (near plane) and z = 1 (far plane)
+ * and take the normalized difference as the ray direction.
+ *
+ * @param inverse_view_proj Precomputed inverse of (projection * view).
+ * @param ndc Position in normalized device coordinates.
+ * @return Vec3 World-space position.
+ */
+static inline Vec3 mat4_unproject(Mat4 inverse_view_proj, Vec3 ndc) {
+    Vec4 world = mat4_mul_vec4(inverse_view_proj, (Vec4){ndc.x, ndc.y, ndc.z, 1.0f});
+    if (fabsf(world.w) < 1e-10f) {
+        return (Vec3){0};
+    }
+    float inv_w = 1.0f / world.w;
+    return (Vec3){world.x * inv_w, world.y * inv_w, world.z * inv_w};
+}
+
+/* ==================================================
+   Quaternions
+   ================================================== */
+
+/**
+ * @struct Quat
+ * @brief Unit quaternion representing a 3D rotation.
+ *
+ * Storage layout matches Vec4/SimdVec4 component-for-component, so a
+ * quaternion can be reinterpreted as either without conversion cost.
+ * Multiplication order follows the standard q1 * q2 == "apply q2 first":
+ * mat4_from_quat(quat_mul(a, b)) == mat4_mul(mat4_from_quat(a), mat4_from_quat(b)).
+ */
+typedef struct ALIGN(16) Quat {
+    union {
+        struct {
+            float x;  ///< Imaginary X component
+            float y;  ///< Imaginary Y component
+            float z;  ///< Imaginary Z component
+            float w;  ///< Real (scalar) component
+        };
+        Vec4 as_vec4;  ///< Reinterpretation for SIMD loads
+    };
+} Quat;
+
+/** @brief Identity rotation (no rotation). */
+static inline Quat quat_identity(void) { return (Quat){.x = 0.0f, .y = 0.0f, .z = 0.0f, .w = 1.0f}; }
+
+/**
+ * @brief Creates a rotation quaternion around an arbitrary axis.
+ *
+ * @param axis Rotation axis (need not be normalized; it is normalized here).
+ * @param angle Rotation angle in radians (right-hand rule).
+ * @return Unit rotation quaternion.
+ */
+static inline Quat quat_from_axis_angle(Vec3 axis, float angle) {
+    SimdVec3 a = vec3_normalize(vec3_load(axis));
+    float s = sinf(angle * 0.5f);
+    return (Quat){.x = a.x * s, .y = a.y * s, .z = a.z * s, .w = cosf(angle * 0.5f)};
+}
+
+/**
+ * @brief Creates a rotation from Euler angles applied in X -> Y -> Z order.
+ *
+ * Equivalent to Rz(yaw) * Ry(pitch) * Rx(roll) as matrices. All angles in
+ * radians. Convenient for cameras and editors, but avoid accumulating many
+ * small euler rotations — compose quaternions instead.
+ *
+ * @param roll  Rotation about X.
+ * @param pitch Rotation about Y.
+ * @param yaw   Rotation about Z.
+ */
+static inline Quat quat_from_euler(float roll, float pitch, float yaw) {
+    float cr = cosf(roll * 0.5f), sr = sinf(roll * 0.5f);
+    float cp = cosf(pitch * 0.5f), sp = sinf(pitch * 0.5f);
+    float cy = cosf(yaw * 0.5f), sy = sinf(yaw * 0.5f);
+
+    return (Quat){
+        .x = sr * cp * cy - cr * sp * sy,
+        .y = cr * sp * cy + sr * cp * sy,
+        .z = cr * cp * sy - sr * sp * cy,
+        .w = cr * cp * cy + sr * sp * sy,
+    };
+}
+
+/** @brief Component-wise dot product (cosine of half the relative angle for units). */
+static inline float quat_dot(Quat a, Quat b) { return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w; }
+
+/** @brief Squared length of the quaternion. */
+static inline float quat_length_sq(Quat q) { return quat_dot(q, q); }
+
+/** @brief Length of the quaternion (1.0 for unit rotations). */
+static inline float quat_length(Quat q) { return sqrtf(quat_length_sq(q)); }
+
+/**
+ * @brief Normalizes to a unit quaternion.
+ *
+ * @warning Returns the identity if the input is degenerate (all zeros),
+ *          unlike the vector normalize functions which are undefined then.
+ */
+static inline Quat quat_normalize(Quat q) {
+    float len = quat_length(q);
+    if (len < 1e-12f) {
+        return quat_identity();
+    }
+    float inv = 1.0f / len;
+    return (Quat){.x = q.x * inv, .y = q.y * inv, .z = q.z * inv, .w = q.w * inv};
+}
+
+/** @brief Conjugate (inverse for unit quaternions): negates the imaginary part. */
+static inline Quat quat_conjugate(Quat q) { return (Quat){.x = -q.x, .y = -q.y, .z = -q.z, .w = q.w}; }
+
+/**
+ * @brief Hamilton product of two quaternions.
+ *
+ * Composes rotations: quat_mul(q1, q2) applies q2 first, then q1.
+ */
+static inline Quat quat_mul(Quat a, Quat b) {
+    return (Quat){
+        .x = a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+        .y = a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+        .z = a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
+        .w = a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+    };
+}
+
+/**
+ * @brief Rotates a vector by a unit quaternion.
+ *
+ * Uses the optimized form t = 2*(q.xyz x v); v' = v + q.w*t + (q.xyz x t)
+ * instead of building the full rotation matrix.
+ *
+ * @param q Unit rotation quaternion.
+ * @param v Vector to rotate.
+ * @return Rotated vector.
+ */
+static inline SimdVec3 quat_rotate_vec3(Quat q, SimdVec3 v) {
+    SimdVec3 qc = {{q.x, q.y, q.z, 0.0f}};
+    SimdVec3 t = vec3_mul(vec3_cross(qc, v), 2.0f);
+    return vec3_add(vec3_add(v, vec3_mul(t, q.w)), vec3_cross(qc, t));
+}
+
+/**
+ * @brief Normalized linear interpolation between two rotations.
+ *
+ * Faster than quat_slerp() but not constant angular velocity. Take the
+ * shortest path automatically (b is negated when dot(a,b) < 0).
+ */
+static inline Quat quat_nlerp(Quat a, Quat b, float t) {
+    if (quat_dot(a, b) < 0.0f) {
+        b = (Quat){.x = -b.x, .y = -b.y, .z = -b.z, .w = -b.w};
+    }
+    Quat r = (Quat){
+        .x = a.x + (b.x - a.x) * t,
+        .y = a.y + (b.y - a.y) * t,
+        .z = a.z + (b.z - a.z) * t,
+        .w = a.w + (b.w - a.w) * t,
+    };
+    return quat_normalize(r);
+}
+
+/**
+ * @brief Spherical linear interpolation between two rotations.
+ *
+ * Constant angular velocity along the shortest arc. Falls back to
+ * nlerp-style blending for nearly-parallel inputs where sin(theta) ~ 0.
+ */
+static inline Quat quat_slerp(Quat a, Quat b, float t) {
+    float dot = quat_dot(a, b);
+
+    // Shortest path: flip one representative if the hemispheres differ.
+    if (dot < 0.0f) {
+        dot = -dot;
+        b = (Quat){.x = -b.x, .y = -b.y, .z = -b.z, .w = -b.w};
+    }
+
+    float k0, k1;
+    if (dot > 0.9995f) {
+        // Nearly identical: linear blend avoids division by tiny sin(theta).
+        k0 = 1.0f - t;
+        k1 = t;
+    } else {
+        float theta = acosf(dot);
+        float sin_theta = sinf(theta);
+        k0 = sinf((1.0f - t) * theta) / sin_theta;
+        k1 = sinf(t * theta) / sin_theta;
+    }
+
+    return quat_normalize((Quat){
+        .x = a.x * k0 + b.x * k1,
+        .y = a.y * k0 + b.y * k1,
+        .z = a.z * k0 + b.z * k1,
+        .w = a.w * k0 + b.w * k1,
+    });
+}
+
+/**
+ * @brief Converts a unit rotation quaternion to a 4x4 rotation matrix.
+ */
+static inline Mat4 mat4_from_quat(Quat q) {
+    float xx = q.x * q.x, yy = q.y * q.y, zz = q.z * q.z;
+    float xy = q.x * q.y, xz = q.x * q.z, yz = q.y * q.z;
+    float wx = q.w * q.x, wy = q.w * q.y, wz = q.w * q.z;
+
+    Mat4 m = mat4_identity();
+    // Column-major: m[col][row]
+    m.m[0][0] = 1.0f - 2.0f * (yy + zz);
+    m.m[0][1] = 2.0f * (xy + wz);
+    m.m[0][2] = 2.0f * (xz - wy);
+
+    m.m[1][0] = 2.0f * (xy - wz);
+    m.m[1][1] = 1.0f - 2.0f * (xx + zz);
+    m.m[1][2] = 2.0f * (yz + wx);
+
+    m.m[2][0] = 2.0f * (xz + wy);
+    m.m[2][1] = 2.0f * (yz - wx);
+    m.m[2][2] = 1.0f - 2.0f * (xx + yy);
+    return m;
+}
+
+/**
+ * @brief Converts a unit rotation quaternion to a 3x3 rotation matrix.
+ */
+static inline Mat3 mat3_from_quat(Quat q) {
+    Mat4 m = mat4_from_quat(q);
+    Mat3 r;
+    for (int c = 0; c < 3; c++) {
+        for (int row = 0; row < 3; row++) {
+            r.m[c][row] = m.m[c][row];
+        }
+    }
+    return r;
+}
+
+/**
+ * @brief Extracts a rotation quaternion from a pure rotation matrix.
+ *
+ * Uses Shepperd's method (largest-trace pivot) for numerical stability.
+ * Assumes the upper-left 3x3 contains only rotation + uniform positive
+ * scale; decompose scaled matrices with mat4_decompose() first.
+ */
+static inline Quat quat_from_mat4(Mat4 m) {
+    // Storage note: m[col][row]. Standard notation R<row><col> therefore maps
+    // to m.m[<col>][<row>] — e.g., R21 == m.m[1][2].
+    float trace = m.m[0][0] + m.m[1][1] + m.m[2][2];
+    Quat q;
+
+    if (trace > 0.0f) {
+        float s = sqrtf(trace + 1.0f) * 2.0f;  // s = 4w
+        q.w = 0.25f * s;
+        q.x = (m.m[1][2] - m.m[2][1]) / s;  // R21 - R12
+        q.y = (m.m[2][0] - m.m[0][2]) / s;  // R02 - R20
+        q.z = (m.m[0][1] - m.m[1][0]) / s;  // R10 - R01
+    } else if (m.m[0][0] > m.m[1][1] && m.m[0][0] > m.m[2][2]) {
+        float s = sqrtf(1.0f + m.m[0][0] - m.m[1][1] - m.m[2][2]) * 2.0f;  // s = 4x
+        q.w = (m.m[1][2] - m.m[2][1]) / s;
+        q.x = 0.25f * s;
+        q.y = (m.m[1][0] + m.m[0][1]) / s;  // R01 + R10
+        q.z = (m.m[2][0] + m.m[0][2]) / s;  // R02 + R20
+    } else if (m.m[1][1] > m.m[2][2]) {
+        float s = sqrtf(1.0f + m.m[1][1] - m.m[0][0] - m.m[2][2]) * 2.0f;  // s = 4y
+        q.w = (m.m[2][0] - m.m[0][2]) / s;
+        q.x = (m.m[1][0] + m.m[0][1]) / s;
+        q.y = 0.25f * s;
+        q.z = (m.m[2][1] + m.m[1][2]) / s;  // R12 + R21
+    } else {
+        float s = sqrtf(1.0f + m.m[2][2] - m.m[0][0] - m.m[1][1]) * 2.0f;  // s = 4z
+        q.w = (m.m[0][1] - m.m[1][0]) / s;
+        q.x = (m.m[2][0] + m.m[0][2]) / s;
+        q.y = (m.m[2][1] + m.m[1][2]) / s;
+        q.z = 0.25f * s;
+    }
+    return q;
+}
+
+/**
+ * @brief Builds a model matrix from translation, rotation, and scale (TRS).
+ *
+ * Computes T * R * S in one pass, equivalent to
+ * mat4_mul(mat4_translate(t), mat4_mul(mat4_from_quat(r), mat4_scale(s)))
+ * but cheaper and more convenient. This is the standard way to place an
+ * object in a scene graph.
+ *
+ * @param translation World position.
+ * @param rotation    Unit rotation quaternion.
+ * @param scale       Non-uniform scale factors.
+ */
+static inline Mat4 mat4_compose(Vec3 translation, Quat rotation, Vec3 scale) {
+    float xx = rotation.x * rotation.x, yy = rotation.y * rotation.y, zz = rotation.z * rotation.z;
+    float xy = rotation.x * rotation.y, xz = rotation.x * rotation.z, yz = rotation.y * rotation.z;
+    float wx = rotation.w * rotation.x, wy = rotation.w * rotation.y, wz = rotation.w * rotation.z;
+
+    Mat4 m = mat4_identity();
+    // Scaled rotation basis vectors as columns.
+    m.m[0][0] = (1.0f - 2.0f * (yy + zz)) * scale.x;
+    m.m[0][1] = (2.0f * (xy + wz)) * scale.x;
+    m.m[0][2] = (2.0f * (xz - wy)) * scale.x;
+
+    m.m[1][0] = (2.0f * (xy - wz)) * scale.y;
+    m.m[1][1] = (1.0f - 2.0f * (xx + zz)) * scale.y;
+    m.m[1][2] = (2.0f * (yz + wx)) * scale.y;
+
+    m.m[2][0] = (2.0f * (xz + wy)) * scale.z;
+    m.m[2][1] = (2.0f * (yz - wx)) * scale.z;
+    m.m[2][2] = (1.0f - 2.0f * (xx + yy)) * scale.z;
+
+    m.m[3][0] = translation.x;
+    m.m[3][1] = translation.y;
+    m.m[3][2] = translation.z;
+    return m;
+}
+
 #ifdef __cplusplus
 }
 #endif
