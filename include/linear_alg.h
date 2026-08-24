@@ -13,6 +13,12 @@ extern "C" {
 #include "matrix.h"
 #include "vec.h"
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 /**
  * Orthonormal basis consisting of three mutually perpendicular unit vectors.
  * Forms a right-handed coordinate system.
@@ -470,6 +476,361 @@ static inline OrthonormalBasis basis_from_normal(Vec3 normal) {
     SimdVec3 bitangent = vec3_cross(n, tangent);
 
     return (OrthonormalBasis){vec3_store(tangent), vec3_store(bitangent), vec3_store(n)};
+}
+
+/* ==================================================
+   General Dense Matrix (row-major) & SVD
+   ================================================== */
+
+/**
+ * @struct FMat
+ * @brief Dynamically allocated dense float matrix in row-major order.
+ *
+ * Complements the fixed-size Mat3/Mat4 types when dimensions are only
+ * known at runtime. Storage is a single malloc'd block; free it with
+ * fmat_destroy(). All fmat_* functions are NOT thread-safe on the same
+ * instance (like most container types here).
+ */
+typedef struct {
+    size_t rows;
+    size_t cols;
+    float* data; /**< Row-major element block, rows * cols floats. */
+} FMat;
+
+/**
+ * @brief Creates a zero-initialized rows x cols matrix.
+ * @return The matrix; check .data == NULL to detect allocation failure.
+ */
+static inline FMat fmat_create(size_t rows, size_t cols) {
+    FMat m = {rows, cols, NULL};
+    if (rows > 0 && cols > 0) {
+        m.data = (float*)calloc(rows * cols, sizeof(float));
+    }
+    return m;
+}
+
+/** @brief Frees the matrix's storage and resets it to an empty state. Safe on empty matrices. */
+static inline void fmat_destroy(FMat* m) {
+    if (m) {
+        free(m->data);
+        m->data = NULL;
+        m->rows = 0;
+        m->cols = 0;
+    }
+}
+
+/** @brief True if the matrix holds allocated storage. */
+static inline bool fmat_valid(const FMat* m) { return m && m->rows > 0 && m->cols > 0 && m->data != NULL; }
+
+/**
+ * @brief Element access (row, col), zero-indexed.
+ * @warning No bounds checking — caller must ensure r < rows, c < cols.
+ */
+static inline float fmat_get(const FMat* m, size_t r, size_t c) { return m->data[r * m->cols + c]; }
+
+/** @brief Element write (row, col), zero-indexed. */
+static inline void fmat_set(FMat* m, size_t r, size_t c, float v) { m->data[r * m->cols + c] = v; }
+
+/**
+ * @brief Creates a new matrix initialized from a row-major value array.
+ * @param values Must contain at least rows * cols floats.
+ */
+static inline FMat fmat_from_array(size_t rows, size_t cols, const float* values) {
+    FMat m = fmat_create(rows, cols);
+    if (m.data && values) {
+        memcpy(m.data, values, rows * cols * sizeof(float));
+    }
+    return m;
+}
+
+/** @brief Deep copy of a matrix. Returns an invalid matrix if src is invalid or allocation fails. */
+static inline FMat fmat_copy(const FMat* src) {
+    if (!fmat_valid(src)) {
+        FMat empty = {0, 0, NULL};
+        return empty;
+    }
+    return fmat_from_array(src->rows, src->cols, src->data);
+}
+
+/** @brief n x n identity matrix. */
+static inline FMat fmat_identity(size_t n) {
+    FMat m = fmat_create(n, n);
+    for (size_t i = 0; i < n; i++) {
+        fmat_set(&m, i, i, 1.0f);
+    }
+    return m;
+}
+
+/** @brief Transpose of a matrix. Returns an invalid matrix if input is invalid. */
+static inline FMat fmat_transpose(const FMat* m) {
+    FMat t = {0, 0, NULL};
+    if (!fmat_valid(m)) return t;
+    t = fmat_create(m->cols, m->rows);
+    if (!t.data) return t;
+    for (size_t r = 0; r < m->rows; r++) {
+        for (size_t c = 0; c < m->cols; c++) {
+            fmat_set(&t, c, r, fmat_get(m, r, c));
+        }
+    }
+    return t;
+}
+
+/**
+ * @brief Matrix product a * b.
+ * @return New matrix, or an invalid matrix ({NULL}) on dimension mismatch
+ *         or allocation failure.
+ */
+static inline FMat fmat_mul(const FMat* a, const FMat* b) {
+    FMat out = {0, 0, NULL};
+    if (!fmat_valid(a) || !fmat_valid(b) || a->cols != b->rows) return out;
+    out = fmat_create(a->rows, b->cols);
+    if (!out.data) return out;
+    for (size_t r = 0; r < a->rows; r++) {
+        for (size_t k = 0; k < a->cols; k++) {
+            const float aik = fmat_get(a, r, k);
+            if (aik == 0.0f) continue;
+            for (size_t c = 0; c < b->cols; c++) {
+                fmat_set(&out, r, c, fmat_get(&out, r, c) + aik * fmat_get(b, k, c));
+            }
+        }
+    }
+    return out;
+}
+
+/* --- One-sided Jacobi SVD internals ------------------------------------- */
+
+#define FMAT_SVD_MAX_SWEEPS 60
+
+/** Computes the dot product of columns i and j of a p x q row-major matrix. */
+static inline float fmat_svd_col_dot(const float* data, size_t q, size_t p, size_t i, size_t j) {
+    float sum = 0.0f;
+    for (size_t r = 0; r < p; r++) {
+        sum += data[r * q + i] * data[r * q + j];
+    }
+    return sum;
+}
+
+/** Rotates columns i and j of both matrices by the Givens rotation [c, s; -s, c]. */
+static inline void fmat_svd_rotate_cols(float* restrict b, float* restrict v, size_t q, size_t p, size_t i, size_t j,
+                                        float c, float s) {
+    for (size_t r = 0; r < p; r++) {
+        const float bi = b[r * q + i];
+        const float bj = b[r * q + j];
+        b[r * q + i] = c * bi - s * bj;
+        b[r * q + j] = s * bi + c * bj;
+    }
+    for (size_t r = 0; r < q; r++) {
+        // v is q x q: column rotations touch full columns.
+        const float vi = v[r * q + i];
+        const float vj = v[r * q + j];
+        v[r * q + i] = c * vi - s * vj;
+        v[r * q + j] = s * vi + c * vj;
+    }
+}
+
+/**
+ * @brief Singular Value Decomposition of an arbitrary M x N matrix.
+ *
+ * Computes the thin SVD A = U * diag(S) * V^T using one-sided Jacobi
+ * orthogonalization, which is backward stable, accurate to ~machine
+ * epsilon relative to the largest singular value, and handles rank
+ * deficiency gracefully.
+ *
+ * Output shapes (thin SVD, k = min(m, n)):
+ *   - U: m x k with orthonormal columns (left singular vectors)
+ *   - S: k x 1 singular values in descending order
+ *   - V: n x k with orthonormal columns (right singular vectors)
+ *
+ * For rank-deficient inputs, columns of U whose singular value is below
+ * max_sigma * 1e-6 (or zero sigma entirely) are zeroed instead of being
+ * arbitrary completions of the basis.
+ *
+ * @param[in]  A Input matrix (must be valid).
+ * @param[out] U_out Receives the m x k left factor.
+ * @param[out] S_out Receives the k x 1 singular-value vector.
+ * @param[out] V_out Receives the n x n right factor.
+ * @return true on success; false on invalid input, allocation failure,
+ *         or failure to converge within FMAT_SVD_MAX_SWEEPS sweeps.
+ *
+ * @note Complexity is O(sweeps * m * n * min(m,n)); fine for moderate
+ *       sizes but not a substitute for LAPACK on very large matrices.
+ *
+ * @example
+ *   FMat a = fmat_from_array(2, 2, (float[]){4, 0, 3, -5});
+ *   FMat u, s, v;
+ *   fmat_svd(&a, &u, &s, &v);      // a = u diag(s) v^T
+ *   ...
+ *   fmat_destroy(&a); fmat_destroy(&u); fmat_destroy(&s); fmat_destroy(&v);
+ */
+static inline bool fmat_svd(const FMat* A, FMat* U_out, FMat* S_out, FMat* V_out) {
+    if (U_out) *U_out = (FMat){0, 0, NULL};
+    if (S_out) *S_out = (FMat){0, 0, NULL};
+    if (V_out) *V_out = (FMat){0, 0, NULL};
+    if (!fmat_valid(A) || !U_out || !S_out || !V_out) return false;
+
+    const size_t m = A->rows;
+    const size_t n = A->cols;
+    const size_t k = (m < n) ? m : n;
+
+    /*
+     * One-sided Jacobi needs tall-or-square input. For wide matrices,
+     * decompose A^T instead: A^T = Ub S Vb^T  =>  A = Vb S Ub^T.
+     */
+    const bool transposed = (m < n);
+    const size_t p = transposed ? n : m;  // working row count (>= q)
+    const size_t q = k;                   // working column count
+
+    FMat B = {0, 0, NULL};      // working copy of A (or A^T), p x q
+    FMat Vacc = {0, 0, NULL};   // accumulated right rotations, q x q
+    FMat work_U = {0, 0, NULL}, work_S = {0, 0, NULL}, work_V = {0, 0, NULL};
+    FMat Uf = {0, 0, NULL}, Sf = {0, 0, NULL}, Vf = {0, 0, NULL}; // sorted factors
+    size_t* order = (size_t*)malloc(q * sizeof(size_t));
+
+    bool ok = false;
+    do {
+        if (!order) break;
+        if (transposed) {
+            FMat At = fmat_transpose(A);
+            if (!fmat_valid(&At)) break;
+            B = At;  // ownership moves to B
+        } else {
+            B = fmat_copy(A);
+            if (!fmat_valid(&B)) break;
+        }
+
+        Vacc = fmat_identity(q);
+        if (!fmat_valid(&Vacc)) break;
+
+        /* Jacobi sweeps: rotate column pairs until all are mutually
+         * orthogonal (off-diagonal entries of B^T B vanish). */
+        const float ortho_tol = 1e-7f;
+        bool converged = false;
+        for (unsigned sweep = 0; sweep < FMAT_SVD_MAX_SWEEPS && !converged; sweep++) {
+            converged = true;
+            for (size_t i = 0; i + 1 < q; i++) {
+                for (size_t j = i + 1; j < q; j++) {
+                    const float alpha = fmat_svd_col_dot(B.data, q, p, i, i);
+                    const float beta = fmat_svd_col_dot(B.data, q, p, j, j);
+                    const float gamma = fmat_svd_col_dot(B.data, q, p, i, j);
+
+                    // Zero (or denormal-tiny) columns are already orthogonal
+                    // to everything; rotating them would stall convergence.
+                    if (alpha < 1e-20f || beta < 1e-20f) continue;
+                    if (fabsf(gamma) <= ortho_tol * sqrtf(alpha * beta)) continue;
+
+                    converged = false;
+                    // Rotation angle that zeroes gamma (Rutishauser).
+                    const float zeta = (beta - alpha) / (2.0f * gamma);
+                    const float t =
+                        ((zeta >= 0.0f) ? 1.0f : -1.0f) / (fabsf(zeta) + sqrtf(1.0f + zeta * zeta));
+                    const float c = 1.0f / sqrtf(1.0f + t * t);
+                    const float s = c * t;
+                    fmat_svd_rotate_cols(B.data, Vacc.data, q, p, i, j, c, s);
+                }
+            }
+        }
+        if (!converged) break;
+
+        /* Extract singular values and normalize the working columns into U. */
+        work_U = fmat_create(p, q);
+        work_S = fmat_create(q, 1);
+        work_V = fmat_copy(&Vacc);
+        if (!fmat_valid(&work_U) || !fmat_valid(&work_S) || !fmat_valid(&work_V)) break;
+
+        float sigma_max = 0.0f;
+        for (size_t j = 0; j < q; j++) {
+            float sum = 0.0f;
+            for (size_t r = 0; r < p; r++) {
+                const float val = B.data[r * q + j];
+                sum += val * val;
+                work_U.data[r * q + j] = val;
+            }
+            const float sigma = sqrtf(sum);
+            work_S.data[j] = sigma;
+            if (sigma > sigma_max) sigma_max = sigma;
+        }
+
+        // Normalize; near-zero directions get zeroed rather than arbitrary fill.
+        const float rank_eps = sigma_max * 1e-6f;
+        for (size_t j = 0; j < q; j++) {
+            const float sigma = work_S.data[j];
+            if (sigma <= rank_eps) {
+                // Row-major storage: a column is strided, so zero element-wise.
+                for (size_t r = 0; r < p; r++) {
+                    work_U.data[r * q + j] = 0.0f;
+                }
+                continue;
+            }
+            const float inv = 1.0f / sigma;
+            for (size_t r = 0; r < p; r++) {
+                work_U.data[r * q + j] *= inv;
+            }
+        }
+
+        /* Sort singular values (and matching vectors) in descending order. */
+        for (size_t j = 0; j < q; j++) order[j] = j;
+        for (size_t i = 0; i + 1 < q; i++) {
+            size_t best = i;
+            for (size_t j = i + 1; j < q; j++) {
+                if (work_S.data[order[j]] > work_S.data[order[best]]) best = j;
+            }
+            if (best != i) {
+                const size_t tswap = order[i];
+                order[i] = order[best];
+                order[best] = tswap;
+            }
+        }
+
+        // Permute into final thin factors.
+        Uf = fmat_create(p, q);
+        Sf = fmat_create(q, 1);
+        Vf = fmat_create(q, q);
+        if (!fmat_valid(&Uf) || !fmat_valid(&Sf) || !fmat_valid(&Vf)) {
+            break;
+        }
+        for (size_t jc = 0; jc < q; jc++) {
+            const size_t src = order[jc];
+            Sf.data[jc] = work_S.data[src];
+            for (size_t r = 0; r < p; r++) {
+                Uf.data[r * q + jc] = work_U.data[r * q + src];
+            }
+            for (size_t r = 0; r < q; r++) {
+                Vf.data[r * q + jc] = work_V.data[r * q + src];
+            }
+        }
+
+        if (transposed) {
+            // A^T = Ub S Vb^T  =>  A = Vb S Ub^T.
+            // Matching against A = U S V^T: U = Vb, V^T = Ub^T => V = Ub.
+            *U_out = Vf;
+            Vf = (FMat){0, 0, NULL};  // moved
+            *S_out = Sf;
+            Sf = (FMat){0, 0, NULL};  // moved
+            *V_out = Uf;
+            Uf = (FMat){0, 0, NULL};  // moved
+        } else {
+            *U_out = Uf;
+            Uf = (FMat){0, 0, NULL};  // moved
+            *S_out = Sf;
+            Sf = (FMat){0, 0, NULL};  // moved
+            *V_out = Vf;
+            Vf = (FMat){0, 0, NULL};  // moved
+        }
+        ok = true;
+    } while (0);
+
+    /* Single unconditional cleanup. Every successful transfer zeroed its
+     * source struct, so destroying the locals here can never double-free. */
+    free(order);
+    fmat_destroy(&B);
+    fmat_destroy(&Vacc);
+    fmat_destroy(&work_U);
+    fmat_destroy(&work_S);
+    fmat_destroy(&work_V);
+    fmat_destroy(&Uf);
+    fmat_destroy(&Sf);
+    fmat_destroy(&Vf);
+    return ok;
 }
 
 #ifdef __cplusplus

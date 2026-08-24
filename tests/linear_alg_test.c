@@ -369,6 +369,206 @@ void test_graphics_extensions() {
     }
 }
 
+/* ==================================================
+   General SVD (fmat_*) helpers & tests
+   ================================================== */
+
+// Deterministic PRNG so failures are reproducible.
+static uint32_t svd_rand_state = 0x12345678u;
+static float svd_rand(float lo, float hi) {
+    svd_rand_state = svd_rand_state * 1664525u + 1013904223u;
+    const float unit = (float)(svd_rand_state >> 8) / (float)(1 << 24);
+    return lo + unit * (hi - lo);
+}
+
+static bool fmat_all_close(const FMat* a, const FMat* b, float tol) {
+    if (a->rows != b->rows || a->cols != b->cols) return false;
+    for (size_t r = 0; r < a->rows; r++) {
+        for (size_t c = 0; c < a->cols; c++) {
+            if (fabsf(fmat_get(a, r, c) - fmat_get(b, r, c)) > tol) return false;
+        }
+    }
+    return true;
+}
+
+/** Checks reconstruction, orthonormality, and descending order of a decomposition. */
+static void svd_check_decomposition(const char* name, const FMat* a, const FMat* u, const FMat* s, const FMat* v,
+                                    float tol) {
+    const size_t m = a->rows, n = a->cols, k = (m < n) ? m : n;
+
+    // Shapes
+    assert_bool(name, u && u->rows == m && u->cols == k && s && s->rows == k && s->cols == 1 && v &&
+                          v->rows == n && v->cols == k);
+
+    // Singular values strictly non-negative and descending
+    bool ordered = true;
+    for (size_t j = 0; j < k; j++) {
+        if (fmat_get(s, j, 0) < -tol) ordered = false;
+        if (j + 1 < k && fmat_get(s, j, 0) < fmat_get(s, j + 1, 0) - tol) ordered = false;
+    }
+    assert_bool(name, ordered);
+
+    // Reconstruction: U * diag(S) * V^T == A
+    FMat ud = fmat_create(m, k);
+    for (size_t r = 0; r < m; r++) {
+        for (size_t c = 0; c < k; c++) {
+            fmat_set(&ud, r, c, fmat_get(u, r, c) * fmat_get(s, c, 0));
+        }
+    }
+    FMat vt = fmat_transpose(v);
+    FMat recon = fmat_mul(&ud, &vt);
+    assert_bool(name, recon.data && fmat_all_close(a, &recon, tol));
+    fmat_destroy(&ud);
+    fmat_destroy(&vt);
+    fmat_destroy(&recon);
+}
+
+static void svd_check_columns_orthonormal(const char* name, const FMat* mat, float tol) {
+    // M^T M == I
+    FMat mt = fmat_transpose(mat);
+    FMat mtm = fmat_mul(&mt, mat);
+    bool ok = mtm.data != NULL;
+    for (size_t i = 0; ok && i < mtm.rows; i++) {
+        for (size_t j = 0; j < mtm.cols; j++) {
+            const float expected = (i == j) ? 1.0f : 0.0f;
+            if (fabsf(fmat_get(&mtm, i, j) - expected) > tol) {
+                ok = false;
+                break;
+            }
+        }
+    }
+    assert_bool(name, ok);
+    fmat_destroy(&mt);
+    fmat_destroy(&mtm);
+}
+
+void test_general_svd() {
+    print_header("General SVD (FMat)");
+
+    // --- Known analytic case: diag(3,2,1) ---
+    {
+        FMat a = fmat_from_array(3, 3, (float[]){3, 0, 0, 0, 2, 0, 0, 0, 1});
+        FMat u, s, v;
+        assert_bool("SVD Diag Runs", fmat_svd(&a, &u, &s, &v));
+        assert_bool("SVD Diag Values", fabsf(fmat_get(&s, 0, 0) - 3.0f) < EPSILON &&
+                                           fabsf(fmat_get(&s, 1, 0) - 2.0f) < EPSILON &&
+                                           fabsf(fmat_get(&s, 2, 0) - 1.0f) < EPSILON);
+        svd_check_decomposition("SVD Diag Reconstruction", &a, &u, &s, &v, EPSILON);
+        fmat_destroy(&a);
+        fmat_destroy(&u);
+        fmat_destroy(&s);
+        fmat_destroy(&v);
+    }
+
+    // --- Tall random matrix (m > n): thin U, orthonormal columns ---
+    {
+        FMat a = fmat_create(6, 3);
+        for (size_t i = 0; i < 6 * 3; i++) a.data[i] = svd_rand(-1.0f, 1.0f);
+        FMat u, s, v;
+        assert_bool("SVD Tall Runs", fmat_svd(&a, &u, &s, &v));
+        svd_check_decomposition("SVD Tall Reconstruction", &a, &u, &s, &v, 5e-4f);
+        svd_check_columns_orthonormal("SVD Tall U Orthonormal", &u, 1e-4f);
+        svd_check_columns_orthonormal("SVD Tall V Orthonormal", &v, 1e-4f);
+        fmat_destroy(&a);
+        fmat_destroy(&u);
+        fmat_destroy(&s);
+        fmat_destroy(&v);
+    }
+
+    // --- Wide random matrix (n > m): exercises the transposed path ---
+    {
+        FMat a = fmat_create(3, 6);
+        for (size_t i = 0; i < 3 * 6; i++) a.data[i] = svd_rand(-1.0f, 1.0f);
+        FMat u, s, v;
+        assert_bool("SVD Wide Runs", fmat_svd(&a, &u, &s, &v));
+        svd_check_decomposition("SVD Wide Reconstruction", &a, &u, &s, &v, 5e-4f);
+        svd_check_columns_orthonormal("SVD Wide U Orthonormal", &u, 1e-4f);
+        fmat_destroy(&a);
+        fmat_destroy(&u);
+        fmat_destroy(&s);
+        fmat_destroy(&v);
+    }
+
+    // --- Square random matrix ---
+    {
+        FMat a = fmat_create(4, 4);
+        for (size_t i = 0; i < 16; i++) a.data[i] = svd_rand(-2.0f, 2.0f);
+        FMat u, s, v;
+        assert_bool("SVD Square Runs", fmat_svd(&a, &u, &s, &v));
+        svd_check_decomposition("SVD Square Reconstruction", &a, &u, &s, &v, 5e-4f);
+        fmat_destroy(&a);
+        fmat_destroy(&u);
+        fmat_destroy(&s);
+        fmat_destroy(&v);
+    }
+
+    // --- Rank-deficient (rank 1 outer product): trailing sigmas ~ 0 ---
+    {
+        const Vec3 col = {0.3f, -0.5f, 0.8f};
+        const Vec3 row = {2.0f, 1.0f, -1.0f};
+        FMat a = fmat_create(3, 3);
+        for (size_t r = 0; r < 3; r++) {
+            for (size_t c = 0; c < 3; c++) {
+                const float* cc = &col.x;
+                const float* rr = &row.x;
+                fmat_set(&a, r, c, cc[r] * rr[c]);
+            }
+        }
+        FMat u, s, v;
+        assert_bool("SVD Rank1 Runs", fmat_svd(&a, &u, &s, &v));
+        assert_bool("SVD Rank1 Trailing Zeros",
+                    fmat_get(&s, 0, 0) > 1e-3f && fmat_get(&s, 1, 0) < 1e-4f && fmat_get(&s, 2, 0) < 1e-4f);
+        svd_check_decomposition("SVD Rank1 Reconstruction", &a, &u, &s, &v, 5e-4f);
+        fmat_destroy(&a);
+        fmat_destroy(&u);
+        fmat_destroy(&s);
+        fmat_destroy(&v);
+    }
+
+    // --- Degenerate inputs: identity and zero matrices must not crash ---
+    {
+        FMat a = fmat_identity(3);
+        FMat u, s, v;
+        assert_bool("SVD Identity Runs", fmat_svd(&a, &u, &s, &v));
+        assert_bool("SVD Identity Sigmas", fabsf(fmat_get(&s, 0, 0) - 1.0f) < EPSILON &&
+                                               fabsf(fmat_get(&s, 1, 0) - 1.0f) < EPSILON &&
+                                               fabsf(fmat_get(&s, 2, 0) - 1.0f) < EPSILON);
+        fmat_destroy(&a);
+        fmat_destroy(&u);
+        fmat_destroy(&s);
+        fmat_destroy(&v);
+
+        FMat z = fmat_create(2, 4);  // all zeros
+        FMat uz, sz, vz;
+        assert_bool("SVD Zero Runs", fmat_svd(&z, &uz, &sz, &vz));
+        assert_bool("SVD Zero Sigmas", fmat_get(&sz, 0, 0) == 0.0f);
+        fmat_destroy(&z);
+        fmat_destroy(&uz);
+        fmat_destroy(&sz);
+        fmat_destroy(&vz);
+
+        FMat bad = {2, 2, NULL};  // invalid (no storage)
+        FMat ub, sb, vb;
+        assert_bool("SVD Invalid Input Rejected", !fmat_svd(&bad, &ub, &sb, &vb));
+        assert_bool("SVD Invalid Outputs Stay Empty", ub.data == NULL && sb.data == NULL && vb.data == NULL);
+    }
+
+    // --- Classic textbook example [[4,0],[3,-5]] ---
+    {
+        // A^T A = [[25,-15],[-15,25]] has eigenvalues 40 and 10.
+        FMat a = fmat_from_array(2, 2, (float[]){4.0f, 0.0f, 3.0f, -5.0f});
+        FMat u, s, v;
+        assert_bool("SVD Textbook Runs", fmat_svd(&a, &u, &s, &v));
+        assert_bool("SVD Textbook Sigma1", fabsf(fmat_get(&s, 0, 0) - sqrtf(40.0f)) < 1e-4f);
+        assert_bool("SVD Textbook Sigma2", fabsf(fmat_get(&s, 1, 0) - sqrtf(10.0f)) < 1e-4f);
+        svd_check_decomposition("SVD Textbook Reconstruction", &a, &u, &s, &v, 1e-4f);
+        fmat_destroy(&a);
+        fmat_destroy(&u);
+        fmat_destroy(&s);
+        fmat_destroy(&v);
+    }
+}
+
 int main() {
     test_orthonormalize();
     test_eigen_symmetric();
@@ -378,6 +578,7 @@ int main() {
     test_matrix_properties();
     test_solve_linear();
     test_graphics_extensions();
+    test_general_svd();
 
     print_header("Summary");
     printf("Total Tests: %d\n", g_tests_passed + g_tests_failed);
