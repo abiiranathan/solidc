@@ -71,7 +71,7 @@ int lock_free(Lock* lock);
 /**
  * Attempts to acquire a lock without blocking.
  * @param lock Pointer to an initialized lock. Must not be NULL.
- * @return 0 if acquired, LOCK_ERROR_TRYLOCK if busy, other error codes on failure.
+ * @return 0 if acquired, -1 if the lock was busy or on error.
  * @note Thread-safe. Returns immediately whether the lock was acquired or not.
  */
 int lock_try_acquire(Lock* lock);
@@ -128,9 +128,13 @@ int cond_wait(Condition* condition, Lock* lock);
  * @param condition Pointer to an initialized condition variable. Must not be NULL.
  * @param lock Pointer to an initialized lock currently held by this thread. Must not be NULL.
  * @param timeout_ms Timeout in milliseconds. Negative values mean wait indefinitely.
- * @return 0 on success, -1 on timeout, other error codes on failure.
+ * @return 0 if signalled, -1 on timeout or error.
  * @note Thread-safe, but lock must be held by calling thread. Lock is atomically
  *       released during wait and re-acquired before returning.
+ *       On POSIX, condition variables created with cond_init() use the
+ *       CLOCK_MONOTONIC clock: the timeout is immune to wall-clock
+ *       adjustments (NTP steps, manual time changes).  Pair cond_wait_timeout()
+ *       only with conditions initialized via cond_init().
  */
 int cond_wait_timeout(Condition* condition, Lock* lock, int timeout_ms);
 

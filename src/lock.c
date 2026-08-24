@@ -182,7 +182,37 @@ int lock_wait(Lock* lock, Condition* condition, int timeout_ms) {
 int cond_init(Condition* condition) {
     if (condition == NULL) { return -1; }
 
-    int ret = pthread_cond_init(condition, NULL);
+    /*
+     * Hardening: condition variables are created on the MONOTONIC clock so
+     * that timed waits are immune to wall-clock adjustments (NTP steps,
+     * manual time changes).  A realtime step would otherwise cause
+     * spurious premature timeouts or multi-day hangs.
+     * cond_wait_timeout() below computes deadlines from the same clock;
+     * the two functions form the documented pairing for this module.
+     */
+    pthread_condattr_t attr;
+    int ret = pthread_condattr_init(&attr);
+    if (ret != 0) {
+        fprintf(stderr, "pthread_condattr_init failed: %s\n", strerror(ret));
+        return -1;
+    }
+
+    ret = pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
+    if (ret != 0) {
+        /* Very old platforms may lack MONOTONIC support for condvars;
+         * fall back to the platform default rather than failing hard. */
+        fprintf(stderr, "pthread_condattr_setclock(CLOCK_MONOTONIC) failed: %s\n", strerror(ret));
+        pthread_condattr_destroy(&attr);
+        ret = pthread_cond_init(condition, NULL);
+        if (ret != 0) {
+            fprintf(stderr, "pthread_cond_init failed: %s\n", strerror(ret));
+            return -1;
+        }
+        return 0;
+    }
+
+    ret = pthread_cond_init(condition, &attr);
+    pthread_condattr_destroy(&attr);
     if (ret != 0) {
         fprintf(stderr, "pthread_cond_init failed: %s\n", strerror(ret));
         return -1;
@@ -234,8 +264,13 @@ int cond_wait_timeout(Condition* condition, Lock* lock, int timeout_ms) {
         return cond_wait(condition, lock);
     }
 
+    /*
+     * Deadline is computed on CLOCK_MONOTONIC to match cond_init() above.
+     * Using CLOCK_REALTIME here would let wall-clock adjustments corrupt
+     * the wait duration.
+     */
     struct timespec ts;
-    if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
         fprintf(stderr, "clock_gettime failed: %s\n", strerror(errno));
         return -1;
     }

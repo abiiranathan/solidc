@@ -6,6 +6,8 @@
 #ifndef __RWLOCK_H__
 #define __RWLOCK_H__
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
