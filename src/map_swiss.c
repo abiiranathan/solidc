@@ -1,15 +1,14 @@
 /**
  * @file map_swiss.c
- * @brief Swiss table implementation of the swiss_map.h API.
- *
- * See include/swiss_map.h for the design overview.  Hashing semantics
- * intentionally match src/map.c (identity for keys <= 8 bytes, XXH3
- * otherwise) so benchmarks isolate structural differences — SIMD group
- * probing and 1-byte control metadata — from hashing differences.
+ * @brief High-performance Swiss table implementation of the swiss_map.h API.
  */
 #include "../include/swiss_map.h"
 
-#include <immintrin.h>
+#if defined(__SSE2__)
+#include <emmintrin.h>
+#elif defined(__ARM_NEON) || defined(__ARM_NEON__)
+#include <arm_neon.h>
+#endif
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -22,75 +21,116 @@
 #include "../include/lock.h"
 
 /* ------------------------------------------------------------------ */
-/* Constants                                                           */
+/* Constants & Layout Definitions                                      */
 /* ------------------------------------------------------------------ */
 
-#define SW_GROUP 16          /* SIMD group width                     */
-#define SW_EMPTY   0x80      /* ctrl byte: never used                */
-#define SW_DELETED 0xFE      /* ctrl byte: tombstone                 */
-#define SW_MASK_H2 0x7F      /* H2 = hash & 0x7F stored in ctrl      */
+#define SW_GROUP   16   /* SIMD group width                     */
+#define SW_EMPTY   0x80 /* ctrl byte: empty slot                */
+#define SW_DELETED 0xFE /* ctrl byte: tombstone                 */
+#define SW_MASK_H2 0x7F /* H2 = hash & 0x7F stored in ctrl      */
 
-/* Max load factor is fixed at 7/8 (the abseil sweet spot); the config's
- * max_load_factor is clamped into (0.1, 0.875] but only as a ceiling:
- * growth always happens at >= 7/8 full. */
 #define SW_MAX_LOAD_NUM 7
 #define SW_MAX_LOAD_DEN 8
 
-typedef struct swiss_map {
-    unsigned char* ctrl;   /* capacity + SW_GROUP bytes; tail mirrors head */
-    void** kv;             /* interleaved key/value pointers, capacity*2   */
-    size_t* lens;          /* per-entry key_len: resizes rehash FAITHFULLY
-                              with the original length instead of whatever
-                              key_len the triggering call happened to use
-                              (a footgun documented on map_set).          */
-    size_t size;           /* live entries                                 */
-    size_t tombs;          /* tombstones                                   */
-    size_t capacity;       /* multiple of 16                               */
-    size_t growth_left;    /* capacity*7/8 - size - tombs_reclaimed...     */
+typedef struct {
+    void* key;
+    void* value;
+    size_t len;
+} SwissSlot;
+
+struct swiss_map {
+    unsigned char* ctrl; /* Base of single-allocation block (ctrl metadata) */
+    SwissSlot* slots;    /* Aligned pointer to slots array inside block     */
+    size_t size;         /* Live entries                                    */
+    size_t tombs;        /* Tombstones                                      */
+    size_t capacity;     /* Power of 2 (>= 16)                              */
+    size_t growth_left;  /* Remaining growth budget                         */
     float max_load_factor;
     HashFunction hash;
     KeyCmpFunction key_compare;
     KeyFreeFunction key_free;
     ValueFreeFunction value_free;
     Lock lock;
-} SwissMap;
+};
 
 /* ------------------------------------------------------------------ */
-/* Group scan primitives                                               */
+/* SIMD Group Scanning Abstraction                                     */
 /* ------------------------------------------------------------------ */
 
 #if defined(__SSE2__)
 #define SW_HAVE_SSE2 1
-static inline __m128i sw_group_load(const unsigned char* p) { return _mm_loadu_si128((const __m128i*)p); }
-static inline uint32_t sw_group_match(__m128i g, unsigned char needle) {
+typedef __m128i sw_group_t;
+
+static inline sw_group_t sw_group_load(const unsigned char* p) { return _mm_loadu_si128((const __m128i*)p); }
+static inline uint32_t sw_group_match(sw_group_t g, unsigned char needle) {
     return (uint32_t)_mm_movemask_epi8(_mm_cmpeq_epi8(g, _mm_set1_epi8((char)needle)));
 }
-static inline uint32_t sw_group_empty(__m128i g) {
-    /* Exact equality with EMPTY: tombstones (DELETED) do not match. */
+static inline uint32_t sw_group_match_empty(sw_group_t g) {
     return (uint32_t)_mm_movemask_epi8(_mm_cmpeq_epi8(g, _mm_set1_epi8((char)SW_EMPTY)));
 }
+static inline uint32_t sw_group_match_deleted(sw_group_t g) {
+    return (uint32_t)_mm_movemask_epi8(_mm_cmpeq_epi8(g, _mm_set1_epi8((char)SW_DELETED)));
+}
+
+#elif defined(__ARM_NEON) || defined(__ARM_NEON__)
+#define SW_HAVE_NEON 1
+typedef uint8x16_t sw_group_t;
+
+static inline sw_group_t sw_group_load(const unsigned char* p) { return vld1q_u8(p); }
+
+static inline uint32_t sw_neon_movemask(uint8x16_t eq) {
+    static const uint8_t mask_bits[16]
+        __attribute__((aligned(16))) = {1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128};
+    uint8x16_t masked = vandq_u8(eq, vld1q_u8(mask_bits));
+#if defined(__aarch64__) || defined(_M_ARM64)
+    uint8_t low_sum = vaddv_u8(vget_low_u8(masked));
+    uint8_t high_sum = vaddv_u8(vget_high_u8(masked));
+    return (uint32_t)low_sum | ((uint32_t)high_sum << 8);
 #else
-/* Portable fallback: emulate a 16-byte group scan. */
+    uint8x8_t p1 = vpadd_u8(vget_low_u8(masked), vget_high_u8(masked));
+    uint8x8_t p2 = vpadd_u8(p1, p1);
+    uint8x8_t p3 = vpadd_u8(p2, p2);
+    return (uint32_t)vget_lane_u8(p3, 0) | ((uint32_t)vget_lane_u8(p3, 1) << 8);
+#endif
+}
+
+static inline uint32_t sw_group_match(sw_group_t g, unsigned char needle) {
+    return sw_neon_movemask(vceqq_u8(g, vdupq_n_u8(needle)));
+}
+static inline uint32_t sw_group_match_empty(sw_group_t g) {
+    return sw_neon_movemask(vceqq_u8(g, vdupq_n_u8(SW_EMPTY)));
+}
+static inline uint32_t sw_group_match_deleted(sw_group_t g) {
+    return sw_neon_movemask(vceqq_u8(g, vdupq_n_u8(SW_DELETED)));
+}
+
+#else
 typedef struct {
     unsigned char b[SW_GROUP];
-} sw_group;
-static inline sw_group sw_group_load(const unsigned char* p) {
-    sw_group g;
+} sw_group_t;
+
+static inline sw_group_t sw_group_load(const unsigned char* p) {
+    sw_group_t g;
     memcpy(g.b, p, SW_GROUP);
     return g;
 }
-static inline uint32_t sw_group_match(sw_group g, unsigned char needle) {
+static inline uint32_t sw_group_match(sw_group_t g, unsigned char needle) {
     uint32_t m = 0;
-    for (int i = 0; i < SW_GROUP; i++)
-        if (g.b[i] == needle) m |= 1u << i;
+    for (int i = 0; i < SW_GROUP; i++) {
+        if (g.b[i] == needle) m |= (1u << i);
+    }
     return m;
 }
-static inline uint32_t sw_group_empty(sw_group g) { return sw_group_match(g, SW_EMPTY); }
+static inline uint32_t sw_group_match_empty(sw_group_t g) { return sw_group_match(g, SW_EMPTY); }
+static inline uint32_t sw_group_match_deleted(sw_group_t g) { return sw_group_match(g, SW_DELETED); }
 #endif
 
-static inline size_t sw_h1(size_t hash, size_t mask) { return (size_t)(hash >> 7) & mask; }
-static inline unsigned char sw_h2(size_t hash) { return (unsigned char)(hash & SW_MASK_H2); }
+/* ------------------------------------------------------------------ */
+/* Bit & Hash Helpers                                                 */
+/* ------------------------------------------------------------------ */
 
+static inline size_t sw_h1(size_t hash, size_t mask) { return (hash >> 7) & mask; }
+static inline unsigned char sw_h2(size_t hash) { return (unsigned char)(hash & SW_MASK_H2); }
 static inline bool sw_is_full(unsigned char c) { return (c & 0x80) == 0; }
 
 static inline size_t sw_cap_round(size_t n) {
@@ -99,34 +139,27 @@ static inline size_t sw_cap_round(size_t n) {
     return c;
 }
 
+static inline bool sw_key_eq(KeyCmpFunction cmp, const void* k1, const void* k2) {
+    return (k1 == k2) || cmp((void*)k1, (void*)k2);
+}
+
 static inline size_t swiss_default_hash(const void* key, size_t len) {
-    if (len <= sizeof(uint64_t)) {
-        union {
-            uint64_t u64;
-            uint8_t u8[8];
-        } v = {0};
-        const uint8_t* s = (const uint8_t*)key;
-        for (size_t i = 0; i < len; i++) v.u8[i] = s[i];
-        return (size_t)v.u64;
+    if (len <= 8) {
+        uint64_t v = 0;
+        if (len > 0) memcpy(&v, key, len);
+        return (size_t)v;
     }
     return (size_t)XXH3_64bits(key, len);
 }
 
-/*
- * Swiss tables REQUIRE well-distributed hashes: group probing degrades
- * badly when nearby keys cluster into nearby groups (sequential identity
- * hashes do exactly that — measured 100x slowdowns).  A Murmur3-style
- * finalizer restores avalanche at negligible cost.  This divergence from
- * src/map.c hashing is deliberate: Robin Hood tolerates ordered hashes,
- * group probing does not.
- */
+/* David Stafford Mix13: Full avalanche with low latency (2 muls, 3 shifts) */
 static inline size_t swiss_finalize(size_t h) {
     uint64_t x = (uint64_t)h;
-    x ^= x >> 33;
-    x *= 0xff51afd7ed558ccdULL;
-    x ^= x >> 33;
-    x *= 0xc4ceb9fe1a85ec53ULL;
-    x ^= x >> 33;
+    x ^= x >> 30;
+    x *= 0xbf58476d1ce4e5b9ULL;
+    x ^= x >> 27;
+    x *= 0x94d049bb133111ebULL;
+    x ^= x >> 31;
     return (size_t)x;
 }
 
@@ -135,70 +168,61 @@ static inline size_t swiss_hash_of(SwissMap* m, const void* key, size_t key_len)
     return swiss_finalize(swiss_default_hash(key, key_len));
 }
 
-static void swiss_ctrl_init(SwissMap* m) {
-    memset(m->ctrl, SW_EMPTY, m->capacity + SW_GROUP);
-}
+static inline void swiss_ctrl_init(SwissMap* m) { memset(m->ctrl, SW_EMPTY, m->capacity + SW_GROUP); }
 
-static void swiss_set_ctrl(SwissMap* m, size_t i, unsigned char h2) {
+static inline void swiss_set_ctrl(SwissMap* m, size_t i, unsigned char h2) {
     m->ctrl[i] = h2;
-    if (i < SW_GROUP) m->ctrl[m->capacity + i] = h2; /* mirror group */
+    if (i < SW_GROUP) m->ctrl[m->capacity + i] = h2; /* Mirrored tail group */
 }
 
-static inline void** sw_slot_kv(SwissMap* m, size_t i) { return &m->kv[i * 2]; }
+/* ------------------------------------------------------------------ */
+/* Memory Allocation (Contiguous Single-Block)                        */
+/* ------------------------------------------------------------------ */
 
-/* Allocate fresh arrays for @p cap and install them.  The PREVIOUS
- * arrays are NOT freed here -- swiss_resize() must keep them readable
- * while re-inserting -- callers free them explicitly when done. */
-static bool swiss_alloc_arrays(SwissMap* m, size_t cap, unsigned char** old_ctrl_out, void*** old_kv_out,
-                               size_t** old_lens_out, size_t* old_cap_out) {
-    unsigned char* ctrl = malloc(cap + SW_GROUP + SW_GROUP);
-    void** kv = calloc(cap * 2, sizeof(void*));
-    size_t* lens = calloc(cap, sizeof(size_t));
-    if (!ctrl || !kv || !lens) {
-        free(ctrl);
-        free(kv);
-        free(lens);
-        return false;
-    }
-    if (old_ctrl_out) *old_ctrl_out = m->ctrl;
-    if (old_kv_out) *old_kv_out = m->kv;
-    if (old_lens_out) *old_lens_out = m->lens;
-    if (old_cap_out) *old_cap_out = m->capacity;
+static bool swiss_alloc_table(size_t cap, unsigned char** ctrl_out, SwissSlot** slots_out) {
+    size_t ctrl_bytes = cap + SW_GROUP + SW_GROUP;
+    size_t slots_offset = (ctrl_bytes + 15) & ~15U; /* 16-byte align slots */
+    size_t total_alloc = slots_offset + cap * sizeof(SwissSlot);
 
-    m->ctrl = ctrl;
-    m->kv = kv;
-    m->lens = lens;
-    m->capacity = cap;
-    swiss_ctrl_init(m);
-    m->size = 0;
-    m->tombs = 0;
-    m->growth_left = cap / SW_MAX_LOAD_DEN * SW_MAX_LOAD_NUM;
+    unsigned char* block = (unsigned char*)calloc(1, total_alloc);
+    if (!block) return false;
+
+    *ctrl_out = block;
+    *slots_out = (SwissSlot*)(block + slots_offset);
     return true;
 }
 
 SwissMap* swiss_create(const SwissConfig* config) {
     if (!config || !config->key_compare) return NULL;
 
-    SwissMap* m = calloc(1, sizeof(SwissMap));
+    SwissMap* m = (SwissMap*)calloc(1, sizeof(SwissMap));
     if (!m) return NULL;
 
     size_t cap = config->initial_capacity > 0 ? sw_cap_round(config->initial_capacity) : 16;
     if (cap < 16) cap = 16;
-    if (cap > SIZE_MAX / (2 * sizeof(void*))) {
+    if (cap > SIZE_MAX / (sizeof(SwissSlot) * 2)) {
         free(m);
         return NULL;
     }
 
-    if (!swiss_alloc_arrays(m, cap, NULL, NULL, NULL, NULL)) {
+    if (!swiss_alloc_table(cap, &m->ctrl, &m->slots)) {
         free(m);
         return NULL;
     }
 
+    m->capacity = cap;
+    swiss_ctrl_init(m);
+    /* Default 7/8 matches the abseil sweet spot; an explicit lower
+     * max_load_factor is honored.  (Defaulting to 0.75 made every table
+     * one power-of-two larger than necessary -- measured 2x slowdown on
+     * insert-heavy workloads from the extra resize + footprint.) */
     m->max_load_factor =
-        (config->max_load_factor > 0.1f && config->max_load_factor <= 0.875f) ? config->max_load_factor : 0.75f;
+        (config->max_load_factor > 0.1f && config->max_load_factor <= 0.875f) ? config->max_load_factor : 0.875f;
     m->key_compare = config->key_compare;
     m->key_free = config->key_free;
     m->value_free = config->value_free;
+    m->hash = config->hash_func;
+    m->growth_left = (size_t)((float)cap * m->max_load_factor);
     lock_init(&m->lock);
     return m;
 }
@@ -209,16 +233,14 @@ void swiss_destroy(SwissMap* m) {
     if (m->key_free || m->value_free) {
         for (size_t i = 0; i < m->capacity; i++) {
             if (sw_is_full(m->ctrl[i])) {
-                void** kv = sw_slot_kv(m, i);
-                if (m->key_free) m->key_free(kv[0]);
-                if (m->value_free) m->value_free(kv[1]);
+                SwissSlot* s = &m->slots[i];
+                if (m->key_free) m->key_free(s->key);
+                if (m->value_free) m->value_free(s->value);
             }
         }
     }
 
-    free(m->ctrl);
-    free(m->kv);
-    free(m->lens);
+    free(m->ctrl); /* Frees both ctrl and slots single-block */
     lock_free(&m->lock);
     free(m);
 }
@@ -226,42 +248,55 @@ void swiss_destroy(SwissMap* m) {
 size_t swiss_length(SwissMap* m) { return m ? m->size : 0; }
 size_t swiss_capacity(SwissMap* m) { return m ? m->capacity : 0; }
 
-/* Rehash every live entry into a fresh table of new_cap slots.
- * Returns false on allocation failure (original table untouched). */
-static bool swiss_resize(SwissMap* m, size_t new_cap, size_t key_len) {
-    (void)key_len; /* kept for API symmetry; stored lens are authoritative */
-    unsigned char* old_ctrl;
-    void** old_kv;
-    size_t* old_lens;
-    size_t old_cap;
+/* ------------------------------------------------------------------ */
+/* Resize & Rehash                                                    */
+/* ------------------------------------------------------------------ */
 
-    if (!swiss_alloc_arrays(m, new_cap, &old_ctrl, &old_kv, &old_lens, &old_cap)) {
-        return false; /* original table untouched on failure */
+static bool swiss_resize(SwissMap* m, size_t new_cap) {
+    unsigned char* old_block = m->ctrl;
+    SwissSlot* old_slots = m->slots;
+    size_t old_cap = m->capacity;
+
+    unsigned char* new_ctrl;
+    SwissSlot* new_slots;
+    if (!swiss_alloc_table(new_cap, &new_ctrl, &new_slots)) {
+        return false;
     }
 
-    const size_t mask = m->capacity - 1;
-    for (size_t i = 0; i < old_cap; i++) {
-        if (!sw_is_full(old_ctrl[i])) continue;
+    m->ctrl = new_ctrl;
+    m->slots = new_slots;
+    m->capacity = new_cap;
+    swiss_ctrl_init(m);
+    m->size = 0;
+    m->tombs = 0;
 
-        void** e = &old_kv[i * 2];
-        size_t h = swiss_hash_of(m, e[0], old_lens[i]);
+    const size_t mask = new_cap - 1;
+
+#if defined(SW_HAVE_SSE2)
+    __m128i empty_vec = _mm_set1_epi8((char)SW_EMPTY);
+#endif
+
+    for (size_t i = 0; i < old_cap; i++) {
+        if (!sw_is_full(old_block[i])) continue;
+
+        SwissSlot* old_s = &old_slots[i];
+        size_t h = swiss_hash_of(m, old_s->key, old_s->len);
         size_t pos = sw_h1(h, mask);
         unsigned char h2 = sw_h2(h);
-
-        /* Probe for the first group with an empty slot; re-inserted
-         * entries are unique so no match check is needed. */
         size_t stride = 0;
+
         for (;;) {
-            __m128i g = sw_group_load(m->ctrl + pos);
-            uint32_t emp = sw_group_empty(g);
+            sw_group_t g = sw_group_load(m->ctrl + pos);
+#if defined(SW_HAVE_SSE2)
+            uint32_t emp = (uint32_t)_mm_movemask_epi8(_mm_cmpeq_epi8(g, empty_vec));
+#else
+            uint32_t emp = sw_group_match_empty(g);
+#endif
             if (emp) {
                 int j = __builtin_ctz(emp);
                 size_t slot = (pos + (size_t)j) & mask;
                 swiss_set_ctrl(m, slot, h2);
-                void** kv = sw_slot_kv(m, slot);
-                kv[0] = e[0];
-                kv[1] = e[1];
-                m->lens[slot] = old_lens[i]; /* carry original key_len */
+                m->slots[slot] = *old_s;
                 m->size++;
                 break;
             }
@@ -270,111 +305,116 @@ static bool swiss_resize(SwissMap* m, size_t new_cap, size_t key_len) {
         }
     }
 
-    free(old_ctrl);
-    free(old_kv);
-    free(old_lens);
+    free(old_block);
 
-    /* FIX: alloc_arrays granted a fresh budget of new_cap*7/8; debit it
-     * for every element we just re-inserted, otherwise growth_left
-     * overstates free space and the table only grows again when truly
-     * full.  Non-negative: old load was already <= 7/8. */
-    m->growth_left -= m->size;
+    size_t max_allowed = (size_t)((float)new_cap * m->max_load_factor);
+    m->growth_left = (max_allowed > m->size) ? (max_allowed - m->size) : 0;
     return true;
 }
 
-/* Grow or rehash-in-place when out of growth budget. */
-static bool swiss_maybe_grow(SwissMap* m, size_t key_len) {
-    if (m->growth_left > 0) return true;
+static inline bool swiss_maybe_grow(SwissMap* m) {
+    if (__builtin_expect(m->growth_left > 0, 1)) return true;
 
-    /* Tombstones are eating the budget: reclaim by rehashing at the same
-     * capacity when they are significant, otherwise grow. */
-    if (m->tombs > m->capacity / 32 + m->size / 32) {
-        size_t keep = m->capacity;
-        return swiss_resize(m, keep, key_len);
+    if (m->tombs > (m->capacity >> 5) + (m->size >> 5)) {
+        return swiss_resize(m, m->capacity);
     }
-    return swiss_resize(m, m->capacity * 2, key_len);
+    return swiss_resize(m, m->capacity * 2);
 }
 
-bool swiss_set(SwissMap* m, void* key, size_t key_len, void* value) {
-    if (!m || !key) return false;
+/* ------------------------------------------------------------------ */
+/* Map Operations                                                     */
+/* ------------------------------------------------------------------ */
 
-    if (m->growth_left == 0 && !swiss_maybe_grow(m, key_len)) return false;
+bool swiss_set(SwissMap* m, void* key, size_t key_len, void* value) {
+    if (__builtin_expect(!m || !key, 0)) return false;
+
+    if (__builtin_expect(m->growth_left == 0, 0)) {
+        if (!swiss_maybe_grow(m)) return false;
+    }
 
     size_t h = swiss_hash_of(m, key, key_len);
     size_t mask = m->capacity - 1;
     size_t pos = sw_h1(h, mask);
     unsigned char h2 = sw_h2(h);
 
-    ssize_t first_deleted = -1; /* first tombstone seen: reuse candidate */
+    ssize_t target_slot = -1;
+    bool target_is_tomb = false;
     size_t stride = 0;
 
-    for (;;) {
-        __m128i g = sw_group_load(m->ctrl + pos);
+#if defined(SW_HAVE_SSE2)
+    __m128i match_vec = _mm_set1_epi8((char)h2);
+    __m128i empty_vec = _mm_set1_epi8((char)SW_EMPTY);
+    __m128i del_vec = _mm_set1_epi8((char)SW_DELETED);
+#endif
 
-        /* Check full-matching candidates in this group. */
+    for (;;) {
+        sw_group_t g = sw_group_load(m->ctrl + pos);
+
+#if defined(SW_HAVE_SSE2)
+        uint32_t matches = (uint32_t)_mm_movemask_epi8(_mm_cmpeq_epi8(g, match_vec));
+#else
         uint32_t matches = sw_group_match(g, h2);
+#endif
         while (matches) {
             int j = __builtin_ctz(matches);
             matches &= matches - 1;
             size_t slot = (pos + (size_t)j) & mask;
-            void** kv = sw_slot_kv(m, slot);
-            if (m->key_compare(kv[0], key)) {
-                /* Update in place. */
-                if (m->value_free) m->value_free(kv[1]);
-                kv[1] = value;
+            SwissSlot* s = &m->slots[slot];
+            if (sw_key_eq(m->key_compare, s->key, key)) {
+                if (m->value_free) m->value_free(s->value);
+                s->value = value;
                 return true;
             }
         }
 
-        /* Empty terminates the probe: key cannot be beyond it. */
-        uint32_t empties = sw_group_empty(g);
+#if defined(SW_HAVE_SSE2)
+        uint32_t empties = (uint32_t)_mm_movemask_epi8(_mm_cmpeq_epi8(g, empty_vec));
+#else
+        uint32_t empties = sw_group_match_empty(g);
+#endif
         if (empties) {
-            break;
+            if (target_slot < 0) {
+                target_slot = (ssize_t)((pos + (size_t)__builtin_ctz(empties)) & mask);
+                target_is_tomb = false;
+            }
+            break; /* Key cannot exist past first empty slot */
         }
 
-        /* Remember the first tombstone for insertion. */
-        if (first_deleted < 0) {
-            uint32_t dels = sw_group_match(g, SW_DELETED);
-            if (dels) first_deleted = (ssize_t)((pos + (size_t)__builtin_ctz(dels)) & mask);
+        if (target_slot < 0) {
+#if defined(SW_HAVE_SSE2)
+            uint32_t dels = (uint32_t)_mm_movemask_epi8(_mm_cmpeq_epi8(g, del_vec));
+#else
+            uint32_t dels = sw_group_match_deleted(g);
+#endif
+            if (dels) {
+                target_slot = (ssize_t)((pos + (size_t)__builtin_ctz(dels)) & mask);
+                target_is_tomb = true;
+            }
         }
 
         stride += SW_GROUP;
         pos = (pos + stride) & mask;
     }
 
-    /* Insert. */
-    size_t slot;
-    if (first_deleted >= 0) {
-        slot = (size_t)first_deleted;
+    /* Single-pass insertion */
+    size_t slot = (size_t)target_slot;
+    if (target_is_tomb) {
         m->tombs--;
     } else {
-        /* Re-find an empty slot from the start of the probe. */
-        size_t p = sw_h1(h, mask);
-        size_t st = 0;
-        for (;;) {
-            __m128i g = sw_group_load(m->ctrl + p);
-            uint32_t empties = sw_group_empty(g);
-            if (empties) {
-                slot = (p + (size_t)__builtin_ctz(empties)) & mask;
-                break;
-            }
-            st += SW_GROUP;
-            p = (p + st) & mask;
-        }
         m->growth_left--;
     }
 
     swiss_set_ctrl(m, slot, h2);
-    void** kv = sw_slot_kv(m, slot);
-    kv[0] = key;
-    kv[1] = value;
-    m->lens[slot] = key_len;
+    SwissSlot* s = &m->slots[slot];
+    s->key = key;
+    s->value = value;
+    s->len = key_len;
     m->size++;
     return true;
 }
 
 void* swiss_get(SwissMap* m, void* key, size_t key_len) {
-    if (!m || !key) return NULL;
+    if (__builtin_expect(!m || !key, 0)) return NULL;
 
     size_t h = swiss_hash_of(m, key, key_len);
     size_t mask = m->capacity - 1;
@@ -382,20 +422,35 @@ void* swiss_get(SwissMap* m, void* key, size_t key_len) {
     unsigned char h2 = sw_h2(h);
     size_t stride = 0;
 
-    for (;;) {
-        __m128i g = sw_group_load(m->ctrl + pos);
+#if defined(SW_HAVE_SSE2)
+    __m128i match_vec = _mm_set1_epi8((char)h2);
+    __m128i empty_vec = _mm_set1_epi8((char)SW_EMPTY);
+#endif
 
+    for (;;) {
+        sw_group_t g = sw_group_load(m->ctrl + pos);
+
+#if defined(SW_HAVE_SSE2)
+        uint32_t matches = (uint32_t)_mm_movemask_epi8(_mm_cmpeq_epi8(g, match_vec));
+#else
         uint32_t matches = sw_group_match(g, h2);
+#endif
         while (matches) {
             int j = __builtin_ctz(matches);
             matches &= matches - 1;
             size_t slot = (pos + (size_t)j) & mask;
-            void** kv = sw_slot_kv(m, slot);
-            if (m->key_compare(kv[0], key)) return kv[1];
+            SwissSlot* s = &m->slots[slot];
+            if (sw_key_eq(m->key_compare, s->key, key)) {
+                return s->value;
+            }
         }
 
-        /* Stop at the first group containing an empty slot. */
-        if (sw_group_empty(g)) return NULL;
+#if defined(SW_HAVE_SSE2)
+        uint32_t empties = (uint32_t)_mm_movemask_epi8(_mm_cmpeq_epi8(g, empty_vec));
+#else
+        uint32_t empties = sw_group_match_empty(g);
+#endif
+        if (empties) return NULL;
 
         stride += SW_GROUP;
         pos = (pos + stride) & mask;
@@ -403,7 +458,7 @@ void* swiss_get(SwissMap* m, void* key, size_t key_len) {
 }
 
 bool swiss_remove(SwissMap* m, void* key, size_t key_len) {
-    if (!m || !key) return false;
+    if (__builtin_expect(!m || !key, 0)) return false;
 
     size_t h = swiss_hash_of(m, key, key_len);
     size_t mask = m->capacity - 1;
@@ -411,21 +466,30 @@ bool swiss_remove(SwissMap* m, void* key, size_t key_len) {
     unsigned char h2 = sw_h2(h);
     size_t stride = 0;
 
-    for (;;) {
-        __m128i g = sw_group_load(m->ctrl + pos);
+#if defined(SW_HAVE_SSE2)
+    __m128i match_vec = _mm_set1_epi8((char)h2);
+    __m128i empty_vec = _mm_set1_epi8((char)SW_EMPTY);
+#endif
 
+    for (;;) {
+        sw_group_t g = sw_group_load(m->ctrl + pos);
+
+#if defined(SW_HAVE_SSE2)
+        uint32_t matches = (uint32_t)_mm_movemask_epi8(_mm_cmpeq_epi8(g, match_vec));
+#else
         uint32_t matches = sw_group_match(g, h2);
+#endif
         while (matches) {
             int j = __builtin_ctz(matches);
             matches &= matches - 1;
             size_t slot = (pos + (size_t)j) & mask;
-            void** kv = sw_slot_kv(m, slot);
-            if (m->key_compare(kv[0], key)) {
-                if (m->key_free) m->key_free(kv[0]);
-                if (m->value_free) m->value_free(kv[1]);
-                kv[0] = NULL;
-                kv[1] = NULL;
-                m->lens[slot] = 0;
+            SwissSlot* s = &m->slots[slot];
+            if (sw_key_eq(m->key_compare, s->key, key)) {
+                if (m->key_free) m->key_free(s->key);
+                if (m->value_free) m->value_free(s->value);
+                s->key = NULL;
+                s->value = NULL;
+                s->len = 0;
                 swiss_set_ctrl(m, slot, SW_DELETED);
                 m->size--;
                 m->tombs++;
@@ -433,12 +497,21 @@ bool swiss_remove(SwissMap* m, void* key, size_t key_len) {
             }
         }
 
-        if (sw_group_empty(g)) return false;
+#if defined(SW_HAVE_SSE2)
+        uint32_t empties = (uint32_t)_mm_movemask_epi8(_mm_cmpeq_epi8(g, empty_vec));
+#else
+        uint32_t empties = sw_group_match_empty(g);
+#endif
+        if (empties) return false;
 
         stride += SW_GROUP;
         pos = (pos + stride) & mask;
     }
 }
+
+/* ------------------------------------------------------------------ */
+/* Iterator                                                           */
+/* ------------------------------------------------------------------ */
 
 swiss_iterator swiss_iter(SwissMap* m) {
     swiss_iterator it = {.map = m, .index = 0};
@@ -447,17 +520,53 @@ swiss_iterator swiss_iter(SwissMap* m) {
 
 bool swiss_next(swiss_iterator* it, void** key, void** value) {
     SwissMap* m = it->map;
-    while (it->index < m->capacity) {
-        size_t i = it->index++;
-        if (sw_is_full(m->ctrl[i])) {
-            void** kv = sw_slot_kv(m, i);
-            if (key) *key = kv[0];
-            if (value) *value = kv[1];
+    if (!m) return false;
+    size_t cap = m->capacity;
+    size_t i = it->index;
+
+    while (i < cap) {
+        /* Vectorized skipping of empty/tombstone 16-slot groups */
+        if ((i & 15) == 0 && i + SW_GROUP <= cap) {
+            sw_group_t g = sw_group_load(m->ctrl + i);
+#if defined(SW_HAVE_SSE2)
+            uint32_t non_full = (uint32_t)_mm_movemask_epi8(g); /* MSB set = empty/tomb */
+            uint32_t full_mask = (~non_full) & 0xFFFF;
+#else
+            uint32_t full_mask = 0;
+            for (int k = 0; k < SW_GROUP; k++) {
+                if (sw_is_full(m->ctrl[i + k])) full_mask |= (1u << k);
+            }
+#endif
+            if (full_mask == 0) {
+                i += SW_GROUP;
+                continue;
+            }
+            int j = __builtin_ctz(full_mask);
+            i += (size_t)j;
+            it->index = i + 1;
+            SwissSlot* s = &m->slots[i];
+            if (key) *key = s->key;
+            if (value) *value = s->value;
             return true;
         }
+
+        if (sw_is_full(m->ctrl[i])) {
+            it->index = i + 1;
+            SwissSlot* s = &m->slots[i];
+            if (key) *key = s->key;
+            if (value) *value = s->value;
+            return true;
+        }
+        i++;
     }
+
+    it->index = cap;
     return false;
 }
+
+/* ------------------------------------------------------------------ */
+/* Thread-Safe Wrappers                                               */
+/* ------------------------------------------------------------------ */
 
 bool swiss_set_safe(SwissMap* m, void* key, size_t key_len, void* value) {
     if (!m) return false;
