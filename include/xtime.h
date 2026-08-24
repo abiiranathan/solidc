@@ -11,7 +11,7 @@
 #include <time.h>     // for struct tm, time_t
 
 // Definition for strptime on windows.
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 #include "./win_strptime.h"
 #endif
 

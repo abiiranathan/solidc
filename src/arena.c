@@ -114,9 +114,17 @@ static void blk_cache_register(void) {
 static DWORD blk_cache_fls_index = FLS_OUT_OF_INDEXES;
 static INIT_ONCE blk_cache_init_once = INIT_ONCE_STATIC_INIT;
 
-static VOID CALLBACK blk_cache_fls_cb(PVOID) { blk_cache_drain(); }
+static void blk_cache_drain(void);
 
-static BOOL CALLBACK blk_cache_init_cb(PINIT_ONCE, PVOID, PVOID*) {
+static VOID CALLBACK blk_cache_fls_cb(PVOID unused) {
+    (void)unused;
+    blk_cache_drain();
+}
+
+static BOOL CALLBACK blk_cache_init_cb(PINIT_ONCE once, PVOID param, PVOID* ctx) {
+    (void)once;
+    (void)param;
+    (void)ctx;
     blk_cache_fls_index = FlsAlloc(blk_cache_fls_cb);
     return TRUE;
 }

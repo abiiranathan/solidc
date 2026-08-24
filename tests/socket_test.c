@@ -120,7 +120,9 @@ void test_bind_failure_reported(void) {
     bad.sin_port        = htons(1);
     bad.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     int rc              = socket_bind(s, (struct sockaddr*)&bad, sizeof(bad));
+#ifndef _WIN32
     if (geteuid() != 0) { ASSERT(rc != 0); }
+#endif
 
     socket_close(s);
     printf("bind-failure reporting passed\n");

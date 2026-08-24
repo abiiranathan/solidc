@@ -120,7 +120,8 @@ set(SOURCES
     src/cstr.c
     src/csvparser.c
     src/file.c
-    src/filepath.c
+    src/filepath/filepath.c
+    src/filepath/filepath_string.c
     src/hash.c
     src/list.c
     src/lock.c
@@ -149,10 +150,17 @@ set(SOURCES
 
 add_compile_definitions(_USE_MATH_DEFINES)
 
+# filepath platform backend
+if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
+    list(APPEND SOURCES src/filepath/filepath_win32.c)
+else()
+    list(APPEND SOURCES src/filepath/filepath_posix.c)
+endif()
+
 # Create the library
 add_library(solidc ${SOURCES} $<TARGET_OBJECTS:xxHash_obj>)
 if(WIN32)
-    target_sources(solidc PRIVATE src/win_strptime.c)
+    target_sources(solidc PRIVATE src/win_strptime.c src/filepath/filepath_win32.c)
 endif()
 
 set_target_properties(solidc PROPERTIES EXPORT_NAME solidc)

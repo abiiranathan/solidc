@@ -4,7 +4,7 @@
 #if defined(_WIN32)
 
 // Define timespec for older MSVC versions
-#if _MSC_VER < 1900
+#if defined(_MSC_VER) && _MSC_VER < 1900
 // Before VS2015
 struct timespec {
     time_t tv_sec;  // Seconds

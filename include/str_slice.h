@@ -9,6 +9,7 @@ extern "C" {
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -75,7 +76,17 @@ static inline bool ss_is_empty(StrSlice s) { return s.len == 0; }
 // Returns NULL if the slice is invalid (e.g. non-null pointer with positive length).
 static inline char* ss_to_owned_cstr(StrSlice s) {
     if (!ss_is_valid(s)) return NULL;
+#if defined(_WIN32)
+    // strndup is a POSIX/glibc extension and is unavailable on Windows.
+    size_t n = strnlen(s.data, s.len);
+    char* out = (char*)malloc(n + 1);
+    if (!out) return NULL;
+    memcpy(out, s.data, n);
+    out[n] = '\0';
+    return out;
+#else
     return strndup(s.data, s.len);
+#endif
 }
 
 // ─── Sub-slicing ──────────────────────────────────────────────────────────────

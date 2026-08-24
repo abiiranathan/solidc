@@ -645,7 +645,7 @@ int test_batch_concurrent_submitters() {
     concurrent_batch_arg arg_a = {pool, fns_a, N, 0};
     concurrent_batch_arg arg_b = {pool, fns_b, N, 0};
 
-    pthread_t ta, tb;
+    Thread ta, tb;
     thread_create(&ta, concurrent_batch_thread, &arg_a);
     thread_create(&tb, concurrent_batch_thread, &arg_b);
     thread_join(ta, NULL);

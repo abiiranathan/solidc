@@ -5,6 +5,8 @@
 
 #ifndef _WIN32
 #include <pthread.h>
+#else
+#include <windows.h>
 #endif
 
 #if defined(__x86_64__) || defined(__i386__)
