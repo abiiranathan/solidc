@@ -82,25 +82,32 @@ int socket_close(Socket* sock) {
 
 // Bind a socket to an address
 int socket_bind(Socket* sock, const struct sockaddr* addr, socklen_t addrlen) {
-    int ret = -1;
+    if (!sock || !addr || addrlen == 0) { return -1; }
+
+    /*
+     * FIX (security): the POSIX path previously converted bind() failures
+     * into success ("ret = 0" after perror), letting callers believe a
+     * server was listening when it was not.  Failures are now propagated.
+     */
 #ifdef _WIN32
-    if ((ret = bind(sock->handle, addr, addrlen)) != 0) { printLastErrorMessage("bind"); }
-#else
-    ret = bind(sock->handle, addr, addrlen);
-    if (ret != 0) {
-        perror("bind");
-        ret = 0;
-    }
-#endif
+    int ret = bind(sock->handle, addr, addrlen);
+    if (ret != 0) { printLastErrorMessage("bind"); }
     return ret;
+#else
+    return bind(sock->handle, addr, addrlen);
+#endif
 }
 
 int socket_listen(Socket* sock, int backlog) {
+    if (!sock) { return -1; }
+    /* Negative backlogs are platform-defined; reject them explicitly. */
+    if (backlog < 0) { return -1; }
     return listen(sock->handle, backlog);
 }
 
 // Accept an incoming connection
 Socket* socket_accept(Socket* sock, struct sockaddr* addr, socklen_t* addrlen) {
+    if (!sock) { return NULL; }
     Socket* client = (Socket*)malloc(sizeof(Socket));
     if (!client) {
         perror("malloc");
@@ -126,44 +133,48 @@ Socket* socket_accept(Socket* sock, struct sockaddr* addr, socklen_t* addrlen) {
 
 // Connect to a remote socket
 int socket_connect(Socket* sock, const struct sockaddr* addr, socklen_t addrlen) {
-    int ret = -1;
-    if (connect(sock->handle, addr, addrlen) == 0) {
-        ret = 0;
-    } else {
-        perror("connect");
-    }
-    return ret;
+    if (!sock || !addr || addrlen == 0) { return -1; }
+    return connect(sock->handle, addr, addrlen);
 }
 
 /*
-Read from a socket. Returns the number of bytes read, or -1 on error.
-buffer: Points to a buffer where the message should be stored.
+Read from a socket. Returns the number of bytes read (0 = peer closed),
+or -1 on error.
+buffer: Points to a buffer where the message should be stored. Must not
+be NULL when size > 0.
 size: Specifies the length in bytes of the buffer pointed to by the buffer
 argument.
 
 flags: Specifies the type of message reception.
 See man 2 recv for more information.
+
+@note EINTR is NOT retried internally; callers running under signals must
+check socket_error() for EINTR and retry themselves.
  */
 ssize_t socket_recv(Socket* sock, void* buffer, size_t size, int flags) {
-    ssize_t bytes = 0;
-    bytes = recv(sock->handle, buffer, size, flags);
-    return bytes;
+    if (!sock || !buffer || size == 0) { return -1; }
+    return recv(sock->handle, buffer, size, flags);
 }
 
 /* Write to a socket. Returns the number of bytes written, or -1 on error.
 
-buffer: Points to the buffer containing the message to send.
+buffer: Points to the buffer containing the message to send. Must not be
+NULL when size > 0.
 length: Specifies the length of the message in bytes.
 flags:  Specifies the type of message transmission
 See man 2 send for more information.
+
+@note Partial sends are possible on stream sockets; callers must loop.
+@note EINTR is NOT retried internally; see socket_recv().
 */
 ssize_t socket_send(Socket* sock, const void* buffer, size_t size, int flags) {
+    if (!sock || !buffer || size == 0) { return -1; }
     return send(sock->handle, buffer, size, flags);
 }
 
 // Get the socket file descriptor
 int socket_fd(Socket* sock) {
-    return sock->handle;
+    return sock ? sock->handle : -1;
 }
 
 int socket_error(void) {
@@ -202,41 +213,39 @@ void socket_strerror(int err, char* buffer, size_t size) {
 
 // Get the socket option
 int socket_get_option(Socket* sock, int level, int optname, void* optval, socklen_t* optlen) {
-    int ret = -1;
+    if (!sock || !optval || !optlen) { return -1; }
 #ifdef _WIN32
-    ret = getsockopt(sock->handle, level, optname, (char*)optval, optlen);
+    return getsockopt(sock->handle, level, optname, (char*)optval, optlen);
 #else
-    ret = getsockopt(sock->handle, level, optname, optval, optlen);
+    return getsockopt(sock->handle, level, optname, optval, optlen);
 #endif
-    return ret;
 }
 
 // Set the socket option
 int socket_set_option(Socket* sock, int level, int optname, const void* optval, socklen_t optlen) {
-    int ret = -1;
-
+    if (!sock || !optval || optlen == 0) { return -1; }
 #ifdef _WIN32
-    ret = setsockopt(sock->handle, level, optname, (const char*)optval, optlen);
+    return setsockopt(sock->handle, level, optname, (const char*)optval, optlen);
 #else
-    ret = setsockopt(sock->handle, level, optname, optval, optlen);
+    return setsockopt(sock->handle, level, optname, optval, optlen);
 #endif
-    return ret;
 }
 
 int socket_reuse_port(Socket* sock, int enable) {
+    if (!sock) { return -1; }
 #ifdef _WIN32
     // Enable SO_REUSEADDR
     if (setsockopt(sock->handle, SOL_SOCKET, SO_REUSEADDR, (char*)&enable, sizeof(int)) == SOCKET_ERROR) {
         perror("setsockopt");
         fprintf(stderr, "setsockopt SO_REUSEADDR failed\n");
-        return 1;
+        return -1; /* FIX: was 1, inconsistent with the POSIX -1 convention */
     }
 
     // Enable SO_EXCLUSIVEADDRUSE
     if (setsockopt(sock->handle, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char*)&enable, sizeof(int)) == SOCKET_ERROR) {
         perror("setsockopt");
         fprintf(stderr, "setsockopt SO_EXCLUSIVEADDRUSE failed\n");
-        return 1;
+        return -1;
     }
     return 0;
 #else
@@ -255,40 +264,44 @@ int socket_reuse_port(Socket* sock, int enable) {
 
 // Get the socket address
 int socket_get_address(Socket* sock, struct sockaddr* addr, socklen_t* addrlen) {
-    int ret = -1;
-#ifdef _WIN32
-    ret = getsockname(sock->handle, addr, addrlen);
-#else
-    ret = getsockname(sock->handle, addr, addrlen);
-#endif
-    return ret;
+    if (!sock || !addr || !addrlen) { return -1; }
+    return getsockname(sock->handle, addr, addrlen);
 }
 
 // Get the socket peer address
 int socket_get_peer_address(Socket* sock, struct sockaddr* addr, socklen_t* addrlen) {
+    if (!sock || !addr || !addrlen) { return -1; }
     return getpeername(sock->handle, addr, addrlen);
 }
 
 int socket_type(Socket* sock) {
-    int ret = -1;
+    if (!sock) { return -1; }
     int type = 0;
     socklen_t len = sizeof(type);
-    if (socket_get_option(sock, SOL_SOCKET, SO_TYPE, &type, &len) == 0) { ret = type; }
-    return ret;
+    if (socket_get_option(sock, SOL_SOCKET, SO_TYPE, &type, &len) == 0) { return type; }
+    return -1;
 }
 
 int socket_family(Socket* sock) {
+    if (!sock) { return -1; }
     int domain = -1;
-    socklen_t len = sizeof(domain);
 #ifdef _WIN32
-    domain = socket_get_option(sock, SOL_SOCKET, SO_TYPE, &domain, &len);
+    /*
+     * FIX: the previous Windows path passed &domain as optval while also
+     * assigning getsockopt()'s return value into domain, so it reported
+     * 0 or -1 instead of an address family.  Windows has no SO_DOMAIN;
+     * use getsockname() like the macOS path.
+     */
+    struct sockaddr_storage addr;
+    socklen_t addr_len = sizeof(addr);
+    if (getsockname(sock->handle, (struct sockaddr*)&addr, &addr_len) == 0) { domain = addr.ss_family; }
 #elif defined(__APPLE__)
-    (void)len;
     // macOS doesn't support SO_DOMAIN, use getsockname instead
     struct sockaddr_storage addr;
     socklen_t addr_len = sizeof(addr);
     if (getsockname(sock->handle, (struct sockaddr*)&addr, &addr_len) == 0) { domain = addr.ss_family; }
 #else
+    socklen_t len = sizeof(domain);
     socket_get_option(sock, SOL_SOCKET, SO_DOMAIN, &domain, &len);
 #endif
     return domain;
@@ -296,6 +309,7 @@ int socket_family(Socket* sock) {
 
 // set non-blocking mode
 int socket_set_non_blocking(Socket* sock, int enable) {
+    if (!sock) { return -1; }
 #ifdef _WIN32
     u_long mode = enable ? 1 : 0;
     return ioctlsocket(sock->handle, FIONBIO, &mode);
@@ -315,8 +329,18 @@ int socket_set_non_blocking(Socket* sock, int enable) {
 }
 
 // Create an IPv4 address
-// Allocates a new sockaddr_in and set the address and port.
+// Allocates a new sockaddr_in and sets the address and port.
+// Returns NULL if ip is NULL or not a valid dotted-quad IPv4 string.
 struct sockaddr_in* socket_ipv4_address(const char* ip, uint16_t port) {
+    /*
+     * FIX (security): inet_addr() signals failure with INADDR_NONE, which
+     * the old code stored verbatim — broadcast address 255.255.255.255 is
+     * also indistinguishable from that error.  inet_pton() is used instead
+     * and parse failures now return NULL.
+     */
+    struct in_addr parsed;
+    if (!ip || inet_pton(AF_INET, ip, &parsed) != 1) { return NULL; }
+
     struct sockaddr_in* addr = (struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
     if (!addr) {
         perror("malloc");
@@ -325,12 +349,13 @@ struct sockaddr_in* socket_ipv4_address(const char* ip, uint16_t port) {
     memset(addr, 0, sizeof(struct sockaddr_in));
     addr->sin_family = AF_INET;
     addr->sin_port = htons(port);
-    addr->sin_addr.s_addr = inet_addr(ip);
+    addr->sin_addr = parsed;
     return addr;
 }
 
 // Create an IPv6 address
-// Allocates a new sockaddr_in6 and set the address and port.
+// Allocates a new sockaddr_in6 and sets the address and port.
+// Returns NULL if ip is NULL or not a valid IPv6 string.
 struct sockaddr_in6* socket_ipv6_address(const char* ip, uint16_t port) {
     struct sockaddr_in6* addr = (struct sockaddr_in6*)malloc(sizeof(struct sockaddr_in6));
     if (!addr) {
@@ -338,8 +363,13 @@ struct sockaddr_in6* socket_ipv6_address(const char* ip, uint16_t port) {
         return NULL;
     }
     memset(addr, 0, sizeof(struct sockaddr_in6));
+    /* FIX: inet_pton()'s result was previously ignored; invalid input
+     * silently produced an all-zero (::) address. */
+    if (!ip || inet_pton(AF_INET6, ip, &addr->sin6_addr) != 1) {
+        free(addr);
+        return NULL;
+    }
     addr->sin6_family = AF_INET6;
     addr->sin6_port = htons(port);
-    inet_pton(AF_INET6, ip, &addr->sin6_addr);
     return addr;
 }

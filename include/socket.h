@@ -65,12 +65,14 @@ Socket* socket_create(int domain, int type, int protocol);
 int socket_close(Socket* sock);
 
 // Bind a socket to an address.
-// Returns 0 on success, -1 on error.
+// Returns 0 on success, -1 on error (including invalid arguments).
+// NOTE: failures are always reported; a failed bind never returns 0.
 int socket_bind(Socket* sock, const struct sockaddr* addr, socklen_t addrlen);
 
 // Listen for incoming connections. The backlog parameter is the maximum length
 // of the queue of pending connections. If the queue is full, the client will
-// receive an ECONNREFUSED error. Returns 0 on success, -1 on error.
+// receive an ECONNREFUSED error. Returns 0 on success, -1 on error (negative
+// backlog is rejected).
 int socket_listen(Socket* sock, int backlog);
 
 // Accept an incoming connection
@@ -117,6 +119,29 @@ int socket_family(Socket* sock);
 
 // Get the socket type
 int socket_type(Socket* sock);
+
+// Set non-blocking mode on a socket.
+// @param enable 1 to enable non-blocking, 0 to restore blocking mode.
+// @return 0 on success, -1 on error (or if sock is NULL).
+int socket_set_non_blocking(Socket* sock, int enable);
+
+/**
+ * Allocates and fills an IPv4 sockaddr from a dotted-quad string.
+ * @param ip   Dotted-quad IPv4 address ("127.0.0.1"). Must be valid.
+ * @param port Port in host byte order.
+ * @return Newly allocated address on success (caller frees with free()),
+ *         NULL if ip is NULL/invalid or on allocation failure.
+ */
+struct sockaddr_in* socket_ipv4_address(const char* ip, uint16_t port);
+
+/**
+ * Allocates and fills an IPv6 sockaddr from an IPv6 text representation.
+ * @param ip   IPv6 address string ("::1"). Must be valid.
+ * @param port Port in host byte order.
+ * @return Newly allocated address on success (caller frees with free()),
+ *         NULL if ip is NULL/invalid or on allocation failure.
+ */
+struct sockaddr_in6* socket_ipv6_address(const char* ip, uint16_t port);
 
 #if defined(__cplusplus)
 }
