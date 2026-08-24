@@ -391,8 +391,20 @@ static bool fmat_all_close(const FMat* a, const FMat* b, float tol) {
     return true;
 }
 
-/** Checks reconstruction, orthonormality, and descending order of a decomposition. */
-static void svd_check_decomposition(const char* name, const FMat* a, const FMat* u, const FMat* s, const FMat* v,
+/** Standard deviation of a single column. */
+static float fcol_std(const FMat* m, size_t col) {
+    double mean = 0.0;
+    for (size_t r = 0; r < m->rows; r++) mean += fmat_get(m, r, col);
+    mean /= (double)m->rows;
+    double var = 0.0;
+    for (size_t r = 0; r < m->rows; r++) {
+        const double d = (double)fmat_get(m, r, col) - mean;
+        var += d * d;
+    }
+    return sqrtf((float)(var / (double)m->rows));
+}
+
+/** Checks reconstruction, orthonormality, and descending order of a decomposition. */static void svd_check_decomposition(const char* name, const FMat* a, const FMat* u, const FMat* s, const FMat* v,
                                     float tol) {
     const size_t m = a->rows, n = a->cols, k = (m < n) ? m : n;
 
@@ -569,6 +581,301 @@ void test_general_svd() {
     }
 }
 
+void test_ml_extensions() {
+    print_header("ML Primitives (rng, init, elementwise, activations, losses, products)");
+
+    // --- RNG determinism ---
+    {
+        FMatRng r1, r2;
+        fmat_rng_seed(&r1, 42);
+        fmat_rng_seed(&r2, 42);
+        bool same = true;
+        for (int i = 0; i < 100; i++) {
+            if (fabsf(fmat_rng_uniform(&r1) - fmat_rng_uniform(&r2)) > 0.0f) same = false;
+        }
+        assert_bool("RNG Deterministic", same);
+        fmat_rng_seed(&r1, 7);
+        assert_bool("RNG Uniform In Range", fmat_rng_uniform(&r1) >= 0.0f && fmat_rng_uniform(&r1) < 1.0f);
+
+        // Normal samples should stay within a sane band
+        fmat_rng_seed(&r1, 9);
+        bool sane = true;
+        for (int i = 0; i < 1000; i++) {
+            const float x = fmat_rng_normal(&r1);
+            if (isnan(x) || isinf(x) || fabsf(x) > 12.0f) sane = false;
+        }
+        assert_bool("RNG Normal Sane", sane);
+    }
+
+    // --- Elementwise arithmetic ---
+    {
+        FMat a = fmat_from_array(2, 2, (float[]){1, 2, 3, 4});
+        FMat b = fmat_from_array(2, 2, (float[]){5, 6, 7, 8});
+
+        FMat sum = fmat_add(&a, &b);
+        FMat diff = fmat_sub(&b, &a);
+        FMat had = fmat_hadamard(&a, &b);
+        FMat scaled = fmat_scale(&a, 2.0f);
+
+        // Direct value checks
+        bool ok_sum = fmat_get(&sum, 0, 0) == 6.0f && fmat_get(&sum, 1, 1) == 12.0f;
+        bool ok_diff = fmat_get(&diff, 0, 1) == 4.0f && fmat_get(&diff, 1, 0) == 4.0f;
+        bool ok_had = fmat_get(&had, 1, 1) == 32.0f && fmat_get(&had, 0, 0) == 5.0f;
+        bool ok_scaled = fmat_get(&scaled, 1, 0) == 6.0f && fmat_get(&scaled, 0, 1) == 4.0f;
+        assert_bool("Arithmetic Values", ok_sum && ok_diff && ok_had && ok_scaled);
+
+        // Bias broadcast
+        FMat z = fmat_copy(&a);
+        FMat bias = fmat_from_array(1, 2, (float[]){10.0f, -10.0f});
+        assert_bool("Bias Broadcast Runs", fmat_add_row_vector(&z, &bias));
+        assert_bool("Bias Broadcast Values",
+                    fmat_get(&z, 0, 0) == 11.0f && fmat_get(&z, 1, 0) == 13.0f &&
+                    fmat_get(&z, 0, 1) == -8.0f && fmat_get(&z, 1, 1) == -6.0f);
+
+        fmat_destroy(&a);
+        fmat_destroy(&b);
+        fmat_destroy(&sum);
+        fmat_destroy(&diff);
+        fmat_destroy(&had);
+        fmat_destroy(&scaled);
+        fmat_destroy(&z);
+        fmat_destroy(&bias);
+    }
+
+    // --- Reductions ---
+    {
+        FMat m = fmat_from_array(3, 2, (float[]){1, 2, 3, 4, 5, 6});
+        FMat sc = fmat_sum_cols(&m);
+        FMat mc = fmat_mean_cols(&m);
+        FMat am = fmat_argmax_rows(&m);
+
+        assert_bool("Sum Cols", fmat_get(&sc, 0, 0) == 9.0f && fmat_get(&sc, 0, 1) == 12.0f);
+        assert_bool("Mean Cols", fabsf(fmat_get(&mc, 0, 0) - 3.0f) < EPSILON &&
+                                     fabsf(fmat_get(&mc, 0, 1) - 4.0f) < EPSILON);
+        assert_bool("Argmax Rows", fmat_get(&am, 0, 0) == 1.0f && fmat_get(&am, 1, 0) == 1.0f &&
+                                       fmat_get(&am, 2, 0) == 1.0f);
+
+        fmat_destroy(&m);
+        fmat_destroy(&sc);
+        fmat_destroy(&mc);
+        fmat_destroy(&am);
+    }
+
+    // --- Activations ---
+    {
+        FMat m = fmat_from_array(2, 2, (float[]){-1.0f, 0.0f, 2.0f, -3.0f});
+
+        FMat r = fmat_relu(&m);
+        assert_bool("ReLU", fmat_get(&r, 0, 0) == 0.0f && fmat_get(&r, 0, 1) == 0.0f &&
+                                fmat_get(&r, 1, 0) == 2.0f && fmat_get(&r, 1, 1) == 0.0f);
+
+        FMat sg = fmat_sigmoid(&m);
+        assert_bool("Sigmoid(0)=0.5", fabsf(fmat_get(&sg, 0, 1) - 0.5f) < EPSILON);
+
+        FMat th = fmat_tanh(&m);
+        assert_bool("Tanh Known", fabsf(fmat_get(&th, 1, 0) - tanhf(2.0f)) < EPSILON);
+
+        // In-place variants agree with out-of-place
+        FMat r_ip = fmat_copy(&m);
+        fmat_relu_ip(&r_ip);
+        assert_bool("ReLU IP Matches", fmat_all_close(&r, &r_ip, 0));
+
+        fmat_destroy(&m);
+        fmat_destroy(&r);
+        fmat_destroy(&sg);
+        fmat_destroy(&th);
+        fmat_destroy(&r_ip);
+    }
+
+    // --- Softmax ---
+    {
+        FMat logits = fmat_from_array(2, 3, (float[]){1000.0f, 1000.0f, 1000.0f, 1.0f, 2.0f, 3.0f});
+        FMat p = fmat_softmax_rows(&logits);
+        FMat row_sums = fmat_sum_rows(&p);
+        assert_bool("Softmax Rows Sum To 1", fabsf(fmat_get(&row_sums, 0, 0) - 1.0f) < EPSILON &&
+                                                 fabsf(fmat_get(&row_sums, 1, 0) - 1.0f) < EPSILON);
+        // Shift invariance
+        FMat shifted = fmat_from_array(2, 3, (float[]){2000.0f, 2000.0f, 2000.0f, 101.0f, 102.0f, 103.0f});
+        FMat p2 = fmat_softmax_rows(&shifted);
+        assert_bool("Softmax Shift Invariant", fmat_all_close(&p, &p2, EPSILON));
+        // Uniform logits give uniform probabilities
+        assert_bool("Softmax Uniform", fabsf(fmat_get(&p, 0, 0) - 1.0f / 3.0f) < EPSILON);
+
+        fmat_destroy(&logits);
+        fmat_destroy(&p);
+        fmat_destroy(&row_sums);
+        fmat_destroy(&shifted);
+        fmat_destroy(&p2);
+    }
+
+    // --- Losses ---
+    {
+        FMat pred = fmat_from_array(1, 2, (float[]){1.0f, 0.0f});  // perfect one-hot prediction
+        FMat label = fmat_from_array(1, 2, (float[]){1.0f, 0.0f});
+        assert_bool("CE Perfect Prediction ~ 0", fmat_cross_entropy(&pred, &label) < 1e-6f);
+
+        FMat pred_bad = fmat_from_array(1, 2, (float[]){0.5f, 0.5f});
+        const float ce = fmat_cross_entropy(&pred_bad, &label);
+        assert_bool("CE Uniform = ln2", fabsf(ce - 0.6931471805599453f) < EPSILON);
+
+        FMat t1 = fmat_from_array(2, 2, (float[]){0, 0, 0, 0});
+        FMat t2 = fmat_from_array(2, 2, (float[]){1, 2, 3, 4});
+        assert_bool("MSE Known", fabsf(fmat_mse(&t1, &t2) - 7.5f) < EPSILON);
+
+        fmat_destroy(&pred);
+        fmat_destroy(&label);
+        fmat_destroy(&pred_bad);
+        fmat_destroy(&t1);
+        fmat_destroy(&t2);
+    }
+
+    // --- Transpose products match explicit transposes ---
+    {
+        FMat a = fmat_create(3, 4), b = fmat_create(3, 2);
+        for (size_t i = 0; i < 12; i++) a.data[i] = svd_rand(-1.0f, 1.0f);
+        for (size_t i = 0; i < 6; i++) b.data[i] = svd_rand(-1.0f, 1.0f);
+
+        FMat at = fmat_transpose(&a);
+        FMat ref = fmat_mul(&at, &b);
+        FMat fast = fmat_mul_ta(&a, &b);
+        assert_bool("Mul TA Matches A^T B", ref.data && fast.data && fmat_all_close(&ref, &fast, 1e-4f));
+
+        // Proper tb check: a(3x4) * c^T where c is 2x4 -> 3x2
+        FMat c = fmat_create(2, 4);
+        for (size_t i = 0; i < 8; i++) c.data[i] = svd_rand(-1.0f, 1.0f);
+        FMat ct = fmat_transpose(&c);
+        FMat ref3 = fmat_mul(&a, &ct);
+        FMat fast3 = fmat_mul_tb(&a, &c);
+        assert_bool("Mul TB Matches A B^T", ref3.data && fast3.data && fmat_all_close(&ref3, &fast3, 1e-4f));
+
+        fmat_destroy(&a);
+        fmat_destroy(&b);
+        fmat_destroy(&at);
+        fmat_destroy(&ref);
+        fmat_destroy(&fast);
+        fmat_destroy(&c);
+        fmat_destroy(&ct);
+        fmat_destroy(&ref3);
+        fmat_destroy(&fast3);
+    }
+
+    // --- Weight init ---
+    {
+        FMat w = fmat_create(16, 16);
+        FMatRng rng;
+        fmat_rng_seed(&rng, 123);
+        assert_bool("He Init Runs", fmat_he_init(&w, 784, &rng));
+        float mn = 1e30f, mx = -1e30f;
+        for (size_t i = 0; i < 256; i++) {
+            if (w.data[i] < mn) mn = w.data[i];
+            if (w.data[i] > mx) mx = w.data[i];
+        }
+        assert_bool("He Init Spread", mn < -0.05f && mx > 0.05f);
+
+        // Reproducibility
+        FMat w2 = fmat_create(16, 16);
+        fmat_rng_seed(&rng, 123);
+        fmat_he_init(&w2, 784, &rng);
+        assert_bool("Init Reproducible", memcmp(w.data, w2.data, 256 * sizeof(float)) == 0);
+
+        assert_bool("Xavier Init Runs", fmat_xavier_init(&w, 16, 16, &rng));
+        fmat_destroy(&w);
+        fmat_destroy(&w2);
+    }
+}
+
+void test_pinv_pca() {
+    print_header("Pseudo-inverse, Least Squares & PCA");
+
+    // --- Pseudo-inverse of an invertible matrix behaves like the inverse ---
+    {
+        FMat a = fmat_from_array(2, 2, (float[]){2, 1, 1, 3});
+        FMat apinv;
+        assert_bool("Pinv Runs", fmat_pinv(&a, &apinv));
+        FMat prod = fmat_mul(&apinv, &a);
+        FMat eye = fmat_identity(2);
+        assert_bool("Pinv Square Is Inverse", fmat_all_close(&prod, &eye, 1e-4f));
+        fmat_destroy(&a);
+        fmat_destroy(&apinv);
+        fmat_destroy(&prod);
+        fmat_destroy(&eye);
+    }
+
+    // --- Least squares: consistent overdetermined system solved exactly ---
+    {
+        // Points on the line y = 2x + 1
+        FMat a = fmat_from_array(4, 2, (float[]){0, 1, 1, 1, 2, 1, 3, 1});
+        FMat b = fmat_from_array(4, 1, (float[]){1, 3, 5, 7});
+        FMat x;
+        assert_bool("Lstsq Runs", fmat_lstsq(&a, &b, &x));
+        assert_bool("Lstsq Exact Fit", fabsf(fmat_get(&x, 0, 0) - 2.0f) < 1e-3f &&
+                                          fabsf(fmat_get(&x, 1, 0) - 1.0f) < 1e-3f);
+        fmat_destroy(&a);
+        fmat_destroy(&b);
+        fmat_destroy(&x);
+    }
+
+    // --- Least squares: noisy system recovers near-true parameters ---
+    {
+        // y = 3x - 2 plus small noise
+        FMat a = fmat_from_array(5, 2, (float[]){0, 1, 1, 1, 2, 1, 3, 1, 4, 1});
+        FMat b = fmat_from_array(5, 1, (float[]){-2.1f, 1.2f, 3.8f, 7.1f, 9.8f});
+        FMat x;
+        assert_bool("Lstsq Noisy Runs", fmat_lstsq(&a, &b, &x));
+        assert_bool("Lstsq Noisy Recovered", fabsf(fmat_get(&x, 0, 0) - 3.0f) < 0.15f &&
+                                                 fabsf(fmat_get(&x, 1, 0) - (-2.0f)) < 0.15f);
+        fmat_destroy(&a);
+        fmat_destroy(&b);
+        fmat_destroy(&x);
+    }
+
+    // --- PCA on strongly correlated 2D data ---
+    {
+        // Samples lie near the line y = x: PC1 should explain nearly all variance.
+        FMat X = fmat_create(50, 2);
+        FMatRng rng;
+        fmat_rng_seed(&rng, 2024);
+        for (size_t i = 0; i < 50; i++) {
+            const float t = (float)i / 50.0f * 10.0f - 5.0f;
+            fmat_set(&X, i, 0, t + fmat_rng_normal(&rng) * 0.01f);
+            fmat_set(&X, i, 1, t + fmat_rng_normal(&rng) * 0.01f);
+        }
+        PCAResult pca;
+        assert_bool("PCA Fits", fmat_pca(&X, 2, &pca));
+
+        const float r0 = fmat_get(&pca.explained_ratio, 0, 0);
+        const float r1 = fmat_get(&pca.explained_ratio, 1, 0);
+        assert_bool("PCA Ratio Dominant", r0 > 0.99f);
+        assert_bool("PCA Ratios Sum To 1", fabsf(r0 + r1 - 1.0f) < 1e-4f);
+        assert_bool("PCA Ratios Descending", r0 >= r1);
+
+        // First component direction ~ (1/sqrt2, 1/sqrt2)
+        const float c00 = fabsf(fmat_get(&pca.components, 0, 0));
+        assert_bool("PCA Direction Along Diagonal", fabsf(c00 - 0.70710678f) < 1e-3f);
+
+        // Transform produces 50 x 2 scores
+        FMat proj = fmat_pca_transform(&pca, &X);
+        assert_bool("PCA Transform Shape", proj.rows == 50 && proj.cols == 2);
+
+        // Variance along PC1 >> variance along PC2
+        const float s0 = fcol_std(&proj, 0);
+        const float s1 = fcol_std(&proj, 1);
+        assert_bool("PCA Variance Ordering", s0 > s1 * 10.0f);
+
+        fmat_destroy(&X);
+        fmat_destroy(&proj);
+        pca_result_destroy(&pca);
+    }
+
+    // --- PCA rejects too many components ---
+    {
+        FMat X = fmat_create(3, 2);
+        PCAResult pca;
+        assert_bool("PCA Component Cap", !fmat_pca(&X, 3, &pca));  // min(m,n) = 2
+        fmat_destroy(&X);
+    }
+}
+
 int main() {
     test_orthonormalize();
     test_eigen_symmetric();
@@ -579,6 +886,8 @@ int main() {
     test_solve_linear();
     test_graphics_extensions();
     test_general_svd();
+    test_ml_extensions();
+    test_pinv_pca();
 
     print_header("Summary");
     printf("Total Tests: %d\n", g_tests_passed + g_tests_failed);

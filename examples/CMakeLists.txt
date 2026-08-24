@@ -7,3 +7,6 @@ target_link_libraries(example solidc::solidc)
 
 add_executable(graphics graphics.c)
 target_link_libraries(graphics solidc::solidc)
+
+add_executable(ml_prototype ml_prototype.c)
+target_link_libraries(ml_prototype solidc::solidc)

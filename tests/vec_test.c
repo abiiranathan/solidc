@@ -407,6 +407,36 @@ void test_graphics_extensions() {
     }
 }
 
+void test_activations() {
+    print_header("Activations (relu/sigmoid/tanh/softmax)");
+
+    // --- ReLU ---
+    assert_vec3_eq("Vec3 ReLU", (Vec3){0.0f, 0.0f, 2.5f}, vec3_relu(vec3_load((Vec3){-1.0f, 0.0f, 2.5f})));
+    assert_vec4_eq("Vec4 ReLU", (Vec4){0.0f, 1.0f, 0.0f, 3.0f}, vec4_relu(vec4_load((Vec4){-1.0f, 1.0f, -0.5f, 3.0f})));
+
+    // --- Sigmoid ---
+    SimdVec3 sg = vec3_sigmoid(vec3_load((Vec3){0.0f, 100.0f, -100.0f}));
+    Vec3 sgs = vec3_store(sg);
+    assert_bool("Sigmoid Values", fabsf(sgs.x - 0.5f) < EPSILON && fabsf(sgs.y - 1.0f) < EPSILON &&
+                                     fabsf(sgs.z - 0.0f) < EPSILON);
+
+    // --- Tanh ---
+    SimdVec2 th = vec2_tanh(vec2_load((Vec2){0.0f, 1.0f}));
+    Vec2 ths = vec2_store(th);
+    assert_bool("Tanh Values", fabsf(ths.x) < EPSILON && fabsf(ths.y - tanhf(1.0f)) < EPSILON);
+
+    // --- Softmax ---
+    SimdVec4 sm = vec4_softmax(vec4_load((Vec4){1.0f, 2.0f, 3.0f, 4.0f}));
+    Vec4 sms = vec4_store(sm);
+    const float sum = sms.x + sms.y + sms.z + sms.w;
+    assert_bool("Softmax Sums To 1", fabsf(sum - 1.0f) < EPSILON);
+    // Largest logit wins
+    assert_bool("Softmax Argmax", sms.w > sms.z && sms.z > sms.y && sms.y > sms.x);
+    // Shift invariance
+    SimdVec4 sm2 = vec4_softmax(vec4_load((Vec4){101.0f, 102.0f, 103.0f, 104.0f}));
+    assert_bool("Softmax Shift Invariant", vec4_equals(vec4_store(sm), vec4_store(sm2), EPSILON));
+}
+
 int main() {
     test_architecture();
     test_vec2_full();
@@ -417,6 +447,7 @@ int main() {
     test_extensions();
     test_extensions_ml();
     test_graphics_extensions();
+    test_activations();
 
     print_header("Summary");
     printf("Total Tests: %d\n", g_tests_passed + g_tests_failed);

@@ -833,6 +833,546 @@ static inline bool fmat_svd(const FMat* A, FMat* U_out, FMat* S_out, FMat* V_out
     return ok;
 }
 
+/* ==================================================
+   ML Primitives: RNG, init, elementwise ops, activations,
+   losses, backprop products, pseudo-inverse, PCA
+   ================================================== */
+
+/**
+ * @struct FMatRng
+ * @brief Tiny seeded PRNG state for reproducible weight initialization.
+ *
+ * Uses xoshiro-style bit mixing; statistically adequate for weight init
+ * and synthetic datasets, not for cryptography or serious simulation.
+ */
+typedef struct {
+    uint64_t state;
+} FMatRng;
+
+/** @brief Seeds the generator. Same seed => same sequence on every platform. */
+static inline void fmat_rng_seed(FMatRng* rng, uint64_t seed) { rng->state = seed ? seed : 0x9E3779B97F4A7C15ull; }
+
+/** @brief Uniform float in [0, 1). */
+static inline float fmat_rng_uniform(FMatRng* rng) {
+    uint64_t z = (rng->state += 0x9E3779B97F4A7C15ull);
+    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ull;
+    z = (z ^ (z >> 27)) * 0x94D049BB133111EBull;
+    z ^= z >> 31;
+    return (float)(z >> 40) / (float)(1u << 24);
+}
+
+/**
+ * @brief Standard normal sample via Box-Muller transform.
+ * @note Consumes two uniforms per call.
+ */
+static inline float fmat_rng_normal(FMatRng* rng) {
+    float u1 = fmat_rng_uniform(rng);
+    if (u1 < 1e-12f) u1 = 1e-12f;  // log(0) guard
+    const float u2 = fmat_rng_uniform(rng);
+    return sqrtf(-2.0f * logf(u1)) * cosf(6.28318530717958647692f * u2);
+}
+
+/** @brief Fills every element with @p value. */
+static inline bool fmat_fill(FMat* m, float value) {
+    if (!fmat_valid(m)) return false;
+    for (size_t i = 0; i < m->rows * m->cols; i++) m->data[i] = value;
+    return true;
+}
+
+/** @brief Multiplies every element by @p s (in place). */
+static inline bool fmat_scale_ip(FMat* m, float s) {
+    if (!fmat_valid(m)) return false;
+    for (size_t i = 0; i < m->rows * m->cols; i++) m->data[i] *= s;
+    return true;
+}
+
+/** @brief Out-of-place scalar multiply. */
+static inline FMat fmat_scale(const FMat* m, float s) {
+    FMat r = fmat_copy(m);
+    fmat_scale_ip(&r, s);
+    return r;
+}
+
+/** @brief Element-wise sum a + b (in place into a). Shapes must match. */
+static inline bool fmat_add_ip(FMat* a, const FMat* b) {
+    if (!fmat_valid(a) || !fmat_valid(b) || a->rows != b->rows || a->cols != b->cols) return false;
+    for (size_t i = 0; i < a->rows * a->cols; i++) a->data[i] += b->data[i];
+    return true;
+}
+
+/** @brief Element-wise difference a - b (in place into a). Shapes must match. */
+static inline bool fmat_sub_ip(FMat* a, const FMat* b) {
+    if (!fmat_valid(a) || !fmat_valid(b) || a->rows != b->rows || a->cols != b->cols) return false;
+    for (size_t i = 0; i < a->rows * a->cols; i++) a->data[i] -= b->data[i];
+    return true;
+}
+
+/** @brief Out-of-place element-wise sum. */
+static inline FMat fmat_add(const FMat* a, const FMat* b) {
+    FMat r = fmat_copy(a);
+    fmat_add_ip(&r, b);
+    return r;
+}
+
+/** @brief Out-of-place element-wise difference. */
+static inline FMat fmat_sub(const FMat* a, const FMat* b) {
+    FMat r = fmat_copy(a);
+    fmat_sub_ip(&r, b);
+    return r;
+}
+
+/** @brief Out-of-place Hadamard (element-wise) product. Shapes must match. */
+static inline FMat fmat_hadamard(const FMat* a, const FMat* b) {
+    if (!fmat_valid(a) || !fmat_valid(b) || a->rows != b->rows || a->cols != b->cols) {
+        FMat empty = {0, 0, NULL};
+        return empty;
+    }
+    FMat r = fmat_create(a->rows, a->cols);
+    for (size_t i = 0; i < a->rows * a->cols; i++) r.data[i] = a->data[i] * b->data[i];
+    return r;
+}
+
+/**
+ * @brief Broadcasts a 1 x cols row vector across every matrix row (in place).
+ *
+ * The canonical "add the bias" operation: Z += b where b is a layer's
+ * bias vector replicated over the batch dimension.
+ */
+static inline bool fmat_add_row_vector(FMat* m, const FMat* row) {
+    if (!fmat_valid(m) || !fmat_valid(row) || row->rows != 1 || row->cols != m->cols) return false;
+    for (size_t r = 0; r < m->rows; r++) {
+        for (size_t c = 0; c < m->cols; c++) {
+            m->data[r * m->cols + c] += row->data[c];
+        }
+    }
+    return true;
+}
+
+/** @brief Applies fn to every element, returning a new matrix. */
+static inline FMat fmat_apply(const FMat* m, float (*fn)(float)) {
+    FMat r = {0, 0, NULL};
+    if (!fmat_valid(m) || !fn) return r;
+    r = fmat_create(m->rows, m->cols);
+    for (size_t i = 0; i < m->rows * m->cols; i++) r.data[i] = fn(m->data[i]);
+    return r;
+}
+
+/**
+ * @brief He (Kaiming) initialization: N(0, 2 / fan_in).
+ * The standard init for ReLU-family networks.
+ */
+static inline bool fmat_he_init(FMat* m, size_t fan_in, FMatRng* rng) {
+    if (!fmat_valid(m) || fan_in == 0 || !rng) return false;
+    const float stddev = sqrtf(2.0f / (float)fan_in);
+    for (size_t i = 0; i < m->rows * m->cols; i++) m->data[i] = fmat_rng_normal(rng) * stddev;
+    return true;
+}
+
+/**
+ * @brief Xavier/Glorot initialization: N(0, 2 / (fan_in + fan_out)).
+ * The standard init for tanh/sigmoid-family networks.
+ */
+static inline bool fmat_xavier_init(FMat* m, size_t fan_in, size_t fan_out, FMatRng* rng) {
+    if (!fmat_valid(m) || fan_in == 0 || fan_out == 0 || !rng) return false;
+    const float stddev = sqrtf(2.0f / (float)(fan_in + fan_out));
+    for (size_t i = 0; i < m->rows * m->cols; i++) m->data[i] = fmat_rng_normal(rng) * stddev;
+    return true;
+}
+
+/* --- Reductions ---------------------------------------------------------- */
+
+/** @brief Column sums as a fresh 1 x cols matrix. */
+static inline FMat fmat_sum_cols(const FMat* m) {
+    FMat r = {0, 0, NULL};
+    if (!fmat_valid(m)) return r;
+    r = fmat_create(1, m->cols);
+    for (size_t row = 0; row < m->rows; row++) {
+        for (size_t c = 0; c < m->cols; c++) {
+            r.data[c] += m->data[row * m->cols + c];
+        }
+    }
+    return r;
+}
+
+/** @brief Row sums as a fresh rows x 1 matrix. */
+static inline FMat fmat_sum_rows(const FMat* m) {
+    FMat r = {0, 0, NULL};
+    if (!fmat_valid(m)) return r;
+    r = fmat_create(m->rows, 1);
+    for (size_t row = 0; row < m->rows; row++) {
+        float sum = 0.0f;
+        for (size_t c = 0; c < m->cols; c++) sum += m->data[row * m->cols + c];
+        r.data[row] = sum;
+    }
+    return r;
+}
+
+/** @brief Column means as a fresh 1 x cols matrix. */
+static inline FMat fmat_mean_cols(const FMat* m) {
+    FMat r = fmat_sum_cols(m);
+    if (r.data && m->rows > 0) {
+        const float inv = 1.0f / (float)m->rows;
+        for (size_t c = 0; c < r.cols; c++) r.data[c] *= inv;
+    }
+    return r;
+}
+
+/**
+ * @brief Index of the maximum element of each row, returned as rows x 1 floats.
+ * Typical use: converting softmax probabilities to predicted class ids.
+ */
+static inline FMat fmat_argmax_rows(const FMat* m) {
+    FMat r = {0, 0, NULL};
+    if (!fmat_valid(m)) return r;
+    r = fmat_create(m->rows, 1);
+    for (size_t row = 0; row < m->rows; row++) {
+        size_t best = 0;
+        float best_val = m->data[row * m->cols];
+        for (size_t c = 1; c < m->cols; c++) {
+            if (m->data[row * m->cols + c] > best_val) {
+                best_val = m->data[row * m->cols + c];
+                best = c;
+            }
+        }
+        r.data[row] = (float)best;
+    }
+    return r;
+}
+
+/* --- Activations --------------------------------------------------------- */
+
+static inline float fml_relu_f(float x) { return x > 0.0f ? x : 0.0f; }
+static inline float fml_sigmoid_f(float x) { return 1.0f / (1.0f + expf(-x)); }
+static inline float fml_tanh_f(float x) { return tanhf(x); }
+
+/** @brief ReLU applied element-wise (out-of-place). */
+static inline FMat fmat_relu(const FMat* m) { return fmat_apply(m, fml_relu_f); }
+
+/** @brief ReLU applied in place. */
+static inline bool fmat_relu_ip(FMat* m) {
+    if (!fmat_valid(m)) return false;
+    for (size_t i = 0; i < m->rows * m->cols; i++)
+        if (m->data[i] < 0.0f) m->data[i] = 0.0f;
+    return true;
+}
+
+/** @brief Logistic sigmoid applied element-wise (out-of-place). */
+static inline FMat fmat_sigmoid(const FMat* m) { return fmat_apply(m, fml_sigmoid_f); }
+
+/** @brief Logistic sigmoid applied in place. */
+static inline bool fmat_sigmoid_ip(FMat* m) {
+    if (!fmat_valid(m)) return false;
+    for (size_t i = 0; i < m->rows * m->cols; i++) m->data[i] = fml_sigmoid_f(m->data[i]);
+    return true;
+}
+
+/** @brief Hyperbolic tangent applied element-wise (out-of-place). */
+static inline FMat fmat_tanh(const FMat* m) { return fmat_apply(m, fml_tanh_f); }
+
+/** @brief Hyperbolic tangent applied in place. */
+static inline bool fmat_tanh_ip(FMat* m) {
+    if (!fmat_valid(m)) return false;
+    for (size_t i = 0; i < m->rows * m->cols; i++) m->data[i] = tanhf(m->data[i]);
+    return true;
+}
+
+/**
+ * @brief Numerically stable row-wise softmax.
+ *
+ * Each row becomes a probability distribution (entries >= 0, row sum 1).
+ * Subtracts the row max before exponentiating so large inputs cannot
+ * overflow; this makes the result invariant to constant row shifts.
+ */
+static inline FMat fmat_softmax_rows(const FMat* m) {
+    FMat r = {0, 0, NULL};
+    if (!fmat_valid(m)) return r;
+    r = fmat_create(m->rows, m->cols);
+    if (!r.data) return r;
+    for (size_t row = 0; row < m->rows; row++) {
+        const float* src = &m->data[row * m->cols];
+        float* dst = &r.data[row * m->cols];
+        float max_val = src[0];
+        for (size_t c = 1; c < m->cols; c++) {
+            if (src[c] > max_val) max_val = src[c];
+        }
+        float sum = 0.0f;
+        for (size_t c = 0; c < m->cols; c++) {
+            dst[c] = expf(src[c] - max_val);
+            sum += dst[c];
+        }
+        const float inv = (sum > 0.0f) ? 1.0f / sum : 0.0f;
+        for (size_t c = 0; c < m->cols; c++) dst[c] *= inv;
+    }
+    return r;
+}
+
+/* --- Losses ---------------------------------------------------------------- */
+
+/**
+ * @brief Mean squared error over all elements: sum((a-b)^2) / count.
+ * Returns -1.0f on shape mismatch or invalid input.
+ */
+static inline float fmat_mse(const FMat* a, const FMat* b) {
+    if (!fmat_valid(a) || !fmat_valid(b) || a->rows != b->rows || a->cols != b->cols) return -1.0f;
+    float sum = 0.0f;
+    for (size_t i = 0; i < a->rows * a->cols; i++) {
+        const float d = a->data[i] - b->data[i];
+        sum += d * d;
+    }
+    return sum / (float)(a->rows * a->cols);
+}
+
+/**
+ * @brief Mean categorical cross-entropy between softmax outputs and one-hot labels.
+ *
+ * Both matrices are samples x classes. Probabilities are clamped away
+ * from zero to keep the log finite. Returns -1.0f on invalid input.
+ */
+static inline float fmat_cross_entropy(const FMat* probs, const FMat* onehot) {
+    if (!fmat_valid(probs) || !fmat_valid(onehot) || probs->rows != onehot->rows ||
+        probs->cols != onehot->cols)
+        return -1.0f;
+    const float eps = 1e-12f;
+    float sum = 0.0f;
+    for (size_t i = 0; i < probs->rows * probs->cols; i++) {
+        float p = probs->data[i];
+        if (p < eps) p = eps;
+        sum -= onehot->data[i] * logf(p);
+    }
+    return sum / (float)probs->rows;
+}
+
+/* --- Backprop-friendly products -------------------------------------------- */
+
+/**
+ * @brief Computes A^T * B without materializing the transpose.
+ * A is m x n, B is m x p => result n x p. The gradient workhorse:
+ * dW = X^T dZ falls exactly into this pattern.
+ */
+static inline FMat fmat_mul_ta(const FMat* a, const FMat* b) {
+    FMat out = {0, 0, NULL};
+    if (!fmat_valid(a) || !fmat_valid(b) || a->rows != b->rows) return out;
+    out = fmat_create(a->cols, b->cols);
+    if (!out.data) return out;
+    for (size_t k = 0; k < a->rows; k++) {
+        for (size_t i = 0; i < a->cols; i++) {
+            const float aik = a->data[k * a->cols + i];
+            if (aik == 0.0f) continue;
+            for (size_t j = 0; j < b->cols; j++) {
+                out.data[i * b->cols + j] += aik * b->data[k * b->cols + j];
+            }
+        }
+    }
+    return out;
+}
+
+/**
+ * @brief Computes A * B^T without materializing the transpose.
+ * A is m x n, B is p x n => result m x p. Used for propagating deltas:
+ * dH = dZ * W^T.
+ */
+static inline FMat fmat_mul_tb(const FMat* a, const FMat* b) {
+    FMat out = {0, 0, NULL};
+    if (!fmat_valid(a) || !fmat_valid(b) || a->cols != b->cols) return out;
+    out = fmat_create(a->rows, b->rows);
+    if (!out.data) return out;
+    for (size_t i = 0; i < a->rows; i++) {
+        for (size_t j = 0; j < b->rows; j++) {
+            float sum = 0.0f;
+            for (size_t k = 0; k < a->cols; k++) {
+                sum += a->data[i * a->cols + k] * b->data[j * b->cols + k];
+            }
+            out.data[i * b->rows + j] = sum;
+        }
+    }
+    return out;
+}
+
+/* --- Pseudo-inverse & least squares ----------------------------------------- */
+
+/**
+ * @brief Moore-Penrose pseudo-inverse via SVD: A^+ = V diag(s^-1) U^T.
+ *
+ * Singular values below max_sigma * tol (default 1e-6) are treated as
+ * zero, which regularizes ill-conditioned/rank-deficient systems.
+ *
+ * @param[in] A m x n matrix.
+ * @param[out] out Receives the n x m pseudo-inverse.
+ * @return true on success.
+ */
+static inline bool fmat_pinv(const FMat* A, FMat* out) {
+    if (out) *out = (FMat){0, 0, NULL};
+    if (!fmat_valid(A) || !out) return false;
+
+    FMat u = {0, 0, NULL}, s = {0, 0, NULL}, v = {0, 0, NULL};
+    if (!fmat_svd(A, &u, &s, &v)) return false;
+
+    const size_t kk = s.rows;
+    const float sigma_max = fmat_get(&s, 0, 0);
+    const float cutoff = sigma_max * 1e-6f;
+
+    // W = V * diag(1/sigma): scale each column of V by the inverted sigma.
+    FMat w = fmat_copy(&v);
+    bool ok = false;
+    do {
+        if (!w.data) break;
+        for (size_t j = 0; j < kk; j++) {
+            const float sigma = fmat_get(&s, j, 0);
+            if (sigma <= cutoff) continue;
+            const float inv = 1.0f / sigma;
+            for (size_t r = 0; r < w.rows; r++) {
+                fmat_set(&w, r, j, fmat_get(&w, r, j) * inv);
+            }
+        }
+        // A^+ = W * U^T (n x k times k-scaled -> n x m).
+        *out = fmat_mul_tb(&w, &u);
+        ok = (out->data != NULL);
+    } while (0);
+
+    fmat_destroy(&u);
+    fmat_destroy(&s);
+    fmat_destroy(&v);
+    fmat_destroy(&w);
+    return ok;
+}
+
+/**
+ * @brief Solves min_x ||A x - b||_2 via the pseudo-inverse.
+ * Works for square, overdetermined, and rank-deficient systems.
+ *
+ * @param[in] A m x n design matrix.
+ * @param[in] b m x 1 targets.
+ * @param[out] out Receives the n x 1 solution.
+ */
+static inline bool fmat_lstsq(const FMat* A, const FMat* b, FMat* out) {
+    if (out) *out = (FMat){0, 0, NULL};
+    if (!fmat_valid(A) || !fmat_valid(b) || b->cols != 1 || A->rows != b->rows) return false;
+
+    FMat apinv = {0, 0, NULL};
+    if (!fmat_pinv(A, &apinv)) return false;
+    *out = fmat_mul(&apinv, b);
+    fmat_destroy(&apinv);
+    return (out->data != NULL);
+}
+
+/* --- Principal Component Analysis -------------------------------------------- */
+
+/**
+ * @struct PCAResult
+ * @brief Fitted PCA model: principal axes plus dataset statistics.
+ */
+typedef struct {
+    FMat components;       /**< n_components x n_features, orthonormal rows. */
+    FMat mean;             /**< 1 x n_features column means of the training data. */
+    FMat explained_ratio;  /**< n_components x 1 fraction of variance captured. */
+} PCAResult;
+
+/** @brief Releases all storage owned by a PCA model. Safe to call twice. */
+static inline void pca_result_destroy(PCAResult* pca) {
+    if (!pca) return;
+    fmat_destroy(&pca->components);
+    fmat_destroy(&pca->mean);
+    fmat_destroy(&pca->explained_ratio);
+}
+
+/**
+ * @brief Fits PCA on a samples x features matrix using the library's SVD.
+ *
+ * Data is centered internally; the top @p n_components principal axes are
+ * the leading right-singular vectors of the centered data. Requires
+ * n_components <= min(samples, features).
+ *
+ * @param[in] X Samples stored as rows.
+ * @param[in] n_components Number of axes to keep.
+ * @param[out] out Receives the fitted model.
+ * @return true on success.
+ */
+static inline bool fmat_pca(const FMat* X, size_t n_components, PCAResult* out) {
+    if (out) {
+        out->components = (FMat){0, 0, NULL};
+        out->mean = (FMat){0, 0, NULL};
+        out->explained_ratio = (FMat){0, 0, NULL};
+    }
+    if (!fmat_valid(X) || !out || n_components == 0) return false;
+
+    const size_t m = X->rows;
+    const size_t n = X->cols;
+    const size_t kmax = (m < n) ? m : n;
+    if (n_components > kmax) return false;
+
+    bool ok = false;
+    FMat xc = fmat_copy(X);
+    FMat u = {0, 0, NULL}, s = {0, 0, NULL}, v = {0, 0, NULL};
+    FMat means = {0, 0, NULL};
+    do {
+        // Center the data.
+        means = fmat_mean_cols(X);
+        if (!means.data) break;
+        for (size_t r = 0; r < m; r++) {
+            for (size_t c = 0; c < n; c++) {
+                xc.data[r * n + c] -= means.data[c];
+            }
+        }
+
+        if (!fmat_svd(&xc, &u, &s, &v)) break;
+
+        out->components = fmat_create(n_components, n);
+        out->mean = means;
+        means = (FMat){0, 0, NULL};  // moved
+        out->explained_ratio = fmat_create(n_components, 1);
+        if (!out->components.data || !out->explained_ratio.data) break;
+
+        // Total captured variance across all available directions.
+        float total_var = 0.0f;
+        for (size_t j = 0; j < s.rows; j++) {
+            const float var = fmat_get(&s, j, 0) * fmat_get(&s, j, 0) / (float)(m > 1 ? m - 1 : 1);
+            total_var += var;
+        }
+        for (size_t j = 0; j < n_components; j++) {
+            // Row j of components = column j of V.
+            for (size_t c = 0; c < n; c++) {
+                fmat_set(&out->components, j, c, fmat_get(&v, c, j));
+            }
+            const float var = fmat_get(&s, j, 0) * fmat_get(&s, j, 0) / (float)(m > 1 ? m - 1 : 1);
+            fmat_set(&out->explained_ratio, j, 0, total_var > 0.0f ? var / total_var : 0.0f);
+        }
+        ok = true;
+    } while (0);
+
+    fmat_destroy(&xc);
+    fmat_destroy(&u);
+    fmat_destroy(&s);
+    fmat_destroy(&v);
+    fmat_destroy(&means);
+    if (!ok) pca_result_destroy(out);
+    return ok;
+}
+
+/**
+ * @brief Projects samples onto the retained principal axes.
+ *
+ * Equivalent to (X - mean) * components^T, producing samples x n_components
+ * coordinates suitable for visualization or downstream models.
+ */
+static inline FMat fmat_pca_transform(const PCAResult* pca, const FMat* X) {
+    FMat r = {0, 0, NULL};
+    if (!pca || !pca->components.data || !pca->mean.data || !fmat_valid(X)) return r;
+    if (X->cols != pca->mean.cols) return r;
+
+    FMat xc = fmat_copy(X);
+    if (!xc.data) return r;
+    for (size_t row = 0; row < xc.rows; row++) {
+        for (size_t c = 0; c < xc.cols; c++) {
+            xc.data[row * xc.cols + c] -= pca->mean.data[c];
+        }
+    }
+    FMat ct = fmat_transpose(&pca->components);
+    r = fmat_mul(&xc, &ct);
+    fmat_destroy(&xc);
+    fmat_destroy(&ct);
+    return r;
+}
+
 #ifdef __cplusplus
 }
 #endif

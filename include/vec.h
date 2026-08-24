@@ -1382,6 +1382,83 @@ static inline SimdVec3 vec3_faceforward(SimdVec3 n, SimdVec3 i) {
     return (vec3_dot(n, i) < 0.0f) ? n : vec3_neg(n);
 }
 
+/* ==================================================
+   Activation Functions (ML primitives)
+   ================================================== */
+
+/** @brief Rectified linear unit applied per component (2D). */
+static inline SimdVec2 vec2_relu(SimdVec2 v) {
+    return (SimdVec2){{
+        v.x > 0.0f ? v.x : 0.0f,
+        v.y > 0.0f ? v.y : 0.0f,
+    }};
+}
+
+/** @brief Rectified linear unit applied per component (3D). */
+static inline SimdVec3 vec3_relu(SimdVec3 v) {
+    return (SimdVec3){{
+        v.x > 0.0f ? v.x : 0.0f,
+        v.y > 0.0f ? v.y : 0.0f,
+        v.z > 0.0f ? v.z : 0.0f,
+    }};
+}
+
+/** @brief Rectified linear unit applied per component (4D). */
+static inline SimdVec4 vec4_relu(SimdVec4 v) {
+    return (SimdVec4){{
+        v.x > 0.0f ? v.x : 0.0f,
+        v.y > 0.0f ? v.y : 0.0f,
+        v.z > 0.0f ? v.z : 0.0f,
+        v.w > 0.0f ? v.w : 0.0f,
+    }};
+}
+
+/** @brief Logistic sigmoid per component: 1 / (1 + e^-x). */
+static inline SimdVec2 vec2_sigmoid(SimdVec2 v) {
+    return (SimdVec2){{
+        1.0f / (1.0f + expf(-v.x)),
+        1.0f / (1.0f + expf(-v.y)),
+    }};
+}
+
+static inline SimdVec3 vec3_sigmoid(SimdVec3 v) {
+    return (SimdVec3){{
+        1.0f / (1.0f + expf(-v.x)),
+        1.0f / (1.0f + expf(-v.y)),
+        1.0f / (1.0f + expf(-v.z)),
+    }};
+}
+
+static inline SimdVec4 vec4_sigmoid(SimdVec4 v) {
+    return (SimdVec4){{
+        1.0f / (1.0f + expf(-v.x)),
+        1.0f / (1.0f + expf(-v.y)),
+        1.0f / (1.0f + expf(-v.z)),
+        1.0f / (1.0f + expf(-v.w)),
+    }};
+}
+
+/** @brief Hyperbolic tangent per component. */
+static inline SimdVec2 vec2_tanh(SimdVec2 v) { return (SimdVec2){{tanhf(v.x), tanhf(v.y)}}; }
+static inline SimdVec3 vec3_tanh(SimdVec3 v) { return (SimdVec3){{tanhf(v.x), tanhf(v.y), tanhf(v.z)}}; }
+static inline SimdVec4 vec4_tanh(SimdVec4 v) {
+    return (SimdVec4){{tanhf(v.x), tanhf(v.y), tanhf(v.z), tanhf(v.w)}};
+}
+
+/**
+ * @brief Softmax over all four lanes of a SimdVec4.
+ *
+ * Produces a probability distribution (entries >= 0 summing to 1).
+ * Numerically stable via max subtraction; typical use is converting a
+ * 4-class logit vector into class probabilities.
+ */
+static inline SimdVec4 vec4_softmax(SimdVec4 v) {
+    const float m = fmaxf(fmaxf(v.x, v.y), fmaxf(v.z, v.w));
+    const float ex = expf(v.x - m), ey = expf(v.y - m), ez = expf(v.z - m), ew = expf(v.w - m);
+    const float inv = 1.0f / (ex + ey + ez + ew);
+    return (SimdVec4){{ex * inv, ey * inv, ez * inv, ew * inv}};
+}
+
 #ifdef __cplusplus
 }
 #endif
