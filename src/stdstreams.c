@@ -169,7 +169,8 @@ int getpassword(const char* prompt, char* buffer, size_t buffer_len) {
  * ====================================================================== */
 
 int stream_seek(stream_t stream, long offset, int whence) {
-    STREAM_ASSERT(stream);
+    /* Explicit guard: STREAM_ASSERT compiles out under NDEBUG. */
+    if (STREAM_UNLIKELY(!stream)) return -1;
     return stream->seek(stream->handle, offset, whence);
 }
 
@@ -241,9 +242,14 @@ stream_t create_file_stream(FILE* fp) {
 }
 
 size_t file_stream_read(stream_t s, void* STREAM_RESTRICT ptr, size_t size, size_t count) {
-    STREAM_ASSERT(s && s->type == FILE_STREAM);
+    if (STREAM_UNLIKELY(!s || !ptr || s->type != FILE_STREAM)) return 0;
+    /*
+     * FIX (Bug #22): this used to seek to offset 0 before every read,
+     * both violating the documented "mirrors fread" streaming contract
+     * and making sequential reads impossible (every call returned the
+     * first bytes).  Reads now continue from the current position.
+     */
     FILE* fp = (FILE*)s->handle;
-    fseek(fp, 0, SEEK_SET);
     return fread(ptr, size, count, fp);
 }
 
@@ -399,7 +405,7 @@ ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size)
     /* --- SIMD-accelerated Fast Path for String Streams --- */
     if (STREAM_LIKELY(stream->type == STRING_STREAM)) {
         string_stream* ss = (string_stream*)stream->handle;
-        if (STREAM_UNLIKELY(ss->pos >= ss->size)) return -1;
+        if (STREAM_UNLIKELY(ss->pos >= ss->size)) return 0; /* immediate EOF */
 
         size_t avail = ss->size - ss->pos;
         size_t max_read = buffer_size - 1;
@@ -423,28 +429,61 @@ ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size)
         return (ssize_t)copy_len;
     }
 
-    /* --- Unlocked Buffered Fallback for FILE_STREAM --- */
+    /* --- FILE_STREAM --- */
     FILE* fp = (FILE*)stream->handle;
-    ssize_t bytes = 0;
     size_t max_bytes = buffer_size - 1;
+
+    /*
+     * Seekable fast path (Perf #18): pull the whole remaining window with
+     * one fread, locate the delimiter with memchr, then roll the file
+     * position back over any overshoot.  Guarded by an ftell probe so
+     * non-seekable streams (pipes, ttys) fall back to the portable byte
+     * loop rather than silently losing pushed-back data.
+     */
+    if (ftell(fp) >= 0) {
+        size_t got = fread(buffer, 1, max_bytes, fp);
+        if (got == 0) { return feof(fp) ? 0 : -1; }
+
+        const char* hit = (const char*)memchr(buffer, delim, got);
+        if (hit) {
+            size_t consume = (size_t)(hit - buffer) + 1; /* include delimiter */
+            long overshoot = (long)(got - consume);
+            if (overshoot > 0 && fseek(fp, -overshoot, SEEK_CUR) != 0) {
+                /* Rollback failed on what appeared seekable: the delimiter
+                 * boundary is still reported correctly, but the overshoot
+                 * bytes are unrecoverable here.  Treat as short read. */
+                buffer[consume - 1] = '\0';
+                return (ssize_t)(consume - 1);
+            }
+            buffer[consume - 1] = '\0';
+            return (ssize_t)(consume - 1); /* exclude delimiter */
+        }
+
+        /* No delimiter in this window: whole window is the result. */
+        buffer[got] = '\0';
+        return (ssize_t)got;
+    }
 
 #if HAS_POSIX_UNLOCKED_IO
     flockfile(fp);
-    while ((size_t)bytes < max_bytes) {
-        int ch = getc_unlocked(fp);
-        if (ch == EOF || ch == delim) break;
-        buffer[bytes++] = (char)ch;
-    }
-    funlockfile(fp);
-#else
-    while ((size_t)bytes < max_bytes) {
-        int ch = fgetc(fp);
-        if (ch == EOF || ch == delim) break;
-        buffer[bytes++] = (char)ch;
-    }
 #endif
 
-    if (bytes == 0 && feof(fp)) return -1;
+    ssize_t bytes = 0;
+    while ((size_t)bytes < max_bytes) {
+#if HAS_POSIX_UNLOCKED_IO
+        int ch = getc_unlocked(fp);
+#else
+        int ch = fgetc(fp);
+#endif
+        if (ch == EOF || ch == delim) break;
+        buffer[bytes++] = (char)ch;
+    }
+
+#if HAS_POSIX_UNLOCKED_IO
+    funlockfile(fp);
+#endif
+
+    if (bytes == 0 && feof(fp)) return 0; /* immediate EOF */
     buffer[bytes] = '\0';
     return bytes;
 }
@@ -454,7 +493,9 @@ ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size)
  * ====================================================================== */
 
 unsigned long string_stream_copy_fast(stream_t dst, stream_t src) {
-    STREAM_ASSERT(dst && src && dst->type == STRING_STREAM && src->type == STRING_STREAM);
+    if (STREAM_UNLIKELY(!dst || !src || dst->type != STRING_STREAM || src->type != STRING_STREAM)) {
+        return (unsigned long)-1;
+    }
 
     string_stream* s = (string_stream*)src->handle;
     string_stream* d = (string_stream*)dst->handle;
@@ -545,8 +586,14 @@ void stream_destroy(stream_t stream) {
     if (!stream) return;
 
     if (stream->type == FILE_STREAM) {
-        FILE* fp = (FILE*)stream->handle;
-        if (fp && fp != stdout && fp != stderr && fp != stdin) { fclose(fp); }
+        /*
+         * FIX (Bug #23): destroy() used to fclose() the wrapped FILE*
+         * (except the std streams), contradicting the documented
+         * ownership contract — create_file_stream() explicitly does NOT
+         * take ownership, and callers may still need the stream or may
+         * close it themselves (double-close hazard).  Ownership stays
+         * with the caller, exactly as the header documents.
+         */
         free(stream);
     } else if (stream->type == STRING_STREAM) {
         string_stream* ss = (string_stream*)stream->handle;

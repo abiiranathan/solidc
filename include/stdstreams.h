@@ -211,8 +211,11 @@ const char* string_stream_data(stream_t stream);
  *
  * @param stream      Source stream.
  * @param delim       Delimiter byte to search for, passed as an `int`
- *                     (as with `fgetc`); the delimiter itself is included
- *                     in @p buffer if found.
+ *                     (as with `fgetc`).  The delimiter is CONSUMED from
+ *                     the stream but is NOT copied into @p buffer; it is
+ *                     replaced by the terminating NUL.  (Earlier revisions
+ *                     of this documentation incorrectly stated that the
+ *                     delimiter was included.)
  * @param buffer      Destination buffer.
  * @param buffer_size Size of @p buffer in bytes, including room for the
  *                     terminating NUL that will be written.

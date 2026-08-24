@@ -149,10 +149,10 @@ void test_string_stream_seek_end(void) {
     int rc = stream_seek(s, 0, SEEK_END);
     ASSERT_EQ(rc, 0);
 
-    /* At EOF — nothing left to read. */
+    /* At EOF — nothing left to read (documented: 0 on immediate EOF). */
     char buf[16];
     ssize_t n = read_until(s, '\n', buf, sizeof(buf));
-    ASSERT_EQ(n, -1); /* EOF with no bytes read */
+    ASSERT_EQ(n, 0);
 
     stream_destroy(s);
 }
@@ -280,9 +280,9 @@ void test_readuntil_sequential(void) {
     ASSERT_EQ(n, 5);
     ASSERT_STR_EQ(buf, "gamma");
 
-    /* Stream is now at EOF — next call returns -1. */
+    /* Stream is now at EOF — next call returns 0 (documented immediate-EOF). */
     n = read_until(s, ',', buf, sizeof(buf));
-    ASSERT_EQ(n, -1);
+    ASSERT_EQ(n, 0);
 
     stream_destroy(s);
 }
@@ -317,6 +317,8 @@ void test_readuntil_file_stream(void) {
     ASSERT_STR_EQ(buf, "three");
 
     stream_destroy(s);
+    fclose(fp);
+    free(path);
 }
 
 /* =========================================================================
@@ -415,6 +417,8 @@ void test_iocopy_file_to_string(void) {
 
     stream_destroy(fsrc);
     stream_destroy(dst);
+    fclose(fp);
+    free(path);
 }
 
 /* Caller rewinds then re-copies — verifies seek + io_copy compose. */
@@ -676,12 +680,94 @@ void test_file_stream_read(void) {
     stream_t fs = create_file_stream(fp);
     ASSERT(fs);
 
+    /* Regression (Bug #22): reads must STREAM from the current position,
+     * not silently rewind to offset 0 on every call. */
+    fseek(fp, 0, SEEK_SET); /* test-side rewind; impl no longer does it */
+
     char buf[32] = {0};
-    size_t r = file_stream_read(fs, buf, 1, 12);
-    ASSERT_EQ(r, 12);
+    size_t r = file_stream_read(fs, buf, 1, 5);
+    ASSERT_EQ(r, 5);
+    ASSERT_EQ(memcmp(buf, "file ", 5), 0);
+
+    /* second sequential read continues where the first left off */
+    r = file_stream_read(fs, buf + 5, 1, 7);
+    ASSERT_EQ(r, 7);
     ASSERT_EQ(memcmp(buf, "file content", 12), 0);
 
     stream_destroy(fs);
+    fclose(fp); /* caller owns the FILE* (Bug #23 contract) */
+    free(path);
+}
+
+/* =========================================================================
+ * Regression battery (contract fixes)
+ * ====================================================================== */
+
+/* stream_destroy must NOT fclose a wrapped FILE* (ownership stays with caller). */
+void test_destroy_does_not_close_file(void) {
+    const char* path = make_tempfile();
+    ASSERT(path);
+
+    FILE* fp = fopen(path, "w+");
+    ASSERT(fp);
+    fputs("x", fp);
+    fflush(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    stream_t fs = create_file_stream(fp);
+    ASSERT(fs);
+    stream_destroy(fs);
+
+    /* The FILE* must still be usable after destroying the wrapper. */
+    char buf[8] = {0};
+    size_t r = fread(buf, 1, 1, fp);
+    ASSERT_EQ(r, 1);
+    ASSERT_EQ(buf[0], 'x');
+
+    fclose(fp);
+    free(path);
+}
+
+/* read_until excludes the delimiter from the returned data. */
+void test_readuntil_delim_excluded(void) {
+    stream_t s = create_string_stream(32);
+    ASSERT(s);
+    string_stream_write(s, "a|b");
+    char buf[16];
+    ssize_t n = read_until(s, '|', buf, sizeof(buf));
+    ASSERT_EQ(n, 1);
+    ASSERT_STR_EQ(buf, "a");
+    /* delimiter consumed from stream: next read starts at 'b' */
+    n = read_until(s, '|', buf, sizeof(buf));
+    ASSERT_EQ(n, 1);
+    ASSERT_STR_EQ(buf, "b");
+    stream_destroy(s);
+}
+
+/* read_until returns 0 (not -1) at immediate EOF, per documented contract. */
+void test_readuntil_eof_returns_zero(void) {
+    stream_t s = create_string_stream(32);
+    ASSERT(s);
+    string_stream_write(s, "data");
+    /* drain everything */
+    char buf[16];
+    while (read_until(s, '|', buf, sizeof(buf)) > 0) {}
+
+    ssize_t n = read_until(s, '|', buf, sizeof(buf));
+    ASSERT_EQ(n, 0);
+    stream_destroy(s);
+
+    /* FILE-backed variant via /dev/null-style empty temp file */
+    const char* path = make_tempfile();
+    ASSERT(path);
+    FILE* fp = fopen(path, "w+");
+    ASSERT(fp);
+    stream_t fs = create_file_stream(fp);
+    n = read_until(fs, '\n', buf, sizeof(buf));
+    ASSERT_EQ(n, 0);
+    stream_destroy(fs);
+    fclose(fp);
+    free(path);
 }
 
 /* =========================================================================
@@ -744,6 +830,9 @@ int main(void) {
     /* edge cases */
     RUN(test_string_stream_zero_capacity);
     RUN(test_file_stream_read);
+    RUN(test_destroy_does_not_close_file);
+    RUN(test_readuntil_delim_excluded);
+    RUN(test_readuntil_eof_returns_zero);
 
     printf("\nAll tests passed.\n");
     return 0;
