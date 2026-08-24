@@ -34,6 +34,7 @@ set(TEST_MODULES
     defer
     regex
     strsim
+    sort
 )
 
 
