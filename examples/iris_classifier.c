@@ -35,7 +35,7 @@
 #define LEARNING_RATE 0.05f
 #define MOMENTUM      0.9f
 
-#define TRAIN_COUNT   120 /* remaining 30 are held out for testing */
+#define TRAIN_COUNT 120 /* remaining 30 are held out for testing */
 
 typedef struct {
     FMat x_train, y_train;
@@ -311,8 +311,7 @@ static void predict_specimen(const IrisNet* n, const FeatureScaler* s, const flo
 
 int main(void) {
     printf("\nIris species classifier -- solidc linear_alg.h only\n");
-    printf("dataset: %d flowers, %d features, %d species (Fisher, 1936)\n\n", IRIS_COUNT, IRIS_FEATURES,
-           IRIS_CLASSES);
+    printf("dataset: %d flowers, %d features, %d species (Fisher, 1936)\n\n", IRIS_COUNT, IRIS_FEATURES, IRIS_CLASSES);
 
     // 1. Split into train / held-out test sets.
     FMatRng rng;
@@ -345,8 +344,7 @@ int main(void) {
 
         float loss_sum = 0.0f;
         for (size_t start = 0; start < TRAIN_COUNT; start += BATCH_SIZE) {
-            const size_t count =
-                (start + BATCH_SIZE <= TRAIN_COUNT) ? BATCH_SIZE : (TRAIN_COUNT - start);
+            const size_t count = (start + BATCH_SIZE <= TRAIN_COUNT) ? BATCH_SIZE : (TRAIN_COUNT - start);
             FMat xb = slice_rows(&x_train_s, start, count);
             FMat yb = slice_rows(&data.y_train, start, count);
             loss_sum += net_train_step(&net, &xb, &yb) * (float)count;
@@ -392,4 +390,3 @@ int main(void) {
     split_destroy(&data);
     return 0;
 }
-
