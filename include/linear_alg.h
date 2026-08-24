@@ -425,9 +425,8 @@ static inline void mat4_decompose(Mat4 m, Vec3* out_scale, Quat* out_rotation, V
     // Mirror detection via the sign of the upper-3x3 determinant.
     Mat3 rot_only;
     if (sx > 1e-12f && sy > 1e-12f && sz > 1e-12f) {
-        rot_only = (Mat3){{{c0.x / sx, c0.y / sx, c0.z / sx},
-                           {c1.x / sy, c1.y / sy, c1.z / sy},
-                           {c2.x / sz, c2.y / sz, c2.z / sz}}};
+        rot_only = (Mat3){
+            {{c0.x / sx, c0.y / sx, c0.z / sx}, {c1.x / sy, c1.y / sy, c1.z / sy}, {c2.x / sz, c2.y / sz, c2.z / sz}}};
         if (mat3_determinant(rot_only) < 0.0f) {
             sx = -sx;
             // Re-normalize column 0 with the corrected sign.
@@ -680,10 +679,10 @@ static inline bool fmat_svd(const FMat* A, FMat* U_out, FMat* S_out, FMat* V_out
     const size_t p = transposed ? n : m;  // working row count (>= q)
     const size_t q = k;                   // working column count
 
-    FMat B = {0, 0, NULL};      // working copy of A (or A^T), p x q
-    FMat Vacc = {0, 0, NULL};   // accumulated right rotations, q x q
+    FMat B = {0, 0, NULL};     // working copy of A (or A^T), p x q
+    FMat Vacc = {0, 0, NULL};  // accumulated right rotations, q x q
     FMat work_U = {0, 0, NULL}, work_S = {0, 0, NULL}, work_V = {0, 0, NULL};
-    FMat Uf = {0, 0, NULL}, Sf = {0, 0, NULL}, Vf = {0, 0, NULL}; // sorted factors
+    FMat Uf = {0, 0, NULL}, Sf = {0, 0, NULL}, Vf = {0, 0, NULL};  // sorted factors
     size_t* order = (size_t*)malloc(q * sizeof(size_t));
 
     bool ok = false;
@@ -721,8 +720,7 @@ static inline bool fmat_svd(const FMat* A, FMat* U_out, FMat* S_out, FMat* V_out
                     converged = false;
                     // Rotation angle that zeroes gamma (Rutishauser).
                     const float zeta = (beta - alpha) / (2.0f * gamma);
-                    const float t =
-                        ((zeta >= 0.0f) ? 1.0f : -1.0f) / (fabsf(zeta) + sqrtf(1.0f + zeta * zeta));
+                    const float t = ((zeta >= 0.0f) ? 1.0f : -1.0f) / (fabsf(zeta) + sqrtf(1.0f + zeta * zeta));
                     const float c = 1.0f / sqrtf(1.0f + t * t);
                     const float s = c * t;
                     fmat_svd_rotate_cols(B.data, Vacc.data, q, p, i, j, c, s);
@@ -1129,8 +1127,7 @@ static inline float fmat_mse(const FMat* a, const FMat* b) {
  * from zero to keep the log finite. Returns -1.0f on invalid input.
  */
 static inline float fmat_cross_entropy(const FMat* probs, const FMat* onehot) {
-    if (!fmat_valid(probs) || !fmat_valid(onehot) || probs->rows != onehot->rows ||
-        probs->cols != onehot->cols)
+    if (!fmat_valid(probs) || !fmat_valid(onehot) || probs->rows != onehot->rows || probs->cols != onehot->cols)
         return -1.0f;
     const float eps = 1e-12f;
     float sum = 0.0f;
@@ -1262,9 +1259,9 @@ static inline bool fmat_lstsq(const FMat* A, const FMat* b, FMat* out) {
  * @brief Fitted PCA model: principal axes plus dataset statistics.
  */
 typedef struct {
-    FMat components;       /**< n_components x n_features, orthonormal rows. */
-    FMat mean;             /**< 1 x n_features column means of the training data. */
-    FMat explained_ratio;  /**< n_components x 1 fraction of variance captured. */
+    FMat components;      /**< n_components x n_features, orthonormal rows. */
+    FMat mean;            /**< 1 x n_features column means of the training data. */
+    FMat explained_ratio; /**< n_components x 1 fraction of variance captured. */
 } PCAResult;
 
 /** @brief Releases all storage owned by a PCA model. Safe to call twice. */

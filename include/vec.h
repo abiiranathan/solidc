@@ -1378,9 +1378,7 @@ static inline SimdVec3 vec3_refract(SimdVec3 i, SimdVec3 n, float eta) {
  * ray-surface intersections where the geometric normal may point away
  * from the viewer.
  */
-static inline SimdVec3 vec3_faceforward(SimdVec3 n, SimdVec3 i) {
-    return (vec3_dot(n, i) < 0.0f) ? n : vec3_neg(n);
-}
+static inline SimdVec3 vec3_faceforward(SimdVec3 n, SimdVec3 i) { return (vec3_dot(n, i) < 0.0f) ? n : vec3_neg(n); }
 
 /* ==================================================
    Activation Functions (ML primitives)
@@ -1441,9 +1439,7 @@ static inline SimdVec4 vec4_sigmoid(SimdVec4 v) {
 /** @brief Hyperbolic tangent per component. */
 static inline SimdVec2 vec2_tanh(SimdVec2 v) { return (SimdVec2){{tanhf(v.x), tanhf(v.y)}}; }
 static inline SimdVec3 vec3_tanh(SimdVec3 v) { return (SimdVec3){{tanhf(v.x), tanhf(v.y), tanhf(v.z)}}; }
-static inline SimdVec4 vec4_tanh(SimdVec4 v) {
-    return (SimdVec4){{tanhf(v.x), tanhf(v.y), tanhf(v.z), tanhf(v.w)}};
-}
+static inline SimdVec4 vec4_tanh(SimdVec4 v) { return (SimdVec4){{tanhf(v.x), tanhf(v.y), tanhf(v.z), tanhf(v.w)}}; }
 
 /**
  * @brief Softmax over all four lanes of a SimdVec4.

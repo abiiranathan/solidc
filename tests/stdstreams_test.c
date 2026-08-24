@@ -289,7 +289,7 @@ void test_readuntil_sequential(void) {
 
 /* read_until on a file stream. */
 void test_readuntil_file_stream(void) {
-    const char* path = make_tempfile();
+    char* path = make_tempfile();
     ASSERT(path);
 
     FILE* fp = fopen(path, "w+");
@@ -398,7 +398,7 @@ void test_iocopy_accumulates_in_dst(void) {
 
 /* io_copy from file stream into string stream. */
 void test_iocopy_file_to_string(void) {
-    const char* path = make_tempfile();
+    char* path = make_tempfile();
     ASSERT(path);
 
     FILE* fp = fopen(path, "w+");
@@ -669,7 +669,7 @@ void test_string_stream_zero_capacity(void) {
  * ====================================================================== */
 
 void test_file_stream_read(void) {
-    const char* path = make_tempfile();
+    char* path = make_tempfile();
     ASSERT(path);
 
     FILE* fp = fopen(path, "w+");
@@ -705,7 +705,7 @@ void test_file_stream_read(void) {
 
 /* stream_destroy must NOT fclose a wrapped FILE* (ownership stays with caller). */
 void test_destroy_does_not_close_file(void) {
-    const char* path = make_tempfile();
+    char* path = make_tempfile();
     ASSERT(path);
 
     FILE* fp = fopen(path, "w+");
@@ -751,14 +751,15 @@ void test_readuntil_eof_returns_zero(void) {
     string_stream_write(s, "data");
     /* drain everything */
     char buf[16];
-    while (read_until(s, '|', buf, sizeof(buf)) > 0) {}
+    while (read_until(s, '|', buf, sizeof(buf)) > 0) {
+    }
 
     ssize_t n = read_until(s, '|', buf, sizeof(buf));
     ASSERT_EQ(n, 0);
     stream_destroy(s);
 
     /* FILE-backed variant via /dev/null-style empty temp file */
-    const char* path = make_tempfile();
+    char* path = make_tempfile();
     ASSERT(path);
     FILE* fp = fopen(path, "w+");
     ASSERT(fp);

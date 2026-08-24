@@ -32,7 +32,6 @@
 #define LEARNING_RATE 0.05f
 #define HIDDEN        24
 
-
 /** Copies rows [start, start+count) of m into a fresh matrix. */
 static FMat fmat_slice_rows(const FMat* m, size_t start, size_t count) {
     FMat r = fmat_create(count, m->cols);
@@ -80,9 +79,9 @@ static void make_dataset(FMat* X, FMat* Y_onehot, uint64_t seed) {
 /* ------------------------------------------------------------------ */
 
 typedef struct {
-    FMat W1, b1;             // h = tanh(X W1 + b1), X: N x 2, W1: 2 x HIDDEN
-    FMat W2, b2;             // p = softmax(h W2 + b2), W2: HIDDEN x 3
-    FMat vW1, vb1, vW2, vb2; // SGD momentum velocity buffers
+    FMat W1, b1;              // h = tanh(X W1 + b1), X: N x 2, W1: 2 x HIDDEN
+    FMat W2, b2;              // p = softmax(h W2 + b2), W2: HIDDEN x 3
+    FMat vW1, vb1, vW2, vb2;  // SGD momentum velocity buffers
 } TinyMLP;
 
 static void mlp_init(TinyMLP* net, FMatRng* rng) {
@@ -138,11 +137,11 @@ static float mlp_train_step(TinyMLP* net, const FMat* X, const FMat* Y) {
     fmat_scale_ip(&dz2, 1.0f / n);
 
     // Gradients for layer 2
-    FMat dw2 = fmat_mul_ta(&h, &dz2);          // h^T dz2 : HIDDEN x 3
-    FMat db2 = fmat_sum_cols(&dz2);            // 1 x 3
+    FMat dw2 = fmat_mul_ta(&h, &dz2);  // h^T dz2 : HIDDEN x 3
+    FMat db2 = fmat_sum_cols(&dz2);    // 1 x 3
 
     // Propagate into hidden layer: tanh'(z) = 1 - tanh(z)^2
-    FMat dh = fmat_mul_tb(&dz2, &net->W2);     // dz2 W2^T : N x HIDDEN
+    FMat dh = fmat_mul_tb(&dz2, &net->W2);  // dz2 W2^T : N x HIDDEN
     FMat hh = fmat_hadamard(&h, &h);
     FMat one = fmat_create(h.rows, h.cols);
     fmat_fill(&one, 1.0f);
@@ -150,8 +149,8 @@ static float mlp_train_step(TinyMLP* net, const FMat* X, const FMat* Y) {
     FMat da1 = fmat_hadamard(&dh, &gate);
 
     // Gradients for layer 1
-    FMat dw1 = fmat_mul_ta(X, &da1);           // X^T da1 : 2 x HIDDEN
-    FMat db1 = fmat_sum_cols(&da1);            // 1 x HIDDEN
+    FMat dw1 = fmat_mul_ta(X, &da1);  // X^T da1 : 2 x HIDDEN
+    FMat db1 = fmat_sum_cols(&da1);   // 1 x HIDDEN
 
     // SGD with momentum: v = 0.9v + g; W -= lr * v
     const float mom = 0.9f;
@@ -214,7 +213,7 @@ static float mlp_accuracy(const TinyMLP* net, const FMat* X, const FMat* Y) {
 
     size_t correct = 0;
     for (size_t i = 0; i < pred.rows; i++) {
-        if (fmat_get(&pred, i, 0) == fmat_get(&truth, i, 0)) correct++;
+        if (fabsf(fmat_get(&pred, i, 0) - fmat_get(&truth, i, 0)) < 0.05f) correct++;
     }
 
     const float acc = (float)correct / (float)pred.rows;
@@ -265,8 +264,7 @@ static void demo_neural_net(void) {
 
         float loss_sum = 0.0f;
         for (size_t start = 0; start < TRAIN_SAMPLES; start += BATCH_SIZE) {
-            const size_t count =
-                (start + BATCH_SIZE <= TRAIN_SAMPLES) ? BATCH_SIZE : (TRAIN_SAMPLES - start);
+            const size_t count = (start + BATCH_SIZE <= TRAIN_SAMPLES) ? BATCH_SIZE : (TRAIN_SAMPLES - start);
             FMat xb = fmat_slice_rows(&X, start, count);
             FMat yb = fmat_slice_rows(&Y, start, count);
             loss_sum += mlp_train_step(&net, &xb, &yb) * (float)count;
@@ -405,8 +403,11 @@ static void demo_pca(void) {
     for (size_t i = 0; i < PCA_SAMPLES; i++) {
         const float a = fmat_rng_normal(&rng);
         const float b = fmat_rng_normal(&rng);
+
         // Each feature is a different fixed mix of the two latents + noise.
-        static const float mix[PCA_DIMS][2] = {{1.0f, 0.0f}, {0.8f, 0.6f}, {0.2f, 1.0f}, {-0.5f, 0.9f}, {0.7f, -0.7f}};
+        static const float mix[PCA_DIMS][2] = {
+            {1.0f, 0.0f}, {0.8f, 0.6f}, {0.2f, 1.0f}, {-0.5f, 0.9f}, {0.7f, -0.7f},
+        };
         for (size_t f = 0; f < PCA_DIMS; f++) {
             fmat_set(&X, i, f, a * mix[f][0] + b * mix[f][1] + fmat_rng_normal(&rng) * 0.05f);
         }
@@ -419,8 +420,8 @@ static void demo_pca(void) {
         return;
     }
 
-    printf("  explained variance ratio: PC1=%.1f%%  PC2=%.1f%%\n",
-           fmat_get(&pca.explained_ratio, 0, 0) * 100.0f, fmat_get(&pca.explained_ratio, 1, 0) * 100.0f);
+    printf("  explained variance ratio: PC1=%.1f%%  PC2=%.1f%%\n", fmat_get(&pca.explained_ratio, 0, 0) * 100.0f,
+           fmat_get(&pca.explained_ratio, 1, 0) * 100.0f);
 
     FMat proj = fmat_pca_transform(&pca, &X);
     printf("  projected shape: %zu x %zu\n", proj.rows, proj.cols);
@@ -454,7 +455,7 @@ static void demo_lstsq(void) {
     FMatRng rng;
     fmat_rng_seed(&rng, 31415u);
 
-    FMat A = fmat_create(n, 3); // features [x^2, x, 1]
+    FMat A = fmat_create(n, 3);  // features [x^2, x, 1]
     FMat y = fmat_create(n, 1);
     for (size_t i = 0; i < n; i++) {
         const float x = -3.0f + 6.0f * (float)i / (float)(n - 1);
