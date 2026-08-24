@@ -233,7 +233,12 @@ static void test_specialized_i32(void) {
         check_specialized_i32(p, 100000);
         check_specialized_i32(p, 63);   /* below insertion threshold */
         check_specialized_i32(p, 25);   /* just above */
-        check_specialized_i32(p, 1009); /* prime */
+        check_specialized_i32(p, 1009); /* prime, quicksort path */
+        /* radix threshold boundaries */
+        check_specialized_i32(p, 1023);
+        check_specialized_i32(p, 1024);
+        check_specialized_i32(p, 1025);
+        check_specialized_i32(p, 4096);
     }
     printf("PASS sol_sort_i32 patterns + sizes\n");
 }
