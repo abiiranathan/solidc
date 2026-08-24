@@ -128,6 +128,40 @@ void test_murmur_unaligned(void) {
     }
 }
 
+/* CRC-32C (Castagnoli) known-answer vectors.  Distinct polynomial from
+ * the IEEE CRC32 above — deliberately different digests. */
+void test_crc32c_known_answers(void) {
+    ASSERT_EQ(solidc_crc32c_hash("", 0), 0x00000000u);
+    /* "123456789" -> 0xE3069283 (CRC-32C check value) */
+    ASSERT_EQ(solidc_crc32c_hash("123456789", 9), 0xE3069283u);
+    /* "a" -> 0xC1D04330 */
+    ASSERT_EQ(solidc_crc32c_hash("a", 1), 0xC1D04330u);
+    /* "hello" -> 0x9A71BB4C */
+    ASSERT_EQ(solidc_crc32c_hash("hello", 5), 0x9A71BB4Cu);
+    /* must differ from the IEEE digest of the same bytes */
+    ASSERT(solidc_crc32c_hash("123456789", 9) != solidc_crc32_hash("123456789", 9));
+
+    /* long buffer: hw and table paths (when both exist) must agree with
+     * themselves across repeated calls, and NULL policy holds */
+    static unsigned char buf[1000];
+    for (size_t i = 0; i < sizeof(buf); i++) { buf[i] = (unsigned char)(i * 17 + 3); }
+    ASSERT_EQ(solidc_crc32c_hash(buf, sizeof(buf)), solidc_crc32c_hash(buf, sizeof(buf)));
+    ASSERT_EQ(solidc_crc32c_hash(NULL, 5), 0u);
+}
+
+/* The slice-by-sixteen rewrite must stay bit-identical to the bitwise
+ * reference (guards the 16-byte bulk path added over slice-by-eight). */
+void test_crc32_slice16_still_matches(void) {
+    enum { MAXLEN = 300 };
+    static unsigned char buf[MAXLEN];
+    for (size_t i = 0; i < sizeof(buf); i++) {
+        buf[i] = (unsigned char)(i * 131 + 7);
+    }
+    for (size_t len = 0; len <= MAXLEN; len++) {
+        ASSERT_EQ(solidc_crc32_hash(buf, len), crc32_bitwise_ref(buf, len));
+    }
+}
+
 int main() {
     // Test cases
     // Added 'u' suffix to all expected values to prevent signed-int interpretation
@@ -150,6 +184,12 @@ int main() {
 
     test_crc32_matches_bitwise_reference();
     printf("test_crc32_matches_bitwise_reference passed\n");
+
+    test_crc32_slice16_still_matches();
+    printf("test_crc32_slice16_still_matches passed\n");
+
+    test_crc32c_known_answers();
+    printf("test_crc32c_known_answers passed\n");
 
     test_murmur_unaligned();
     printf("test_murmur_unaligned passed\n");

@@ -58,7 +58,6 @@ static void bench_crc(const char* name, crc_fn fn, const unsigned char* buf, siz
     printf("%-12s %8zu B  %10u it  %8.1f ns/op  %9.1f MB/s  (sink %08x)\n", name, len, iters, (double)dt / iters,
            mbps, sink);
 }
-
 int main(void) {
     size_t LARGE = 65536;
     unsigned char* buf = malloc(LARGE);
@@ -71,11 +70,13 @@ int main(void) {
         return 1;
     }
 
-    puts("== CRC32: slice-by-eight vs bitwise reference ==");
-    bench_crc("crc32-slice8", solidc_crc32_hash, buf, 64, 2000000);
+    puts("== CRC32: slice-by-sixteen vs bitwise reference, plus HW CRC-32C ==");
+    bench_crc("crc32-slice16", solidc_crc32_hash, buf, 64, 2000000);
     bench_crc("crc32-bitwise", crc32_bitwise, buf, 64, 200000);
-    bench_crc("crc32-slice8", solidc_crc32_hash, buf, LARGE, 5000);
+    bench_crc("crc32-slice16", solidc_crc32_hash, buf, LARGE, 5000);
     bench_crc("crc32-bitwise", crc32_bitwise, buf, LARGE, 300);
+    bench_crc("crc32c-hw/sw", solidc_crc32c_hash, buf, 64, 2000000);
+    bench_crc("crc32c-hw/sw", solidc_crc32c_hash, buf, LARGE, 5000);
 
     puts("== Other 32-bit hashes on 64-byte inputs ==");
     uint32_t sink = 0;

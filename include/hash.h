@@ -123,9 +123,9 @@ uint32_t solidc_elf_hash(const void* key);
  * @brief CRC32 hash function for arbitrary binary data.
  *
  * Cyclic Redundancy Check using the standard IEEE polynomial 0xEDB88320
- * (the classic zlib-compatible CRC32).  Implemented with a slice-by-eight
+ * (the classic zlib-compatible CRC32).  Implemented with a slice-by-sixteen
  * table technique; results are bit-identical to the naive bitwise loop
- * but roughly an order of magnitude faster.
+ * but orders of magnitude faster.
  *
  * @param key Pointer to data buffer. May be NULL only when @p len is zero.
  * @param len Length of data in bytes
@@ -134,6 +134,21 @@ uint32_t solidc_elf_hash(const void* key);
  * @note Can handle binary data with embedded null bytes.
  */
 uint32_t solidc_crc32_hash(const void* key, size_t len);
+
+/**
+ * @brief CRC-32C (Castagnoli) checksum for arbitrary binary data.
+ *
+ * Uses the Castagnoli polynomial 0x82F63B78 — the one implemented by the
+ * x86 `crc32` instruction (SSE4.2) and by iSCSI/ext4/Btrfs.  On capable
+ * CPUs this dispatches to the hardware instruction at runtime; elsewhere
+ * a slice-by-eight table fallback is used.  This is NOT compatible with
+ * solidc_crc32_hash(): different polynomial, different digest.
+ *
+ * @param key Pointer to data buffer. May be NULL only when @p len is zero.
+ * @param len Length of data in bytes
+ * @return 32-bit CRC-32C checksum, or 0 if @p key is NULL with nonzero @p len.
+ */
+uint32_t solidc_crc32c_hash(const void* key, size_t len);
 
 /**
  * @brief MurmurHash3 32-bit hash function.
