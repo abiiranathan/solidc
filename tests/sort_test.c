@@ -2,8 +2,8 @@
 #define _GNU_SOURCE
 #endif
 
-#include "../include/macros.h"
 #include "../include/sort.h"
+#include "../include/macros.h"
 
 #include <math.h>
 #include <stdbool.h>
@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -122,10 +121,18 @@ static void test_qsort_small_sizes(void) {
     for (size_t n = 0; n <= MAXN; n++) {
         for (size_t t = 0; t < 4; t++) {
             switch (t) {
-                case 0: fill_pattern(a, n, PAT_RANDOM); break;
-                case 1: fill_pattern(a, n, PAT_SORTED); break;
-                case 2: fill_pattern(a, n, PAT_REVERSE); break;
-                default: fill_pattern(a, n, PAT_ALLEQUAL); break;
+                case 0:
+                    fill_pattern(a, n, PAT_RANDOM);
+                    break;
+                case 1:
+                    fill_pattern(a, n, PAT_SORTED);
+                    break;
+                case 2:
+                    fill_pattern(a, n, PAT_REVERSE);
+                    break;
+                default:
+                    fill_pattern(a, n, PAT_ALLEQUAL);
+                    break;
             }
             memcpy(b, a, n * sizeof(int32_t));
             sol_qsort(a, n, sizeof(int32_t), cmp_i32);
@@ -249,11 +256,21 @@ static void test_specialized_i64(void) {
     for (size_t t = 0; t < 5; t++) {
         for (size_t i = 0; i < N; i++) {
             switch (t) {
-                case 0: a[i] = (int64_t)xrng(); break;
-                case 1: a[i] = (int64_t)i; break;
-                case 2: a[i] = (int64_t)(N - i); break;
-                case 3: a[i] = 42; break;
-                default: a[i] = (int64_t)(xrng() % 5); break;
+                case 0:
+                    a[i] = (int64_t)xrng();
+                    break;
+                case 1:
+                    a[i] = (int64_t)i;
+                    break;
+                case 2:
+                    a[i] = (int64_t)(N - i);
+                    break;
+                case 3:
+                    a[i] = 42;
+                    break;
+                default:
+                    a[i] = (int64_t)(xrng() % 5);
+                    break;
             }
         }
         memcpy(b, a, sizeof(a));
@@ -270,11 +287,13 @@ static void test_specialized_f64_nan(void) {
     /* NaNs must land at the END of the array */
     double a[N] = {5.0, NAN, 1.0, NAN, -3.5, 2.0, INFINITY, 0.0};
     sol_sort_f64(a, N);
+
     /* reals first, ascending */
     for (size_t i = 0; i < 6; i++) {
         ASSERT(!__builtin_isnan(a[i]));
     }
-    ASSERT(a[0] == -3.5 && a[1] == 0.0 && a[2] == 1.0 && a[3] == 2.0 && a[4] == 5.0 && a[5] == INFINITY);
+    const double expected[] = {-3.5, 0.0, 1.0, 2.0, 5.0, INFINITY};
+    ASSERT(memcmp(a, expected, sizeof(expected)) == 0);
     ASSERT(__builtin_isnan(a[6]) && __builtin_isnan(a[7]));
     printf("PASS sol_sort_f64 NaN placement\n");
 }

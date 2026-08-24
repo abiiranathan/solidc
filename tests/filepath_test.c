@@ -15,7 +15,7 @@ WalkDirOption walk(const FileAttributes* attr, const char* path, const char* nam
 int main(void) {
     // test makedirs
     const char* dirname = "./temp/tests/arena";
-    bool ok             = filepath_makedirs(dirname);
+    bool ok = filepath_makedirs(dirname);
     ASSERT(ok);
 
     // test is_dir
@@ -31,7 +31,7 @@ int main(void) {
     dir_close(dir);
 
     // test_get_cwd
-    const char* cwd = get_cwd();
+    char* cwd = get_cwd();
     ASSERT(cwd != NULL);
 
     // dir_list
@@ -52,7 +52,7 @@ int main(void) {
     ASSERT(!path_exists(path));
 
     // path join
-    const char* joined = filepath_join(dirname, "test.txt");
+    char* joined = filepath_join(dirname, "test.txt");
     ASSERT(joined != NULL);
     // test path_exists
     printf("joined: %s\n", joined);
