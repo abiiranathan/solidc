@@ -131,6 +131,9 @@ int main(void) {
     // test dir_walk
     ASSERT(dir_walk(dirname, walk, NULL) == 0);
 
+    free(joined); /* heap-allocated by filepath_join */
+    free(cwd);    /* heap-allocated by get_cwd */
+
     // Delete the directory
     dir_remove("./temp", true);
 

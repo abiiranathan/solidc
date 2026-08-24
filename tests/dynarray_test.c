@@ -122,8 +122,9 @@ static void test_pop(void) {
     }
     TEST_ASSERT(arr.size == 0, "Size should be 0 after popping all");
 
-    // Test shrink (assumes SHRINK_THRESHOLD=4, growth 1.5x or 2x; push to resize, pop below
+    // Test shrink (assumes SHRINK_THRESHOLD=4, growth 1.5x or 2x; push to resize, pop to below
     // threshold)
+    dynarray_free(&arr); /* release the first allocation before re-init */
     dynarray_init(&arr, sizeof(int), 4);  // Assume initial=4
     for (int i = 0; i < 16; ++i) {        // Push to trigger grows, e.g., to cap~16-24
         dynarray_push(&arr, &i);
