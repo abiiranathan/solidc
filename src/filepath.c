@@ -91,9 +91,7 @@ static inline int has_fast_dirent(void) {
     return kernel_version_ge(2, 6);
 }
 
-static inline int has_statx(void) {
-    return kernel_version_ge(4, 11);
-}
+static inline int has_statx(void) { return kernel_version_ge(4, 11); }
 #endif
 #endif
 
@@ -191,7 +189,7 @@ Directory* dir_open(const char* path) {
         return NULL;
     }
 
-    Directory* dir = (Directory*)calloc(1, sizeof(Directory));  // Use calloc for zero-initialization
+    Directory* dir = (Directory*)calloc(1, sizeof(Directory));
     if (!dir) {
         errno = ENOMEM;
         return NULL;
@@ -327,7 +325,7 @@ static int map_dirent_attrs(const struct dirent* entry, const char* path, FileAt
         }
     } else if (S_ISDIR(st.st_mode)) {
         attr->attrs |= FATTR_DIR;
-        attr->size = 0; // Directory size is not meaningful
+        attr->size = 0;  // Directory size is not meaningful
     } else if (S_ISLNK(st.st_mode)) {
         attr->attrs |= FATTR_SYMLINK;
     }
@@ -360,7 +358,7 @@ static int map_dirent_attrs(const struct dirent* entry, const char* path, FileAt
 // Optimized Linux implementation using getdents64 + fstatat + openat
 // This avoids path string construction for stat and uses kernel's d_type
 
- // Fast attribute mapping using fstatat (fd-relative, avoids full path walk)
+// Fast attribute mapping using fstatat (fd-relative, avoids full path walk)
 static int fast_map_attrs(int dirfd, const char* name, unsigned char d_type, FileAttributes* attr) {
     struct stat st;
     // For type determination, d_type is often sufficient and avoids stat
@@ -390,7 +388,7 @@ static int fast_map_attrs(int dirfd, const char* name, unsigned char d_type, Fil
         }
     } else if (S_ISDIR(st.st_mode)) {
         attr->attrs |= FATTR_DIR;
-        attr->size = 0; // Directory size is not meaningful
+        attr->size = 0;  // Directory size is not meaningful
     } else if (S_ISLNK(st.st_mode)) {
         attr->attrs |= FATTR_SYMLINK;
     }
@@ -421,7 +419,7 @@ static int fast_map_attrs(int dirfd, const char* name, unsigned char d_type, Fil
 static inline bool fast_is_dir(int dirfd, const char* name, unsigned char d_type) {
     if (d_type == DT_DIR) return true;
     if (d_type == DT_REG || d_type == DT_LNK) return false;
-    if (d_type != DT_UNKNOWN) return false; // Other known non-dir types
+    if (d_type != DT_UNKNOWN) return false;  // Other known non-dir types
 
     // DT_UNKNOWN - need to stat
     struct stat st;
@@ -431,7 +429,8 @@ static inline bool fast_is_dir(int dirfd, const char* name, unsigned char d_type
 
 // Optimized dir_walk helper using fd-based traversal and getdents64
 static int dir_walk_fast_helper(const char* path, int dirfd, WalkDirCallback callback, void* data, int depth);
-static int dir_walk_depth_first_fast_helper(const char* path, int dirfd, WalkDirCallback callback, void* data, int depth);
+static int dir_walk_depth_first_fast_helper(const char* path, int dirfd, WalkDirCallback callback, void* data,
+                                            int depth);
 
 static inline bool fast_join_path(const char* base, const char* name, char* out, size_t out_size) {
     size_t base_len = strlen(base);
@@ -522,7 +521,8 @@ static int dir_walk_fast_helper(const char* path, int dirfd, WalkDirCallback cal
     return status;
 }
 
-static int dir_walk_depth_first_fast_helper(const char* path, int dirfd, WalkDirCallback callback, void* data, int depth) {
+static int dir_walk_depth_first_fast_helper(const char* path, int dirfd, WalkDirCallback callback, void* data,
+                                            int depth) {
     if (depth > MAX_DIR_DEPTH) {
         errno = ELOOP;
         return -1;
