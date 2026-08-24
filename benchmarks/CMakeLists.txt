@@ -18,3 +18,6 @@ target_link_libraries(map_micro PRIVATE solidc pthread)
 
 add_executable(csv_micro  ${CMAKE_CURRENT_SOURCE_DIR}/csv_micro.c)
 target_link_libraries(csv_micro PRIVATE solidc pthread)
+
+add_executable(hash_micro  ${CMAKE_CURRENT_SOURCE_DIR}/hash_micro.c)
+target_link_libraries(hash_micro PRIVATE solidc pthread)

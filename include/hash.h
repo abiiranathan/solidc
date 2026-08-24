@@ -13,7 +13,12 @@
  * - ELF: Used in ELF object file format
  * - CRC32: Cyclic redundancy check
  * - MurmurHash3: Excellent distribution and speed
- * - xxHash: Extremely fast (delegates to system xxhash library)
+ * - xxHash: Extremely fast (vendored in deps/xxhash, inlined via XXH_INLINE_ALL)
+ *
+ * NULL-key policy: every function in this header accepts a NULL @p key
+ * and returns 0 rather than dereferencing it.  A NULL key is treated as
+ * "no data"; callers who need to distinguish it from an empty string
+ * must check for NULL before hashing.
  */
 
 #ifndef A02E572A_DD85_4D77_AC81_41037EDE290A
@@ -117,12 +122,14 @@ uint32_t solidc_elf_hash(const void* key);
 /**
  * @brief CRC32 hash function for arbitrary binary data.
  *
- * Cyclic Redundancy Check using standard CRC32 polynomial.
- * Useful for checksums and data integrity verification.
+ * Cyclic Redundancy Check using the standard IEEE polynomial 0xEDB88320
+ * (the classic zlib-compatible CRC32).  Implemented with a slice-by-eight
+ * table technique; results are bit-identical to the naive bitwise loop
+ * but roughly an order of magnitude faster.
  *
- * @param key Pointer to data buffer
+ * @param key Pointer to data buffer. May be NULL only when @p len is zero.
  * @param len Length of data in bytes
- * @return 32-bit CRC32 checksum
+ * @return 32-bit CRC32 checksum, or 0 if @p key is NULL with nonzero @p len.
  *
  * @note Can handle binary data with embedded null bytes.
  */
@@ -145,20 +152,17 @@ uint32_t solidc_crc32_hash(const void* key, size_t len);
 uint32_t solidc_murmur_hash(const char* key, uint32_t len, uint32_t seed);
 
 /**
- * @brief xxHash 32-bit hash function (delegates to system xxhash library).
+ * @brief xxHash 32-bit function (vendored xxhash, inlined via XXH_INLINE_ALL).
  *
  * Extremely fast hash algorithm that processes at RAM speed limits.
  * Produces identical hashes across all platforms (little/big endian).
  *
- * This is a convenience wrapper that delegates to the system xxhash library.
- * For advanced features and performance, use the xxhash library directly.
- *
- * @param input Pointer to data buffer
+ * @param input Pointer to data buffer. May be NULL only when @p len is zero.
  * @param len Length of data in bytes
  * @param seed Seed value for hash initialization
  * @return 32-bit hash value
  *
- * @note This function delegates to XXH32() from the system xxhash library.
+ * @note This function delegates to XXH32() from the vendored xxhash in deps/.
  * @see https://github.com/Cyan4973/xxHash
  */
 static inline uint32_t solidc_XXH32(const void* input, size_t len, uint32_t seed) {
