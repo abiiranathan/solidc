@@ -70,11 +70,15 @@ void dynarray_free(dynarray_t* arr) {
 }
 
 bool dynarray_push_n(dynarray_t* arr, const void* elements, size_t count) {
-    if (DYNARRAY_UNLIKELY(arr == NULL || elements == NULL)) {
+    if (DYNARRAY_UNLIKELY(arr == NULL)) {
         return false;
     }
     if (DYNARRAY_UNLIKELY(count == 0)) {
+        /* Zero-count append is a no-op success even with NULL elements. */
         return true;
+    }
+    if (DYNARRAY_UNLIKELY(elements == NULL)) {
+        return false;
     }
 
     if (DYNARRAY_UNLIKELY(count > SIZE_MAX - arr->size)) {
@@ -146,4 +150,47 @@ void dynarray_clear(dynarray_t* arr) {
     if (arr != NULL) {
         arr->size = 0;
     }
+}
+
+void* dynarray_detach(dynarray_t* arr, size_t* out_size, size_t* out_capacity) {
+    if (out_size) *out_size = 0;
+    if (out_capacity) *out_capacity = 0;
+    if (arr == NULL || arr->data == NULL || arr->size == 0) {
+        return NULL;
+    }
+
+    void* detached = NULL;
+    size_t target_bytes = arr->size * arr->element_size;
+
+    if (arr->capacity == arr->size) {
+        /* Buffer is already exact-size: hand it over directly. */
+        detached = arr->data;
+        arr->data = NULL;
+    } else {
+        /* Shrink to exact size; on realloc failure fall back to a copy so
+         * the caller still receives a valid, owned buffer.
+         * NOTE: a successful realloc consumes the original block -- only
+         * free arr->data when realloc FAILED (the copy branch). */
+        void* shrunk = realloc(arr->data, target_bytes);
+        if (shrunk != NULL) {
+            detached = shrunk;
+            arr->data = NULL;
+        } else {
+            detached = malloc(target_bytes);
+            if (detached == NULL) {
+                /* Nothing lost: the array keeps its buffer. */
+                return NULL;
+            }
+            memcpy(detached, arr->data, target_bytes);
+            free(arr->data);
+            arr->data = NULL;
+        }
+    }
+
+    if (out_size) *out_size = arr->size;
+    if (out_capacity) *out_capacity = arr->size;
+
+    /* Reset to the zero-initialized state: detach consumes the array. */
+    *arr = (dynarray_t){0};
+    return detached;
 }

@@ -24,3 +24,6 @@ target_link_libraries(hash_micro PRIVATE solidc pthread)
 
 add_executable(swiss_micro  ${CMAKE_CURRENT_SOURCE_DIR}/swiss_micro.c)
 target_link_libraries(swiss_micro PRIVATE solidc pthread)
+
+add_executable(dynarray_micro  ${CMAKE_CURRENT_SOURCE_DIR}/dynarray_micro.c)
+target_link_libraries(dynarray_micro PRIVATE solidc pthread)

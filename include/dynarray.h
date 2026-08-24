@@ -43,6 +43,15 @@ extern "C" {
  * Dynamic array structure.
  * Grows automatically on push, shrinks on explicit request or when usage drops below threshold.
  * Thread-unsafe: caller must synchronize concurrent access.
+ *
+ * Lifetime contract:
+ *  - dynarray_init() must be called before any other operation (a
+ *    zero-initialized struct is safely rejected by every entry point).
+ *  - Pointers returned by dynarray_get()/dynarray_get_const() are
+ *    invalidated by push/insert/remove/reserve (any reallocation) and by
+ *    remove/swap_remove for elements after the removed index.
+ *  - Element copies are byte-wise; elements requiring deep cleanup need a
+ *    caller-side pass before dynarray_clear()/dynarray_free().
  */
 typedef struct {
     /** Pointer to the data buffer. Marked restrict for compiler vectorization. */
@@ -51,7 +60,7 @@ typedef struct {
     size_t size;
     /** Current capacity (number of elements that can be stored without reallocation). */
     size_t capacity;
-    /** Size of each element in bytes. */
+    /** Size of each element in bytes. Must be nonzero (enforced by init). */
     size_t element_size;
 } dynarray_t;
 
@@ -60,28 +69,16 @@ typedef struct {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Fast-path element copy optimized for common scalar sizes.
- * Bypasses libc memcpy overhead for primitive types (1, 2, 4, 8 bytes).
+ * Fast-path element copy.
+ *
+ * Plain memcpy: for constant sizes every mainstream compiler emits a
+ * single load/store pair, matching the old hand-rolled switch, while
+ * remaining well-defined for MISALIGNED sources (e.g. fields of packed
+ * structs), which the switch's direct casts were not.
  */
 static DYNARRAY_INLINE void dynarray_fast_copy(void* DYNARRAY_RESTRICT dest, const void* DYNARRAY_RESTRICT src,
                                                size_t size) {
-    switch (size) {
-        case 1:
-            *(uint8_t*)dest = *(const uint8_t*)src;
-            break;
-        case 2:
-            *(uint16_t*)dest = *(const uint16_t*)src;
-            break;
-        case 4:
-            *(uint32_t*)dest = *(const uint32_t*)src;
-            break;
-        case 8:
-            *(uint64_t*)dest = *(const uint64_t*)src;
-            break;
-        default:
-            memcpy(dest, src, size);
-            break;
-    }
+    memcpy(dest, src, size);
 }
 
 /** Out-of-line cold reallocation target to keep hot inline paths lightweight. */
@@ -205,6 +202,121 @@ static DYNARRAY_INLINE bool dynarray_set(dynarray_t* arr, size_t index, const vo
 bool dynarray_reserve(dynarray_t* arr, size_t new_capacity);
 bool dynarray_shrink_to_fit(dynarray_t* arr);
 void dynarray_clear(dynarray_t* arr);
+
+/**
+ * Inserts an element at @p index, shifting elements [index, size) right.
+ * @param index Position for the new element; must be <= size (size == append).
+ * @return true on success; false on NULL args, index > size, or allocation
+ *         failure. On failure the array is unchanged.
+ */
+static DYNARRAY_INLINE bool dynarray_insert(dynarray_t* arr, size_t index, const void* element) {
+    if (DYNARRAY_UNLIKELY(arr == NULL || element == NULL || index > arr->size)) {
+        return false;
+    }
+
+    if (DYNARRAY_UNLIKELY(arr->size >= arr->capacity)) {
+        size_t new_cap = arr->capacity + (arr->capacity >> 1);
+        if (DYNARRAY_UNLIKELY(new_cap <= arr->capacity)) {
+            new_cap = arr->capacity + 1;
+        }
+        if (DYNARRAY_UNLIKELY(!dynarray_grow_slowpath(arr, new_cap))) {
+            return false;
+        }
+    }
+
+    unsigned char* base = (unsigned char*)arr->data;
+    memmove(base + ((index + 1) * arr->element_size), base + (index * arr->element_size),
+            (arr->size - index) * arr->element_size);
+    dynarray_fast_copy(base + (index * arr->element_size), element, arr->element_size);
+    arr->size++;
+
+    return true;
+}
+
+/**
+ * Removes the element at @p index, shifting elements after it left.
+ * Preserves order at O(n) cost.
+ * @return true on success; false on NULL args or index >= size.
+ */
+static DYNARRAY_INLINE bool dynarray_remove(dynarray_t* arr, size_t index) {
+    if (DYNARRAY_UNLIKELY(arr == NULL || index >= arr->size)) {
+        return false;
+    }
+
+    unsigned char* base = (unsigned char*)arr->data;
+    memmove(base + (index * arr->element_size), base + ((index + 1) * arr->element_size),
+            (arr->size - index - 1) * arr->element_size);
+    arr->size--;
+
+    /* Same shrink policy as pop(): halve when a quarter full. */
+    if (DYNARRAY_UNLIKELY(arr->capacity > DYNARRAY_INITIAL_CAPACITY &&
+                          arr->size < arr->capacity / DYNARRAY_SHRINK_THRESHOLD)) {
+        size_t new_capacity = arr->capacity >> 1;
+        if (new_capacity < DYNARRAY_INITIAL_CAPACITY) {
+            new_capacity = DYNARRAY_INITIAL_CAPACITY;
+        }
+        dynarray_grow_slowpath(arr, new_capacity); /* best effort */
+    }
+
+    return true;
+}
+
+/**
+ * Removes the element at @p index by moving the LAST element into its
+ * place. O(1) but does NOT preserve order.
+ * @param out_element Optional; receives the removed element.
+ * @return true on success; false on NULL args or index >= size.
+ */
+static DYNARRAY_INLINE bool dynarray_swap_remove(dynarray_t* arr, size_t index, void* out_element) {
+    if (DYNARRAY_UNLIKELY(arr == NULL || index >= arr->size)) {
+        return false;
+    }
+
+    unsigned char* base = (unsigned char*)arr->data;
+    unsigned char* slot = base + (index * arr->element_size);
+
+    if (out_element != NULL) {
+        dynarray_fast_copy(out_element, slot, arr->element_size);
+    }
+
+    arr->size--;
+    if (index != arr->size) {
+        /* Overwrite with the last element (memcpy: regions never overlap,
+         * distinct indices in an array). */
+        memcpy(slot, base + (arr->size * arr->element_size), arr->element_size);
+    }
+
+    return true;
+}
+
+/**
+ * Returns a mutable pointer to the first element, or NULL if empty/NULL arr.
+ * The pointer is invalidated by any resize or reorder operation.
+ */
+static DYNARRAY_INLINE void* dynarray_first(dynarray_t* arr) { return dynarray_get(arr, 0); }
+
+/**
+ * Returns a mutable pointer to the last element, or NULL if empty/NULL arr.
+ * The pointer is invalidated by any resize or reorder operation.
+ */
+static DYNARRAY_INLINE void* dynarray_last(dynarray_t* arr) {
+    if (DYNARRAY_UNLIKELY(arr == NULL || arr->size == 0)) {
+        return NULL;
+    }
+    return (unsigned char*)arr->data + ((arr->size - 1) * arr->element_size);
+}
+
+/**
+ * Detaches the internal buffer, transferring ownership to the caller.
+ * The array is reset to the zero-initialized state afterwards.
+ * @param out_size Optional; receives the element count.
+ * @param out_capacity Optional; receives the capacity (in elements).
+ * @return Pointer to a malloc'd contiguous buffer holding exactly
+ *         size elements (NOT NUL-terminated), or NULL on NULL arr /
+ *         empty array / allocation failure of the exact-size copy.
+ * @note The caller owns the returned buffer and must free() it.
+ */
+void* dynarray_detach(dynarray_t* arr, size_t* out_size, size_t* out_capacity);
 
 static inline size_t dynarray_size(const dynarray_t* arr) { return arr ? arr->size : 0; }
 
