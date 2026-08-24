@@ -40,7 +40,13 @@ set(TEST_MODULES
 foreach(module ${TEST_MODULES})
     add_executable(${module}_test ${module}_test.c)
     target_link_libraries(${module}_test PRIVATE solidc)
-    
+
+    # Hardening (test integrity): ASSERT() in macros.h compiles to a no-op
+    # under NDEBUG, which Release builds define.  Strip it from test
+    # translation units so assertions are always live; the library itself
+    # keeps its optimized NDEBUG build.
+    target_compile_options(${module}_test PRIVATE -UNDEBUG)
+
     # Check for WIN32, MINGW, OR if the compiler path contains "mingw"
     if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
         # Windows-specific libraries
