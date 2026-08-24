@@ -1,7 +1,7 @@
 #include <math.h>
-#include <solidc/defer.h>
-#include <solidc/regex.h>
-#include <solidc/str_slice.h>
+#include "../include/defer.h"
+#include "../include/regex.h"
+#include "../include/str_slice.h"
 
 static StrSlice ss_from_span(const char* base, regex_span_t span) {
     return (StrSlice){.data = base + span.start, .len = span.end - span.start};
