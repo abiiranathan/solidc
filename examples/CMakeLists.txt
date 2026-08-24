@@ -30,3 +30,6 @@ target_link_libraries(graphics PRIVATE ${SOLIDC_LINK_LIB})
 
 add_executable(ml_prototype ml_prototype.c)
 target_link_libraries(ml_prototype PRIVATE ${SOLIDC_LINK_LIB})
+
+add_executable(iris_classifier iris_classifier.c)
+target_link_libraries(iris_classifier PRIVATE ${SOLIDC_LINK_LIB})
