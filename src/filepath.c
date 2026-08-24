@@ -587,6 +587,178 @@ static int dir_walk_depth_first_fast_helper(const char* path, int dirfd, WalkDir
 }
 #endif
 
+// Lazy attribute helpers - available on all platforms
+const FileAttributes* lazy_get_attrs(LazyFileAttributes* lazy) {
+    if (!lazy) {
+        errno = EINVAL;
+        return NULL;
+    }
+    if (lazy->has_stat) {
+        return &lazy->cached;
+    }
+#ifdef __linux__
+    struct stat st;
+    if (fstatat(lazy->dirfd, lazy->name, &st, AT_SYMLINK_NOFOLLOW) != 0) {
+        return NULL;
+    }
+    lazy->cached.size = (size_t)st.st_size;
+    lazy->cached.mtime = st.st_mtime;
+    lazy->cached.attrs = FATTR_NONE;
+    if (lazy->name[0] == '.') {
+        lazy->cached.attrs |= FATTR_HIDDEN;
+    }
+    if (S_ISREG(st.st_mode)) {
+        lazy->cached.attrs |= FATTR_FILE;
+        if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
+            lazy->cached.attrs |= FATTR_EXECUTABLE;
+        }
+    } else if (S_ISDIR(st.st_mode)) {
+        lazy->cached.attrs |= FATTR_DIR;
+        lazy->cached.size = 0;
+    } else if (S_ISLNK(st.st_mode)) {
+        lazy->cached.attrs |= FATTR_SYMLINK;
+    }
+#ifdef S_ISCHR
+    else if (S_ISCHR(st.st_mode)) {
+        lazy->cached.attrs |= FATTR_CHARDEV;
+    }
+#endif
+#ifdef S_ISBLK
+    else if (S_ISBLK(st.st_mode)) {
+        lazy->cached.attrs |= FATTR_BLOCKDEV;
+    }
+#endif
+#ifdef S_ISFIFO
+    else if (S_ISFIFO(st.st_mode)) {
+        lazy->cached.attrs |= FATTR_FIFO;
+    }
+#endif
+#ifdef S_ISSOCK
+    else if (S_ISSOCK(st.st_mode)) {
+        lazy->cached.attrs |= FATTR_SOCKET;
+    }
+#endif
+#else
+    // Fallback for non-Linux: try fstatat if available, else use stat
+    struct stat st;
+    if (fstatat(lazy->dirfd, lazy->name, &st, AT_SYMLINK_NOFOLLOW) != 0) {
+        return NULL;
+    }
+    lazy->cached.size = (size_t)st.st_size;
+    lazy->cached.mtime = st.st_mtime;
+    lazy->cached.attrs = FATTR_NONE;
+    if (lazy->name[0] == '.') lazy->cached.attrs |= FATTR_HIDDEN;
+    if (S_ISREG(st.st_mode)) {
+        lazy->cached.attrs |= FATTR_FILE;
+        if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) lazy->cached.attrs |= FATTR_EXECUTABLE;
+    } else if (S_ISDIR(st.st_mode)) {
+        lazy->cached.attrs |= FATTR_DIR;
+        lazy->cached.size = 0;
+    } else if (S_ISLNK(st.st_mode)) {
+        lazy->cached.attrs |= FATTR_SYMLINK;
+    }
+#endif
+    lazy->has_stat = true;
+    return &lazy->cached;
+}
+
+bool lazy_is_dir(LazyFileAttributes* lazy) {
+    if (!lazy) return false;
+    if (lazy->is_dir_cached) return lazy->is_dir_value;
+#ifdef __linux__
+    if (lazy->d_type != DT_UNKNOWN) {
+        bool is_dir = (lazy->d_type == DT_DIR);
+        lazy->is_dir_cached = true;
+        lazy->is_dir_value = is_dir;
+        return is_dir;
+    }
+#endif
+    const FileAttributes* attr = lazy_get_attrs(lazy);
+    if (!attr) return false;
+    bool is_dir = fattr_is_dir(attr);
+    lazy->is_dir_cached = true;
+    lazy->is_dir_value = is_dir;
+    return is_dir;
+}
+
+bool lazy_is_file(LazyFileAttributes* lazy) {
+    if (!lazy) return false;
+#ifdef __linux__
+    if (lazy->d_type != DT_UNKNOWN) {
+        return lazy->d_type == DT_REG;
+    }
+#endif
+    const FileAttributes* attr = lazy_get_attrs(lazy);
+    if (!attr) return false;
+    return fattr_is_file(attr);
+}
+
+#ifdef __linux__
+static int dir_walkx_fast_helper(const char* path, int dirfd, WalkDirCallbackX callback, void* data, int depth) {
+    if (depth > MAX_DIR_DEPTH) {
+        errno = ELOOP;
+        return -1;
+    }
+
+    char buf[64 * 1024];
+    size_t path_len = strlen(path);
+    char fullpath[FILENAME_MAX];
+
+    while (1) {
+        long nread = syscall(SYS_getdents64, dirfd, buf, sizeof(buf));
+        if (nread == -1) return -1;
+        if (nread == 0) break;
+
+        for (long bpos = 0; bpos < nread;) {
+            struct linux_dirent64* d = (struct linux_dirent64*)(buf + bpos);
+
+            if (d->d_name[0] != '.' || (d->d_name[1] != '\0' && (d->d_name[1] != '.' || d->d_name[2] != '\0'))) {
+                size_t name_len = strlen(d->d_name);
+                if (path_len + 1 + name_len + 1 > sizeof(fullpath)) {
+                    bpos += d->d_reclen;
+                    continue;
+                }
+                memcpy(fullpath, path, path_len);
+                fullpath[path_len] = '/';
+                memcpy(fullpath + path_len + 1, d->d_name, name_len + 1);
+
+                LazyFileAttributes lazy = {
+                    .dirfd = dirfd,
+                    .name = d->d_name,
+                    .d_type = d->d_type,
+                    .has_stat = false,
+                    .is_dir_cached = false,
+                };
+                if (d->d_name[0] == '.') {
+                    lazy.cached.attrs = FATTR_HIDDEN;
+                }
+
+                WalkDirOption opt = callback(&lazy, fullpath, d->d_name, data);
+                if (opt == DirStop) return 0;
+                if (opt == DirError) return -1;
+                if (opt == DirSkip) {
+                    bpos += d->d_reclen;
+                    continue;
+                }
+
+                if (lazy_is_dir(&lazy)) {
+                    int child_fd = openat(dirfd, d->d_name, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+                    if (child_fd >= 0) {
+                        if (dir_walkx_fast_helper(fullpath, child_fd, callback, data, depth + 1) != 0) {
+                            close(child_fd);
+                            return -1;
+                        }
+                        close(child_fd);
+                    }
+                }
+            }
+            bpos += d->d_reclen;
+        }
+    }
+    return 0;
+}
+#endif
+
 static int delete_single_directory(const char* path) {
 #ifdef _WIN32
     if (!RemoveDirectoryA(path)) {
@@ -1075,6 +1247,112 @@ static int dir_walk_helper(const char* path, WalkDirCallback callback, void* dat
  */
 int dir_walk(const char* path, WalkDirCallback callback, void* data) {
     return dir_walk_helper(path, callback, data, 0);
+}
+
+int dir_walkx(const char* path, WalkDirCallbackX callback, void* data) {
+    if (!path || !callback || *path == '\0') {
+        errno = EINVAL;
+        return -1;
+    }
+#ifdef __linux__
+    if (has_fast_dirent()) {
+        int dirfd = open(path, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+        if (dirfd >= 0) {
+            int ret = dir_walkx_fast_helper(path, dirfd, callback, data, 0);
+            close(dirfd);
+            return ret;
+        }
+    }
+    // Fallback: emulate lazy walk using regular dir_walk
+    // This handles the case where open() fails or on older kernels
+    // We create a wrapper that converts FileAttributes to LazyFileAttributes
+    // For now, implement a simple fallback that uses dir_walk and a trampoline
+    // Since lazy and non-lazy have different struct layouts, we need to be careful
+    // For fallback, we can just not support dir_walkx and return error, or implement properly
+    // Let's implement a proper fallback using dir_open/readdir
+#endif
+    // Generic fallback for non-Linux or when fast path unavailable
+    // Use a helper that builds Lazy structs from stat results
+    Directory* dir = dir_open(path);
+    if (!dir) return -1;
+
+    char fullpath[FILENAME_MAX];
+    int status = 0;
+#ifdef _WIN32
+    do {
+        const wchar_t* wname = dir->find_data.cFileName;
+        if (wcscmp(wname, L".") == 0 || wcscmp(wname, L"..") == 0) continue;
+        char name[MAX_PATH];
+        WideCharToMultiByte(CP_UTF8, 0, wname, -1, name, MAX_PATH, NULL, NULL);
+        if (!filepath_join_buf(path, name, fullpath, sizeof(fullpath))) {
+            status = -1;
+            break;
+        }
+        // For Windows fallback, create a fake lazy with has_stat = true
+        FileAttributes attr;
+        map_win32_attrs(&dir->find_data, &attr);
+        LazyFileAttributes lazy = {
+            .dirfd = -1,
+            .name = name,
+            .d_type = DT_UNKNOWN,
+            .cached = attr,
+            .has_stat = true,
+            .is_dir_cached = true,
+            .is_dir_value = fattr_is_dir(&attr),
+        };
+        WalkDirOption opt = callback(&lazy, fullpath, name, data);
+        if (opt == DirStop) break;
+        if (opt == DirError) {
+            status = -1;
+            break;
+        }
+        if (opt == DirSkip) continue;
+        if (fattr_is_dir(&attr)) {
+            if (dir_walkx(fullpath, callback, data) != 0) {
+                status = -1;
+                break;
+            }
+        }
+    } while (FindNextFileW(dir->handle, &dir->find_data));
+#else
+    struct dirent* entry;
+    while ((entry = readdir(dir->dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
+        if (!filepath_join_buf(path, entry->d_name, fullpath, sizeof(fullpath))) {
+            status = -1;
+            break;
+        }
+        FileAttributes attr;
+        if (map_dirent_attrs(entry, fullpath, &attr) != 0) continue;
+        if (attr.attrs == FATTR_NONE) {
+            if (populate_file_attrs(fullpath, &attr) != 0) continue;
+        }
+        LazyFileAttributes lazy = {
+            .dirfd = dirfd(dir->dir),
+            .name = entry->d_name,
+            .d_type = entry->d_type,
+            .cached = attr,
+            .has_stat = true,
+            .is_dir_cached = true,
+            .is_dir_value = fattr_is_dir(&attr),
+        };
+        WalkDirOption opt = callback(&lazy, fullpath, entry->d_name, data);
+        if (opt == DirStop) break;
+        if (opt == DirError) {
+            status = -1;
+            break;
+        }
+        if (opt == DirSkip) continue;
+        if (fattr_is_dir(&attr)) {
+            if (dir_walkx(fullpath, callback, data) != 0) {
+                status = -1;
+                break;
+            }
+        }
+    }
+#endif
+    dir_close(dir);
+    return status;
 }
 
 // Callback for directory size calculation

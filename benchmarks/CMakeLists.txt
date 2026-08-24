@@ -30,3 +30,6 @@ target_link_libraries(dynarray_micro PRIVATE solidc pthread)
 
 add_executable(sort_micro  ${CMAKE_CURRENT_SOURCE_DIR}/sort_micro.c)
 target_link_libraries(sort_micro PRIVATE solidc pthread)
+
+add_executable(filepath_walk_bench  ${CMAKE_CURRENT_SOURCE_DIR}/filepath_walk_bench.c)
+target_link_libraries(filepath_walk_bench PRIVATE solidc pthread)
