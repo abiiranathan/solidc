@@ -297,10 +297,7 @@ void sleep_ms(int ms) {
     if (ms <= 0) { return; }
 
 #ifdef _WIN32
-    // Windows Sleep is documented to accept DWORD, validate range
-    if (ms < 0 || (unsigned int)ms > 0xFFFFFFFE) {
-        return;  // Invalid range for Windows
-    }
+    // Sleep takes DWORD; INT_MAX always fits, so no further range check needed.
     Sleep((DWORD)ms);
 
 #else  // POSIX
@@ -333,11 +330,17 @@ int get_pid() {
 unsigned long get_tid() {
 #ifdef _WIN32
     return (unsigned long)GetCurrentThreadId();
-#else  // POSIX
+#elif defined(__linux__)
+    /*
+     * Kernel thread ID: unique system-wide, matches `ps -T`/`htop` output,
+     * and stable across runs.  Casting pthread_self() instead would expose
+     * the glibc thread descriptor address, which is neither unique
+     * system-wide nor meaningful between processes.
+     */
+    return (unsigned long)syscall(SYS_gettid);
+#else  // POSIX fallback
     // Note: pthread_t is an opaque type and may not be an integer.
     // Casting to unsigned long is not portable but commonly works.
-    // For true portability, consider using gettid() on Linux or
-    // platform-specific APIs to get numeric thread IDs.
     return (unsigned long)pthread_self();
 #endif
 }
