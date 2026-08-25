@@ -1,10 +1,21 @@
 #include "../include/slist.h"
 
 #include <stdalign.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifndef __has_feature
+#define __has_feature(x) 0
+#endif
+
+/* MSVC: max_align_t lives in <stddef.h> only when available; provide a
+ * conservative fallback otherwise. */
+#if defined(_MSC_VER) && (_MSC_VER < 1900)
+typedef long double max_align_t;
+#endif
 
 /* Payload must be suitably aligned for any fundamental type, since callers
  * store ints, doubles, long doubles, ... by value in the inline buffer. */

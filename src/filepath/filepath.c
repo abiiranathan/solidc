@@ -17,6 +17,9 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+#include <direct.h>
+#endif
 
 // Generate a random string for temporary file/directory names.
 // len must be < 64 bytes.
@@ -217,7 +220,11 @@ int dir_chdir(const char* path) {
         errno = EINVAL;
         return -1;
     }
+#ifdef _WIN32
+    return _chdir(path);
+#else
     return chdir(path);
+#endif
 }
 
 // List files in a directory with unified error handling

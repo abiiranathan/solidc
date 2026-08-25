@@ -27,6 +27,7 @@
  */
 #include "../include/sort.h"
 
+#include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -496,7 +497,7 @@ static inline int64_t solidc_from_key_i64(uint64_t k) { return (int64_t)(k ^ 0x8
 static inline uint64_t solidc_to_key_f64(double d) {
     uint64_t u;
     memcpy(&u, &d, sizeof(u));
-    if (__builtin_isnan(d)) return UINT64_MAX;
+    if (isnan(d)) return UINT64_MAX;
     uint64_t mask = (uint64_t)(-(int64_t)(u >> 63)) | 0x8000000000000000ULL;
     return u ^ mask;
 }
@@ -520,5 +521,4 @@ static inline double solidc_from_key_f64(uint64_t k) {
 
 SOLIDC_SORT_DEF(i32, int32_t, uint32_t, 4, solidc_to_key_i32, solidc_from_key_i32, a < b)
 SOLIDC_SORT_DEF(i64, int64_t, uint64_t, 8, solidc_to_key_i64, solidc_from_key_i64, a < b)
-SOLIDC_SORT_DEF(f64, double, uint64_t, 8, solidc_to_key_f64, solidc_from_key_f64,
-                (!__builtin_isnan(a)) && (__builtin_isnan(b) || a < b))
+SOLIDC_SORT_DEF(f64, double, uint64_t, 8, solidc_to_key_f64, solidc_from_key_f64, (!isnan(a)) && (isnan(b) || a < b))

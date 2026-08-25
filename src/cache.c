@@ -12,6 +12,12 @@
 #define XXH_INLINE_ALL
 #include <xxhash.h>
 
+#ifdef _MSC_VER
+#ifndef __builtin_prefetch
+#define __builtin_prefetch(x, ...) ((void)0)
+#endif
+#endif
+
 /** Maximum linear probe sequence length during open addressing collisions. */
 #define CACHE_PROBE_MAX 16
 

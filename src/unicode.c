@@ -41,6 +41,18 @@
 #include <string.h>  // for memcpy, memmove, memcmp, strstr, strcmp, strlen
 #include <wchar.h>   // for WCHAR_MAX
 #include <wctype.h>  // for iswspace, iswdigit, iswalpha, iswalnum, iswpunct,
+#ifdef _MSC_VER
+#include <intrin.h>
+#pragma intrinsic(_BitScanForward)
+#ifndef __builtin_ctz
+static inline int msvc_ctz_u32_unicode(uint32_t x) {
+    unsigned long r;
+    _BitScanForward(&r, (unsigned long)x);
+    return (int)r;
+}
+#define __builtin_ctz(x) msvc_ctz_u32((uint32_t)(x))
+#endif
+#endif
 // iswupper, iswlower, towlower, towupper
 
 typedef struct {

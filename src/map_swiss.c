@@ -11,9 +11,52 @@
 #endif
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef _MSC_VER
+#include <BaseTsd.h>
+#ifndef ssize_t
+typedef SSIZE_T ssize_t;
+#endif
+#include <intrin.h>
+#pragma intrinsic(_BitScanForward)
+#pragma intrinsic(_BitScanForward64)
+static inline int msvc_ctz_u32(uint32_t x) {
+    unsigned long r;
+    _BitScanForward(&r, (unsigned long)x);
+    return (int)r;
+}
+static inline int msvc_ctz_u64(uint64_t x) {
+    unsigned long r;
+#if defined(_M_X64) || defined(_M_ARM64)
+    _BitScanForward64(&r, x);
+    return (int)r;
+#else
+    if ((uint32_t)x != 0) {
+        _BitScanForward(&r, (unsigned long)x);
+        return (int)r;
+    } else {
+        _BitScanForward(&r, (unsigned long)(x >> 32));
+        return (int)r + 32;
+    }
+#endif
+}
+#ifndef __builtin_ctz
+#define __builtin_ctz(x) msvc_ctz_u32((uint32_t)(x))
+#endif
+#ifndef __builtin_ctzll
+#define __builtin_ctzll(x) msvc_ctz_u64((uint64_t)(x))
+#endif
+#ifndef __builtin_expect
+#define __builtin_expect(x, y) (x)
+#endif
+#ifndef __builtin_prefetch
+#define __builtin_prefetch(x, ...) ((void)0)
+#endif
+#endif
 
 #define XXH_INLINE_ALL
 #include <xxhash.h>
