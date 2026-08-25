@@ -336,11 +336,13 @@ static inline StrSliceErr ss_to_double(StrSlice s, double* out) {
     if (total_exp != 0) {
         int abs_exp = total_exp < 0 ? -total_exp : total_exp;
         if (abs_exp > 308) abs_exp = 308;  // clamp; IEEE will give ±inf / 0
-        double scale = (abs_exp <= 22) ? _p10[abs_exp] : ({
-            double str = 1.0;
-            for (int j = 0; j < abs_exp; ++j) str *= 10.0;
-            str;
-        });
+        double scale;
+        if (abs_exp <= 22) {
+            scale = _p10[abs_exp];
+        } else {
+            scale = 1.0;
+            for (int j = 0; j < abs_exp; ++j) scale *= 10.0;
+        }
         result = (total_exp < 0) ? result / scale : result * scale;
     }
 
