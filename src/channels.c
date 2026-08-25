@@ -36,9 +36,10 @@ struct Channel {
     bool cond_ready;     /* condvars initialized successfully */
 };
 
-/** Next power of two >= n (n >= 1). */
+/** Next power of two >= n (n >= 1). Honors small hints exactly so bounded
+ * queues (e.g. pub/sub subscriber queues) keep their requested depth. */
 static size_t chan_pow2(size_t n) {
-    size_t c = 16;
+    size_t c = 1;
     while (c < n) c <<= 1;
     return c;
 }
@@ -231,6 +232,8 @@ bool chan_is_closed(Channel* c) {
     lock_release(&c->lock);
     return closed;
 }
+
+size_t chan_value_size(Channel* c) { return c ? c->value_size : 0; }
 
 void chan_free(Channel* c) {
     if (!c) return;

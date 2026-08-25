@@ -119,6 +119,7 @@ set(HEADERS
 set(SOURCES
     src/arena.c
     src/channels.c
+    src/chan_patterns.c
     src/cstr.c
     src/csvparser.c
     src/file.c

@@ -172,6 +172,13 @@ size_t chan_cap(Channel* c);
 bool chan_is_closed(Channel* c);
 
 /**
+ * @brief Size in bytes of the values this channel carries.
+ * @param c Channel to query.
+ * @return The value_size passed to chan_new(), or 0 if c is NULL.
+ */
+size_t chan_value_size(Channel* c);
+
+/**
  * @brief Frees the channel and its buffer.
  *
  * @param c Channel to free; NULL is safely ignored.

@@ -24,6 +24,7 @@ set(TEST_MODULES
     matrix
     cache
     channels
+    chan_patterns
     dynarray
     dotenv
     xtime
