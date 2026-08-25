@@ -330,6 +330,43 @@ int64_t file_tell(const file_t* file);
  */
 file_result_t file_seek(file_t* file, int64_t offset, int whence);
 
+/**
+ * @brief Zero-copy file-to-descriptor transfer (cross-platform sendfile).
+ *
+ * Copies up to @p count bytes from @p in_fd starting at @p *offset directly
+ * to @p out_fd without routing through user space, where the OS supports it:
+ *
+ *   Linux        sendfile(2)
+ *   macOS        sendfile (header into socket; Apple variant)
+ *   FreeBSD      sendfile (with NULL header/trailer)
+ *   Windows      TransmitFile (out must be a SOCKET)
+ *   Fallback     pread + write loop (portable, always correct)
+ *
+ * @param[in,out] out_fd Destination descriptor. On POSIX any writable
+ *                descriptor (typically a socket fd from socket_fd()); on
+ *                Windows this must be a SOCKET handle cast to int.
+ * @param[in] in_fd Source regular-file descriptor.
+ * @param[in,out] offset Start offset into in_fd; advanced by the number of
+ *                bytes actually sent. Never touches in_fd's file position.
+ * @param[in] count Maximum bytes to send.
+ * @return Number of bytes sent (> 0), 0 if the source is exhausted
+ *         (offset at EOF), or -1 on error (errno set).
+ *
+ * @note May send fewer bytes than requested — non-blocking sockets and
+ *       kernel limits both cause partial sends. Loop until it returns 0 or
+ *       your file offset reaches EOF. EAGAIN from a non-blocking socket is
+ *       reported as -1 with errno == EAGAIN; pair with a poller write
+ *       event and resume from the updated *offset.
+ *
+ * @code
+ *   int64_t off = 0;
+ *   int64_t sent;
+ *   while ((sent = file_sendfile(sock_fd, file_fd, &off, remaining)) > 0)
+ *       remaining -= (size_t)sent;
+ * @endcode
+ */
+int64_t file_sendfile(int out_fd, int in_fd, int64_t* offset, size_t count);
+
 #ifdef __cplusplus
 }
 #endif

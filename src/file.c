@@ -816,3 +816,111 @@ file_result_t file_seek(file_t* file, int64_t offset, int whence) {
     return FILE_SUCCESS;
 #endif
 }
+
+/* -------------------------------------------------------------------------
+ * Cross-platform sendfile
+ * ---------------------------------------------------------------------- */
+
+#if defined(__linux__)
+#include <sys/sendfile.h>
+#elif defined(__APPLE__) || defined(__FreeBSD__)
+#include <sys/socket.h>
+#include <sys/uio.h>
+#endif
+#if defined(_WIN32)
+#include <mswsock.h>  /* TransmitFile */
+#include <winsock2.h> /* must precede windows.h (LEAN_AND_MEAN) */
+#endif
+
+/**
+ * Fallback used when the OS has no native sendfile: pread from in_fd,
+ * write to out_fd in stack chunks. Correct everywhere; not zero-copy.
+ */
+static int64_t file_sendfile_fallback(int out_fd, int in_fd, int64_t* offset, size_t count) {
+    char buf[65536];
+    size_t chunk = count < sizeof(buf) ? count : sizeof(buf);
+#if defined(_WIN32)
+    /* Windows: seek + read (no pread); save/restore the file position. */
+    int64_t saved = _lseeki64(in_fd, 0, SEEK_CUR);
+    if (_lseeki64(in_fd, *offset, SEEK_SET) < 0) return -1;
+    int rb = (int)read(in_fd, buf, (unsigned)chunk);
+    if (rb < 0) return -1;
+    _lseeki64(in_fd, saved, SEEK_SET);
+#else
+    ssize_t rb = pread(in_fd, buf, chunk, *offset);
+    if (rb < 0) return -1;
+#endif
+    if (rb == 0) return 0;
+
+    size_t sent_total = 0;
+    while (sent_total < (size_t)rb) {
+#ifdef _WIN32
+        int w = (int)send((SOCKET)(intptr_t)out_fd, buf + sent_total, (unsigned)(rb - sent_total), 0);
+#else
+        ssize_t w = write(out_fd, buf + sent_total, (size_t)rb - sent_total);
+#endif
+        if (w < 0) {
+            if (errno == EINTR) continue;
+            return (sent_total > 0) ? (int64_t)sent_total : -1;
+        }
+        sent_total += (size_t)w;
+    }
+    *offset += (int64_t)sent_total;
+    return (int64_t)sent_total;
+}
+
+int64_t file_sendfile(int out_fd, int in_fd, int64_t* offset, size_t count) {
+    if (!offset || count == 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+#if defined(__linux__)
+    off_t off = (off_t)*offset;
+    ssize_t sent = sendfile(out_fd, in_fd, &off, count);
+    if (sent < 0) return -1;
+    *offset = (int64_t)off;
+    return (int64_t)sent;
+
+#elif defined(__APPLE__)
+    off_t len = (off_t)count;
+    int r = sendfile(in_fd, out_fd, (off_t)*offset, &len, NULL, 0);
+    if (r == -1 && errno != EAGAIN) return -1;
+    /* EAGAIN: partial send happened; len reports how much. */
+    *offset += (int64_t)len;
+    return (int64_t)len;
+
+#elif defined(__FreeBSD__)
+    off_t len = (off_t)count;
+    int r = sendfile(in_fd, out_fd, (off_t)*offset, (size_t)count, NULL, &len, 0);
+    if (r == -1 && errno != EAGAIN) return -1;
+    *offset += (int64_t)len;
+    return (int64_t)len;
+
+#elif defined(_WIN32)
+    /* TransmitFile sends from the file's CURRENT position, so seek first.
+     * out_fd must be a SOCKET (cast by the caller from socket_fd()). */
+    LARGE_INTEGER li;
+    li.QuadPart = *offset;
+    if (SetFilePointer((HANDLE)(intptr_t)in_fd, li.LowPart, &li.HighPart, FILE_BEGIN) == INVALID_SET_FILE_POINTER &&
+        GetLastError() != NO_ERROR) {
+        return -1;
+    }
+    if (count > 0xFFFFFFFEu) count = 0xFFFFFFFEu; /* TransmitFile documented max */
+    if (!TransmitFile((SOCKET)(intptr_t)out_fd, (HANDLE)(intptr_t)in_fd, (DWORD)count, 0, NULL, NULL,
+                      TF_USE_DEFAULT_WORKER)) {
+        int err = WSAGetLastError();
+        if (err == WSAEWOULDBLOCK) {
+            errno = EAGAIN;
+            return -1;
+        }
+        errno = EIO;
+        return -1;
+    }
+    *offset += (int64_t)count;
+    return (int64_t)count;
+
+#else
+    return file_sendfile_fallback(out_fd, in_fd, offset, count);
+#endif
+}

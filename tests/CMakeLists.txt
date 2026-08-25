@@ -25,6 +25,8 @@ set(TEST_MODULES
     cache
     channels
     chan_patterns
+    poller
+    file_sendfile
     dynarray
     dotenv
     xtime

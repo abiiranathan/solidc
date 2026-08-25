@@ -109,6 +109,7 @@ set(HEADERS
     include/simd.h
     include/env.h
     include/platform.h
+    include/poller.h
     include/prettytable.h
     include/str_slice.h
     include/regex.h
@@ -123,6 +124,8 @@ set(SOURCES
     src/cstr.c
     src/csvparser.c
     src/file.c
+    src/poller/poller_common.c
+    src/poller/poller_epoll.c
     src/filepath/filepath.c
     src/filepath/filepath_string.c
     src/hash.c
@@ -155,9 +158,14 @@ add_compile_definitions(_USE_MATH_DEFINES)
 
 # Platform backends for filepath and process
 if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
-    list(APPEND SOURCES src/filepath/filepath_win32.c src/process/process_win32.c)
+    list(APPEND SOURCES src/filepath/filepath_win32.c src/process/process_win32.c src/poller/poller_win32.c)
 else()
     list(APPEND SOURCES src/filepath/filepath_posix.c src/process/process_posix.c)
+    if(APPLE)
+        list(APPEND SOURCES src/poller/poller_kqueue.c)
+    else()
+        list(APPEND SOURCES src/poller/poller_epoll.c)
+    endif()
 endif()
 
 # Create the library
