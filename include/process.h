@@ -179,6 +179,21 @@ ProcessError process_terminate(ProcessHandle* handle, bool force);
 void process_free(ProcessHandle* handle);
 
 /**
+ * @brief Cross-platform sleep
+ *
+ * Suspends the calling thread for the given duration. On POSIX this maps
+ * to nanosleep(2); on Windows to Sleep() with millisecond granularity.
+ * Negative inputs are clamped to zero, and extreme durations are clamped
+ * to the platform maximum.
+ *
+ * @param[in] seconds Whole seconds to sleep.
+ * @param[in] nanoseconds Additional nanoseconds [0, 999999999].
+ * @note Not signal-safe on POSIX (nanosleep may return early on signal;
+ *       this implementation does not retry).
+ */
+void NANOSLEEP(long seconds, long nanoseconds);
+
+/**
 Returns True if pipe read closed.
 */
 bool pipe_read_closed(PipeHandle* handle);

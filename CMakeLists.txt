@@ -130,7 +130,7 @@ set(SOURCES
     src/sort.c
     src/map_swiss.c
     src/pipeline.c
-    src/process.c
+    src/process/process.c
     src/slist.c
     src/socket.c
     src/stdstreams.c
@@ -151,11 +151,11 @@ set(SOURCES
 
 add_compile_definitions(_USE_MATH_DEFINES)
 
-# filepath platform backend
+# Platform backends for filepath and process
 if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
-    list(APPEND SOURCES src/filepath/filepath_win32.c)
+    list(APPEND SOURCES src/filepath/filepath_win32.c src/process/process_win32.c)
 else()
-    list(APPEND SOURCES src/filepath/filepath_posix.c)
+    list(APPEND SOURCES src/filepath/filepath_posix.c src/process/process_posix.c)
 endif()
 
 # Create the library
