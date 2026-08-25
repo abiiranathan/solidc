@@ -1104,8 +1104,8 @@ static inline int solidc_clz_u32(uint32_t x) {
  * Portable max alignment — MSVC C mode lacks max_align_t.
  * ---------------------------------------------------------------------- */
 #if defined(_MSC_VER)
-typedef struct {
-    long double _ld;
+typedef union {
+    long double _ld; /* dominates both size (16) and alignment (16) on SysV x86-64 */
     double _d;
     long long _ll;
     void* _p;
