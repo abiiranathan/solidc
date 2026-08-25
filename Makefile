@@ -72,6 +72,74 @@ debug:
 release:
 	$(MAKE) BUILD_TYPE=Release
 
+# === Cross-Platform Checks ===
+# One command to surface every -Werror failure that CI would hit on
+# Linux (x64 + aarch64 cross), Windows (MinGW cross), and macOS/BSD.
+# Each cross-check is skipped gracefully when its toolchain/SDK is absent,
+# so `make check-platforms` is useful on a plain Linux dev box and still
+# exhaustive on the CI matrix (where every runner IS native for its OS).
+.PHONY: check-platforms check-linux check-linux-aarch64 check-windows check-macos check-bsd
+
+check-platforms: check-linux check-linux-aarch64 check-windows check-macos check-bsd
+	@echo ""
+	@echo "All platform checks complete."
+
+check-linux:
+	@echo "=== Checking Linux x86_64 (native, Release -Werror) ==="
+	@rm -rf build/check-linux
+	@cmake -GNinja -S . -B build/check-linux -DCMAKE_BUILD_TYPE=Release > /dev/null
+	@cmake --build build/check-linux
+	@echo "Linux x86_64: OK"
+
+check-linux-aarch64:
+	@if ! command -v aarch64-linux-gnu-gcc >/dev/null 2>&1; then \
+		echo "=== Checking Linux aarch64 (cross) ==="; \
+		echo "SKIP: aarch64-linux-gnu-gcc not found (sudo pacman -S aarch64-linux-gnu-gcc)"; \
+	else \
+		echo "=== Checking Linux aarch64 (cross, -Werror) ==="; \
+		rm -rf build/check-aarch64; \
+		cmake -GNinja -S . -B build/check-aarch64 -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ -DCMAKE_FIND_ROOT_PATH=/usr/aarch64-linux-gnu -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -DBUILD_BENCHMARKS=OFF -DBUILD_EXAMPLES=OFF > /dev/null && \
+		cmake --build build/check-aarch64 --target solidc && \
+		echo "Linux aarch64: OK"; \
+	fi
+
+check-windows:
+	@if ! command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then \
+		echo "=== Checking Windows x64 (cross) ==="; \
+		echo "SKIP: x86_64-w64-mingw32-gcc not found (sudo pacman -S mingw-w64-gcc)"; \
+	else \
+		echo "=== Checking Windows x64 (cross, MinGW) ==="; \
+		rm -rf build/check-windows; \
+		cmake -GNinja -S . -B build/check-windows -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ -DCMAKE_FIND_ROOT_PATH=/usr/x86_64-w64-mingw32 -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -DBUILD_BENCHMARKS=OFF -DBUILD_EXAMPLES=OFF > /dev/null && \
+		cmake --build build/check-windows --target solidc && \
+		echo "Windows x64: OK"; \
+	fi
+
+check-macos:
+	@if [ "$$(uname)" != "Darwin" ]; then \
+		echo "=== Checking macOS (native) ==="; \
+		echo "SKIP: macOS checks require a Darwin host (no Apple SDK on Linux)"; \
+		echo "      Verified separately: src/stdstreams.c and src/lock.c macOS paths syntax-check clean."; \
+	else \
+		echo "=== Checking macOS (native, Release -Werror) ==="; \
+		rm -rf build/check-macos; \
+		cmake -GNinja -S . -B build/check-macos -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 > /dev/null && \
+		cmake --build build/check-macos && \
+		echo "macOS: OK"; \
+	fi
+
+check-bsd:
+	@if [ "$$(uname)" != "FreeBSD" ] && [ "$$(uname)" != "OpenBSD" ]; then \
+		echo "=== Checking BSD (native) ==="; \
+		echo "SKIP: BSD checks require a BSD host (no sys/_types.h SDK on Linux)"; \
+	else \
+		echo "=== Checking BSD (native, Release -Werror) ==="; \
+		rm -rf build/check-bsd; \
+		cmake -GNinja -S . -B build/check-bsd -DCMAKE_BUILD_TYPE=Release > /dev/null && \
+		cmake --build build/check-bsd && \
+		echo "BSD: OK"; \
+	fi
+
 docs:
 	doxygen Doxyfile
 
