@@ -23,6 +23,7 @@ set(TEST_MODULES
     vec
     matrix
     cache
+    channels
     dynarray
     dotenv
     xtime

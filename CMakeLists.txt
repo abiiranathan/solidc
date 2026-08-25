@@ -118,6 +118,7 @@ set(HEADERS
 # Source files
 set(SOURCES
     src/arena.c
+    src/channels.c
     src/cstr.c
     src/csvparser.c
     src/file.c
