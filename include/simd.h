@@ -1070,11 +1070,12 @@ static inline bool simd_equals_eps(simd_vec_t a, simd_vec_t b, float epsilon) {
 #elif defined(SIMD_ARCH_ARM)
 
 /*
- * GCC and Clang (used for 99% of Android/iOS/Linux ARM) support
- * __builtin_shufflevector. This maps to the optimal NEON instruction
- * (usually vtbl, vext, or simple moves).
+ * __builtin_shufflevector is a CLANG extension; GCC on ARM does not have
+ * it (GCC uses the differently-shaped __builtin_shuffle).  Non-clang
+ * compilers therefore take the portable NEON load/store fallback below,
+ * which every ARM compiler optimizes to vtbl/vext/ins sequences.
  */
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(__clang__)
 #define simd_swizzle(v, x, y, z, w) __builtin_shufflevector((v), (v), (x), (y), (z), (w))
 #else
 /** Portable fallback for simd_swizzle() on compilers without shuffle builtins. */

@@ -7,19 +7,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef __has_feature
-#define __has_feature(x) 0
-#endif
-
-/* MSVC: max_align_t lives in <stddef.h> only when available; provide a
- * conservative fallback otherwise. */
-#if defined(_MSC_VER) && (_MSC_VER < 1900)
-typedef long double max_align_t;
-#endif
-
 /* Payload must be suitably aligned for any fundamental type, since callers
- * store ints, doubles, long doubles, ... by value in the inline buffer. */
-#define ALIGNMENT      (alignof(max_align_t))
+ * store ints, doubles, long doubles, ... by value in the inline buffer.
+ *
+ * A struct of the widest fundamental types reproduces max_align_t's
+ * alignment without depending on <stddef.h> exposing max_align_t (MSVC
+ * does not in C mode). */
+typedef struct {
+    long double ld;
+    double d;
+    long long ll;
+    void* ptr;
+} slist_align_t;
+
+#define ALIGNMENT      (alignof(slist_align_t))
 #define ALIGNMENT_MASK (ALIGNMENT - 1)
 
 // Round up to proper alignment. Returns 0 on overflow.

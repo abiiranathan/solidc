@@ -223,12 +223,15 @@ int cond_init(Condition* condition) {
     }
 
     /*
-     * Hardening: condition variables are created on the MONOTONIC clock so
-     * that timed waits are immune to wall-clock adjustments (NTP steps,
-     * manual time changes).  A realtime step would otherwise cause
+     * Hardening: on Linux, condition variables are created on the MONOTONIC
+     * clock so that timed waits are immune to wall-clock adjustments (NTP
+     * steps, manual time changes).  A realtime step would otherwise cause
      * spurious premature timeouts or multi-day hangs.
-     * cond_wait_timeout() below computes deadlines from the same clock;
-     * the two functions form the documented pairing for this module.
+     *
+     * macOS has no pthread_condattr_setclock(); its condvars always use the
+     * default (realtime) clock, so cond_wait_timeout() below computes
+     * deadlines from CLOCK_REALTIME there.  The two functions form the
+     * documented pairing for this module.
      */
     pthread_condattr_t attr;
     int ret = pthread_condattr_init(&attr);
@@ -237,6 +240,16 @@ int cond_init(Condition* condition) {
         return -1;
     }
 
+#if defined(__APPLE__)
+    /* No condattr clock selection on Darwin; cond uses CLOCK_REALTIME. */
+    ret = pthread_cond_init(condition, &attr);
+    pthread_condattr_destroy(&attr);
+    if (ret != 0) {
+        fprintf(stderr, "pthread_cond_init failed: %s\n", strerror(ret));
+        return -1;
+    }
+    return 0;
+#else
     ret = pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
     if (ret != 0) {
         /* Very old platforms may lack MONOTONIC support for condvars;
@@ -259,6 +272,7 @@ int cond_init(Condition* condition) {
     }
 
     return 0;
+#endif /* __APPLE__ */
 }
 
 int cond_signal(Condition* condition) {
@@ -313,12 +327,17 @@ int cond_wait_timeout(Condition* condition, Lock* lock, int timeout_ms) {
     }
 
     /*
-     * Deadline is computed on CLOCK_MONOTONIC to match cond_init() above.
-     * Using CLOCK_REALTIME here would let wall-clock adjustments corrupt
-     * the wait duration.
+     * Deadline clock must match the clock the condvar was created with
+     * (see cond_init() above): CLOCK_MONOTONIC on Linux, CLOCK_REALTIME
+     * on Darwin where condvars always use the wall clock.  Using the
+     * wrong one corrupts the wait duration.
      */
     struct timespec ts;
+#if defined(__APPLE__)
+    if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
+#else
     if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
+#endif
         fprintf(stderr, "clock_gettime failed: %s\n", strerror(errno));
         return -1;
     }
