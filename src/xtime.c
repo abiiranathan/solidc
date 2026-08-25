@@ -5,7 +5,7 @@
 #include <errno.h>   // for errno
 #include <stdio.h>   // for snprintf
 #include <stdlib.h>  // for strtol, abs
-#include <string.h>  // for strncpy, memset, strlen
+#include <string.h>  // for memset, strlen
 
 #ifdef _WIN32
 // Windows CRT provides _s variants; adapt them to the _r call sites below.

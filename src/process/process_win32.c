@@ -246,15 +246,21 @@ ProcessError pipe_close_write_end(PipeHandle* pipe) {
  *  - Backslashes before the closing quote are doubled.
  *  - All other backslashes are literal.
  *  - Arguments with spaces/tabs/quotes are wrapped in double-quotes.
+ *
+ * Uses the bounds-checked _s string APIs; dest_size must cover the NUL.
+ * Returns PROCESS_SUCCESS, or PROCESS_ERROR_UNKNOWN if the append would
+ * overflow (cannot happen with the worst-case sized command-line buffer,
+ * but never rely on that at the API boundary).
  */
-static void append_escaped_win32_arg(char* dest, const char* arg) {
+static ProcessError append_escaped_win32_arg(char* dest, size_t dest_size, const char* arg) {
     /* Fast path: nothing that needs quoting */
     if (*arg != '\0' && !strpbrk(arg, " \t\n\v\"")) {
-        strcat(dest, arg);
-        return;
+        return strcat_s(dest, dest_size, arg) == 0 ? PROCESS_SUCCESS : PROCESS_ERROR_UNKNOWN;
     }
 
-    strcat(dest, "\"");
+    if (strcat_s(dest, dest_size, "\"") != 0) {
+        return PROCESS_ERROR_UNKNOWN;
+    }
 
     for (const char* p = arg; *p != '\0';) {
         /* Count consecutive backslashes */
@@ -266,24 +272,29 @@ static void append_escaped_win32_arg(char* dest, const char* arg) {
 
         if (*p == '\0') {
             /* Trailing backslashes: double them before the closing quote */
-            for (int k = 0; k < num_bs * 2; k++) strcat(dest, "\\");
+            for (int k = 0; k < num_bs * 2; k++) {
+                if (strcat_s(dest, dest_size, "\\") != 0) return PROCESS_ERROR_UNKNOWN;
+            }
             break;
         } else if (*p == '"') {
             /* Backslashes before a quote: double them, then escape the quote */
-            for (int k = 0; k < num_bs * 2 + 1; k++) strcat(dest, "\\");
-            strcat(dest, "\"");
+            for (int k = 0; k < num_bs * 2 + 1; k++) {
+                if (strcat_s(dest, dest_size, "\\") != 0) return PROCESS_ERROR_UNKNOWN;
+            }
+            if (strcat_s(dest, dest_size, "\"") != 0) return PROCESS_ERROR_UNKNOWN;
             p++;
         } else {
             /* Literal backslashes followed by a normal char */
-            for (int k = 0; k < num_bs; k++) strcat(dest, "\\");
-            size_t len = strlen(dest);
-            dest[len] = *p;
-            dest[len + 1] = '\0';
+            for (int k = 0; k < num_bs; k++) {
+                if (strcat_s(dest, dest_size, "\\") != 0) return PROCESS_ERROR_UNKNOWN;
+            }
+            const char ch[2] = {*p, '\0'};
+            if (strcat_s(dest, dest_size, ch) != 0) return PROCESS_ERROR_UNKNOWN;
             p++;
         }
     }
 
-    strcat(dest, "\"");
+    return strcat_s(dest, dest_size, "\"") == 0 ? PROCESS_SUCCESS : PROCESS_ERROR_UNKNOWN;
 }
 
 ProcessError win32_create_process(ProcessHandle** handle, const char* command, const char* const argv[],
@@ -309,8 +320,17 @@ ProcessError win32_create_process(ProcessHandle** handle, const char* command, c
     cmdline[0] = '\0';
 
     for (int i = 0; i < arg_count; i++) {
-        if (i > 0) strcat(cmdline, " ");
-        append_escaped_win32_arg(cmdline, argv[i]);
+        if (i > 0) {
+            if (strcat_s(cmdline, cmdline_len + 1, " ") != 0) {
+                free(cmdline);
+                return PROCESS_ERROR_UNKNOWN;
+            }
+        }
+        ProcessError err = append_escaped_win32_arg(cmdline, cmdline_len + 1, argv[i]);
+        if (err != PROCESS_SUCCESS) {
+            free(cmdline);
+            return err;
+        }
     }
 
     /* Prepare startup info with redirections */

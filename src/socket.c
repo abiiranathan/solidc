@@ -212,8 +212,10 @@ void socket_strerror(int err, char* buffer, size_t size) {
      */
     char* msg = strerror_r(err, buffer, size);
     if (msg != buffer && msg != NULL) {
-        strncpy(buffer, msg, size - 1);
-        buffer[size - 1] = '\0';
+        const size_t msg_len = strlen(msg);
+        const size_t copy = msg_len < size - 1 ? msg_len : size - 1;
+        memcpy(buffer, msg, copy);
+        buffer[copy] = '\0';
     }
 #else
     /* POSIX strerror_r (macOS, BSD): always writes into buffer, returns int. */

@@ -739,7 +739,7 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
             if (eq) {
                 size_t len = (size_t)(eq - name_start);
                 if (len >= MAX_FLAG_NAME_LEN) len = MAX_FLAG_NAME_LEN - 1;
-                strncpy(name_buf, name_start, len);
+                memcpy(name_buf, name_start, len);
                 name_buf[len] = '\0';
                 lookup_name = name_buf;
                 val_str = eq + 1;

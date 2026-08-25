@@ -5,7 +5,7 @@
 #include <stdatomic.h>/* for atomic_fetch_add, atomic_fetch_sub */
 #include <stdio.h>    /* for snprintf */
 #include <stdlib.h>   /* for malloc, free */
-#include <string.h>   /* for strlen, strncpy */
+#include <string.h>   /* for strlen */
 
 /**
  * Internal representation of a compiled regular expression.
