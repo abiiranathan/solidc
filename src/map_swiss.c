@@ -152,7 +152,7 @@ static inline size_t swiss_default_hash(const void* key, size_t len) {
     return (size_t)XXH3_64bits(key, len);
 }
 
-/* David Stafford Mix13: Full avalanche with low latency (2 muls, 3 shifts) */
+/** David Stafford Mix13 finalizer: full avalanche with low latency (2 muls, 3 shifts). */
 static inline size_t swiss_finalize(size_t h) {
     uint64_t x = (uint64_t)h;
     x ^= x >> 30;

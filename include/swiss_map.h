@@ -66,7 +66,7 @@ bool swiss_next(swiss_iterator* it, void** key, void** value);
 size_t swiss_length(SwissMap* m);
 size_t swiss_capacity(SwissMap* m);
 
-/* Thread-safe variants (whole-operation locking). */
+/** Thread-safe variants (whole-operation locking). */
 bool swiss_set_safe(SwissMap* m, void* key, size_t key_len, void* value);
 void* swiss_get_safe(SwissMap* m, void* key, size_t key_len);
 bool swiss_remove_safe(SwissMap* m, void* key, size_t key_len);

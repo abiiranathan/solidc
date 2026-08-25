@@ -31,11 +31,8 @@
 /** Maximum safe file size for readall operations (1GB). */
 #define MAX_READALL_SIZE (1ULL << 30)
 
-/**
- * Gets the native file handle from a FILE* stream.
- * @param stream The FILE* stream.
- * @return Native handle or INVALID_NATIVE_HANDLE on error.
- */
+/** Extracts the platform-native handle (fd on POSIX, HANDLE on Windows) from a FILE* stream. @param stream The FILE*
+ * stream. @return Native handle or INVALID_NATIVE_HANDLE on error. */
 static native_handle_t get_native_handle(FILE* stream) {
     if (!stream) {
         return INVALID_NATIVE_HANDLE;
@@ -61,11 +58,8 @@ static native_handle_t get_native_handle(FILE* stream) {
  */
 #ifdef _WIN32
 
-/**
- * Converts Windows FILETIME to Unix timestamp.
- * @param ft Windows FILETIME structure.
- * @return Unix timestamp (seconds since epoch).
- */
+/** Converts Windows FILETIME (100 ns intervals since 1601) to a Unix timestamp in seconds since 1970. @param ft Windows
+ * FILETIME structure. @return Unix timestamp (seconds since epoch). */
 static time_t filetime_to_unix(const FILETIME* ft) {
     ULARGE_INTEGER ull;
     ull.LowPart = ft->dwLowDateTime;
@@ -74,13 +68,9 @@ static time_t filetime_to_unix(const FILETIME* ft) {
     return (time_t)((ull.QuadPart / 10000000ULL) - 11644473600ULL);
 }
 
-/**
- * Populates FileAttributes structure from a file path (Windows implementation).
- * @param path Full path to the file.
- * @param name Basename of the file.
- * @param attr Output FileAttributes structure to populate.
- * @return 0 on success, -1 on error (errno is set).
- */
+/** Populates FileAttributes from a file path (Windows implementation via GetFileAttributesExA; executability is
+ * inferred from the .exe/.bat/.cmd/.com extension). @param path Full path to the file. @param attr Output
+ * FileAttributes structure to populate. @return 0 on success, -1 on error (errno is set). */
 int populate_file_attrs(const char* path, FileAttributes* attr) {
     WIN32_FILE_ATTRIBUTE_DATA file_info;
     if (!GetFileAttributesExA(path, GetFileExInfoStandard, &file_info)) {
@@ -131,6 +121,9 @@ int populate_file_attrs(const char* path, FileAttributes* attr) {
 
 #else  // Unix/Linux/macOS
 
+/** Populates FileAttributes from a file path (POSIX implementation using lstat, so symlinks are detected without being
+ * followed; hidden means a leading '.'). @param path Full path to the file. @param attr Output FileAttributes structure
+ * to populate. @return 0 on success, -1 on error (errno is set). */
 int populate_file_attrs(const char* path, FileAttributes* attr) {
     if (!attr) {
         errno = EINVAL;
@@ -205,6 +198,10 @@ int populate_file_attrs(const char* path, FileAttributes* attr) {
 }
 #endif  // _WIN32
 
+/** @brief Opens a file and fills @p file with its stream, native handle, and attributes; on any failure the stream is
+ * closed and errno explains why. @param file Pointer to file_t structure to initialize. @param filename Path to the
+ * file to open. @param mode fopen-style mode string (e.g. "r", "wb+", "a"). @return FILE_SUCCESS on success,
+ * appropriate error code otherwise. */
 file_result_t file_open(file_t* file, const char* filename, const char* mode) {
     if (!filename || !mode) {
         errno = EINVAL;
@@ -241,6 +238,8 @@ file_result_t file_open(file_t* file, const char* filename, const char* mode) {
     return FILE_SUCCESS;
 }
 
+/** @brief Closes the stream and invalidates the native handle; safe to call multiple times or on uninitialized
+ * structures. @param file Pointer to the file_t structure. */
 void file_close(file_t* file) {
     if (file->stream) {
         fclose(file->stream);
@@ -249,6 +248,9 @@ void file_close(file_t* file) {
     file->native_handle = INVALID_NATIVE_HANDLE;
 }
 
+/** @brief Flushes pending writes, then truncates or extends the file to @p length bytes via the native handle. @param
+ * file Pointer to the opened file_t structure (needs write permission). @param length Desired file length in bytes;
+ * negative values are rejected. @return FILE_SUCCESS on success, appropriate error code otherwise. */
 file_result_t file_truncate(file_t* file, int64_t length) {
     if (length < 0) {
         errno = EINVAL;
@@ -275,6 +277,10 @@ file_result_t file_truncate(file_t* file, int64_t length) {
     return FILE_SUCCESS;
 }
 
+/** @brief Formats @p size in human-readable units (B..EB), printing whole numbers when within HUMAN_SIZE_EPSILON of an
+ * integer, else two decimals. @param size File size in bytes. @param buf Output buffer; needs at least 8 bytes (e.g.
+ * "1024.00 B"). @param len Capacity of @p buf. @return FILE_SUCCESS on success, FILE_ERROR_INVALID_ARGS if the buffer
+ * is NULL or too small. */
 file_result_t filesize_tostring(uint64_t size, char* buf, size_t len) {
     if (!buf || len < 8) {  // Minimum for "1024.00 B"
         return FILE_ERROR_INVALID_ARGS;
@@ -308,6 +314,10 @@ file_result_t filesize_tostring(uint64_t size, char* buf, size_t len) {
     return (written > 0 && (size_t)written < len) ? FILE_SUCCESS : FILE_ERROR_INVALID_ARGS;
 }
 
+/** @brief Buffered fread wrapper; returns 0 for NULL buffer or zero size/count instead of touching the stream. @param
+ * file Pointer to the opened file_t structure. @param buffer Buffer to store read data. @param size Size of each
+ * element. @param count Number of elements to read. @return Number of elements successfully read; use feof/ferror for
+ * status. */
 size_t file_read(const file_t* file, void* buffer, size_t size, size_t count) {
     if (!buffer || size == 0 || count == 0) {
         return 0;
@@ -315,6 +325,9 @@ size_t file_read(const file_t* file, void* buffer, size_t size, size_t count) {
     return fread(buffer, size, count, file->stream);
 }
 
+/** @brief Buffered fwrite wrapper; does not flush the stream. Returns 0 for NULL buffer or zero size/count. @param file
+ * Pointer to the opened file_t structure. @param buffer Data to write. @param size Size of each element. @param count
+ * Number of elements to write. @return Number of elements successfully written; use ferror for status. */
 size_t file_write(file_t* file, const void* buffer, size_t size, size_t count) {
     if (!buffer || size == 0 || count == 0) {
         return 0;
@@ -322,6 +335,9 @@ size_t file_write(file_t* file, const void* buffer, size_t size, size_t count) {
     return fwrite(buffer, size, count, file->stream);
 }
 
+/** @brief Writes a null-terminated string to the file, excluding the null terminator. @param file Pointer to the opened
+ * file_t structure. @param str Null-terminated string to write. @return Number of bytes written; 0 if @p str is NULL or
+ * empty. */
 size_t file_write_string(file_t* file, const char* str) {
     if (!str) {
         return 0;
@@ -330,6 +346,10 @@ size_t file_write_string(file_t* file, const char* str) {
     return (len > 0) ? fwrite(str, 1, len, file->stream) : 0;
 }
 
+/** @brief Positioned read that leaves the file pointer untouched (pread on POSIX; OVERLAPPED ReadFile on Windows, where
+ * ERROR_HANDLE_EOF maps to 0). @param file Pointer to the opened file_t structure. @param buffer Buffer to store read
+ * data. @param size Number of bytes to read. @param offset File offset to read from; must be >= 0. @return Bytes read
+ * on success, 0 on EOF, -1 on error (errno is set). */
 ssize_t file_pread(const file_t* file, void* buffer, size_t size, int64_t offset) {
     if (!buffer || size == 0 || offset < 0) {
         errno = EINVAL;
@@ -354,6 +374,10 @@ ssize_t file_pread(const file_t* file, void* buffer, size_t size, int64_t offset
 #endif
 }
 
+/** @brief Positioned write that leaves the file pointer untouched (pwrite on POSIX; OVERLAPPED WriteFile on Windows).
+ * @param file Pointer to the opened file_t structure. @param buffer Data to write. @param size Number of bytes to
+ * write. @param offset File offset to write to; must be >= 0. @return Bytes written on success, -1 on error (errno is
+ * set). */
 ssize_t file_pwrite(file_t* file, const void* buffer, size_t size, int64_t offset) {
     if (!buffer || size == 0 || offset < 0) {
         errno = EINVAL;
@@ -374,6 +398,11 @@ ssize_t file_pwrite(file_t* file, const void* buffer, size_t size, int64_t offse
 #endif
 }
 
+/** @brief Reads the whole file into a malloc'd buffer, reading from offset 0 and restoring the original position
+ * afterwards. POSIX regular files take an fstat+read fast path that skips stdio's extra copy; non-regular files fall
+ * back to the fseek/fread path. @param file Pointer to the opened file_t structure. @param size_out Optional pointer to
+ * store the number of bytes read. @return Allocated buffer the caller must free() (a valid 1-byte buffer for empty
+ * files), or NULL on error with errno set. */
 void* file_readall(file_t* file, size_t* size_out) {
     if (!file || !file->stream) {
         errno = EINVAL;
@@ -500,6 +529,9 @@ void* file_readall(file_t* file, size_t* size_out) {
     return buffer;
 }
 
+/** @brief Attempts a non-blocking exclusive advisory lock on the whole file (F_SETLK on POSIX, LockFileEx on Windows).
+ * @param file Pointer to the opened file_t structure. @return FILE_SUCCESS if locked, FILE_ERROR_LOCK_FAILED if already
+ * locked elsewhere, other error codes for system failures. */
 file_result_t file_lock(const file_t* file) {
 #ifdef _WIN32
     OVERLAPPED overlapped = {0};
@@ -529,6 +561,8 @@ file_result_t file_lock(const file_t* file) {
 #endif
 }
 
+/** @brief Releases the advisory lock taken by file_lock(); POSIX unlock of an unlocked file still succeeds. @param file
+ * Pointer to the opened file_t structure. @return FILE_SUCCESS on success, FILE_ERROR_SYSTEM_ERROR otherwise. */
 file_result_t file_unlock(const file_t* file) {
 #ifdef _WIN32
     OVERLAPPED overlapped = {0};
@@ -547,6 +581,11 @@ file_result_t file_unlock(const file_t* file) {
 #endif
 }
 
+/** @brief Copies from src's current position to EOF, appending at dst's current position, then flushes dst. On Linux
+ * regular files it uses copy_file_range(2) inside the kernel (falling back on EXDEV/EOPNOTSUPP and friends before
+ * anything is copied); otherwise a 64 KB read/write loop is used. @param src Source file (must be open for reading).
+ * @param dst Destination file (must be open for writing). @return FILE_SUCCESS on success, appropriate error code
+ * otherwise. */
 file_result_t file_copy(const file_t* src, file_t* dst) {
     /*
      * Fast path (Perf #10): on Linux, copy_file_range(2) performs the copy
@@ -654,6 +693,11 @@ file_result_t file_copy(const file_t* src, file_t* dst) {
     return FILE_SUCCESS;
 }
 
+/** @brief Memory-maps @p length bytes from the start of the file (mmap MAP_SHARED on POSIX; CreateFileMapping +
+ * MapViewOfFile on Windows). @param file Pointer to the opened file_t structure. @param length Number of bytes to map;
+ * must be > 0. @param read_access Request read access to the mapping. @param write_access Request write access to the
+ * mapping (at least one access flag must be set). @return Pointer to mapped memory on success, NULL on failure (errno
+ * is set); release with file_munmap(). */
 void* file_mmap(const file_t* file, size_t length, bool read_access, bool write_access) {
     if (length == 0 || (!read_access && !write_access)) {
         errno = EINVAL;
@@ -687,6 +731,9 @@ void* file_mmap(const file_t* file, size_t length, bool read_access, bool write_
 #endif
 }
 
+/** @brief Unmaps a region previously returned by file_mmap(). @param addr Pointer to the mapped region. @param length
+ * Length of the mapping (must match file_mmap; ignored on Windows). @return FILE_SUCCESS on success, an error code
+ * otherwise. */
 file_result_t file_munmap(void* addr, size_t length) {
     if (!addr) {
         return FILE_ERROR_INVALID_ARGS;
@@ -700,8 +747,12 @@ file_result_t file_munmap(void* addr, size_t length) {
 #endif
 }
 
+/** @brief Flushes any buffered data to the underlying file. @param file Pointer to the opened file_t structure. @return
+ * FILE_SUCCESS on success, FILE_ERROR_IO_FAILED otherwise. */
 file_result_t file_flush(file_t* file) { return (fflush(file->stream) == 0) ? FILE_SUCCESS : FILE_ERROR_IO_FAILED; }
 
+/** @brief Returns the current byte offset of the native handle, bypassing stdio buffering. @param file Pointer to the
+ * opened file_t structure. @return Current position, or -1 on error (errno is set). */
 int64_t file_tell(const file_t* file) {
 #ifdef _WIN32
     LARGE_INTEGER zero = {0};
@@ -717,6 +768,10 @@ int64_t file_tell(const file_t* file) {
 #endif
 }
 
+/** @brief Flushes pending writes, seeks the native handle relative to @p whence, and resynchronises the FILE* position
+ * with the descriptor. @param file Pointer to the opened file_t structure. @param offset Offset relative to whence.
+ * @param whence SEEK_SET, SEEK_CUR or SEEK_END (anything else is EINVAL). @return FILE_SUCCESS on success, appropriate
+ * error code otherwise. */
 file_result_t file_seek(file_t* file, int64_t offset, int whence) {
     // Flush any pending writes before seeking
     if (fflush(file->stream) != 0) {

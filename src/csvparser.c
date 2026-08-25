@@ -34,10 +34,14 @@ typedef struct csv_line_params {
     char quote;
 } csv_line_params;
 
+/** Counts data rows in the file (excluding blank and comment lines), rewinding the stream before returning. */
 static size_t line_count(CsvReader* reader);
+/** Counts the fields of a CSV line by locating delimiters outside quoted spans. */
 static size_t get_num_fields(const char* line, char delim, char quote);
+/** Splits one CSV line into its row's field array, duplicating each field into the arena. */
 static bool parse_csv_line(csv_line_params* args);
 
+/** Installs the default CSV dialect: ',' delimiter, '"' quotes, '#' comments, header expected but not skipped. */
 static inline void set_default_config(CsvReader* reader) {
     reader->delim = ',';
     reader->comment = '#';
@@ -46,6 +50,10 @@ static inline void set_default_config(CsvReader* reader) {
     reader->quote = '"';
 }
 
+/** @brief Creates a CsvReader bound to @p filename, backed by an arena sized from @p arena_memory (or
+ * CSV_ARENA_BLOCK_SIZE). Diagnostics are printed to stderr on failure. @param filename The filename of the CSV file to
+ * parse (opened for reading). @param arena_memory Maximum size of the parser arena's first block; 0 uses the default.
+ * @return A pointer to the created CsvReader (release with csv_reader_free), or NULL on failure. */
 CsvReader* csv_reader_new(const char* filename, size_t arena_memory) {
     CsvReader* reader = malloc(sizeof(CsvReader));
     if (!reader) {
@@ -78,6 +86,9 @@ CsvReader* csv_reader_new(const char* filename, size_t arena_memory) {
 }
 
 // Allocate memory for rows and set num_rows.
+/** Allocates the row-pointer array plus one Row per entry from @p arena; everything is reclaimed together by
+ * arena_destroy(). @param arena Allocation source. @param num_rows Number of rows to reserve; 0 returns NULL. @return
+ * Array of @p num_rows Row pointers, or NULL on arena exhaustion (diagnostic printed). */
 static Row** csv_allocate_rows(Arena* arena, size_t num_rows) {
     if (num_rows == 0) {
         return NULL;
@@ -98,6 +109,10 @@ static Row** csv_allocate_rows(Arena* arena, size_t num_rows) {
     return rows;
 }
 
+/** Reads ahead for the first non-blank, non-comment line (trailing whitespace trimmed) to sample the field count, then
+ * rewinds the stream so parsing can restart from the top. @param reader Reader whose stream and comment character are
+ * used. @param line Buffer receiving the found line. @param line_size Size of @p line. @return true with @p line
+ * filled, or false if the file has no valid data/header lines. */
 static inline bool read_first_valid_line(CsvReader* reader, char* line, size_t line_size) {
     bool found_valid_line = false;
 
@@ -134,6 +149,11 @@ static inline bool read_first_valid_line(CsvReader* reader, char* line, size_t l
     return true;
 }
 
+/** @brief Parses the whole file into reader->rows, which are allocated from the arena up front (row count determined by
+ * a pre-pass). Blank lines and comments are skipped, the header optionally so; every parsed row must match the field
+ * count of the first valid line. The stream is closed whether parsing succeeds or not. @param reader A pointer to the
+ * CsvReader. @return Array of Row* owned by the arena (valid until csv_reader_free), or NULL if there are no rows or an
+ * error occurs. */
 Row** csv_reader_parse(CsvReader* reader) {
     char line[MAX_FIELD_SIZE] = {0};
     size_t rowIndex = 0;
@@ -214,6 +234,11 @@ Row** csv_reader_parse(CsvReader* reader) {
     return reader->rows;
 }
 
+/** @brief Streaming variant of csv_reader_parse(): allocates at most @p maxrows rows (0 means all) and hands each
+ * parsed row to @p callback as it is produced. Blank lines, comments, and an optional header are skipped; the stream is
+ * closed when done. Rows remain valid until csv_reader_free() since they live in the arena. @param reader A pointer to
+ * the CsvReader. @param callback Invoked per row with its index; may retain row data until csv_reader_free(). @param
+ * alloc_max The maximum number of rows to allocate at once; 0 for unlimited. */
 void csv_reader_parse_async(CsvReader* reader, CsvRowCallback callback, size_t maxrows) {
     size_t rowIndex = 0;
     bool headerSkipped = false;
@@ -290,8 +315,12 @@ void csv_reader_parse_async(CsvReader* reader, CsvRowCallback callback, size_t m
     fclose(reader->stream);
 }
 
+/** @brief Returns the number of data rows counted by the last parse, excluding empty lines, comments, and a skipped
+ * header. @param reader A pointer to the CsvReader. @return The number of rows. */
 size_t csv_reader_numrows(const CsvReader* reader) { return reader->num_rows; }
 
+/** @brief Releases all memory: rows live in the arena, so arena_destroy() reclaims them and only the reader struct is
+ * freed separately. @param reader A pointer to the CsvReader; NULL is a no-op. */
 void csv_reader_free(CsvReader* reader) {
     if (!reader) return;
 
@@ -302,6 +331,8 @@ void csv_reader_free(CsvReader* reader) {
     reader = NULL;
 }
 
+/** @brief Overrides the reader's dialect. Zero-valued delim/quote/comment keep their current settings; has_header and
+ * skip_header are copied verbatim. @param reader A pointer to the CsvReader. @param config New configuration values. */
 void csv_reader_setconfig(CsvReader* reader, CsvReaderConfig config) {
     if (config.delim != '\0') {
         reader->delim = config.delim;
@@ -319,6 +350,8 @@ void csv_reader_setconfig(CsvReader* reader, CsvReaderConfig config) {
     reader->skip_header = config.skip_header;
 }
 
+/** @brief Returns a snapshot of the reader's current dialect settings (delimiter, quote, comment, header flags). @param
+ * reader A pointer to the CsvReader. @return Copy of the active CsvReaderConfig. */
 CsvReaderConfig csv_reader_getconfig(CsvReader* reader) {
     CsvReaderConfig config = {
         .comment = reader->comment,
@@ -330,7 +363,9 @@ CsvReaderConfig csv_reader_getconfig(CsvReader* reader) {
     return config;
 }
 
-// Function to count the number of fields in a CSV line
+/** Counts fields in @p line as one plus the number of delimiters outside quoted spans; quote characters merely toggle
+ * quoted state, so an unbalanced quote is not detected here. @param line Line to inspect. @param delim Field delimiter.
+ * @param quote Quote character toggling quoted state. @return Number of fields; 0 only for a completely empty line. */
 static size_t get_num_fields(const char* line, char delim, char quote) {
     size_t numFields = 0;
     int insideQuotes = 0;
@@ -350,19 +385,11 @@ static size_t get_num_fields(const char* line, char delim, char quote) {
     return numFields;
 }
 
-/**
- * Parse one CSV line into its row's field array.
- *
- * Perf notes (Perf #12): the previous version memset a MAX_FIELD_SIZE
- * stack buffer on EVERY row, byte-copied each character into it, ran
- * str_trim over the copy, then arena_strdup'd it again — three full
- * touches per payload byte plus 4KB of zeroing per row.  This version
- * finds each field's [start,end) span in place and duplicates the trimmed
- * span straight into the arena.  A scratch buffer is only used when a
- * field actually contains quote characters (which the CSV dialect here
- * strips from the stored value).
- *
- */
+/** Parses one CSV line into row->fields: splits on unquoted delimiters in place, strips quote characters (a scratch
+ * buffer is used only when a field actually contains quotes), trims surrounding whitespace, and duplicates each field
+ * into the arena. Fails if the field count differs from args->num_fields or a quote is left unterminated at end of
+ * line. @param args Parse parameters: arena, line, dialect characters, target row, expected field count. @return true
+ * on success, false after printing a diagnostic to stderr. */
 static bool parse_csv_line(csv_line_params* args) {
     Row* row = args->row;
     row->fields = arena_alloc(args->arena, args->num_fields * sizeof(char*));
@@ -459,10 +486,12 @@ static bool parse_csv_line(csv_line_params* args) {
     return true;
 }
 
-// count the number of lines in a csv file.
-// ignore comments. Optionally skip header.
 #define _CSV_READ_BUFSIZE (64u * 1024u) /* 64 KB — fits comfortably in L2 */
 
+/** Counts data lines in a single 64 KB-buffer pass: comment lines (first character == reader->comment) are skipped,
+ * blank (whitespace/CR-only) lines ignored, and the header is excluded when has_header && skip_header. Handles a final
+ * line without '\n'. The stream is rewound on entry and exit. @param reader Reader whose stream and dialect are used.
+ * @return Number of countable data rows. */
 static size_t line_count(CsvReader* reader) {
     size_t lines = 0;
     bool headerSkipped = false;
@@ -546,6 +575,9 @@ typedef struct CsvWriter {
     bool flush;      // Flush the stream after writing each row
 } CsvWriter;
 
+/** @brief Creates a CsvWriter that truncates/creates @p filename, using the default dialect: ',' delimiter, '"' quotes,
+ * '\n' newline, no forced quoting, no per-row flush. Diagnostics go to stderr on failure. @param filename Output file
+ * path. @return New CsvWriter (release with csvwriter_free), or NULL on allocation/open failure. */
 CsvWriter* csvwriter_new(const char* filename) {
     CsvWriter* writer = malloc(sizeof(CsvWriter));
     if (!writer) {
@@ -568,10 +600,8 @@ CsvWriter* csvwriter_new(const char* filename) {
     return writer;
 }
 
-/**
- * Checks if a field needs quoting based on CSV rules.
- * Single pass instead of three strchr scans.
- */
+/** Single-pass scan deciding whether a field must be quoted: true when it contains the delimiter, quote, or newline
+ * character. */
 static inline bool field_needs_quoting(const char* field, char delim, char quote, char newline) {
     for (const char* p = field; *p != '\0'; p++) {
         if (*p == delim || *p == quote || *p == newline) {
@@ -581,12 +611,9 @@ static inline bool field_needs_quoting(const char* field, char delim, char quote
     return false;
 }
 
-/**
- * Writes a quoted field, escaping quotes by doubling them (CSV standard).
- *
- * Uses chunked fwrite: everything between quote characters is emitted in
- * one call rather than one fputc per character.
- */
+/** Writes a quoted field, doubling embedded quote characters per CSV rules; text between quotes is emitted with chunked
+ * fwrite calls instead of per-character writes. @param fp File stream to write to. @param field Field content to write.
+ * @param quote Quote character to wrap and escape with. @return true on success, false on I/O error. */
 static bool write_quoted_field(FILE* fp, const char* field, char quote) {
     if (fputc(quote, fp) == EOF) {
         return false;
@@ -615,16 +642,11 @@ static bool write_quoted_field(FILE* fp, const char* field, char quote) {
     return fputc(quote, fp) != EOF;
 }
 
-/**
- * Writes a single field to the CSV file with proper quoting rules.
- * @param fp File stream to write to.
- * @param field Field content to write.
- * @param quote_all Whether to quote all fields regardless of content.
- * @param delim The delimiter character.
- * @param quote The quote character.
- * @param newline The newline character.
- * @return true on success, false on I/O error.
- */
+/** Writes one field with proper CSV quoting: quoted via write_quoted_field() when @p quote_all is set or the field
+ * contains delim/quote/newline, otherwise plain fputs; NULL fields are written as empty strings. @param fp File stream
+ * to write to. @param field Field content to write (may be NULL). @param quote_all Whether to quote all fields
+ * regardless of content. @param delim The delimiter character. @param quote The quote character. @param newline The
+ * newline character. @return true on success, false on I/O error. */
 static bool write_single_field(FILE* fp, const char* field, bool quote_all, char delim, char quote, char newline) {
     if (field == NULL) {
         // Handle null field as empty string
@@ -639,13 +661,10 @@ static bool write_single_field(FILE* fp, const char* field, bool quote_all, char
     }
 }
 
-/**
- * Optimized CSV writer function with comprehensive error handling.
- * @param writer Pointer to CsvWriter instance.
- * @param fields Array of field strings to write.
- * @param numfields Number of fields in the array.
- * @return true on success, false on error (check errno for details).
- */
+/** @brief Writes one CSV row: delimiter-separated fields terminated by the writer's newline; numfields == 0 writes a
+ * bare newline. Flushes after the row when configured and surfaces deferred stdio errors via ferror. @param writer
+ * Pointer to CsvWriter instance. @param fields Array of field strings to write. @param numfields Number of fields in
+ * the array. @return true on success, false on error (check errno for details). */
 bool csvwriter_write_row(CsvWriter* writer, const char** fields, size_t numfields) {
     // Input validation
     if (writer == NULL) {
@@ -707,13 +726,16 @@ flush_and_exit:
     return !ferror(fp);
 }
 
+/** @brief Closes the output file stream and frees the writer. @param writer Writer to free; NULL is a no-op. */
 void csvwriter_free(CsvWriter* writer) {
     if (!writer) return;
     if (writer->stream) fclose(writer->stream);
     free(writer);
 }
 
-// configure the csv writer
+/** Applies writer settings: zero-valued delim/quote keep their current values; quote_all and flush are copied verbatim
+ * (newline is not configurable through this call). @param writer Target writer. @param config New configuration values.
+ */
 void csvwriter_setconfig(CsvWriter* writer, CsvWriterConfig config) {
     if (config.delim != '\0') {
         writer->delim = config.delim;

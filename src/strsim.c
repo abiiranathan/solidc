@@ -93,7 +93,7 @@ int strsim_cosine(const char* a, const char* b, double* out_similarity) {
  * Levenshtein distance
  * ------------------------------------------------------------------------- */
 
-/*
+/**
  * Myers' bit-parallel Levenshtein.
  *
  * For patterns up to 63 bytes the entire DP row fits in one 64-bit word,

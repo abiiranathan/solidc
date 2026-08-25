@@ -44,6 +44,8 @@
  * Entropy
  * ------------------------------------------------------------------------- */
 
+/** @brief Fills buf with n cryptographically random bytes via CryptGenRandom using a verify-context CSP handle acquired
+ * per call. @return true on success; false if the context cannot be acquired or generation fails. */
 bool fp_random_bytes(unsigned char* buf, size_t n) {
     HCRYPTPROV hCryptProv;
     if (!CryptAcquireContextW(&hCryptProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
@@ -63,6 +65,9 @@ bool fp_random_bytes(unsigned char* buf, size_t n) {
  * ------------------------------------------------------------------------- */
 
 // Open a directory
+/** @brief Win32 dir_open() backend: converts the UTF-8 path to wide chars, appends "\\*" and starts a FindFirstFileW
+ * search. @return Allocated Directory holding the search handle and first find data, or NULL with errno mapped from
+ * GetLastError()/conversion (ENOENT for empty results, EACCES/EINVAL/ENAMETOOLONG otherwise). */
 Directory* dir_open(const char* path) {
     if (!path || *path == '\0') {
         errno = EINVAL;
@@ -109,6 +114,7 @@ Directory* dir_open(const char* path) {
 }
 
 // Close a directory
+/** @brief Win32 dir_close() backend: FindClose()s the search handle and frees the handle. Safe to pass NULL. */
 void dir_close(Directory* dir) {
     if (!dir) return;
 
@@ -120,6 +126,9 @@ void dir_close(Directory* dir) {
 }
 
 // Read the next entry in the directory
+/** @brief Advances the FindFirstFileW enumeration and converts cFileName to UTF-8 into the handle's private name
+ * buffer. @return Pointer to a name owned by dir (valid until the next dir_next()/dir_close() call), or NULL at end of
+ * enumeration or on an invalid handle. */
 char* dir_next(Directory* dir) {
     if (!dir) {
         errno = EINVAL;
@@ -142,6 +151,9 @@ char* dir_next(Directory* dir) {
  * Attribute mapping
  * ------------------------------------------------------------------------- */
 
+/** @brief Maps WIN32_FIND_DATAW onto FileAttributes: directory/file bit, REPARSE_POINT as symlink, hidden flag
+ * (attribute or leading '.'), 64-bit file size, and ftLastWriteTime converted from Windows FILETIME (100 ns ticks since
+ * 1601) to Unix seconds. */
 static void map_win32_attrs(const WIN32_FIND_DATAW* fd, FileAttributes* attr) {
     attr->attrs = FATTR_NONE;
     if (fd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
@@ -161,6 +173,9 @@ static void map_win32_attrs(const WIN32_FIND_DATAW* fd, FileAttributes* attr) {
     attr->mtime = (time_t)((ull.QuadPart - 116444736000000000ULL) / 10000000ULL);
 }
 
+/** @brief Win32 lazy_get_attrs() backend: traversal always populates attributes eagerly from find data, so this merely
+ * validates the input and returns the cache. @return &lazy->cached, or NULL (EINVAL) for NULL or unpopulated (has_stat
+ * == false) input. */
 const FileAttributes* lazy_get_attrs(LazyFileAttributes* lazy) {
     if (!lazy) {
         errno = EINVAL;
@@ -180,6 +195,8 @@ const FileAttributes* lazy_get_attrs(LazyFileAttributes* lazy) {
  * ------------------------------------------------------------------------- */
 
 // Check if path is a directory
+/** @brief GetFileAttributesA()-based directory check. @return true if path exists and carries FILE_ATTRIBUTE_DIRECTORY.
+ */
 bool is_dir(const char* path) {
     if (!path || *path == '\0') {
         return false;
@@ -193,6 +210,8 @@ bool is_dir(const char* path) {
 }
 
 // Check if path is a file
+/** @brief GetFileAttributesA()-based regular-file check. @return true if path exists and does not carry
+ * FILE_ATTRIBUTE_DIRECTORY. */
 bool is_file(const char* path) {
     if (!path || *path == '\0') {
         return false;
@@ -206,6 +225,7 @@ bool is_file(const char* path) {
 }
 
 // Check if path is a symbolic link
+/** @brief Kept for API parity with the POSIX backend; always returns false (reparse points are not reported). */
 bool is_symlink(const char* path) {
     if (!path || *path == '\0') {
         return false;
@@ -216,6 +236,8 @@ bool is_symlink(const char* path) {
 }
 
 // Check if path exists
+/** @brief Wide-char existence check via GetFileAttributesW(). @return true if the path exists regardless of type; false
+ * on conversion failure or if the path does not exist (errno EINVAL for NULL/empty input). */
 bool path_exists(const char* path) {
     if (!path || *path == '\0') {
         errno = EINVAL;
@@ -233,6 +255,8 @@ bool path_exists(const char* path) {
 }
 
 // Create a directory
+/** @brief CreateDirectoryA() backend with default ACLs. @return 0 on success or when the directory already exists
+ * (ERROR_ALREADY_EXISTS); -1 with errno mapped from GetLastError() (EACCES/EIO) otherwise. */
 int dir_create(const char* path) {
     if (!path || *path == '\0') {
         errno = EINVAL;
@@ -249,6 +273,8 @@ int dir_create(const char* path) {
     return 0;
 }
 
+/** @brief RemoveDirectoryA() wrapper that maps Win32 errors to errno (ENOTEMPTY, ENOENT, EACCES). @return 0 on success,
+ * -1 on failure. */
 int fp_remove_single_directory(const char* path) {
     if (!RemoveDirectoryA(path)) {
         DWORD err = GetLastError();
@@ -261,6 +287,8 @@ int fp_remove_single_directory(const char* path) {
 }
 
 // Get temporary directory
+/** @brief GetTempPathW() backend (the OS resolves %TEMP%/%TMP%), converted to a narrow string. @return Heap-allocated
+ * temp path (with trailing backslash), or NULL on failure (EIO/EINVAL/ENOMEM). */
 char* get_tempdir(void) {
     wchar_t wtemp[MAX_PATH];
     DWORD ret = GetTempPathW(MAX_PATH, wtemp);
@@ -282,6 +310,9 @@ char* get_tempdir(void) {
     return temp;
 }
 
+/** @brief Creates the unique temporary file for candidate (a path ending in the random pattern) via _wcreat() with
+ * owner read/write, then closes the descriptor. Takes ownership of candidate. @return candidate holding the final path
+ * on success; NULL (with candidate freed) on conversion or creation failure. */
 char* fp_create_tempfile(char* candidate) {
     wchar_t wtmpfile[MAX_PATH];
     if (mbstowcs(wtmpfile, candidate, MAX_PATH) == (size_t)-1) {
@@ -299,6 +330,8 @@ char* fp_create_tempfile(char* candidate) {
     return candidate;
 }
 
+/** @brief Creates the unique temporary directory for candidate via _wmkdir(). Takes ownership of candidate. @return
+ * candidate holding the final path on success; NULL (with candidate freed) on conversion or creation failure. */
 char* fp_create_tempdir(char* candidate) {
     wchar_t wtmp[MAX_PATH];
     if (mbstowcs(wtmp, candidate, MAX_PATH) == (size_t)-1) {
@@ -314,6 +347,8 @@ char* fp_create_tempdir(char* candidate) {
 }
 
 // Get absolute path
+/** @brief _fullpath() backend: expands path to an absolute path (drive-qualified; no symlink resolution). @return
+ * Heap-allocated absolute path, or NULL with ENOMEM/EINVAL on failure. */
 char* filepath_absolute(const char* path) {
     if (!path || *path == '\0') {
         errno = EINVAL;
@@ -329,6 +364,8 @@ char* filepath_absolute(const char* path) {
 }
 
 // Get current working directory
+/** @brief getcwd(NULL, 0) backend (MinGW CRT). @return Heap-allocated current working directory, or NULL on error
+ * (ENOMEM). */
 char* get_cwd(void) {
     char* cwd = getcwd(NULL, 0);
     if (!cwd) {
@@ -339,6 +376,7 @@ char* get_cwd(void) {
 }
 
 // Remove a file
+/** @brief Deletes a file via _unlink(). @return 0 on success, -1 on error (errno set). */
 int filepath_remove(const char* path) {
     if (!path || *path == '\0') {
         errno = EINVAL;
@@ -349,12 +387,13 @@ int filepath_remove(const char* path) {
 }
 
 // Get user home directory
+/** @brief Returns %USERPROFILE% as the user's home directory. @return Pointer into the environment (must not be freed
+ * or modified), or NULL if unset. */
 const char* user_home_dir(void) { return GETENV("USERPROFILE"); }
 
-/**
- * Callback function for removing files and directories during traversal.
- * Should be used with fp_dir_walk_depth_first_impl for proper deletion order.
- */
+/** @brief Deletion callback for fp_dir_walk_depth_first_impl(): RemoveDirectoryA()s empty directories and
+ * DeleteFileA()s files during post-order traversal, mapping Win32 error codes to errno and returning DirError on
+ * failure. */
 WalkDirOption fp_dir_remove_entry(const FileAttributes* attr, const char* path, const char* name, void* data) {
     (void)data;
     (void)name;
@@ -388,6 +427,9 @@ WalkDirOption fp_dir_remove_entry(const FileAttributes* attr, const char* path, 
  * Traversal
  * ------------------------------------------------------------------------- */
 
+/** @brief Recursive FindFirstFileW/FindNextFileW walker: converts each name to UTF-8, joins the child path, and maps
+ * attributes straight from the find data (no extra stat per entry). Skips "." / "..", honours DirStop
+ * (success)/DirSkip/DirError, and caps recursion at FP_MAX_DIR_DEPTH (ELOOP). @return 0 on success, -1 on error. */
 static int dir_walk_win32(const char* path, WalkDirCallback callback, void* data, int depth) {
     if (depth > FP_MAX_DIR_DEPTH) {
         errno = ELOOP;
@@ -527,14 +569,20 @@ static int dir_walkx_win32(const char* path, WalkDirCallbackX callback, void* da
     return status;
 }
 
+/** @brief Dispatcher for dir_walk(): always uses the FindFirstFile-based Win32 walker. @return 0 on success, -1 on
+ * error (errno set). */
 int fp_dir_walk_impl(const char* path, WalkDirCallback callback, void* data) {
     return dir_walk_win32(path, callback, data, 0);
 }
 
+/** @brief Dispatcher for dir_walk_depth_first(): delegates to the post-order Win32 walker. @return 0 on success, -1 on
+ * error (errno set). */
 int fp_dir_walk_depth_first_impl(const char* path, WalkDirCallback callback, void* data) {
     return dir_walk_depth_first_win32(path, callback, data, 0);
 }
 
+/** @brief Dispatcher for dir_walkx(): wraps the eagerly populated find-data attributes in LazyFileAttributes (has_stat
+ * = true) via dir_walkx_win32(). @return 0 on success, -1 on error (errno set). */
 int fp_dir_walkx_impl(const char* path, WalkDirCallbackX callback, void* data) {
     return dir_walkx_win32(path, callback, data);
 }

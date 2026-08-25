@@ -56,7 +56,7 @@ typedef struct {
  * falling back to the exact per-sequence scalar classifier otherwise.
  * Classification semantics are byte-for-byte identical to the scalar loop.
  */
-/*
+/**
  * Returns the byte length of a FULLY valid UTF-8 sequence starting at u,
  * where len bytes are available in the buffer, or 0 if the sequence is
  * malformed or invalid (overlong encodings, surrogate halves

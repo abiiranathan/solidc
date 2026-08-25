@@ -14,6 +14,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+/** @brief Bounds-safe string copy used across the filepath module: copies src into dst, always NUL-terminates, and
+ * never writes more than size bytes. @return Number of characters copied (strnlen(src, size - 1)); 0 for NULL args or
+ * size == 0. */
 size_t fp_strlcpy(char* dst, const char* src, size_t size) {
     if (!dst || !src || size == 0) {
         return 0;
@@ -34,6 +37,8 @@ static const char* last_separator(const char* path) {
 }
 
 // Get basename of path
+/** @brief Copies the basename of path (everything after the final '/' or '\\') into basename; empty string if path ends
+ * with a separator or arguments are invalid. Accepts both separators on every platform. */
 void filepath_basename(const char* path, char* basename, size_t size) {
     if (!path || !basename || size == 0) {
         if (basename) basename[0] = '\0';
@@ -46,6 +51,8 @@ void filepath_basename(const char* path, char* basename, size_t size) {
 }
 
 // Get dirname of path
+/** @brief Copies the directory portion of path (everything before the final separator, without a trailing separator)
+ * into dirname; empty string if path has no separator. */
 void filepath_dirname(const char* path, char* dirname, size_t size) {
     if (!path || !dirname || size == 0) {
         if (dirname) dirname[0] = '\0';
@@ -65,11 +72,13 @@ void filepath_dirname(const char* path, char* dirname, size_t size) {
  * Returns the extension of the BASENAME, including the dot, or "" if the
  * basename has none.  Two subtleties handled here:
  *   - The search must start AFTER the last separator, otherwise
- *     "/path/to.dir/file" would report ".dir/file" (Bug #8).
+ *     "/path/to.dir/file" would report ".dir/file".
  *   - A leading dot in the basename marks a hidden file ("~/.bashrc"),
  *     not an extension, so ".bashrc" yields "".
  * Multi-part names behave as expected: "archive.tar.gz" -> ".gz".
  */
+/** @brief Copies the extension of the basename, including the dot, into ext (empty string if there is none). The search
+ * starts after the last separator, and a leading dot on a hidden file (".bashrc") is not treated as an extension. */
 void filepath_extension(const char* path, char* ext, size_t size) {
     if (!path || !ext || size == 0) {
         if (ext) ext[0] = '\0';
@@ -90,6 +99,7 @@ void filepath_extension(const char* path, char* ext, size_t size) {
 #define BASENAME_MAX 512
 
 // Get filename without extension
+/** @brief Copies the basename of path with its extension removed into name (truncated to fit size if necessary). */
 void filepath_nameonly(const char* path, char* name, size_t size) {
     if (!path || !name || size == 0) {
         if (name) name[0] = '\0';
@@ -110,6 +120,8 @@ void filepath_nameonly(const char* path, char* name, size_t size) {
 }
 
 // Join paths
+/** @brief Joins path1 and path2 with the platform separator ('\\' when path1 already uses backslashes on Windows, '/'
+ * elsewhere). @return Heap-allocated joined path, or NULL on NULL args or allocation failure (errno set). */
 char* filepath_join(const char* path1, const char* path2) {
     if (!path1 || !path2) {
         errno = EINVAL;
@@ -131,6 +143,8 @@ char* filepath_join(const char* path1, const char* path2) {
     return joined;
 }
 
+/** @brief Buffer variant of filepath_join(): writes the joined path into abspath, NUL-terminated. @return true on
+ * success; false on invalid args or truncation (errno EINVAL/ENAMETOOLONG). */
 bool filepath_join_buf(const char* path1, const char* path2, char* abspath, size_t len) {
     if (!path1 || !path2 || !abspath || len == 0) {
         if (abspath && len > 0) abspath[0] = '\0';
@@ -158,6 +172,8 @@ bool filepath_join_buf(const char* path1, const char* path2, char* abspath, size
 }
 
 // Split path into directory and filename
+/** @brief Splits path at the last separator: dir gets the portion before it (no trailing separator) and name the
+ * portion after; if there is no separator, dir is empty and name receives the whole path. */
 void filepath_split(const char* path, char* dir, char* name, size_t dir_size, size_t name_size) {
     if (!path || !dir || !name || dir_size == 0 || name_size == 0) {
         if (dir) dir[0] = '\0';

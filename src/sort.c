@@ -41,7 +41,7 @@
 
 typedef int (*sw_cmp)(const void*, const void*);
 
-/*
+/**
  * Swap kernels specialized for common element sizes.  Base pointers come
  * from malloc (16-byte aligned) and all offsets are multiples of the
  * element size, so the direct word accesses are always aligned.
@@ -77,7 +77,7 @@ static inline void sw_swap(char* a, char* b, size_t sz, char* tmp) {
     }
 }
 
-/* Insertion sort over [lo, hi] (inclusive pointers). O(n) when nearly sorted. */
+/** Insertion sort over [lo, hi] (inclusive pointers). O(n) when nearly sorted. */
 static void sw_insertion_sort(char* lo, char* hi, size_t sz, sw_cmp cmp, char* tmp) {
     for (char* i = lo + sz; i <= hi; i += sz) {
         char* j = i;
@@ -121,7 +121,7 @@ static char* sw_ninther(char* base, size_t n, size_t sz, sw_cmp cmp) {
     return sw_med3(a, b, c, cmp);
 }
 
-/* Hoare partition over base[lo..hi]; pivot value resides at index lo.
+/** Hoare partition over base[lo..hi]; pivot value resides at index lo.
  * Returns the pivot's final position. */
 static size_t sw_partition(char* base, size_t lo, size_t hi, size_t sz, sw_cmp cmp, char* tmp) {
     size_t i = lo + 1;
@@ -138,7 +138,7 @@ static size_t sw_partition(char* base, size_t lo, size_t hi, size_t sz, sw_cmp c
     return j;
 }
 
-/*
+/**
  * Structured-data pre-check: returns
  *   1  if [base, base+n) is non-descending (already sorted),
  *  -1  if it is non-ascending (reverse it in place),
@@ -489,7 +489,7 @@ static inline int32_t solidc_from_key_i32(uint32_t k) { return (int32_t)(k ^ 0x8
 static inline uint64_t solidc_to_key_i64(int64_t x) { return (uint64_t)x ^ 0x8000000000000000ULL; }
 static inline int64_t solidc_from_key_i64(uint64_t k) { return (int64_t)(k ^ 0x8000000000000000ULL); }
 
-/* IEEE-754 total-order twist; NaNs are clamped past +inf so they sort to
+/** IEEE-754 total-order twist; NaNs are clamped past +inf so they sort to
  * the END (matching the documented contract).  Unmapping collapses every
  * NaN to the canonical quiet NaN, whose payload the sort intentionally
  * does not preserve. */

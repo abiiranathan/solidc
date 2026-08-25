@@ -41,13 +41,9 @@ struct regex_iter_s {
  * Internal helpers
  * ------------------------------------------------------------------------- */
 
-/**
- * Copies a PCRE2 error message for the given error code into buf.
- *
- * @param errcode   A PCRE2 error code (negative integer).
- * @param buf       Destination buffer.
- * @param buf_len   Capacity of buf.
- */
+/** Copies the PCRE2 error message for @p errcode into @p buf, falling back to "PCRE2 error N (no message available)"
+ * when the lookup fails. @param errcode A PCRE2 error code (negative integer). @param buf Destination buffer. @param
+ * buf_len Capacity of buf. */
 static void pcre2_err_message(int errcode, char* buf, size_t buf_len) {
     PCRE2_UCHAR8 tmp[256];
     if (pcre2_get_error_message(errcode, tmp, sizeof(tmp)) < 0) {
@@ -57,15 +53,11 @@ static void pcre2_err_message(int errcode, char* buf, size_t buf_len) {
     }
 }
 
-/**
- * Populates a regex_match_t from the PCRE2 ovector and match-data block.
- *
- * @param re         Compiled regex whose group count is authoritative.
- * @param md         PCRE2 match-data block returned from pcre2_match.
- * @param rc         The positive return value from pcre2_match (number of
- *                   captured pairs filled in the ovector).
- * @param match      Output structure to populate.
- */
+/** Populates @p match from the PCRE2 ovector: copies spans for groups 0..re->group_count (capped at REGEX_MAX_GROUPS) —
+ * non-participating groups carry PCRE2_UNSET offsets verbatim — and zeroes all trailing slots. @param re Compiled regex
+ * whose group count is authoritative. @param md PCRE2 match-data block returned from pcre2_match. @param rc The
+ * positive return value from pcre2_match (used only implicitly via the ovector). @param match Output structure to
+ * populate. */
 static void fill_match(const regex_t* re, pcre2_match_data* md, int rc, regex_match_t* match) {
     const PCRE2_SIZE* ov = pcre2_get_ovector_pointer(md);
 
@@ -91,6 +83,14 @@ static void fill_match(const regex_t* re, pcre2_match_data* md, int rc, regex_ma
     (void)rc; /* rc is used implicitly via the ovector; suppress unused warning */
 }
 
+/** @brief Compiles a NUL-terminated pattern via PCRE2 (with JIT when available), rejecting patterns whose capture
+ * groups exceed REGEX_MAX_GROUPS. The pattern string is duplicated for introspection and the wrapper starts with
+ * refcount 1. @param pattern NUL-terminated UTF-8 pattern string; must not be NULL. @param flags Combination of
+ * REGEX_FLAG_* constants, or REGEX_FLAG_NONE. @param out On success written with the new regex_t, on failure with NULL.
+ * @param errbuf Optional buffer receiving a human-readable error message (offset included for pattern errors). @param
+ * errbuf_len Capacity of errbuf in bytes; ignored if errbuf is NULL. @return REGEX_OK on success, REGEX_ERROR on
+ * pattern error, REGEX_ERROR_LIMIT on too many groups, REGEX_ERROR_NOMEM on allocation failure, REGEX_ERROR_ARGS if
+ * pattern or out is NULL. */
 regex_status_t regex_compile(const char* pattern, regex_flags_t flags, regex_t** out, char* errbuf, size_t errbuf_len) {
     if (pattern == NULL || out == NULL) {
         return REGEX_ERROR_ARGS;
@@ -157,6 +157,8 @@ regex_status_t regex_compile(const char* pattern, regex_flags_t flags, regex_t**
     return REGEX_OK;
 }
 
+/** @brief Atomically increments the reference count of a compiled regex. @param re A non-NULL regex_t pointer
+ * previously obtained from regex_compile; NULL is tolerated. @return re, for convenient chaining. */
 regex_t* regex_retain(regex_t* re) {
     if (re != NULL) {
         atomic_fetch_add(&re->refcount, 1);
@@ -164,6 +166,8 @@ regex_t* regex_retain(regex_t* re) {
     return re;
 }
 
+/** @brief Atomically decrements the reference count and releases the PCRE2 code, pattern copy, and wrapper when it
+ * reaches zero. @param re Pointer to a compiled regex_t, or NULL (no-op). */
 void regex_free(regex_t* re) {
     if (re == NULL) {
         return;
@@ -181,6 +185,9 @@ void regex_free(regex_t* re) {
  * Execution context
  * ------------------------------------------------------------------------- */
 
+/** @brief Allocates a per-thread context holding a PCRE2 match-data block pre-sized to REGEX_MAX_GROUPS pairs, so
+ * hot-path matching never allocates. @param out Written with the new context on success, NULL on failure; must not be
+ * NULL. @return REGEX_OK or REGEX_ERROR_NOMEM (REGEX_ERROR_ARGS if out is NULL). */
 regex_status_t regex_ctx_create(regex_ctx_t** out) {
     if (out == NULL) {
         return REGEX_ERROR_ARGS;
@@ -206,6 +213,8 @@ regex_status_t regex_ctx_create(regex_ctx_t** out) {
     return REGEX_OK;
 }
 
+/** @brief Releases the context's match-data block and the context itself. @param ctx Context to destroy, or NULL
+ * (no-op). */
 void regex_ctx_free(regex_ctx_t* ctx) {
     if (ctx == NULL) {
         return;
@@ -218,6 +227,12 @@ void regex_ctx_free(regex_ctx_t* ctx) {
  * Matching
  * ------------------------------------------------------------------------- */
 
+/** @brief Runs the compiled pattern against @p subject starting at @p offset using the context's pre-allocated match
+ * data, then copies the spans into @p match via fill_match(). @param re Compiled pattern; must not be NULL. @param ctx
+ * Per-thread context providing the match-data block; must not be NULL. @param subject Subject byte string; need not be
+ * NUL-terminated. @param len Byte length of the subject. @param offset Byte offset within subject at which to start
+ * matching; must be <= len. @param match Receives match spans on success. @return REGEX_OK on match, REGEX_NO_MATCH if
+ * no match, REGEX_ERROR on a PCRE2 internal error, REGEX_ERROR_ARGS on invalid arguments. */
 regex_status_t regex_exec(const regex_t* re, regex_ctx_t* ctx, const char* subject, size_t len, size_t offset,
                           regex_match_t* match) {
     if (re == NULL || ctx == NULL || subject == NULL || match == NULL) {
@@ -241,6 +256,9 @@ regex_status_t regex_exec(const regex_t* re, regex_ctx_t* ctx, const char* subje
     return REGEX_OK;
 }
 
+/** @brief Convenience wrapper: regex_exec() over strlen(subject) starting at offset 0. @param re Compiled pattern; must
+ * not be NULL. @param ctx Per-thread context; must not be NULL. @param subject NUL-terminated subject string; must not
+ * be NULL. @param match Receives match spans on success. @return Same status codes as regex_exec(). */
 regex_status_t regex_match(const regex_t* re, regex_ctx_t* ctx, const char* subject, regex_match_t* match) {
     if (subject == NULL) {
         return REGEX_ERROR_ARGS;
@@ -248,6 +266,10 @@ regex_status_t regex_match(const regex_t* re, regex_ctx_t* ctx, const char* subj
     return regex_exec(re, ctx, subject, strlen(subject), 0, match);
 }
 
+/** @brief Predicate form of regex_exec(): true when the pattern matches anywhere in the subject; match spans are not
+ * produced. @param re Compiled pattern; must not be NULL. @param ctx Per-thread context; must not be NULL. @param
+ * subject Subject byte string; must not be NULL. @param len Byte length of the subject. @return true on match, false on
+ * no match, invalid arguments, or PCRE2 error. */
 bool regex_is_match(const regex_t* re, regex_ctx_t* ctx, const char* subject, size_t len) {
     if (re == NULL || ctx == NULL || subject == NULL) {
         return false;
@@ -262,6 +284,11 @@ bool regex_is_match(const regex_t* re, regex_ctx_t* ctx, const char* subject, si
  * Iterator
  * ------------------------------------------------------------------------- */
 
+/** @brief Creates an iterator for successive non-overlapping matches. It retains @p re and borrows @p ctx and @p
+ * subject — both must outlive the iterator. @param re Compiled pattern; must not be NULL. @param ctx Per-thread
+ * context; must not be NULL. @param subject Subject byte string (need not be NUL-terminated); must remain valid. @param
+ * len Byte length of the subject. @param out Written with the new iterator on success, NULL on failure; must not be
+ * NULL. @return REGEX_OK or REGEX_ERROR_NOMEM (REGEX_ERROR_ARGS if any pointer argument is NULL). */
 regex_status_t regex_iter_init(regex_t* re, regex_ctx_t* ctx, const char* subject, size_t len, regex_iter_t** out) {
     if (re == NULL || ctx == NULL || subject == NULL || out == NULL) {
         return REGEX_ERROR_ARGS;
@@ -285,6 +312,11 @@ regex_status_t regex_iter_init(regex_t* re, regex_ctx_t* ctx, const char* subjec
     return REGEX_OK;
 }
 
+/** @brief Advances the iterator: matches from the current offset, fills @p match, and moves the offset past the match —
+ * advancing one extra byte on zero-length matches to avoid an infinite loop (as Perl/Python/Go do). @param iter
+ * Iterator obtained from regex_iter_init; must not be NULL. @param match Receives the next match; must not be NULL.
+ * @return REGEX_OK on a successful advance, REGEX_NO_MATCH when exhausted, REGEX_ERROR on a PCRE2 internal error,
+ * REGEX_ERROR_ARGS on NULL arguments. */
 regex_status_t regex_iter_next(regex_iter_t* iter, regex_match_t* match) {
     if (iter == NULL || match == NULL) {
         return REGEX_ERROR_ARGS;
@@ -319,6 +351,8 @@ regex_status_t regex_iter_next(regex_iter_t* iter, regex_match_t* match) {
     return REGEX_OK;
 }
 
+/** @brief Frees the iterator and releases its reference to the compiled pattern. Borrowed context and subject are left
+ * untouched. @param iter Iterator to free, or NULL (no-op). */
 void regex_iter_free(regex_iter_t* iter) {
     if (iter == NULL) {
         return;
@@ -331,10 +365,15 @@ void regex_iter_free(regex_iter_t* iter) {
  * Substitution (shared implementation)
  * ------------------------------------------------------------------------- */
 
-/**
- * Shared body for regex_sub and regex_gsub; differs only in the PCRE2
- * substitute flags.
- */
+/** Shared body for regex_sub()/regex_gsub(), differing only in @p pcre2_flags. Runs pcre2_substitute with
+ * SUBSTITUTE_EXTENDED and SUBSTITUTE_OVERFLOW_LENGTH so an undersized out_buf yields REGEX_ERROR with *out_len holding
+ * the required size (including NUL) instead of a bare failure. @param re Compiled pattern; must not be NULL. @param ctx
+ * Per-thread context providing match data; must not be NULL. @param subject Subject byte string; must not be NULL.
+ * @param subject_len Byte length of the subject. @param replacement NUL-terminated replacement with $0..$9 / ${name}
+ * references; must not be NULL. @param out_buf Buffer receiving the result; must not be NULL. @param out_len In:
+ * capacity of out_buf. Out: bytes written (excl. NUL), or required size on overflow. @param pcre2_flags Extra PCRE2
+ * substitute flags (0 for first-match, PCRE2_SUBSTITUTE_GLOBAL for all). @return REGEX_OK, REGEX_NO_MATCH when nothing
+ * matched, REGEX_ERROR on overflow or other errors, REGEX_ERROR_ARGS on NULL arguments. */
 static regex_status_t sub_impl(const regex_t* re, regex_ctx_t* ctx, const char* subject, size_t subject_len,
                                const char* replacement, char* out_buf, size_t* out_len, uint32_t pcre2_flags) {
     if (re == NULL || ctx == NULL || subject == NULL || replacement == NULL || out_buf == NULL || out_len == NULL) {
@@ -378,11 +417,26 @@ static regex_status_t sub_impl(const regex_t* re, regex_ctx_t* ctx, const char* 
     return REGEX_OK;
 }
 
+/** @brief Replaces the first match of re in subject with replacement (which may contain $0..$9 / ${name}
+ * back-references), writing the result to out_buf. If the buffer is too small, REGEX_ERROR is returned with *out_len
+ * set to the required size including NUL. @param re Compiled pattern; must not be NULL. @param ctx Per-thread context;
+ * must not be NULL. @param subject Subject string (need not be NUL-terminated). @param subject_len Byte length of the
+ * subject. @param replacement NUL-terminated replacement string; must not be NULL. @param out_buf Buffer to receive the
+ * result; must not be NULL. @param out_len In: capacity of out_buf. Out: bytes written (excl. NUL), or required
+ * capacity on overflow. @return REGEX_OK on success, REGEX_NO_MATCH if no substitution occurred, REGEX_ERROR on failure
+ * (check out_len for required capacity), REGEX_ERROR_ARGS on invalid arguments. */
 regex_status_t regex_sub(const regex_t* re, regex_ctx_t* ctx, const char* subject, size_t subject_len,
                          const char* replacement, char* out_buf, size_t* out_len) {
     return sub_impl(re, ctx, subject, subject_len, replacement, out_buf, out_len, 0 /* replace first match only */);
 }
 
+/** @brief Replaces all non-overlapping matches of re in subject with replacement. Semantics identical to regex_sub()
+ * except every match is substituted (PCRE2_SUBSTITUTE_GLOBAL). @param re Compiled pattern; must not be NULL. @param ctx
+ * Per-thread context; must not be NULL. @param subject Subject string (need not be NUL-terminated). @param subject_len
+ * Byte length of the subject. @param replacement NUL-terminated replacement string; must not be NULL. @param out_buf
+ * Buffer to receive the result; must not be NULL. @param out_len In: capacity of out_buf. Out: bytes written (excl.
+ * NUL), or required capacity on overflow. @return REGEX_OK on success, REGEX_NO_MATCH if no substitution occurred,
+ * REGEX_ERROR on failure, REGEX_ERROR_ARGS on invalid arguments. */
 regex_status_t regex_gsub(const regex_t* re, regex_ctx_t* ctx, const char* subject, size_t subject_len,
                           const char* replacement, char* out_buf, size_t* out_len) {
     return sub_impl(re, ctx, subject, subject_len, replacement, out_buf, out_len, PCRE2_SUBSTITUTE_GLOBAL);
@@ -392,6 +446,8 @@ regex_status_t regex_gsub(const regex_t* re, regex_ctx_t* ctx, const char* subje
  * Introspection
  * ------------------------------------------------------------------------- */
 
+/** @brief Returns the number of capturing groups in the compiled pattern, excluding group 0. @param re Compiled
+ * pattern; NULL yields 0. @return Capture group count, or 0 on error. */
 uint32_t regex_group_count(const regex_t* re) {
     if (re == NULL) {
         return 0;
@@ -399,6 +455,8 @@ uint32_t regex_group_count(const regex_t* re) {
     return re->group_count;
 }
 
+/** @brief Returns the original pattern string recorded at compile time; its lifetime is that of re. @param re Compiled
+ * pattern. @return NUL-terminated pattern string, or "" if re is NULL. */
 const char* regex_pattern(const regex_t* re) {
     if (re == NULL) {
         return "";
@@ -406,6 +464,9 @@ const char* regex_pattern(const regex_t* re) {
     return re->pattern;
 }
 
+/** @brief Writes a human-readable description of @p status into buf (truncated to fit, always NUL-terminated). Unknown
+ * codes map to "unknown status code". @param status A regex_status_t value. @param buf Destination buffer; must not be
+ * NULL (silently ignored with buf_len == 0). @param buf_len Capacity of buf in bytes. */
 void regex_strerror(regex_status_t status, char* buf, size_t buf_len) {
     if (buf == NULL || buf_len == 0) {
         return;
@@ -439,6 +500,10 @@ void regex_strerror(regex_status_t status, char* buf, size_t buf_len) {
 
 // ============ HELPERS FROM EXTRACTING MATCH GROUPS ============
 
+/** @brief Prints the full match (group 0) and each participating capture group of @p match to stdout; groups with
+ * PCRE2_UNSET offsets are skipped, and a zero count prints "No match". @param subject The original subject string
+ * passed to the match function. @param match The populated match result to display; NULL arguments print an error to
+ * stderr. */
 void regex_print_match(const char* subject, const regex_match_t* match) {
     if (!subject || !match) {
         fprintf(stderr, "regex_print_match: NULL subject or match\n");
@@ -465,6 +530,11 @@ void regex_print_match(const char* subject, const regex_match_t* match) {
     }
 }
 
+/** @brief Allocates a NUL-terminated heap copy of capture group @p group_num from the subject; groups that did not
+ * participate (PCRE2_UNSET offsets) yield NULL. @param subject The original subject string passed to the match
+ * function. @param match The populated match result; must not be NULL. @param group_num Group index: 0 is the full
+ * match, 1+ are subgroups. @return Newly allocated string the caller must free(), or NULL on invalid arguments, unset
+ * group, or allocation failure. */
 char* regex_group_dup(const char* subject, const regex_match_t* match, uint32_t group_num) {
     if (!subject || !match || group_num >= match->count) {
         return NULL;
@@ -491,6 +561,12 @@ char* regex_group_dup(const char* subject, const regex_match_t* match, uint32_t 
     return result;
 }
 
+/** @brief Copies capture group @p group_num into a caller-supplied buffer (allocation-free alternative to
+ * regex_group_dup); unset groups yield NULL. @param subject The original subject string passed to the match function.
+ * @param match The populated match result; must not be NULL. @param group_num Group index: 0 is the full match, 1+ are
+ * subgroups. @param buf Destination buffer; must not be NULL. @param buf_len Capacity of buf including the NUL
+ * terminator; must exceed the group length. @return buf on success, or NULL on invalid arguments, unset group, or
+ * insufficient capacity. */
 char* regex_group_copy(const char* subject, const regex_match_t* match, uint32_t group_num, char* buf, size_t buf_len) {
     if (!subject || !match || !buf || buf_len == 0 || group_num >= match->count) {
         return NULL;

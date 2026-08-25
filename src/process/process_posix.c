@@ -36,6 +36,8 @@ struct FileRedirection {
     bool close_on_exec;
 };
 
+/** @brief Translates the current errno into the closest ProcessError: EINVAL, ENOMEM, EACCES/EPERM, EBADF/EPIPE,
+ * ECHILD; anything else maps to PROCESS_ERROR_UNKNOWN. @return Matching ProcessError value. */
 ProcessError process_system_error(void) {
     switch (errno) {
         case EINVAL:
@@ -56,6 +58,10 @@ ProcessError process_system_error(void) {
 }
 
 // Helper function to search for command in PATH
+/** @brief Searches PATH for an executable named command. Commands starting with '/' or '.' are returned as-is
+ * (strdup'ed, no X_OK check); bare names are probed with access(X_OK) in each ':'-separated component of the PATH entry
+ * found in environment. @return Heap-allocated resolved path (caller frees), or NULL if not found, PATH is absent from
+ * environment, or on allocation failure. */
 static char* find_in_path(const char* command, const char* const* environment) {
     if (!command) return NULL;
 
@@ -99,7 +105,13 @@ static char* find_in_path(const char* command, const char* const* environment) {
     return NULL;
 }
 
-/* Implementation of the pipe API */
+/**
+ * @brief Creates a unidirectional anonymous pipe for IPC.
+ *
+ * @param[out] pipeHandle Receives the allocated pipe handle on success.
+ * @return PROCESS_SUCCESS, PROCESS_ERROR_INVALID_ARGUMENT, or
+ *         PROCESS_ERROR_PIPE_FAILED / PROCESS_ERROR_MEMORY on failure.
+ */
 ProcessError pipe_create(PipeHandle** pipeHandle) {
     if (!pipeHandle) {
         return PROCESS_ERROR_INVALID_ARGUMENT;
@@ -123,6 +135,8 @@ ProcessError pipe_create(PipeHandle** pipeHandle) {
     return PROCESS_SUCCESS;
 }
 
+/** @brief Applies (or clears) O_NONBLOCK on both ends of the pipe via fcntl(F_SETFL). @return PROCESS_SUCCESS, or the
+ * mapped system error if either end cannot be updated. */
 ProcessError pipe_set_nonblocking(PipeHandle* pipe, bool nonblocking) {
     if (!pipe) {
         return PROCESS_ERROR_INVALID_ARGUMENT;
@@ -165,6 +179,11 @@ ProcessError pipe_set_nonblocking(PipeHandle* pipe, bool nonblocking) {
     return PROCESS_SUCCESS;
 }
 
+/** @brief Reads up to size bytes from the pipe's read end. With timeout_ms >= 0, select() bounds the wait: a 0 ms
+ * timeout that finds no data yields PROCESS_ERROR_WOULD_BLOCK, an expired positive timeout PROCESS_ERROR_TIMEOUT; EINTR
+ * also maps to WOULD_BLOCK. EOF and EPIPE/EBADF map to PROCESS_ERROR_PIPE_CLOSED; EAGAIN/EWOULDBLOCK to WOULD_BLOCK.
+ * @param[out] buffer Destination for the data. @param[out] bytes_read Optional receiver for the number of bytes
+ * actually read. @return PROCESS_SUCCESS on success, error code otherwise. */
 ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* bytes_read, int timeout_ms) {
     if (!pipe || !buffer || pipe->read_closed) {
         return PROCESS_ERROR_INVALID_ARGUMENT;
@@ -225,6 +244,10 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
     return PROCESS_SUCCESS;
 }
 
+/** @brief Writes size bytes to the pipe's write end, using the same select()-bounded wait semantics as pipe_read().
+ * EAGAIN/EWOULDBLOCK maps to WOULD_BLOCK; EPIPE/EBADF (reader gone) maps to PIPE_CLOSED. @param[out] bytes_written
+ * Optional receiver for the number of bytes actually written. @return PROCESS_SUCCESS on success, error code otherwise.
+ */
 ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_t* bytes_written, int timeout_ms) {
     if (!pipe || !buffer || pipe->write_closed) {
         return PROCESS_ERROR_INVALID_ARGUMENT;
@@ -280,6 +303,8 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
     return PROCESS_SUCCESS;
 }
 
+/** @brief Closes both ends of the pipe (marking them closed and resetting their fds) and frees the handle. Safe to pass
+ * NULL. */
 void pipe_close(PipeHandle* pipe) {
     if (!pipe) {
         return;
@@ -299,6 +324,8 @@ void pipe_close(PipeHandle* pipe) {
     free(pipe);
 }
 
+/** @brief Closes only the read end of the pipe; the write end stays usable. Idempotent. @return PROCESS_SUCCESS, or
+ * PROCESS_ERROR_INVALID_ARGUMENT if pipe is NULL. */
 ProcessError pipe_close_read_end(PipeHandle* pipe) {
     if (!pipe) return PROCESS_ERROR_INVALID_ARGUMENT;
     if (pipe->read_fd != INVALID_NATIVE_HANDLE && !pipe->read_closed) {
@@ -309,6 +336,8 @@ ProcessError pipe_close_read_end(PipeHandle* pipe) {
     return PROCESS_SUCCESS;
 }
 
+/** @brief Closes only the write end of the pipe (readers then see EOF); the read end stays usable. Idempotent. @return
+ * PROCESS_SUCCESS, or PROCESS_ERROR_INVALID_ARGUMENT if pipe is NULL. */
 ProcessError pipe_close_write_end(PipeHandle* pipe) {
     if (!pipe) return PROCESS_ERROR_INVALID_ARGUMENT;
     if (pipe->write_fd != INVALID_NATIVE_HANDLE && !pipe->write_closed) {
@@ -319,6 +348,12 @@ ProcessError pipe_close_write_end(PipeHandle* pipe) {
     return PROCESS_SUCCESS;
 }
 
+/** @brief fork()/exec() backend for process_create(). In the child: chdir()s to working_directory, dup2()s the
+ * configured pipes onto stdin/stdout/stderr (merging stderr into stdout when requested), setsid()s when detached, then
+ * execvp()s (inherited env) or execve()s a PATH-resolved target (custom env — resolution happens before fork because
+ * strdup/strtok_r are not async-signal-safe). Any child-side failure _exit(127)s. On parent-side allocation failure the
+ * child is SIGKILLed and reaped so the failure is atomic from the caller's view. @return PROCESS_SUCCESS;
+ * PROCESS_ERROR_FORK_FAILED if fork fails; PROCESS_ERROR_MEMORY if the handle cannot be allocated. */
 ProcessError unix_create_process(ProcessHandle** handle, const char* command, const char* const argv[],
                                  const ProcessOptions* options) {
     // Create pipes for redirection if needed
@@ -344,7 +379,7 @@ ProcessError unix_create_process(ProcessHandle** handle, const char* command, co
 
     /*
      * Resolve PATH before fork() when using a custom environment
-     * (Bug #18, MT-safety): find_in_path() calls strdup/strtok_r/malloc,
+     * (MT-safety): find_in_path() calls strdup/strtok_r/malloc,
      * none async-signal-safe.  In the child of a multithreaded parent
      * these can deadlock on a lock copied in the locked state.
      */
@@ -380,7 +415,7 @@ ProcessError unix_create_process(ProcessHandle** handle, const char* command, co
 
         // Handle standard input
         if (options->io.stdin_pipe) {
-            /* BUG #19 class: a failed dup2 must abort the child, otherwise
+            /* failed dup2 must abort the child, otherwise
              * exec runs with the wrong stdio attached. */
             if (dup2(stdin_pipe[0], STDIN_FILENO) == -1) {
                 _exit(127);
@@ -453,6 +488,9 @@ ProcessError unix_create_process(ProcessHandle** handle, const char* command, co
     return PROCESS_SUCCESS;
 }
 
+/** @brief Decodes a waitpid() status into result: normal exit fills exit_code and sets exited_normally; signal death
+ * stores the signal number in both exit_code and term_signal with exited_normally false; any other status yields
+ * exit_code -1. */
 static inline void set_process_result(int status, ProcessResult* result) {
     if (WIFEXITED(status)) {
         result->exit_code = WEXITSTATUS(status);
@@ -468,6 +506,8 @@ static inline void set_process_result(int status, ProcessResult* result) {
 }
 
 // Cross-platform nanosleep function
+/** @brief POSIX backend of the cross-platform sleep: a direct nanosleep(2) call. @note Not retried if interrupted by a
+ * signal. */
 void NANOSLEEP(long seconds, long nanoseconds) {
     // On Linux/Unix, we can use nanosleep directly
     struct timespec req;
@@ -476,6 +516,11 @@ void NANOSLEEP(long seconds, long nanoseconds) {
     nanosleep(&req, NULL);
 }
 
+/** @brief Waits for the child to finish. timeout_ms < 0 blocks in waitpid(); otherwise WNOHANG is polled in 10 ms
+ * slices so a prompt exit is noticed immediately. Detached handles cannot be waited on. @param[out] result Optional
+ * receiver for exit status (filled via set_process_result). @return PROCESS_SUCCESS when the child was reaped;
+ * PROCESS_ERROR_WAIT_FAILED when the timeout expired with the child still running; PROCESS_ERROR_INVALID_ARGUMENT or a
+ * mapped system error otherwise. */
 ProcessError process_wait(ProcessHandle* handle, ProcessResult* result, int timeout_ms) {
     if (!handle) {
         return PROCESS_ERROR_INVALID_ARGUMENT;
@@ -529,6 +574,8 @@ ProcessError process_wait(ProcessHandle* handle, ProcessResult* result, int time
     return PROCESS_SUCCESS;
 }
 
+/** @brief Sends SIGTERM (graceful request) or SIGKILL (immediate) to the child pid. @return PROCESS_SUCCESS;
+ * PROCESS_ERROR_INVALID_ARGUMENT for NULL handles or non-positive pids; PROCESS_ERROR_KILL_FAILED if kill() fails. */
 ProcessError process_terminate(ProcessHandle* handle, bool force) {
     if (!handle) {
         return PROCESS_ERROR_INVALID_ARGUMENT;
@@ -553,6 +600,9 @@ ProcessError process_terminate(ProcessHandle* handle, bool force) {
 }
 
 // ======== Redirection ==================
+/** @brief Opens filepath with the given open(2) flags/mode and wraps the descriptor in a FileRedirection for later
+ * dup2() into a child. close_on_exec defaults to true, so process_close_redirection() closes the fd. @return
+ * PROCESS_SUCCESS; PROCESS_ERROR_INVALID_ARGUMENT/MEMORY or a mapped open() error otherwise. */
 ProcessError process_redirect_to_file(FileRedirection** redirection, const char* filepath, int flags,
                                       unsigned int mode) {
     if (!redirection || !filepath) {
@@ -578,6 +628,9 @@ ProcessError process_redirect_to_file(FileRedirection** redirection, const char*
     return PROCESS_SUCCESS;
 }
 
+/** @brief Wraps an existing descriptor in a FileRedirection without taking ownership unless close_on_exec is true (in
+ * which case process_close_redirection() closes it). @return PROCESS_SUCCESS; PROCESS_ERROR_INVALID_ARGUMENT for NULL
+ * output/negative fd, or PROCESS_ERROR_MEMORY. */
 ProcessError process_redirect_to_fd(FileRedirection** redirection, int fd, bool close_on_exec) {
     if (!redirection || fd < 0) {
         return PROCESS_ERROR_INVALID_ARGUMENT;
@@ -594,6 +647,8 @@ ProcessError process_redirect_to_fd(FileRedirection** redirection, int fd, bool 
     return PROCESS_SUCCESS;
 }
 
+/** @brief Closes the wrapped descriptor when close_on_exec is set and frees the redirection record. Safe to pass NULL.
+ */
 void process_close_redirection(FileRedirection* redirection) {
     if (!redirection) {
         return;
@@ -607,6 +662,11 @@ void process_close_redirection(FileRedirection* redirection) {
     redirection = NULL;
 }
 
+/** @brief Extended fork/exec backend supporting pipes and/or file-descriptor redirections per stream:
+ * stdout_file/stderr_file fds are dup2()ed when the corresponding pipe is absent, stderr merges into stdout on request,
+ * and the child execve()/execvp()s with pre-fork PATH resolution for custom environments (including an empty one).
+ * @return PROCESS_SUCCESS; PROCESS_ERROR_INVALID_ARGUMENT for NULL arguments; PROCESS_ERROR_FORK_FAILED/MEMORY
+ * otherwise. */
 ProcessError process_create_with_redirection(ProcessHandle** handle, const char* command, const char* const argv[],
                                              const ExtProcessOptions* options) {
     if (!handle || !command || !argv || !argv[0]) {
@@ -741,6 +801,11 @@ ProcessError process_create_with_redirection(ProcessHandle** handle, const char*
     return PROCESS_SUCCESS;
 }
 
+/** @brief Runs cmd with stdout and stderr each piped to a dedicated "tee" child that fans every chunk out to the
+ * descriptors in output_fds[] / error_fds[] (each a -1-terminated array). The parent waits for the command first
+ * (filling result), then for both tee processes. cmd must be resolvable by execv() (no PATH search). @return
+ * PROCESS_SUCCESS if the command exited normally; PROCESS_ERROR_PIPE_FAILED/FORK_FAILED on setup failure;
+ * PROCESS_ERROR_EXEC_FAILED otherwise. */
 ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd, const char* args[], int output_fds[],
                                           int error_fds[]) {
     // Create pipes for stdout and stderr
@@ -907,6 +972,9 @@ ProcessError process_run_with_multiwriter(ProcessResult* result, const char* cmd
     }
 }
 
+/** @brief Convenience wrapper over process_create_with_redirection(): opens stdout_file and/or stderr_file (0644,
+ * O_APPEND or O_TRUNC per append), spawns the command with those redirections, then releases both redirection records.
+ * @return PROCESS_SUCCESS, the first error from opening a file, or the process creation error. */
 ProcessError process_run_with_file_redirection(ProcessHandle** handle, const char* command, const char* const argv[],
                                                const char* stdout_file, const char* stderr_file, bool append) {
     ExtProcessOptions options;

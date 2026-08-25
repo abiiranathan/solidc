@@ -42,7 +42,7 @@ typedef struct trie_node {
     struct trie_node* ichild[TRIE_INLINE_CAP];
 } trie_node;
 
-/* Const is dropped deliberately: search paths only read through these,
+/** Const is dropped deliberately: search paths only read through these,
  * while insert paths need mutable access to the same storage. */
 static inline uint8_t* node_chars(const trie_node* n) { return n->is_heap ? (uint8_t*)n->blob : (uint8_t*)n->ichars; }
 
@@ -102,7 +102,7 @@ static bool node_reserve(trie_t* t, trie_node* n, uint8_t want) {
  * Child lookup (hybrid linear/binary search on sorted chars[])
  * ========================================================================= */
 
-/*
+/**
  * Returns the index of `c` in the node's sorted key bytes, or -1.
  * Linear scan for small fan-out (branch-predictable, no mid computation),
  * binary search once the child count makes it worthwhile.
@@ -136,7 +136,7 @@ static inline int child_index(const trie_node* n, uint8_t c) {
     return -1;
 }
 
-/*
+/**
  * Find or create a child for byte `c` under parent `n`.
  * On insert the packed blob grows by doubling (chars stay at offset 0;
  * the children pointer array is moved to its new aligned offset).

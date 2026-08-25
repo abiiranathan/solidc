@@ -211,8 +211,11 @@ StoError str_to_int_base(const char* str, int base, int* result);
 StoError str_to_bool(const char* str, bool* result);
 
 /**
-Report the numerical conversion error from code.
-*/
+ * @brief Returns a human-readable description of a StoError code.
+ *
+ * @param[in] code Error code returned by the str_to_* functions.
+ * @return Static string describing the error; never NULL.
+ */
 const char* sto_error_string(StoError code);
 
 #ifdef __cplusplus

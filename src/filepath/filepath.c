@@ -29,6 +29,8 @@
  * under concurrency (Bug #9). Other platforms keep their own locking inside
  * the backend.
  */
+/** @brief Generates a random NUL-terminated name of len characters drawn from [A-Za-z0-9] via fp_random_bytes(); len
+ * must be < 64. On entropy failure str is set to an empty string. Thread-safe (no shared state). */
 void fp_random_name(char* str, size_t len) {
     static const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     const size_t charset_size = sizeof(charset) - 1;  // Exclude null terminator
@@ -50,9 +52,8 @@ void fp_random_name(char* str, size_t len) {
     str[len] = '\0';
 }
 
-/**
- * Callback for directory size calculation
- */
+/** @brief dir_size() traversal callback: accumulates the size of each regular file into the ssize_t pointed to by data;
+ * stops on NULL attr/data. */
 static inline WalkDirOption dir_size_callback(const FileAttributes* attr, const char* path, const char* name,
                                               void* data) {
     (void)path;
@@ -70,6 +71,8 @@ static inline WalkDirOption dir_size_callback(const FileAttributes* attr, const 
 }
 
 // Get directory size
+/** @brief Computes the total size in bytes of all regular files in the tree rooted at path, via dir_walk(). @return
+ * Total size on success, -1 on error (errno set). */
 ssize_t dir_size(const char* path) {
     if (!path || *path == '\0') {
         errno = EINVAL;
@@ -84,6 +87,8 @@ ssize_t dir_size(const char* path) {
 }
 
 // Create directories recursively
+/** @brief Creates path and every missing parent component (mkdir -p semantics), accepting both '/' and '\\' separators.
+ * @return true on success or if path already exists, false on error (errno set). */
 bool filepath_makedirs(const char* path) {
     if (!path || *path == '\0') {
         errno = EINVAL;
@@ -126,6 +131,9 @@ bool filepath_makedirs(const char* path) {
 }
 
 // Make a temporary file
+/** @brief Builds "<tempdir>/<random prefix>XXXXXX" and creates the file via fp_create_tempfile() (mode 0600 on POSIX).
+ * @return Heap-allocated path of the created file, or NULL on error (errno set); caller frees the path and deletes the
+ * file. */
 char* make_tempfile(void) {
     char* tmpdir = get_tempdir();
     if (!tmpdir) {
@@ -147,6 +155,9 @@ char* make_tempfile(void) {
 }
 
 // Make a temporary directory
+/** @brief Builds "<tempdir>/<random prefix>XXXXXX" and creates the directory via fp_create_tempdir(). @return
+ * Heap-allocated path of the created directory, or NULL on error (errno set); caller frees the path and removes the
+ * directory. */
 char* make_tempdir(void) {
     char* tmpdir = get_tempdir();
     if (!tmpdir) {
@@ -171,6 +182,8 @@ char* make_tempdir(void) {
 // When recursive is true, deletes all files, subdirectories, and symbolic links (POSIX)
 // within path, including empty subdirectories. Does not affect parent directories,
 // as the walk skips "." and "..".
+/** @brief Removes a directory. When recursive, contents are deleted depth-first (post-order, "." and ".." skipped)
+ * before removing the root itself. @return 0 on success, -1 on error (errno set). */
 int dir_remove(const char* path, bool recursive) {
     if (!path || *path == '\0') {
         errno = EINVAL;
@@ -187,6 +200,7 @@ int dir_remove(const char* path, bool recursive) {
 }
 
 // Rename a directory
+/** @brief Renames or moves a directory via rename(2). @return 0 on success, -1 on error (errno set). */
 int dir_rename(const char* oldpath, const char* newpath) {
     if (!oldpath || !newpath || *oldpath == '\0' || *newpath == '\0') {
         errno = EINVAL;
@@ -196,6 +210,8 @@ int dir_rename(const char* oldpath, const char* newpath) {
 }
 
 // Change the current working directory
+/** @brief Changes the process-wide current working directory via chdir(2). @return 0 on success, -1 on error (errno
+ * set). */
 int dir_chdir(const char* path) {
     if (!path || *path == '\0') {
         errno = EINVAL;
@@ -205,6 +221,8 @@ int dir_chdir(const char* path) {
 }
 
 // List files in a directory with unified error handling
+/** @brief Lists every entry of a directory, including "." and "..". @return Heap array of *count allocated name
+ * strings, or NULL on error (errno set); caller frees each name and the array. */
 char** dir_list(const char* path, size_t* count) {
     if (!path || !count || *path == '\0') {
         errno = EINVAL;
@@ -261,6 +279,8 @@ error:
 }
 
 // List files with callback
+/** @brief Invokes callback for each entry of path except "." and ".."; silently returns if arguments are invalid or the
+ * directory cannot be opened. */
 void dir_list_with_callback(const char* path, void (*callback)(const char* name)) {
     if (!path || !callback || *path == '\0') return;
 
@@ -282,6 +302,8 @@ void dir_list_with_callback(const char* path, void (*callback)(const char* name)
 
 // Fast checks that avoid stat when d_type is known (Linux); otherwise they
 // fall back to lazy stat via lazy_get_attrs().
+/** @brief Directory check for lazy walks: uses cached d_type when known (Linux), else one cached stat via
+ * lazy_get_attrs(). @return true if the entry is a directory (result memoised in lazy). */
 bool lazy_is_dir(LazyFileAttributes* lazy) {
     if (!lazy) return false;
     if (lazy->is_dir_cached) return lazy->is_dir_value;
@@ -301,6 +323,8 @@ bool lazy_is_dir(LazyFileAttributes* lazy) {
     return is_dir;
 }
 
+/** @brief Regular-file check for lazy walks: trusts d_type when known (Linux), falling back to a stat via
+ * lazy_get_attrs(). @return true if the entry is a regular file. */
 bool lazy_is_file(LazyFileAttributes* lazy) {
     if (!lazy) return false;
 #ifdef __linux__
@@ -313,26 +337,15 @@ bool lazy_is_file(LazyFileAttributes* lazy) {
     return fattr_is_file(attr);
 }
 
-/**
- * Recursively walks a directory tree, invoking a callback for each entry.
- * @param path Starting directory path.
- * @param callback Function to call for each directory entry.
- * @param data User-provided data passed to callback.
- * @return 0 on success, -1 on error (errno is set).
- */
-int dir_walk(const char* path, WalkDirCallback callback, void* data) {
-    return fp_dir_walk_impl(path, callback, data);
-}
+/** @brief Recursively walks a directory tree breadth-first, invoking callback for each entry before recursing into
+ * subdirectories. @param path Starting directory path. @param callback Function to call for each directory entry.
+ * @param data User-provided data passed to callback. @return 0 on success, -1 on error (errno is set). */
+int dir_walk(const char* path, WalkDirCallback callback, void* data) { return fp_dir_walk_impl(path, callback, data); }
 
-/**
- * Recursively walks a directory tree depth-first (post-order), invoking a callback for each entry.
- * Files are processed before their containing directories. Useful for operations like deletion
- * where you need to empty a directory before removing it.
- * @param path Starting directory path.
- * @param callback Function to call for each directory entry.
- * @param data User-provided data passed to callback.
- * @return 0 on success, -1 on error (errno is set).
- */
+/** @brief Recursively walks a directory tree depth-first (post-order): entries are processed after their children,
+ * which suits operations like recursive deletion where a directory must be emptied before removal. @param path Starting
+ * directory path. @param callback Function to call for each directory entry. @param data User-provided data passed to
+ * callback. @return 0 on success, -1 on error (errno is set). */
 int dir_walk_depth_first(const char* path, WalkDirCallback callback, void* data) {
     if (!path || !callback || *path == '\0') {
         errno = EINVAL;
@@ -341,6 +354,9 @@ int dir_walk_depth_first(const char* path, WalkDirCallback callback, void* data)
     return fp_dir_walk_depth_first_impl(path, callback, data);
 }
 
+/** @brief Walks a directory tree with lazy attribute fetching, dispatching to fp_dir_walkx_impl() (Linux
+ * getdents64/fstatat fast path; full stat only when the callback needs size/mtime). @return 0 on success, -1 on error
+ * (errno set). */
 int dir_walkx(const char* path, WalkDirCallbackX callback, void* data) {
     if (!path || !callback || *path == '\0') {
         errno = EINVAL;
@@ -350,6 +366,7 @@ int dir_walkx(const char* path, WalkDirCallbackX callback, void* data) {
 }
 
 // Rename a file
+/** @brief Renames or moves a file (or directory) via rename(2). @return 0 on success, -1 on error (errno set). */
 int filepath_rename(const char* oldpath, const char* newpath) {
     if (!oldpath || !newpath || *oldpath == '\0' || *newpath == '\0') {
         errno = EINVAL;
@@ -359,6 +376,9 @@ int filepath_rename(const char* oldpath, const char* newpath) {
 }
 
 // Expand user home directory
+/** @brief Expands a leading '~' to the user's home directory: bare "~" or "~/"/"~\\" collapse to home itself,
+ * "~<suffix>" becomes "<home>/<suffix>", and paths not starting with '~' are returned unchanged as a copy. @return
+ * Heap-allocated expanded path, or NULL on error (EINVAL/ENOENT/ENOMEM). */
 char* filepath_expanduser(const char* path) {
     if (!path) {
         errno = EINVAL;
@@ -398,6 +418,9 @@ char* filepath_expanduser(const char* path) {
 }
 
 // Expand user home directory into buffer
+/** @brief Buffer variant of filepath_expanduser(): writes the expanded (or verbatim) path into expanded, always
+ * NUL-terminated. @return true on success; false if arguments are invalid, HOME is unset, or the result does not fit
+ * (errno EINVAL/ENOENT/ENAMETOOLONG). */
 bool filepath_expanduser_buf(const char* path, char* expanded, size_t len) {
     if (!path || !expanded || len == 0) {
         if (expanded) expanded[0] = '\0';

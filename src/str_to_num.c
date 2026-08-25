@@ -16,7 +16,7 @@ static inline bool is_ascii_space(char c) {
     return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f';
 }
 
-/*
+/**
  * Fast base-10 parsers (Perf #11).
  *
  * The generic path below delegates to strtoimax/strtoumax, whose machinery

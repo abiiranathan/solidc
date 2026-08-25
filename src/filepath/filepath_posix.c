@@ -38,6 +38,9 @@ struct linux_dirent64 {
 };
 
 // Kernel version check for fast path
+/** @brief Compares the running kernel version against want_major.want_minor, caching the result after the first uname()
+ * call. Used to gate Linux fast-path traversal features. @return 1 if the running kernel is at least the requested
+ * version, 0 otherwise (including uname failure). */
 static int kernel_version_ge(int want_major, int want_minor) {
     static int cached_result = -1;
     struct utsname u;
@@ -64,12 +67,15 @@ static int kernel_version_ge(int want_major, int want_minor) {
     return cached_result;
 }
 
+/** @brief True when getdents64 + openat + fstatat are available (kernel >= 2.6), enabling the fast directory-walk path.
+ */
 static inline int has_fast_dirent(void) {
     // getdents64 + openat + fstatat available since 2.6.16, d_type reliable since 2.6
     // statx available since 4.11
     return kernel_version_ge(2, 6);
 }
 
+/** @brief True when statx is available (kernel >= 4.11); reserved for future attribute queries. */
 static inline int has_statx(void) { return kernel_version_ge(4, 11); }
 #endif /* __linux__ */
 
@@ -77,6 +83,9 @@ static inline int has_statx(void) { return kernel_version_ge(4, 11); }
  * Entropy
  * ------------------------------------------------------------------------- */
 
+/** @brief Fills buf with n cryptographically random bytes. On Linux uses getrandom(2) (thread-safe, no locking);
+ * elsewhere opens /dev/urandom per call under a once-initialised lock. @return true on success, false if fewer than n
+ * bytes could be read. */
 bool fp_random_bytes(unsigned char* buf, size_t n) {
 #ifdef __linux__
     /* Kernel-provided, thread-safe, no descriptor churn. */
@@ -118,6 +127,8 @@ bool fp_random_bytes(unsigned char* buf, size_t n) {
  * ------------------------------------------------------------------------- */
 
 // Open a directory
+/** @brief opendir() backend: allocates a Directory handle wrapping the DIR stream plus a copy of path. @return Handle
+ * on success; NULL on invalid input or failure with errno preserved from opendir()/allocation. */
 Directory* dir_open(const char* path) {
     if (!path || *path == '\0') {
         errno = EINVAL;
@@ -149,6 +160,7 @@ Directory* dir_open(const char* path) {
 }
 
 // Close a directory
+/** @brief closedir() backend: closes the stream and frees the handle. Safe to pass NULL. */
 void dir_close(Directory* dir) {
     if (!dir) return;
 
@@ -160,6 +172,8 @@ void dir_close(Directory* dir) {
 }
 
 // Read the next entry in the directory
+/** @brief readdir() backend: advances the stream. @return Pointer to the entry name owned by the DIR stream (valid only
+ * until the next call to dir_next()/dir_close()), or NULL at end of directory. */
 char* dir_next(Directory* dir) {
     if (!dir) {
         errno = EINVAL;
@@ -177,6 +191,9 @@ char* dir_next(Directory* dir) {
  * Attribute mapping
  * ------------------------------------------------------------------------- */
 
+/** @brief Maps lstat() results for one dirent into FileAttributes: size, mtime, hidden flag (leading '.'), and
+ * S_*-derived type bits (regular + executable, dir, symlink, char/block device, FIFO, socket); directory sizes are
+ * forced to 0. @return 0 on success, -1 if lstat fails. */
 static int map_dirent_attrs(const struct dirent* entry, const char* path, FileAttributes* attr) {
     struct stat st;
     if (lstat(path, &st) != 0) return -1;
@@ -226,6 +243,10 @@ static int map_dirent_attrs(const struct dirent* entry, const char* path, FileAt
     return 0;
 }
 
+/** @brief Returns full FileAttributes for a lazily walked entry: on first use performs fstatat(dirfd, name,
+ * AT_SYMLINK_NOFOLLOW) against the walk's directory fd and caches the result in lazy->cached; subsequent calls return
+ * the cache directly. @return Pointer to the cached attributes (valid only during the callback invocation), or NULL on
+ * stat failure or NULL input. */
 const FileAttributes* lazy_get_attrs(LazyFileAttributes* lazy) {
     if (!lazy) {
         errno = EINVAL;
@@ -307,6 +328,7 @@ const FileAttributes* lazy_get_attrs(LazyFileAttributes* lazy) {
  * ------------------------------------------------------------------------- */
 
 // Check if path is a directory
+/** @brief stat()-based directory check; follows symbolic links. @return true if path exists and is a directory. */
 bool is_dir(const char* path) {
     if (!path || *path == '\0') {
         return false;
@@ -320,6 +342,8 @@ bool is_dir(const char* path) {
 }
 
 // Check if path is a file
+/** @brief stat()-based regular-file check; follows symbolic links. @return true if path exists and is a regular file.
+ */
 bool is_file(const char* path) {
     if (!path || *path == '\0') {
         return false;
@@ -333,6 +357,8 @@ bool is_file(const char* path) {
 }
 
 // Check if path is a symbolic link
+/** @brief lstat()-based symlink check; does not follow the final component. @return true if path itself is a symbolic
+ * link. */
 bool is_symlink(const char* path) {
     if (!path || *path == '\0') {
         return false;
@@ -346,6 +372,8 @@ bool is_symlink(const char* path) {
 }
 
 // Check if path exists
+/** @brief Existence check for any filesystem object via stat() (follows symlinks). @return true if stat succeeds; false
+ * on missing path or NULL/empty input (EINVAL). */
 bool path_exists(const char* path) {
     if (!path || *path == '\0') {
         errno = EINVAL;
@@ -357,6 +385,8 @@ bool path_exists(const char* path) {
 }
 
 // Create a directory
+/** @brief mkdir(path, 0755) backend. @return 0 on success or when the directory already exists (EEXIST); -1 on other
+ * errors (errno set). */
 int dir_create(const char* path) {
     if (!path || *path == '\0') {
         errno = EINVAL;
@@ -372,6 +402,8 @@ int dir_create(const char* path) {
     return 0;
 }
 
+/** @brief Removes a single empty directory via rmdir(); contents are handled by callers. @return 0 on success, -1 on
+ * error (errno set by rmdir). */
 int fp_remove_single_directory(const char* path) {
     if (rmdir(path) == -1) {
         return -1;
@@ -380,6 +412,8 @@ int fp_remove_single_directory(const char* path) {
 }
 
 // Get temporary directory
+/** @brief Resolves the temporary directory from $TMPDIR, falling back to /tmp when unset. @return Heap-allocated copy
+ * of the directory path, or NULL on allocation failure (ENOMEM). */
 char* get_tempdir(void) {
     const char* temp = GETENV("TMPDIR");
     if (!temp) {
@@ -393,6 +427,9 @@ char* get_tempdir(void) {
     return result;
 }
 
+/** @brief Turns candidate (a path ending in "XXXXXX") into a unique file via mkstemp() and closes the descriptor. Takes
+ * ownership of candidate. @return candidate holding the final path on success; NULL (with candidate freed) on failure.
+ */
 char* fp_create_tempfile(char* candidate) {
     int fd = mkstemp(candidate);
     if (fd == -1) {
@@ -403,6 +440,8 @@ char* fp_create_tempfile(char* candidate) {
     return candidate;
 }
 
+/** @brief Turns candidate (a path ending in "XXXXXX") into a unique directory via mkdtemp(). Takes ownership of
+ * candidate. @return candidate holding the final path on success; NULL (with candidate freed) on failure. */
 char* fp_create_tempdir(char* candidate) {
     if (mkdtemp(candidate) == NULL) {
         free(candidate);
@@ -412,6 +451,8 @@ char* fp_create_tempdir(char* candidate) {
 }
 
 // Get absolute path
+/** @brief realpath() backend: resolves path to a canonical absolute path, following symlinks and resolving "." / ".."
+ * components. @return Heap-allocated absolute path, or NULL on error (errno set). */
 char* filepath_absolute(const char* path) {
     if (!path || *path == '\0') {
         errno = EINVAL;
@@ -426,6 +467,8 @@ char* filepath_absolute(const char* path) {
 }
 
 // Get current working directory
+/** @brief getcwd(NULL, 0) backend: allocates a buffer of the exact size. @return Heap-allocated current working
+ * directory, or NULL on error (ENOMEM). */
 char* get_cwd(void) {
     char* cwd = getcwd(NULL, 0);
     if (!cwd) {
@@ -436,6 +479,7 @@ char* get_cwd(void) {
 }
 
 // Remove a file
+/** @brief unlink() backend: deletes a file (not directories). @return 0 on success, -1 on error (errno set). */
 int filepath_remove(const char* path) {
     if (!path || *path == '\0') {
         errno = EINVAL;
@@ -446,12 +490,13 @@ int filepath_remove(const char* path) {
 }
 
 // Get user home directory
+// Get user home directory
+/** @brief Returns $HOME as the user's home directory. @return Pointer into the environment (must not be freed or
+ * modified), or NULL if HOME is unset. */
 const char* user_home_dir(void) { return GETENV("HOME"); }
 
-/**
- * Callback function for removing files and directories during traversal.
- * Should be used with fp_dir_walk_depth_first_impl for proper deletion order.
- */
+/** @brief Deletion callback for fp_dir_walk_depth_first_impl(): rmdir()s empty directories and unlink()s files during
+ * post-order traversal, returning DirError on failure with errno already set by the syscall. */
 WalkDirOption fp_dir_remove_entry(const FileAttributes* attr, const char* path, const char* name, void* data) {
     (void)data;
     (void)name;
@@ -483,6 +528,9 @@ WalkDirOption fp_dir_remove_entry(const FileAttributes* attr, const char* path, 
 #ifdef __linux__
 
 // Fast attribute mapping using fstatat (fd-relative, avoids full path walk)
+/** @brief Fast-path attribute mapping: fstatat(dirfd, name, AT_SYMLINK_NOFOLLOW) stats the entry relative to the walk's
+ * directory fd, avoiding full-path reconstruction; fills size/mtime/hidden/type bits exactly like map_dirent_attrs().
+ * d_type is ignored in favour of the definitive stat mode. @return 0 on success, -1 if fstatat fails. */
 static int fast_map_attrs(int dirfd, const char* name, unsigned char d_type, FileAttributes* attr) {
     struct stat st;
     // For type determination, d_type is often sufficient and avoids stat
@@ -539,11 +587,16 @@ static int fast_map_attrs(int dirfd, const char* name, unsigned char d_type, Fil
     return 0;
 }
 
+/** @brief True only for "." and ".."; cheaper than two strcmp() calls in the getdents64 hot loop. */
 static inline bool fast_is_dot_entry(const char* name) {
     return name[0] == '.' && (name[1] == '\0' || (name[1] == '.' && name[2] == '\0'));
 }
 
 // Optimized dir_walk helper using fd-based traversal and getdents64
+/** @brief Recursive breadth-first walker over a directory fd: batches entries with getdents64 into a 64 KB buffer
+ * (fewer syscalls), stats via fast_map_attrs(), recurses into subdirectories with openat(), and honours DirStop
+ * (success), DirSkip and DirError. Unreadable/unstatable entries are skipped; openat failures other than
+ * EACCES/ENOENT/ELOOP abort. Depth is capped at FP_MAX_DIR_DEPTH (ELOOP). @return 0 on success, -1 on error. */
 static int dir_walk_fast_helper(const char* path, int dirfd, WalkDirCallback callback, void* data, int depth) {
     if (depth > FP_MAX_DIR_DEPTH) {
         errno = ELOOP;
@@ -617,6 +670,10 @@ static int dir_walk_fast_helper(const char* path, int dirfd, WalkDirCallback cal
     return status;
 }
 
+/** @brief Post-order counterpart of dir_walk_fast_helper(): recurses into subdirectories before invoking the callback
+ * (so children are deleted before their parent), and re-stats a directory after recursion since the callback may have
+ * modified or removed it. Honours DirStop/DirError; depth capped at FP_MAX_DIR_DEPTH (ELOOP). @return 0 on success, -1
+ * on error. */
 static int dir_walk_depth_first_fast_helper(const char* path, int dirfd, WalkDirCallback callback, void* data,
                                             int depth) {
     if (depth > FP_MAX_DIR_DEPTH) {
@@ -682,6 +739,10 @@ static int dir_walk_depth_first_fast_helper(const char* path, int dirfd, WalkDir
     return status;
 }
 
+/** @brief Lazy variant of the fast walker: hands each entry a zero-stat LazyFileAttributes (d_type straight from
+ * getdents64, FATTR_HIDDEN pre-set) so callbacks checking only lazy_is_dir/lazy_is_file never trigger fstatat. Recurses
+ * into directories via openat(); honours DirStop/DirSkip/DirError; depth capped at FP_MAX_DIR_DEPTH (ELOOP). @return 0
+ * on success, -1 on getdents/open failure. */
 static int dir_walkx_fast_helper(const char* path, int dirfd, WalkDirCallbackX callback, void* data, int depth) {
     if (depth > FP_MAX_DIR_DEPTH) {
         errno = ELOOP;
@@ -752,10 +813,10 @@ static int dir_walkx_fast_helper(const char* path, int dirfd, WalkDirCallbackX c
  * Generic (readdir-based) traversal and dispatchers
  * ------------------------------------------------------------------------- */
 
-/**
- * @brief Generic readdir-based walk used when the Linux fast path is
- *        unavailable or cannot open the directory.
- */
+/** @brief Generic readdir()-based breadth-first walk used when the Linux fast path is unavailable or cannot open the
+ * directory. Attributes come from map_dirent_attrs() with a populate_file_attrs() fallback; subdirectory recursion goes
+ * through fp_dir_walk_impl(), honouring DirStop/DirSkip/DirError with depth capped at FP_MAX_DIR_DEPTH (ELOOP). @return
+ * 0 on success, -1 on error. */
 static int dir_walk_generic(const char* path, WalkDirCallback callback, void* data, int depth) {
     if (depth > FP_MAX_DIR_DEPTH) {
         errno = ELOOP;  // Symbolic link loop or too many levels of directories
@@ -806,9 +867,9 @@ static int dir_walk_generic(const char* path, WalkDirCallback callback, void* da
     return status;
 }
 
-/**
- * @brief Generic readdir-based depth-first (post-order) walk.
- */
+/** @brief Generic readdir()-based post-order walk: subdirectories are recursed via fp_dir_walk_depth_first_impl()
+ * before the callback sees the directory, enabling safe delete-style traversals where the fast path is unavailable.
+ * Honours DirStop/DirError; depth capped at FP_MAX_DIR_DEPTH (ELOOP). @return 0 on success, -1 on error. */
 static int dir_walk_depth_first_generic(const char* path, WalkDirCallback callback, void* data, int depth) {
     if (depth > FP_MAX_DIR_DEPTH) {
         errno = ELOOP;
@@ -852,10 +913,10 @@ static int dir_walk_depth_first_generic(const char* path, WalkDirCallback callba
     return status;
 }
 
-/**
- * @brief Generic readdir-based lazy walk fallback for non-Linux POSIX systems
- *        or when the fast path is unavailable.
- */
+/** @brief Generic lazy-walk fallback for non-Linux POSIX systems or when the fast path is unavailable: eagerly stats
+ * each entry and wraps the result in a fully populated LazyFileAttributes (has_stat = true), so lazy_get_attrs() never
+ * needs to stat again; recursion via fp_dir_walkx_impl(). Honours DirStop/DirSkip/DirError. @return 0 on success, -1 on
+ * error. */
 static int dir_walkx_generic(const char* path, WalkDirCallbackX callback, void* data) {
     Directory* dir = dir_open(path);
     if (!dir) return -1;
@@ -903,6 +964,9 @@ static int dir_walkx_generic(const char* path, WalkDirCallbackX callback, void* 
     return status;
 }
 
+/** @brief Dispatcher for dir_walk(): on Linux uses the getdents64 fast path when the kernel supports it, falling back
+ * to dir_walk_generic() if the kernel is too old or the directory cannot be opened. @return 0 on success, -1 on error
+ * (errno set). */
 int fp_dir_walk_impl(const char* path, WalkDirCallback callback, void* data) {
 #ifdef __linux__
     // Fast path: use getdents64 + openat + fstatat for 2-3x speedup
@@ -920,6 +984,8 @@ int fp_dir_walk_impl(const char* path, WalkDirCallback callback, void* data) {
     return dir_walk_generic(path, callback, data, 0);
 }
 
+/** @brief Dispatcher for dir_walk_depth_first(): uses the post-order getdents64 fast path on Linux when available,
+ * falling back to dir_walk_depth_first_generic(). @return 0 on success, -1 on error (errno set). */
 int fp_dir_walk_depth_first_impl(const char* path, WalkDirCallback callback, void* data) {
 #ifdef __linux__
     if (has_fast_dirent()) {
@@ -934,6 +1000,8 @@ int fp_dir_walk_depth_first_impl(const char* path, WalkDirCallback callback, voi
     return dir_walk_depth_first_generic(path, callback, data, 0);
 }
 
+/** @brief Dispatcher for dir_walkx(): uses the lazy getdents64 fast path on Linux when available, falling back to
+ * dir_walkx_generic(). @return 0 on success, -1 on error (errno set). */
 int fp_dir_walkx_impl(const char* path, WalkDirCallbackX callback, void* data) {
 #ifdef __linux__
     if (has_fast_dirent()) {

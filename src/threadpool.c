@@ -330,7 +330,7 @@ static bool gq_push(GlobalQueue* gq, Task task) {
     return true;
 }
 
-/* Zero-Allocation, Zero-Copy Direct Stream into Global Queue.
+/** Zero-Allocation, Zero-Copy Direct Stream into Global Queue.
  *
  * NULL function slots are silently skipped so callers may pass sparse
  * arrays.  The return value counts only tasks actually enqueued, which

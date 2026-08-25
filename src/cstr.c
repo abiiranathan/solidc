@@ -54,7 +54,7 @@
 #define unlikely(x) (x)
 #endif
 
-/* Round x up to the next power-of-two ≥ x. Undefined for x == 0. */
+/** Round x up to the next power-of-two ≥ x. Undefined for x == 0. */
 static inline uint32_t next_pow2_u32(uint32_t x) {
     if (x <= 1) return 1;
     x--;
@@ -66,7 +66,7 @@ static inline uint32_t next_pow2_u32(uint32_t x) {
     return x + 1;
 }
 
-/* Minimum heap allocation that fits `need` bytes + NUL. */
+/** Minimum heap allocation that fits `need` bytes + NUL. */
 static inline uint32_t cstr_grow_cap(uint32_t current, uint32_t need) {
     if (CSTR_UNLIKELY(need > CSTR_MAX_LEN)) return CSTR_MAX_LEN;
 
@@ -86,7 +86,7 @@ static inline uint32_t cstr_grow_cap(uint32_t current, uint32_t need) {
     return cap;
 }
 
-/* -------------------------------------------------------------------------
+/** -------------------------------------------------------------------------
  * Internal: promote SSO → heap, or grow existing heap.
  *
  * After a successful call, s->data points to heap memory of size cap,
@@ -532,7 +532,7 @@ void cstr_remove_substr(cstr* s, size_t start, size_t slen) {
     s->length = len - (uint32_t)slen;
 }
 
-/* -------------------------------------------------------------------------
+/** -------------------------------------------------------------------------
  * Search — fast needle-in-haystack without memmem
  *
  * Strategy:
@@ -700,7 +700,7 @@ bool cstr_ends_with_cstr(const cstr* s, const cstr* suffix) {
     return memcmp(s->data + s->length - slen, suffix->data, slen) == 0;
 }
 
-/* -------------------------------------------------------------------------
+/** -------------------------------------------------------------------------
  * Count occurrences
  * ---------------------------------------------------------------------- */
 size_t cstr_count_substr(const cstr* s, const char* substr) {
@@ -777,7 +777,7 @@ void cstr_upper(cstr* s) {
     simd_ascii_upper(s->data, s->length);
 }
 
-/*
+/**
  * Underscore injection decision for snake_case, evaluated on the ORIGINAL
  * input (mirrors str_snake_should_underscore() in str.h):
  *   lower -> UPPER   myVar     -> my_var

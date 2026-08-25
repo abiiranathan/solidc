@@ -25,6 +25,8 @@ struct ProcessHandle {
     bool detached;
 };
 
+/** @brief Maps GetLastError() onto ProcessError codes: invalid parameter, out of memory, access denied,
+ * broken/busy/disconnected pipe; anything else maps to PROCESS_ERROR_UNKNOWN. @return Matching ProcessError value. */
 ProcessError process_system_error(void) {
     DWORD error = GetLastError();
     switch (error) {
@@ -43,7 +45,13 @@ ProcessError process_system_error(void) {
     }
 }
 
-/* Implementation of the pipe API */
+/**
+ * @brief Creates a unidirectional anonymous pipe for IPC.
+ *
+ * @param[out] pipeHandle Receives the allocated pipe handle on success.
+ * @return PROCESS_SUCCESS, PROCESS_ERROR_INVALID_ARGUMENT, or
+ *         PROCESS_ERROR_PIPE_FAILED / PROCESS_ERROR_MEMORY on failure.
+ */
 ProcessError pipe_create(PipeHandle** pipeHandle) {
     if (!pipeHandle) {
         return PROCESS_ERROR_INVALID_ARGUMENT;
@@ -68,6 +76,8 @@ ProcessError pipe_create(PipeHandle** pipeHandle) {
     return PROCESS_SUCCESS;
 }
 
+/** @brief Switches both ends of the pipe between PIPE_NOWAIT and PIPE_WAIT via SetNamedPipeHandleState(). @return
+ * PROCESS_SUCCESS, or the mapped system error if either end cannot be updated. */
 ProcessError pipe_set_nonblocking(PipeHandle* pipe, bool nonblocking) {
     if (!pipe) {
         return PROCESS_ERROR_INVALID_ARGUMENT;
@@ -84,6 +94,10 @@ ProcessError pipe_set_nonblocking(PipeHandle* pipe, bool nonblocking) {
     return PROCESS_SUCCESS;
 }
 
+/** @brief Overlapped ReadFile() with a manual-reset completion event: waits up to timeout_ms (-1 = INFINITE) for
+ * completion, CancelIo()s on timeout, and maps broken-pipe errors to PROCESS_ERROR_PIPE_CLOSED; a 0 ms timeout with no
+ * data yields WOULD_BLOCK. @param[out] buffer Destination for the data. @param[out] bytes_read Optional receiver filled
+ * from GetOverlappedResult(). @return PROCESS_SUCCESS on success, error code otherwise. */
 ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* bytes_read, int timeout_ms) {
     if (!pipe || !buffer || pipe->read_closed) {
         return PROCESS_ERROR_INVALID_ARGUMENT;
@@ -142,6 +156,10 @@ ProcessError pipe_read(PipeHandle* pipe, void* buffer, size_t size, size_t* byte
     return PROCESS_SUCCESS;
 }
 
+/** @brief Overlapped WriteFile() mirroring pipe_read(): event-driven wait bounded by timeout_ms (-1 = INFINITE),
+ * CancelIo() on timeout, and broken-pipe/no-data errors mapped to PROCESS_ERROR_PIPE_CLOSED. @param[in] buffer Data to
+ * write. @param[out] bytes_written Optional receiver filled from GetOverlappedResult(). @return PROCESS_SUCCESS on
+ * success, error code otherwise. */
 ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_t* bytes_written, int timeout_ms) {
     if (!pipe || !buffer || pipe->write_closed) {
         return PROCESS_ERROR_INVALID_ARGUMENT;
@@ -199,6 +217,8 @@ ProcessError pipe_write(PipeHandle* pipe, const void* buffer, size_t size, size_
     return PROCESS_SUCCESS;
 }
 
+/** @brief CloseHandle()s both pipe ends (marking them closed and resetting the handles) and frees the handle. Safe to
+ * pass NULL. */
 void pipe_close(PipeHandle* pipe) {
     if (!pipe) {
         return;
@@ -218,6 +238,8 @@ void pipe_close(PipeHandle* pipe) {
     free(pipe);
 }
 
+/** @brief Closes only the read handle of the pipe; the write end stays usable. Idempotent. @return PROCESS_SUCCESS, or
+ * PROCESS_ERROR_INVALID_ARGUMENT if pipe is NULL. */
 ProcessError pipe_close_read_end(PipeHandle* pipe) {
     if (!pipe) return PROCESS_ERROR_INVALID_ARGUMENT;
     if (pipe->read_fd != INVALID_NATIVE_HANDLE && !pipe->read_closed) {
@@ -228,6 +250,8 @@ ProcessError pipe_close_read_end(PipeHandle* pipe) {
     return PROCESS_SUCCESS;
 }
 
+/** @brief Closes only the write handle of the pipe; the read end stays usable. Idempotent. @return PROCESS_SUCCESS, or
+ * PROCESS_ERROR_INVALID_ARGUMENT if pipe is NULL. */
 ProcessError pipe_close_write_end(PipeHandle* pipe) {
     if (!pipe) return PROCESS_ERROR_INVALID_ARGUMENT;
     if (pipe->write_fd != INVALID_NATIVE_HANDLE && !pipe->write_closed) {
@@ -238,20 +262,10 @@ ProcessError pipe_close_write_end(PipeHandle* pipe) {
     return PROCESS_SUCCESS;
 }
 
-/**
- * Append a single argv element to dest using proper Windows escaping rules.
- *
- * Rules (from MSDN "Parsing C++ Command-Line Arguments"):
- *  - Backslashes before a double-quote are doubled, then the quote is escaped.
- *  - Backslashes before the closing quote are doubled.
- *  - All other backslashes are literal.
- *  - Arguments with spaces/tabs/quotes are wrapped in double-quotes.
- *
- * Uses the bounds-checked _s string APIs; dest_size must cover the NUL.
- * Returns PROCESS_SUCCESS, or PROCESS_ERROR_UNKNOWN if the append would
- * overflow (cannot happen with the worst-case sized command-line buffer,
- * but never rely on that at the API boundary).
- */
+/** @brief Appends one argv element to dest per the MSDN command-line parsing rules: arguments containing whitespace or
+ * quotes are wrapped in double quotes, backslash runs before a quote (or the end of the argument) are doubled, and a
+ * literal '"' becomes "\\". Bounds-checked via strcat_s(). Fast path appends unquoted args verbatim. @return
+ * PROCESS_SUCCESS, or PROCESS_ERROR_UNKNOWN if the append would overflow dest_size. */
 static ProcessError append_escaped_win32_arg(char* dest, size_t dest_size, const char* arg) {
     /* Fast path: nothing that needs quoting */
     if (*arg != '\0' && !strpbrk(arg, " \t\n\v\"")) {
@@ -297,6 +311,12 @@ static ProcessError append_escaped_win32_arg(char* dest, size_t dest_size, const
     return strcat_s(dest, dest_size, "\"") == 0 ? PROCESS_SUCCESS : PROCESS_ERROR_UNKNOWN;
 }
 
+/** @brief CreateProcessA() backend for process_create(): sizes a worst-case command-line buffer (each char may double
+ * plus quotes/space), escapes every argv element via append_escaped_win32_arg(), wires stdio handles from options (pipe
+ * ends, or the parent console stdio; stderr merges into stdout when requested), applies
+ * DETACHED_PROCESS|CREATE_NEW_PROCESS_GROUP when detached, and stores the returned process/thread handles. @return
+ * PROCESS_SUCCESS; PROCESS_ERROR_INVALID_ARGUMENT (empty argv), PROCESS_ERROR_MEMORY, or a mapped CreateProcess error
+ * otherwise. */
 ProcessError win32_create_process(ProcessHandle** handle, const char* command, const char* const argv[],
                                   const ProcessOptions* options) {
     /* Calculate an upper-bound for the command-line buffer.
@@ -380,6 +400,8 @@ ProcessError win32_create_process(ProcessHandle** handle, const char* command, c
 }
 
 // Cross-platform nanosleep function
+/** @brief Win32 backend of the cross-platform sleep: converts to milliseconds for Sleep(), clamping negative inputs to
+ * zero and capping the total at Sleep()'s documented maximum minus one tick. */
 void NANOSLEEP(long seconds, long nanoseconds) {
     // On Windows, Sleep works in milliseconds,
     // so we convert seconds and nanoseconds to milliseconds.
@@ -391,6 +413,10 @@ void NANOSLEEP(long seconds, long nanoseconds) {
     Sleep((DWORD)total_milliseconds);
 }
 
+/** @brief WaitForSingleObject() on the child process handle (timeout_ms < 0 = INFINITE), then GetExitCodeProcess() to
+ * fill result; term_signal is always 0 on Windows. Detached handles cannot be waited on. @return PROCESS_SUCCESS when
+ * the child exited and the exit code was fetched; PROCESS_ERROR_WAIT_FAILED on timeout (child still running);
+ * PROCESS_ERROR_INVALID_ARGUMENT or a mapped system error otherwise. */
 ProcessError process_wait(ProcessHandle* handle, ProcessResult* result, int timeout_ms) {
     if (!handle) {
         return PROCESS_ERROR_INVALID_ARGUMENT;
@@ -424,6 +450,9 @@ ProcessError process_wait(ProcessHandle* handle, ProcessResult* result, int time
     return PROCESS_SUCCESS;
 }
 
+/** @brief Terminate the child: force=true calls TerminateProcess() (SIGKILL analogue); otherwise
+ * GenerateConsoleCtrlEvent(CTRL_C_EVENT) is used for graceful console termination. @return PROCESS_SUCCESS;
+ * PROCESS_ERROR_INVALID_ARGUMENT for NULL handles; PROCESS_ERROR_TERMINATE_FAILED if the Win32 call fails. */
 ProcessError process_terminate(ProcessHandle* handle, bool force) {
     if (!handle) {
         return PROCESS_ERROR_INVALID_ARGUMENT;

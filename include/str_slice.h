@@ -189,7 +189,7 @@ static inline bool ss_get(StrSlice s, size_t i, char* out) {
     return true;
 }
 
-/*
+/**
  * Parses an optional sign followed by decimal digits.
  * Stops at the first non-digit after the sign.
  *
@@ -239,7 +239,7 @@ static inline StrSliceErr ss_to_int(StrSlice s, int* out) {
     return SS_OK;
 }
 
-/*
+/**
  * Parses:  [sign] digit* ['.' digit*] [('e'|'E') [sign] digit+]
  *
  * Accumulates the mantissa as a 64-bit integer (exact for up to 19 significant
@@ -348,7 +348,7 @@ static inline StrSliceErr ss_to_double(StrSlice s, double* out) {
     return SS_OK;
 }
 
-/*
+/**
  * Recognises the common human-readable boolean vocabulary:
  *
  *   true  : "true", "yes", "on",  "1"

@@ -789,7 +789,6 @@ static inline float simd_hmax(simd_vec_t v) {
  * @return (x*x + y*y + z*z) as a scalar float.
  * @note Ignores the w component.
  */
-/* 3D dot product (ignores W component) */
 static inline float simd_dot3(simd_vec_t a, simd_vec_t b) {
 #if defined(SIMD_ARCH_X86)
 #ifdef SIMD_HAS_SSE41
@@ -1078,7 +1077,7 @@ static inline bool simd_equals_eps(simd_vec_t a, simd_vec_t b, float epsilon) {
 #if defined(__clang__) || defined(__GNUC__)
 #define simd_swizzle(v, x, y, z, w) __builtin_shufflevector((v), (v), (x), (y), (z), (w))
 #else
-/* MSVC ARM or other compilers: Fallback to slow extract/set */
+/** Portable fallback for simd_swizzle() on compilers without shuffle builtins. */
 static inline simd_vec_t simd_swizzle_fallback(simd_vec_t v, int i0, int i1, int i2, int i3) {
     float d[4];
     vst1q_f32(d, v);

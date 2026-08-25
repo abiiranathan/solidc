@@ -194,23 +194,35 @@ void process_free(ProcessHandle* handle);
 void NANOSLEEP(long seconds, long nanoseconds);
 
 /**
-Returns True if pipe read closed.
-*/
+ * @brief Checks whether a pipe's read end has been closed.
+ *
+ * @param[in] handle Pipe handle to query.
+ * @return true if the read end is closed, false otherwise.
+ */
 bool pipe_read_closed(PipeHandle* handle);
 
 /**
-Returns True if pipe write closed.
-*/
+ * @brief Checks whether a pipe's write end has been closed.
+ *
+ * @param[in] handle Pipe handle to query.
+ * @return true if the write end is closed, false otherwise.
+ */
 bool pipe_write_closed(PipeHandle* handle);
 
 /**
-Returns the pipe write read descriptor.
-*/
+ * @brief Returns the pipe's read-end descriptor.
+ *
+ * @param[in] handle Pipe handle to query.
+ * @return Read-end descriptor (HANDLE on Windows, fd on POSIX).
+ */
 PipeFd pipe_read_fd(PipeHandle* handle);
 
 /**
-Returns the pipe write file descriptor.
-*/
+ * @brief Returns the pipe's write-end descriptor.
+ *
+ * @param[in] handle Pipe handle to query.
+ * @return Write-end descriptor (HANDLE on Windows, fd on POSIX).
+ */
 PipeFd pipe_write_fd(PipeHandle* handle);
 
 /**

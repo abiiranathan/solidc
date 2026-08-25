@@ -147,19 +147,16 @@ int socket_connect(Socket* sock, const struct sockaddr* addr, socklen_t addrlen)
     return connect(sock->handle, addr, addrlen);
 }
 
-/*
-Read from a socket. Returns the number of bytes read (0 = peer closed),
-or -1 on error.
-buffer: Points to a buffer where the message should be stored. Must not
-be NULL when size > 0.
-size: Specifies the length in bytes of the buffer pointed to by the buffer
-argument.
-
-flags: Specifies the type of message reception.
-See man 2 recv for more information.
-
-@note EINTR is NOT retried internally; callers running under signals must
-check socket_error() for EINTR and retry themselves.
+/**
+ * @brief Reads from a socket.
+ *
+ * @param[in] sock Socket to read from. Must not be NULL.
+ * @param[out] buffer Destination buffer. Must not be NULL when size > 0.
+ * @param[in] size Capacity of buffer in bytes.
+ * @param[in] flags recv(2) flags (see man 2 recv).
+ * @return Number of bytes read (0 = peer closed), or -1 on error.
+ * @note EINTR is NOT retried internally; callers running under signals must
+ * check socket_error() for EINTR and retry themselves.
  */
 ssize_t socket_recv(Socket* sock, void* buffer, size_t size, int flags) {
     if (!sock || !buffer || size == 0) {
@@ -168,17 +165,17 @@ ssize_t socket_recv(Socket* sock, void* buffer, size_t size, int flags) {
     return recv(sock->handle, buffer, size, flags);
 }
 
-/* Write to a socket. Returns the number of bytes written, or -1 on error.
-
-buffer: Points to the buffer containing the message to send. Must not be
-NULL when size > 0.
-length: Specifies the length of the message in bytes.
-flags:  Specifies the type of message transmission
-See man 2 send for more information.
-
-@note Partial sends are possible on stream sockets; callers must loop.
-@note EINTR is NOT retried internally; see socket_recv().
-*/
+/**
+ * @brief Writes to a socket.
+ *
+ * @param[in] sock Socket to write to. Must not be NULL.
+ * @param[in] buffer Message to send. Must not be NULL when size > 0.
+ * @param[in] size Length of the message in bytes.
+ * @param[in] flags send(2) flags (see man 2 send).
+ * @return Number of bytes written, or -1 on error.
+ * @note Partial sends are possible on stream sockets; callers must loop.
+ * @note EINTR is NOT retried internally; see socket_recv().
+ */
 ssize_t socket_send(Socket* sock, const void* buffer, size_t size, int flags) {
     if (!sock || !buffer || size == 0) {
         return -1;

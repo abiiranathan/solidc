@@ -31,7 +31,12 @@ static const ProcessOptions DEFAULT_OPTIONS = {
         },
 };
 
-/* String descriptions for error codes */
+/**
+ * @brief Returns a static, human-readable description of a ProcessError code.
+ *
+ * @param[in] error Error code returned by the process API.
+ * @return Static string; never NULL. Unknown codes yield "Invalid error code".
+ */
 const char* process_error_string(ProcessError error) {
     switch (error) {
         case PROCESS_SUCCESS:
@@ -69,26 +74,22 @@ const char* process_error_string(ProcessError error) {
     }
 }
 
-/**
-Returns True if pipe read closed.
-*/
+/** @brief Reports whether the read end of the pipe has been closed. @return true if the read end is closed. */
 bool pipe_read_closed(PipeHandle* handle) { return handle->read_closed; }
 
-/**
-Returns True if pipe write closed.
-*/
+/** @brief Reports whether the write end of the pipe has been closed. @return true if the write end is closed. */
 bool pipe_write_closed(PipeHandle* handle) { return handle->write_closed; }
 
-/**
-Returns the pipe write read descriptor.
-*/
+/** @brief Returns the native read descriptor/handle of the pipe. */
 PipeFd pipe_read_fd(PipeHandle* handle) { return handle->read_fd; }
 
-/**
-Returns the pipe write file descriptor.
-*/
+/** @brief Returns the native write descriptor/handle of the pipe. */
 PipeFd pipe_write_fd(PipeHandle* handle) { return handle->write_fd; }
 
+/** @brief Public entry point for process creation: validates arguments, applies DEFAULT_OPTIONS when options is NULL,
+ * and dispatches to the platform backend (unix_create_process()/win32_create_process()). @param[out] handle Pointer to
+ * receive the process handle. @return PROCESS_SUCCESS on success; PROCESS_ERROR_INVALID_ARGUMENT for NULL arguments or
+ * a backend error code otherwise. */
 ProcessError process_create(ProcessHandle** handle, const char* command, const char* const argv[],
                             const ProcessOptions* options) {
     if (!handle || !command || !argv || !argv[0]) {
@@ -110,16 +111,17 @@ ProcessError process_create(ProcessHandle** handle, const char* command, const c
 #endif
 }
 
-/**
- * @brief Free resources associated with a process handle
- *
- * @param[in] handle Process handle to free
- */
+/** @brief Frees the memory backing a process handle. Does not wait for or terminate the process. @param[in] handle
+ * Process handle to free. Safe to pass NULL. */
 void process_free(ProcessHandle* handle) {
     if (!handle) return;
     free(handle);
 }
 
+/** @brief Convenience wrapper: creates the process, waits indefinitely, frees the handle and reports the exit code.
+ * @param[out] exit_code Optional receiver for the child's exit status. @return PROCESS_SUCCESS only if creation,
+ * waiting and a zero exit code all succeed; PROCESS_ERROR_EXEC_FAILED for a nonzero exit code; otherwise the underlying
+ * ProcessError. */
 ProcessError process_run_and_capture(const char* command, const char* const argv[], ProcessOptions* options,
                                      int* exit_code) {
     ProcessHandle* proc = NULL;

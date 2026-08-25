@@ -82,10 +82,10 @@ static inline uint64_t hashset_default_hash(const void* key, size_t key_size) {
 
 static inline bool hashset_default_equals(const void* a, const void* b, size_t ks) { return memcmp(a, b, ks) == 0; }
 
-/* Return slot index for probe step i starting from base. */
+/** Return slot index for probe step i starting from base. */
 static inline size_t _hs_slot(size_t base, size_t i, size_t mask) { return (base + i) & mask; }
 
-/* Pointer to key stored in slot idx. */
+/** Pointer to key stored in slot idx. */
 static inline void* _hs_key(const hashset_t* s, size_t idx) { return (void*)(s->keys + idx * s->key_size); }
 
 static inline hashset_t* hashset_create(size_t key_size, size_t initial_capacity,

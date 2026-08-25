@@ -47,6 +47,9 @@ struct stream {
  * Fast Capacity Expansion Helper
  * ====================================================================== */
 
+/** Computes the next string-stream capacity >= @p needed by doubling from max(@p current, STRING_STREAM_SSO_CAP),
+ * clamping to @p needed when doubling would overflow. @param current Current capacity in bytes. @param needed Required
+ * capacity in bytes (including NUL). @return New capacity, or 0 if @p needed cannot be represented in SIZE_MAX. */
 static STREAM_INLINE size_t calculate_growth(size_t current, size_t needed) {
     if (needed > SIZE_MAX - 1) return 0;  // Overflow guard
 
@@ -61,6 +64,10 @@ static STREAM_INLINE size_t calculate_growth(size_t current, size_t needed) {
     return new_cap;
 }
 
+/** Guarantees the stream buffer can hold @p needed bytes, migrating from the SSO inline buffer to a heap allocation
+ * (malloc + copy of size+1 bytes) or realloc'ing in place. @param ss Target string-stream state. @param needed Total
+ * bytes required, including the NUL terminator. @return true on success; false on allocation failure with contents left
+ * untouched. */
 static bool string_stream_ensure_capacity(string_stream* ss, size_t needed) {
     if (STREAM_LIKELY(needed <= ss->capacity)) return true;
 
@@ -87,6 +94,10 @@ static bool string_stream_ensure_capacity(string_stream* ss, size_t needed) {
  * Terminal I/O Implementations
  * ====================================================================== */
 
+/** @brief Reads one line from stdin after optionally printing @p prompt, stripping the trailing newline. If the line
+ * exceeds the buffer, the remainder (up to newline) is drained so later reads start on the next line. @param prompt
+ * Optional prompt string (can be NULL). @param buffer Destination buffer. @param buffer_len Total size of the buffer.
+ * @return true on success, false on EOF, error, or invalid arguments. */
 bool readline(const char* prompt, char* buffer, size_t buffer_len) {
     if (STREAM_UNLIKELY(!buffer || buffer_len == 0)) return false;
 
@@ -118,6 +129,11 @@ bool readline(const char* prompt, char* buffer, size_t buffer_len) {
     return true;
 }
 
+/** @brief Reads a password from the terminal with echo disabled (termios ECHO toggle on POSIX, console mode on
+ * Windows), printing @p prompt first and a newline afterwards; terminal state is always restored. @param prompt
+ * Optional prompt string (can be NULL). @param buffer Destination buffer, always NUL-terminated. @param buffer_len
+ * Total size of the buffer. @return Number of characters stored (excluding NUL), or -1 if stdin is not a terminal or an
+ * error occurs. */
 int getpassword(const char* prompt, char* buffer, size_t buffer_len) {
     if (STREAM_UNLIKELY(!buffer || buffer_len == 0)) return -1;
 
@@ -166,6 +182,9 @@ int getpassword(const char* prompt, char* buffer, size_t buffer_len) {
  * Stream Implementations
  * ====================================================================== */
 
+/** @brief Repositions the stream cursor by dispatching to the implementation's seek handler. @param stream Target
+ * stream. @param offset Offset in bytes, interpreted relative to @p whence. @param whence SEEK_SET, SEEK_CUR, or
+ * SEEK_END. @return 0 on success, -1 on invalid stream, whence, or out-of-range position. */
 int stream_seek(stream_t stream, long offset, int whence) {
     /* Explicit guard: STREAM_ASSERT compiles out under NDEBUG. */
     if (STREAM_UNLIKELY(!stream)) return -1;
@@ -176,6 +195,9 @@ int stream_seek(stream_t stream, long offset, int whence) {
  * File Stream VTable Implementations
  * ---------------------------------------------------------------------- */
 
+/** File-stream vtable read: fread under flockfile (unlocked stdio fast path on POSIX). Maps a 0-byte result to 0 on EOF
+ * and -1 on error, per the POSIX-style error contract. @param handle The wrapped FILE*. @param ptr Destination buffer.
+ * @param n Maximum bytes to read. @return Bytes read (>0), 0 on EOF, -1 on error. */
 static ssize_t file_read_impl(void* handle, void* ptr, size_t n) {
     FILE* fp = (FILE*)handle;
 #if HAS_POSIX_UNLOCKED_IO
@@ -189,6 +211,8 @@ static ssize_t file_read_impl(void* handle, void* ptr, size_t n) {
     return (ssize_t)r;
 }
 
+/** File-stream vtable write: fwrite under flockfile (unlocked stdio fast path on POSIX). Returns -1 only when nothing
+ * was written and the stream error flag is set. */
 static ssize_t file_write_impl(void* handle, const void* ptr, size_t n) {
     FILE* fp = (FILE*)handle;
 #if HAS_POSIX_UNLOCKED_IO
@@ -201,6 +225,8 @@ static ssize_t file_write_impl(void* handle, const void* ptr, size_t n) {
     return (w == 0 && ferror(fp)) ? -1 : (ssize_t)w;
 }
 
+/** File-stream vtable single-byte read (getc_unlocked fast path where available). @return The byte as an unsigned char
+ * value, or EOF. */
 static int file_read_char_impl(void* handle) {
     FILE* fp = (FILE*)handle;
 #if HAS_POSIX_UNLOCKED_IO
@@ -210,12 +236,18 @@ static int file_read_char_impl(void* handle) {
 #endif
 }
 
+/** File-stream vtable EOF probe; thin wrapper over feof(). */
 static int file_eof_impl(void* handle) { return feof((FILE*)handle); }
 
+/** File-stream vtable flush; thin wrapper over fflush(). @return 0 on success, EOF on error. */
 static int file_flush_impl(void* handle) { return fflush((FILE*)handle); }
 
+/** File-stream vtable seek; thin wrapper over fseek(). @return 0 on success, -1 on error. */
 static int file_seek_impl(void* handle, long offset, int whence) { return fseek((FILE*)handle, offset, whence); }
 
+/** @brief Wraps an existing FILE* in a stream_t with the file-stream vtable. Ownership of @p fp is NOT transferred; the
+ * caller remains responsible for closing it. @param fp Open file stream to wrap. @return New stream handle to release
+ * with stream_destroy(), or NULL if @p fp is NULL or allocation fails. */
 stream_t create_file_stream(FILE* fp) {
     if (STREAM_UNLIKELY(!fp)) return NULL;
 
@@ -233,6 +265,10 @@ stream_t create_file_stream(FILE* fp) {
     return s;
 }
 
+/** @brief fread-style element read from a file-backed stream, continuing from the current position (no rewind), so
+ * sequential reads work. @param s Source stream; must be file-backed. @param ptr Destination buffer of at least
+ * size*count bytes. @param size Size in bytes of each element. @param count Number of elements to read. @return Number
+ * of complete elements read; 0 on EOF, error, or invalid/wrong-type arguments. */
 size_t file_stream_read(stream_t s, void* STREAM_RESTRICT ptr, size_t size, size_t count) {
     if (STREAM_UNLIKELY(!s || !ptr || s->type != FILE_STREAM)) return 0;
     /*
@@ -249,6 +285,8 @@ size_t file_stream_read(stream_t s, void* STREAM_RESTRICT ptr, size_t size, size
  * String Stream VTable Implementations
  * ---------------------------------------------------------------------- */
 
+/** String-stream vtable read: copies up to @p n bytes from the cursor into @p ptr, clamped to the remaining size, and
+ * advances the cursor. @return Bytes copied (>0), or 0 once pos has reached size. */
 static ssize_t string_read_impl(void* handle, void* ptr, size_t n) {
     string_stream* ss = (string_stream*)handle;
     if (ss->pos >= ss->size) return 0;
@@ -261,6 +299,9 @@ static ssize_t string_read_impl(void* handle, void* ptr, size_t n) {
     return (ssize_t)n;
 }
 
+/** String-stream vtable write: appends @p n bytes at the cursor, growing the buffer via
+ * string_stream_ensure_capacity(), extending size when writing past it, and keeping the buffer NUL-terminated. @return
+ * @p n on success, -1 on size_t overflow or allocation failure. */
 static ssize_t string_write_impl(void* handle, const void* ptr, size_t n) {
     string_stream* ss = (string_stream*)handle;
     if (STREAM_UNLIKELY(n == 0)) return 0;
@@ -281,17 +322,22 @@ static ssize_t string_write_impl(void* handle, const void* ptr, size_t n) {
     return (ssize_t)n;
 }
 
+/** String-stream vtable single-byte read. @return The byte as an unsigned char value, or EOF when the cursor is at or
+ * past size. */
 static int string_read_char_impl(void* handle) {
     string_stream* ss = (string_stream*)handle;
     if (ss->pos >= ss->size) return EOF;
     return (unsigned char)ss->data[ss->pos++];
 }
 
+/** String-stream vtable EOF probe: non-zero once the cursor reaches size. */
 static int string_eof_impl(void* handle) {
     string_stream* ss = (string_stream*)handle;
     return ss->pos >= ss->size;
 }
 
+/** String-stream vtable seek: computes the new cursor per @p whence and rejects results outside [0, size]. @return 0 on
+ * success, -1 on invalid whence or out-of-range position. */
 static int string_seek_impl(void* handle, long offset, int whence) {
     string_stream* ss = (string_stream*)handle;
     ssize_t new_pos = 0;
@@ -316,11 +362,16 @@ static int string_seek_impl(void* handle, long offset, int whence) {
     return 0;
 }
 
+/** String-stream vtable flush: no-op since string content is always immediately consistent. @return Always 0. */
 static int string_flush_impl(void* handle) {
     (void)handle;
     return 0;
 }
 
+/** @brief Allocates a string stream with struct stream + string_stream in a single malloc block. Content up to
+ * STRING_STREAM_SSO_CAP bytes lives in the inline buffer; larger initial_capacity requests heap memory upfront. @param
+ * initial_capacity Suggested initial capacity in bytes; <= STRING_STREAM_SSO_CAP keeps data inline. @return New stream
+ * handle to release with stream_destroy(), or NULL on allocation failure. */
 stream_t create_string_stream(size_t initial_capacity) {
     // Single combined allocation for struct stream + string_stream struct
     stream_t s = (stream_t)malloc(sizeof(struct stream) + sizeof(string_stream));
@@ -361,6 +412,9 @@ stream_t create_string_stream(size_t initial_capacity) {
  * Fast String Helpers
  * ---------------------------------------------------------------------- */
 
+/** @brief Appends a NUL-terminated string at the end of a string stream (ignores the seek cursor). @param stream
+ * Destination stream; must be string-backed. @param str NUL-terminated string to append; must not be NULL. @return 0 on
+ * success, -1 on invalid arguments or allocation failure. */
 int string_stream_write(stream_t stream, const char* str) {
     if (STREAM_UNLIKELY(!stream || stream->type != STRING_STREAM || !str)) return -1;
 
@@ -368,6 +422,10 @@ int string_stream_write(stream_t stream, const char* str) {
     return string_stream_write_len(stream, str, len);
 }
 
+/** @brief Appends exactly @p n bytes at the end of a string stream (ignores the seek cursor); embedded NUL bytes are
+ * copied verbatim. @param stream Destination stream; must be string-backed. @param str Source buffer of at least @p n
+ * bytes. @param n Number of bytes to append. @return 0 on success, -1 on invalid arguments, size_t overflow, or
+ * allocation failure. */
 int string_stream_write_len(stream_t stream, const char* str, size_t n) {
     if (STREAM_UNLIKELY(!stream || stream->type != STRING_STREAM || !str)) return -1;
 
@@ -384,6 +442,9 @@ int string_stream_write_len(stream_t stream, const char* str, size_t n) {
     return (int)n;
 }
 
+/** @brief Returns a read-only pointer to the string stream's NUL-terminated buffer, valid until the next mutating call
+ * or stream_destroy(). @param stream Source stream; must be string-backed. @return Internal data pointer, or NULL if @p
+ * stream is NULL or not string-backed. */
 const char* string_stream_data(stream_t stream) {
     if (STREAM_UNLIKELY(!stream || stream->type != STRING_STREAM)) return NULL;
     return ((string_stream*)stream->handle)->data;
@@ -393,6 +454,12 @@ const char* string_stream_data(stream_t stream) {
  * Delimited Read (read_until)
  * ====================================================================== */
 
+/** @brief Reads up to buffer_size-1 bytes into @p buffer, stopping at (and consuming, but not storing) @p delim. String
+ * streams use memchr; seekable files take a bulk-fread fast path that rolls the position back over overshoot;
+ * non-seekable streams use a per-byte loop. The buffer is always NUL-terminated on a non-error return. @param stream
+ * Source stream. @param delim Delimiter byte to search for (as with fgetc). @param buffer Destination buffer. @param
+ * buffer_size Total buffer size in bytes, including room for the NUL. @return Bytes stored (excluding NUL), 0 on
+ * immediate EOF, -1 on invalid arguments or read error. */
 ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size) {
     if (STREAM_UNLIKELY(!stream || !buffer || buffer_size == 0)) return -1;
 
@@ -488,6 +555,10 @@ ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size)
  * Stream Copy Routines
  * ====================================================================== */
 
+/** @brief Bulk-copies everything remaining in @p src (from its cursor) to @p dst at dst's cursor with a single memcpy,
+ * advancing both cursors and keeping dst NUL-terminated. Both streams must be string-backed. @param dst Destination
+ * string stream. @param src Source string stream. @return Bytes copied, 0 if the source is exhausted, or (unsigned
+ * long)-1 on invalid arguments, size_t overflow, or allocation failure. */
 unsigned long string_stream_copy_fast(stream_t dst, stream_t src) {
     if (STREAM_UNLIKELY(!dst || !src || dst->type != STRING_STREAM || src->type != STRING_STREAM)) {
         return (unsigned long)-1;
@@ -516,6 +587,10 @@ unsigned long string_stream_copy_fast(stream_t dst, stream_t src) {
     return (unsigned long)n;
 }
 
+/** @brief Copies reader to writer until EOF via a 16 KB chunk loop, flushing the writer at the end. String-to-string
+ * pairs bypass the loop (string_stream_copy_fast), and copying a seekable file into a string stream pre-sizes the
+ * destination to avoid regrowth. @param writer Destination stream. @param reader Source stream. @return Total bytes
+ * copied, or (unsigned long)-1 on invalid arguments or I/O error. */
 unsigned long io_copy(stream_t writer, stream_t reader) {
     if (STREAM_UNLIKELY(!writer || !reader)) return (unsigned long)-1;
 
@@ -553,6 +628,10 @@ unsigned long io_copy(stream_t writer, stream_t reader) {
     return total;
 }
 
+/** @brief Copies at most @p n bytes from reader to writer in chunks of up to 16 KB, stopping early on EOF, then flushes
+ * the writer. @param writer Destination stream. @param reader Source stream. @param n Maximum number of bytes to copy.
+ * @return Bytes actually copied (may be < @p n on early EOF), or (unsigned long)-1 on invalid arguments or I/O error.
+ */
 unsigned long io_copy_n(stream_t writer, stream_t reader, size_t n) {
     if (STREAM_UNLIKELY(!writer || !reader)) return (unsigned long)-1;
 
@@ -582,6 +661,9 @@ unsigned long io_copy_n(stream_t writer, stream_t reader, size_t n) {
  * Stream Deallocation
  * ====================================================================== */
 
+/** @brief Releases the wrapper's resources: for string streams the heap buffer (when not SSO-inline) and the combined
+ * block are freed. The wrapped FILE* is never closed — ownership stays with the caller (see create_file_stream). @param
+ * stream Stream to destroy; NULL is a no-op. */
 void stream_destroy(stream_t stream) {
     if (!stream) return;
 
