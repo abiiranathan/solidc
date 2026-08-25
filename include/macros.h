@@ -1103,10 +1103,14 @@ static inline int solidc_clz_u32(uint32_t x) {
 /* -------------------------------------------------------------------------
  * Portable max alignment — MSVC C mode lacks max_align_t.
  * ---------------------------------------------------------------------- */
-#if defined(_MSC_VER) && (_MSC_VER < 1900)
-typedef long double solidc_max_align_t;
+#if defined(_MSC_VER)
+typedef struct {
+    long double _ld;
+    double _d;
+    long long _ll;
+    void* _p;
+} solidc_max_align_t;
 #else
-#include <stddef.h>
 typedef max_align_t solidc_max_align_t;
 #endif
 #define SOLIDC_MAX_ALIGN      (alignof(solidc_max_align_t))
