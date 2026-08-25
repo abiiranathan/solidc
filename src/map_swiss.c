@@ -570,8 +570,8 @@ bool swiss_next(swiss_iterator* it, void** key, void** value) {
     while (i < cap) {
         /* Vectorized skipping of empty/tombstone 16-slot groups */
         if ((i & 15) == 0 && i + SW_GROUP <= cap) {
-            sw_group_t g = sw_group_load(m->ctrl + i);
 #if defined(SW_HAVE_SSE2)
+            sw_group_t g = sw_group_load(m->ctrl + i);
             uint32_t non_full = (uint32_t)_mm_movemask_epi8(g); /* MSB set = empty/tomb */
             uint32_t full_mask = (~non_full) & 0xFFFF;
 #else

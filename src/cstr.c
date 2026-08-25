@@ -762,7 +762,7 @@ void cstr_wipe(cstr* s) {
     memset_s(s->data, cap, 0, cap);
 #elif defined(_WIN32)
     SecureZeroMemory(s->data, cap);
-#elif defined(__unix__) || defined(__APPLE__)
+#elif defined(__unix__)
     explicit_bzero(s->data, cap);
 #else
     volatile char* p = (volatile char*)s->data;
