@@ -1,6 +1,6 @@
 # Project information
 PROJECT_NAME           = "solidc"
-PROJECT_BRIEF          = "Robust collection of general-purpose cross-platform C libraries and data structures designed for rapid and safe development in C"
+PROJECT_BRIEF          = "Robust collection of general-purpose cross-platform C libraries and data structures designed for rapid and safe development in C/C++"
 PROJECT_VERSION        = "1.0.0"
 
 # Use README.md as main page
