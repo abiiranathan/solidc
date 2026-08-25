@@ -11,6 +11,7 @@
 #include "../include/thread.h"
 
 #include <assert.h>
+#include <math.h>
 #include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -68,7 +69,7 @@ static void test_try_operations(void) {
 
     Channel* ch = chan_new(sizeof(double), 4);
 
-    int rc = chan_try_recv(ch, &(double){0});
+    ChanStatus rc = chan_try_recv(ch, &(double){0.0});
     check("try_recv on empty is CHAN_EMPTY", rc == (int)CHAN_EMPTY);
 
     double d = 3.14;
@@ -76,7 +77,7 @@ static void test_try_operations(void) {
     double out = 0;
     rc = chan_try_recv(ch, &out);
     check("try_recv ok", rc == (int)CHAN_OK);
-    check("try_recv value", out == 3.14);
+    check("try_recv value", fabs(out - 3.14) < 1e-12);
 
     /* NULL argument handling */
     check("try_send NULL value is CHAN_INVALID", chan_try_send(ch, NULL) == (int)CHAN_INVALID);
@@ -365,7 +366,7 @@ static void test_timeout_stress(void) {
     WorkerArg ca1 = {.ch = ch, .count = &count};
     WorkerArg ca2 = {.ch = ch, .count = &count};
 
-    Thread producer, c1, c2;
+    Thread producer = {0}, c1 = {0}, c2 = {0};
     check("threads created", thread_create(&producer, timeout_stress_producer, &pa) == 0 &&
                                  thread_create(&c1, timeout_stress_consumer, &ca1) == 0 &&
                                  thread_create(&c2, timeout_stress_consumer, &ca2) == 0);
