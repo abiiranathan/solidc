@@ -30,6 +30,7 @@
  */
 
 #include "cstr.h"
+#include "macros.h"
 #include "simd.h"
 
 #include <assert.h>
@@ -46,13 +47,9 @@
 #define CSTR_MAX_SIZE ((size_t)CSTR_MAX_LEN)
 
 // Branch prediction hints for better CPU pipeline utilization
-#if defined(__GNUC__) || defined(__clang__)
-#define likely(x)   __builtin_expect(!!(x), 1)
-#define unlikely(x) __builtin_expect(!!(x), 0)
-#else
-#define likely(x)   (x)
-#define unlikely(x) (x)
-#endif
+/* Branch prediction — centralized via macros.h */
+#define likely(x)   SOLIDC_EXPECT(!!(x), 1)
+#define unlikely(x) SOLIDC_EXPECT(!!(x), 0)
 
 /** Round x up to the next power-of-two ≥ x. Undefined for x == 0. */
 static inline uint32_t next_pow2_u32(uint32_t x) {
@@ -75,7 +72,7 @@ static inline uint32_t cstr_grow_cap(uint32_t current, uint32_t need) {
 
 #if defined(__GNUC__) || defined(__clang__)
     // O(1) bit count leading zeros
-    uint32_t clz = (uint32_t)__builtin_clz(need - 1);
+    uint32_t clz = (uint32_t)SOLIDC_CLZ(need - 1);
     cap = 1u << (32u - clz);
 #else
     cap = next_pow2_u32(need);
@@ -757,17 +754,7 @@ void cstr_wipe(cstr* s) {
     if (!s || !s->data) return;
 
     size_t cap = cstr_capacity(s);
-
-#if defined(__STDC_LIB_EXT1__)
-    memset_s(s->data, cap, 0, cap);
-#elif defined(_WIN32)
-    SecureZeroMemory(s->data, cap);
-#elif defined(__unix__)
-    explicit_bzero(s->data, cap);
-#else
-    volatile char* p = (volatile char*)s->data;
-    while (cap--) *p++ = 0;
-#endif
+    SOLIDC_SECURE_ZERO(s->data, cap);
 
     s->length = 0;
 }

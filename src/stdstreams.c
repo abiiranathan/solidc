@@ -16,22 +16,14 @@
 #include <sys/stat.h>
 #include <termios.h>
 #include <unistd.h>
+#include "macros.h"
 #endif
 
-/* Detect POSIX unlocked I/O support for single-threaded stdio acceleration.
- * Character-level unlocked access (getc_unlocked) is nearly universal; the
- * block-level fread_unlocked/fwrite_unlocked pair is glibc/BSD-only and is
- * notably absent from macOS. */
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__unix__)
-#define HAS_UNLOCKED_CHAR_IO 1
-#else
-#define HAS_UNLOCKED_CHAR_IO 0
-#endif
-#if defined(__GLIBC__) || defined(__FreeBSD__)
-#define HAS_UNLOCKED_BLOCK_IO 1
-#else
-#define HAS_UNLOCKED_BLOCK_IO 0
-#endif
+/* Unlocked stdio — centralized via macros.h.
+ * SOLIDC_HAS_GETC_UNLOCKED covers character-level (getc_unlocked);
+ * SOLIDC_HAS_FREAD_UNLOCKED covers block-level (fread_unlocked). */
+#define HAS_UNLOCKED_CHAR_IO  SOLIDC_HAS_GETC_UNLOCKED
+#define HAS_UNLOCKED_BLOCK_IO SOLIDC_HAS_FREAD_UNLOCKED
 
 /* =========================================================================
  * Stream Structure Definition

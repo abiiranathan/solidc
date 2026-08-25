@@ -62,10 +62,7 @@ static THREAD_LOCAL bool static_buffer_in_use = false;
 #define ARENA_BLOCK_CACHE_BYTES (16u << 20) /* 16 MB per thread */
 #endif
 
-#ifndef __has_feature
-#define __has_feature(x) 0
-#endif
-#if defined(__SANITIZE_ADDRESS__) || __has_feature(address_sanitizer)
+#if defined(__SANITIZE_ADDRESS__) || SOLIDC_HAS_FEATURE(address_sanitizer)
 #undef ARENA_BLOCK_CACHE_COUNT
 #define ARENA_BLOCK_CACHE_COUNT 0 /* sanitizers want exact alloc/free pairing */
 #endif

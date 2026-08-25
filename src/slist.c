@@ -7,21 +7,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Payload must be suitably aligned for any fundamental type, since callers
- * store ints, doubles, long doubles, ... by value in the inline buffer.
- *
- * A struct of the widest fundamental types reproduces max_align_t's
- * alignment without depending on <stddef.h> exposing max_align_t (MSVC
- * does not in C mode). */
-typedef struct {
-    long double ld;
-    double d;
-    long long ll;
-    void* ptr;
-} slist_align_t;
+#include "macros.h"
 
-#define ALIGNMENT      (alignof(slist_align_t))
-#define ALIGNMENT_MASK (ALIGNMENT - 1)
+/* Payload must be suitably aligned for any fundamental type.
+ * Use the centralized SOLIDC_MAX_ALIGN from macros.h, which handles
+ * MSVC's missing max_align_t. */
+#define ALIGNMENT      SOLIDC_MAX_ALIGN
+#define ALIGNMENT_MASK SOLIDC_MAX_ALIGN_MASK
 
 // Round up to proper alignment. Returns 0 on overflow.
 static inline size_t aligned_size(size_t n) {

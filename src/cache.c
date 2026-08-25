@@ -1,4 +1,5 @@
 #include "cache.h"
+#include "macros.h"
 
 #include <stdatomic.h>  // for atomic_uint_fast32_t, memory_order_*
 #include <stdbool.h>    // for bool, true, false

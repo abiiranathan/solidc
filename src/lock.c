@@ -3,6 +3,7 @@
 #endif
 
 #include "../include/lock.h"
+#include "macros.h"
 
 #include <errno.h>   // for errno constants
 #include <stdio.h>   // for fprintf, stderr
@@ -240,7 +241,7 @@ int cond_init(Condition* condition) {
         return -1;
     }
 
-#if defined(__APPLE__)
+#if SOLIDC_OS_APPLE
     /* No condattr clock selection on Darwin; cond uses CLOCK_REALTIME. */
     ret = pthread_cond_init(condition, &attr);
     pthread_condattr_destroy(&attr);
@@ -333,10 +334,10 @@ int cond_wait_timeout(Condition* condition, Lock* lock, int timeout_ms) {
      * wrong one corrupts the wait duration.
      */
     struct timespec ts;
-#if defined(__APPLE__)
-    if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
+#if SOLIDC_OS_APPLE
+    if (clock_gettime(SOLIDC_COND_CLOCK, &ts) != 0) {
 #else
-    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
+    if (clock_gettime(SOLIDC_COND_CLOCK, &ts) != 0) {
 #endif
         fprintf(stderr, "clock_gettime failed: %s\n", strerror(errno));
         return -1;

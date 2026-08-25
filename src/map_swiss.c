@@ -16,45 +16,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "macros.h"
+
 #ifdef _MSC_VER
 #include <BaseTsd.h>
 #ifndef ssize_t
 typedef SSIZE_T ssize_t;
-#endif
-#include <intrin.h>
-#pragma intrinsic(_BitScanForward)
-#pragma intrinsic(_BitScanForward64)
-static inline int msvc_ctz_u32(uint32_t x) {
-    unsigned long r;
-    _BitScanForward(&r, (unsigned long)x);
-    return (int)r;
-}
-static inline int msvc_ctz_u64(uint64_t x) {
-    unsigned long r;
-#if defined(_M_X64) || defined(_M_ARM64)
-    _BitScanForward64(&r, x);
-    return (int)r;
-#else
-    if ((uint32_t)x != 0) {
-        _BitScanForward(&r, (unsigned long)x);
-        return (int)r;
-    } else {
-        _BitScanForward(&r, (unsigned long)(x >> 32));
-        return (int)r + 32;
-    }
-#endif
-}
-#ifndef __builtin_ctz
-#define __builtin_ctz(x) msvc_ctz_u32((uint32_t)(x))
-#endif
-#ifndef __builtin_ctzll
-#define __builtin_ctzll(x) msvc_ctz_u64((uint64_t)(x))
-#endif
-#ifndef __builtin_expect
-#define __builtin_expect(x, y) (x)
-#endif
-#ifndef __builtin_prefetch
-#define __builtin_prefetch(x, ...) ((void)0)
 #endif
 #endif
 
@@ -336,7 +303,7 @@ static bool swiss_resize(SwissMap* m, size_t new_cap) {
             uint32_t emp = sw_group_match_empty(g);
 #endif
             if (emp) {
-                int j = __builtin_ctz(emp);
+                int j = SOLIDC_CTZ(emp);
                 size_t slot = (pos + (size_t)j) & mask;
                 swiss_set_ctrl(m, slot, h2);
                 m->slots[slot] = *old_s;
@@ -356,7 +323,7 @@ static bool swiss_resize(SwissMap* m, size_t new_cap) {
 }
 
 static inline bool swiss_maybe_grow(SwissMap* m) {
-    if (__builtin_expect(m->growth_left > 0, 1)) return true;
+    if (SOLIDC_EXPECT(m->growth_left > 0, 1)) return true;
 
     if (m->tombs > (m->capacity >> 5) + (m->size >> 5)) {
         return swiss_resize(m, m->capacity);
@@ -369,9 +336,9 @@ static inline bool swiss_maybe_grow(SwissMap* m) {
 /* ------------------------------------------------------------------ */
 
 bool swiss_set(SwissMap* m, void* key, size_t key_len, void* value) {
-    if (__builtin_expect(!m || !key, 0)) return false;
+    if (SOLIDC_EXPECT(!m || !key, 0)) return false;
 
-    if (__builtin_expect(m->growth_left == 0, 0)) {
+    if (SOLIDC_EXPECT(m->growth_left == 0, 0)) {
         if (!swiss_maybe_grow(m)) return false;
     }
 
@@ -399,7 +366,7 @@ bool swiss_set(SwissMap* m, void* key, size_t key_len, void* value) {
         uint32_t matches = sw_group_match(g, h2);
 #endif
         while (matches) {
-            int j = __builtin_ctz(matches);
+            int j = SOLIDC_CTZ(matches);
             matches &= matches - 1;
             size_t slot = (pos + (size_t)j) & mask;
             SwissSlot* s = &m->slots[slot];
@@ -417,7 +384,7 @@ bool swiss_set(SwissMap* m, void* key, size_t key_len, void* value) {
 #endif
         if (empties) {
             if (target_slot < 0) {
-                target_slot = (ssize_t)((pos + (size_t)__builtin_ctz(empties)) & mask);
+                target_slot = (ssize_t)((pos + (size_t)SOLIDC_CTZ(empties)) & mask);
                 target_is_tomb = false;
             }
             break; /* Key cannot exist past first empty slot */
@@ -430,7 +397,7 @@ bool swiss_set(SwissMap* m, void* key, size_t key_len, void* value) {
             uint32_t dels = sw_group_match_deleted(g);
 #endif
             if (dels) {
-                target_slot = (ssize_t)((pos + (size_t)__builtin_ctz(dels)) & mask);
+                target_slot = (ssize_t)((pos + (size_t)SOLIDC_CTZ(dels)) & mask);
                 target_is_tomb = true;
             }
         }
@@ -457,7 +424,7 @@ bool swiss_set(SwissMap* m, void* key, size_t key_len, void* value) {
 }
 
 void* swiss_get(SwissMap* m, void* key, size_t key_len) {
-    if (__builtin_expect(!m || !key, 0)) return NULL;
+    if (SOLIDC_EXPECT(!m || !key, 0)) return NULL;
 
     size_t h = swiss_hash_of(m, key, key_len);
     size_t mask = m->capacity - 1;
@@ -479,7 +446,7 @@ void* swiss_get(SwissMap* m, void* key, size_t key_len) {
         uint32_t matches = sw_group_match(g, h2);
 #endif
         while (matches) {
-            int j = __builtin_ctz(matches);
+            int j = SOLIDC_CTZ(matches);
             matches &= matches - 1;
             size_t slot = (pos + (size_t)j) & mask;
             SwissSlot* s = &m->slots[slot];
@@ -501,7 +468,7 @@ void* swiss_get(SwissMap* m, void* key, size_t key_len) {
 }
 
 bool swiss_remove(SwissMap* m, void* key, size_t key_len) {
-    if (__builtin_expect(!m || !key, 0)) return false;
+    if (SOLIDC_EXPECT(!m || !key, 0)) return false;
 
     size_t h = swiss_hash_of(m, key, key_len);
     size_t mask = m->capacity - 1;
@@ -523,7 +490,7 @@ bool swiss_remove(SwissMap* m, void* key, size_t key_len) {
         uint32_t matches = sw_group_match(g, h2);
 #endif
         while (matches) {
-            int j = __builtin_ctz(matches);
+            int j = SOLIDC_CTZ(matches);
             matches &= matches - 1;
             size_t slot = (pos + (size_t)j) & mask;
             SwissSlot* s = &m->slots[slot];
@@ -584,7 +551,7 @@ bool swiss_next(swiss_iterator* it, void** key, void** value) {
                 i += SW_GROUP;
                 continue;
             }
-            int j = __builtin_ctz(full_mask);
+            int j = SOLIDC_CTZ(full_mask);
             i += (size_t)j;
             it->index = i + 1;
             SwissSlot* s = &m->slots[i];

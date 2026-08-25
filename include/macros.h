@@ -21,12 +21,14 @@
 #ifndef SOLIDC_MACROS_H
 #define SOLIDC_MACROS_H
 
-#include <stddef.h> /* size_t, ptrdiff_t                    */
-#include <stdint.h> /* uint64_t, uintptr_t, intptr_t, ...  */
-#include <stdio.h>  /* printf, fprintf, stderr              */
-#include <stdlib.h> /* exit                                 */
-#include <string.h> /* strcmp, strncmp, memset              */
-#include <time.h>   /* time_t, struct tm, clock_gettime     */
+#include <math.h>     /* isnan                                */
+#include <stdalign.h> /* alignof                            */
+#include <stddef.h>   /* size_t, ptrdiff_t                    */
+#include <stdint.h>   /* uint64_t, uintptr_t, intptr_t, ...  */
+#include <stdio.h>    /* printf, fprintf, stderr              */
+#include <stdlib.h>   /* exit                                 */
+#include <string.h>   /* strcmp, strncmp, memset              */
+#include <time.h>     /* time_t, struct tm, clock_gettime     */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -970,6 +972,186 @@ static inline int cpu_has_neon(void) { return (getauxval(AT_HWCAP) & HWCAP_NEON)
 static inline int cpu_has_neon(void) { return HAS_NEON; }
 
 #endif /* ARM variants */
+
+/* =========================================================================
+ * CROSS-PLATFORM SHIMS
+ *
+ * Centralizes the scattered #ifdefs that used to live in individual
+ * modules. Include <macros.h> and use the SOLIDC_* helpers below instead
+ * of raw platform checks. All macros are safe on every supported OS and
+ * compiler; they degrade gracefully when a feature is absent.
+ * ========================================================================= */
+
+/* -------------------------------------------------------------------------
+ * OS detection — prefer these over raw _WIN32/__APPLE__ checks.
+ * ---------------------------------------------------------------------- */
+#if defined(_WIN32)
+#define SOLIDC_OS_WINDOWS 1
+#define SOLIDC_OS_POSIX   0
+#elif defined(__APPLE__)
+#define SOLIDC_OS_APPLE 1
+#define SOLIDC_OS_POSIX 1
+#elif defined(__linux__)
+#define SOLIDC_OS_LINUX 1
+#define SOLIDC_OS_POSIX 1
+#elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
+#define SOLIDC_OS_BSD   1
+#define SOLIDC_OS_POSIX 1
+#else
+#define SOLIDC_OS_POSIX 1
+#endif
+#ifndef SOLIDC_OS_WINDOWS
+#define SOLIDC_OS_WINDOWS 0
+#endif
+#ifndef SOLIDC_OS_APPLE
+#define SOLIDC_OS_APPLE 0
+#endif
+#ifndef SOLIDC_OS_LINUX
+#define SOLIDC_OS_LINUX 0
+#endif
+#ifndef SOLIDC_OS_BSD
+#define SOLIDC_OS_BSD 0
+#endif
+#ifndef SOLIDC_OS_POSIX
+#define SOLIDC_OS_POSIX 0
+#endif
+
+/* -------------------------------------------------------------------------
+ * Feature-test wrapper — safe on compilers that lack __has_feature.
+ * ---------------------------------------------------------------------- */
+#ifndef __has_feature
+#define __has_feature(x) 0
+#endif
+#define SOLIDC_HAS_FEATURE(x) __has_feature(x)
+
+/* -------------------------------------------------------------------------
+ * Secure string handling — bounded, explicit-size APIs.
+ *
+ * On Windows (MSVC/MinGW) the _s variants are available and preferred.
+ * Elsewhere we emulate them with a bounds-checked memcpy. Library code
+ * and callers should use these instead of raw strcat/strcpy/sprintf.
+ * ---------------------------------------------------------------------- */
+#if SOLIDC_MSVC || defined(_WIN32)
+#include <string.h> /* strcat_s et al. via <string.h> on MSVC/MinGW */
+#define SOLIDC_STRCPY_S(dst, dstsz, src) strcpy_s((dst), (dstsz), (src))
+#define SOLIDC_STRCAT_S(dst, dstsz, src) strcat_s((dst), (dstsz), (src))
+#define SOLIDC_SNPRINTF                  snprintf
+#else
+static inline int solidc_strcpy_s(char* dst, size_t dstsz, const char* src) {
+    size_t n = strlen(src);
+    if (n >= dstsz) {
+        if (dstsz) dst[0] = '\0';
+        return -1;
+    }
+    memcpy(dst, src, n + 1);
+    return 0;
+}
+static inline int solidc_strcat_s(char* dst, size_t dstsz, const char* src) {
+    size_t dlen = strlen(dst);
+    size_t slen = strlen(src);
+    if (dlen + slen >= dstsz) {
+        if (dstsz) dst[0] = '\0';
+        return -1;
+    }
+    memcpy(dst + dlen, src, slen + 1);
+    return 0;
+}
+#define SOLIDC_STRCPY_S(dst, dstsz, src) solidc_strcpy_s((dst), (dstsz), (src))
+#define SOLIDC_STRCAT_S(dst, dstsz, src) solidc_strcat_s((dst), (dstsz), (src))
+#define SOLIDC_SNPRINTF                  snprintf
+#endif
+
+/* -------------------------------------------------------------------------
+ * Builtin wrappers — map GCC/Clang builtins to MSVC equivalents.
+ * ---------------------------------------------------------------------- */
+#if SOLIDC_MSVC
+#include <intrin.h>
+#pragma intrinsic(_BitScanForward)
+#pragma intrinsic(_BitScanReverse)
+#pragma intrinsic(_mm_pause)
+static inline int solidc_ctz_u32(uint32_t x) {
+    unsigned long r;
+    _BitScanForward(&r, (unsigned long)x);
+    return (int)r;
+}
+static inline int solidc_clz_u32(uint32_t x) {
+    unsigned long r;
+    _BitScanReverse(&r, (unsigned long)x);
+    return 31 - (int)r;
+}
+#define SOLIDC_CTZ(x)       solidc_ctz_u32((uint32_t)(x))
+#define SOLIDC_CLZ(x)       solidc_clz_u32((uint32_t)(x))
+#define SOLIDC_EXPECT(x, y) (x)
+#define SOLIDC_PREFETCH(p)  ((void)0)
+#define SOLIDC_PAUSE()      _mm_pause()
+#define SOLIDC_ISNAN(x)     isnan(x)
+#else
+#define SOLIDC_CTZ(x)       __builtin_ctz((unsigned int)(x))
+#define SOLIDC_CLZ(x)       __builtin_clz((unsigned int)(x))
+#define SOLIDC_EXPECT(x, y) __builtin_expect((x), (y))
+#define SOLIDC_PREFETCH(p)  __builtin_prefetch((p))
+#if defined(__x86_64__) || defined(__i386__)
+#define SOLIDC_PAUSE() __builtin_ia32_pause()
+#elif defined(__aarch64__) || defined(__arm__)
+#define SOLIDC_PAUSE() __asm__ __volatile__("yield" ::: "memory")
+#else
+#define SOLIDC_PAUSE() ((void)0)
+#endif
+#define SOLIDC_ISNAN(x) __builtin_isnan((x))
+#endif
+
+/* -------------------------------------------------------------------------
+ * Portable max alignment — MSVC C mode lacks max_align_t.
+ * ---------------------------------------------------------------------- */
+#if defined(_MSC_VER) && (_MSC_VER < 1900)
+typedef long double solidc_max_align_t;
+#else
+#include <stddef.h>
+typedef max_align_t solidc_max_align_t;
+#endif
+#define SOLIDC_MAX_ALIGN      (alignof(solidc_max_align_t))
+#define SOLIDC_MAX_ALIGN_MASK (SOLIDC_MAX_ALIGN - 1)
+
+/* -------------------------------------------------------------------------
+ * Unlocked stdio — block-level fread_unlocked is glibc/BSD-only.
+ * ---------------------------------------------------------------------- */
+#if defined(__GLIBC__) || defined(__FreeBSD__)
+#define SOLIDC_HAS_FREAD_UNLOCKED 1
+#else
+#define SOLIDC_HAS_FREAD_UNLOCKED 0
+#endif
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__unix__)
+#define SOLIDC_HAS_GETC_UNLOCKED 1
+#else
+#define SOLIDC_HAS_GETC_UNLOCKED 0
+#endif
+
+/* -------------------------------------------------------------------------
+ * Condition-variable clock — MONOTONIC on Linux, REALTIME on macOS.
+ * ---------------------------------------------------------------------- */
+#if SOLIDC_OS_APPLE
+#define SOLIDC_COND_CLOCK CLOCK_REALTIME
+#else
+#define SOLIDC_COND_CLOCK CLOCK_MONOTONIC
+#endif
+
+/* -------------------------------------------------------------------------
+ * Secure zero — guaranteed not to be optimized away.
+ * ---------------------------------------------------------------------- */
+static inline void solidc_secure_zero(void* p, size_t n) {
+    volatile unsigned char* vp = (volatile unsigned char*)p;
+    while (n--) *vp++ = 0;
+}
+#define SOLIDC_SECURE_ZERO(p, n) solidc_secure_zero((p), (n))
+
+/* -------------------------------------------------------------------------
+ * SIMD shuffle — __builtin_shufflevector is clang-only.
+ * ---------------------------------------------------------------------- */
+#if defined(__clang__)
+#define SOLIDC_HAS_SHUFFLE_VECTOR 1
+#else
+#define SOLIDC_HAS_SHUFFLE_VECTOR 0
+#endif
 
 #if defined(__cplusplus)
 }

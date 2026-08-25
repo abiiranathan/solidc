@@ -30,6 +30,7 @@
  */
 
 #include "../include/unicode.h"
+#include "macros.h"
 
 #if defined(__SSE2__)
 #include <emmintrin.h>
@@ -44,13 +45,13 @@
 #ifdef _MSC_VER
 #include <intrin.h>
 #pragma intrinsic(_BitScanForward)
-#ifndef __builtin_ctz
+#ifndef SOLIDC_CTZ
 static inline int msvc_ctz_u32_unicode(uint32_t x) {
     unsigned long r;
     _BitScanForward(&r, (unsigned long)x);
     return (int)r;
 }
-#define __builtin_ctz(x) msvc_ctz_u32((uint32_t)(x))
+#define SOLIDC_CTZ(x) msvc_ctz_u32((uint32_t)(x))
 #endif
 #endif
 // iswupper, iswlower, towlower, towupper
@@ -153,7 +154,7 @@ static inline utf8_analysis_t utf8_analyze(const char* s) {
                 i += 16;
                 continue; /* still a candidate run: stay in SIMD mode */
             }
-            int pos = __builtin_ctz(hi); /* first non-ASCII byte in this block */
+            int pos = SOLIDC_CTZ(hi); /* first non-ASCII byte in this block */
             analysis.valid_bytes += (size_t)pos;
             analysis.codepoints += (size_t)pos;
             i += (size_t)pos;
