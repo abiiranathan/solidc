@@ -23,13 +23,13 @@
  */
 
 #include "../include/linear_alg.h"
+#include "../include/xtime.h"
 
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 /* Render target */
 #define WIDTH  480
@@ -168,8 +168,8 @@ int main(void) {
     printf("software renderer: %dx%d, %zu vertices, %zu triangles/frame, %d frames\n", WIDTH, HEIGHT, mesh.vertex_count,
            mesh.index_count / 3, FRAMES);
 
-    struct timespec ts_start, ts_end;
-    clock_gettime(CLOCK_MONOTONIC, &ts_start);
+    xtime_t ts_start, ts_end;
+    xtime_now(&ts_start);
 
     size_t triangles_drawn = 0;
     size_t triangles_culled = 0;
@@ -292,9 +292,13 @@ int main(void) {
         }
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &ts_end);
-    const double elapsed =
-        (double)(ts_end.tv_sec - ts_start.tv_sec) + 1e-9 * (double)(ts_end.tv_nsec - ts_start.tv_nsec);
+    xtime_now(&ts_end);
+    int64_t elapsed_nanos = 0;
+    if (xtime_diff_nanos(&ts_end, &ts_start, &elapsed_nanos) != XTIME_OK) {
+        fprintf(stderr, "xtime_diff_nanos failed\n");
+        return 1;
+    }
+    const double elapsed = (double)elapsed_nanos / 1e9;
 
     // Statistics -----------------------------------------------------------
     printf("render time       : %.3f s (%d frames, %.2f ms/frame)\n", elapsed, FRAMES, elapsed * 1000.0 / FRAMES);

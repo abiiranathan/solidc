@@ -18,11 +18,19 @@
 #include <unistd.h>
 #endif
 
-/* Detect POSIX unlocked I/O support for single-threaded stdio acceleration */
+/* Detect POSIX unlocked I/O support for single-threaded stdio acceleration.
+ * Character-level unlocked access (getc_unlocked) is nearly universal; the
+ * block-level fread_unlocked/fwrite_unlocked pair is glibc/BSD-only and is
+ * notably absent from macOS. */
 #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__unix__)
-#define HAS_POSIX_UNLOCKED_IO 1
+#define HAS_UNLOCKED_CHAR_IO 1
 #else
-#define HAS_POSIX_UNLOCKED_IO 0
+#define HAS_UNLOCKED_CHAR_IO 0
+#endif
+#if defined(__GLIBC__) || defined(__FreeBSD__)
+#define HAS_UNLOCKED_BLOCK_IO 1
+#else
+#define HAS_UNLOCKED_BLOCK_IO 0
 #endif
 
 /* =========================================================================
@@ -117,7 +125,7 @@ bool readline(const char* prompt, char* buffer, size_t buffer_len) {
         size_t len = strlen(buffer);
         if (len == buffer_len - 1) {
             int c;
-#if HAS_POSIX_UNLOCKED_IO
+#if HAS_UNLOCKED_CHAR_IO
             flockfile(stdin);
             while ((c = getc_unlocked(stdin)) != EOF && c != '\n');
             funlockfile(stdin);
@@ -200,7 +208,7 @@ int stream_seek(stream_t stream, long offset, int whence) {
  * @param n Maximum bytes to read. @return Bytes read (>0), 0 on EOF, -1 on error. */
 static ssize_t file_read_impl(void* handle, void* ptr, size_t n) {
     FILE* fp = (FILE*)handle;
-#if HAS_POSIX_UNLOCKED_IO
+#if HAS_UNLOCKED_BLOCK_IO
     flockfile(fp);
     size_t r = fread_unlocked(ptr, 1, n, fp);
     funlockfile(fp);
@@ -215,7 +223,7 @@ static ssize_t file_read_impl(void* handle, void* ptr, size_t n) {
  * was written and the stream error flag is set. */
 static ssize_t file_write_impl(void* handle, const void* ptr, size_t n) {
     FILE* fp = (FILE*)handle;
-#if HAS_POSIX_UNLOCKED_IO
+#if HAS_UNLOCKED_BLOCK_IO
     flockfile(fp);
     size_t w = fwrite_unlocked(ptr, 1, n, fp);
     funlockfile(fp);
@@ -229,7 +237,7 @@ static ssize_t file_write_impl(void* handle, const void* ptr, size_t n) {
  * value, or EOF. */
 static int file_read_char_impl(void* handle) {
     FILE* fp = (FILE*)handle;
-#if HAS_POSIX_UNLOCKED_IO
+#if HAS_UNLOCKED_CHAR_IO
     return getc_unlocked(fp);
 #else
     return fgetc(fp);
@@ -527,13 +535,13 @@ ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size)
         return (ssize_t)got;
     }
 
-#if HAS_POSIX_UNLOCKED_IO
+#if HAS_UNLOCKED_CHAR_IO
     flockfile(fp);
 #endif
 
     ssize_t bytes = 0;
     while ((size_t)bytes < max_bytes) {
-#if HAS_POSIX_UNLOCKED_IO
+#if HAS_UNLOCKED_CHAR_IO
         int ch = getc_unlocked(fp);
 #else
         int ch = fgetc(fp);
@@ -542,7 +550,7 @@ ssize_t read_until(stream_t stream, int delim, char* buffer, size_t buffer_size)
         buffer[bytes++] = (char)ch;
     }
 
-#if HAS_POSIX_UNLOCKED_IO
+#if HAS_UNLOCKED_CHAR_IO
     funlockfile(fp);
 #endif
 
