@@ -288,8 +288,10 @@ Arena* arena_create(size_t reserve_size) {
             aligned_free_xp(a);
 #ifdef ARENA_ABORT_ON_OOM
             ARENA_OOM_HANDLER(initial_size);
-#endif
+            ARENA_UNREACHABLE(); /* handler aborts; silences MSVC C4702 */
+#else
             return NULL;
+#endif
         }
         arena_init(a, buf, initial_size);
         /* Mark the first block as heap-owned so arena_destroy frees it. */

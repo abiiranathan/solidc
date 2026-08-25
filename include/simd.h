@@ -1211,15 +1211,17 @@ static inline bool simd_check_all(simd_vec_t mask) {
  */
 static inline void simd_ascii_lower(char* buf, size_t len) {
 #if defined(SIMD_ARCH_X86)
-    const __m128i v80 = _mm_set1_epi8((char)(intptr_t)0x80);
+    const __m128i v80 = _mm_set1_epi8((char)-128); /* 0x80 as int8 */
     const __m128i v20 = _mm_set1_epi8(0x20);
     /* Bounds pre-biased so plain signed cmpgt implements unsigned >= / <=:
      * uint8 x >= 'a' <=> int8 (x^0x80) > (char)(('a'^0x80)-1)
      * uint8 x <= 'z' <=> int8 (x^0x80) < (char)(('z'^0x80)+1)
      * The biased window [0xE1,0xFA] also excludes every byte >= 0x80
-     * automatically, so non-ASCII data needs no separate ASCII mask. */
-    const __m128i lo_bound = _mm_set1_epi8((char)(('a' ^ 0x80) - 1)); /* 0xE0 */
-    const __m128i hi_bound = _mm_set1_epi8((char)(('z' ^ 0x80) + 1)); /* 0xFB */
+     * automatically, so non-ASCII data needs no separate ASCII mask.
+     * Bounds are written as their in-range int8 values (-32 / -5) because
+     * casting the 224/251 constants to char trips MSVC C4310. */
+    const __m128i lo_bound = _mm_set1_epi8((char)-32); /* ('a'^0x80)-1 == 0xE0 */
+    const __m128i hi_bound = _mm_set1_epi8((char)-5);  /* ('z'^0x80)+1 == 0xFB */
 
     size_t i = 0;
     for (; i + 32 <= len; i += 32) {
@@ -1283,10 +1285,10 @@ static inline void simd_ascii_lower(char* buf, size_t len) {
  */
 static inline void simd_ascii_upper(char* buf, size_t len) {
 #if defined(SIMD_ARCH_X86)
-    const __m128i v80 = _mm_set1_epi8((char)(intptr_t)0x80);
+    const __m128i v80 = _mm_set1_epi8((char)-128); /* 0x80 as int8 */
     const __m128i v20 = _mm_set1_epi8(0x20);
-    const __m128i lo_bound = _mm_set1_epi8((char)(('a' ^ 0x80) - 1)); /* 0xE0 */
-    const __m128i hi_bound = _mm_set1_epi8((char)(('z' ^ 0x80) + 1)); /* 0xFB */
+    const __m128i lo_bound = _mm_set1_epi8((char)-32); /* ('a'^0x80)-1 == 0xE0 */
+    const __m128i hi_bound = _mm_set1_epi8((char)-5);  /* ('z'^0x80)+1 == 0xFB */
 
     size_t i = 0;
     for (; i + 32 <= len; i += 32) {
