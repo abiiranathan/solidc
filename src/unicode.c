@@ -42,19 +42,7 @@
 #include <string.h>  // for memcpy, memmove, memcmp, strstr, strcmp, strlen
 #include <wchar.h>   // for WCHAR_MAX
 #include <wctype.h>  // for iswspace, iswdigit, iswalpha, iswalnum, iswpunct,
-#ifdef _MSC_VER
-#include <intrin.h>
-#pragma intrinsic(_BitScanForward)
-#ifndef SOLIDC_CTZ
-static inline int msvc_ctz_u32_unicode(uint32_t x) {
-    unsigned long r;
-    _BitScanForward(&r, (unsigned long)x);
-    return (int)r;
-}
-#define SOLIDC_CTZ(x) msvc_ctz_u32((uint32_t)(x))
-#endif
-#endif
-// iswupper, iswlower, towlower, towupper
+// iswupper, iswlower, towlower, towupper (SOLIDC_CTZ comes from macros.h)
 
 typedef struct {
     size_t valid_bytes;

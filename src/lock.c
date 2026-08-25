@@ -331,14 +331,11 @@ int cond_wait_timeout(Condition* condition, Lock* lock, int timeout_ms) {
      * Deadline clock must match the clock the condvar was created with
      * (see cond_init() above): CLOCK_MONOTONIC on Linux, CLOCK_REALTIME
      * on Darwin where condvars always use the wall clock.  Using the
-     * wrong one corrupts the wait duration.
+     * wrong one corrupts the wait duration.  SOLIDC_COND_CLOCK resolves
+     * per platform (see macros.h).
      */
     struct timespec ts;
-#if SOLIDC_OS_APPLE
     if (clock_gettime(SOLIDC_COND_CLOCK, &ts) != 0) {
-#else
-    if (clock_gettime(SOLIDC_COND_CLOCK, &ts) != 0) {
-#endif
         fprintf(stderr, "clock_gettime failed: %s\n", strerror(errno));
         return -1;
     }

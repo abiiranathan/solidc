@@ -265,17 +265,23 @@ ProcessError pipe_close_write_end(PipeHandle* pipe) {
 
 /** @brief Appends one argv element to dest per the MSDN command-line parsing rules: arguments containing whitespace or
  * quotes are wrapped in double quotes, backslash runs before a quote (or the end of the argument) are doubled, and a
- * literal '"' becomes "\\". Bounds-checked via SOLIDC_STRCAT_S(). Fast path appends unquoted args verbatim. @return
- * PROCESS_SUCCESS, or PROCESS_ERROR_UNKNOWN if the append would overflow dest_size. */
-static ProcessError append_escaped_win32_arg(char* dest, size_t dest_size, const char* arg) {
+ * literal '"' becomes "\\". Uses a write cursor so the whole command line is built in O(n) — a single capacity check
+ * per token guarantees no overflow (the caller pre-sizes the buffer to the worst case). @param dest Destination buffer.
+ * @param dest_size Total capacity of dest in bytes. @param arg Argument to append. @param cursor In/out write position
+ * (index of the NUL terminator). @return PROCESS_SUCCESS, or PROCESS_ERROR_UNKNOWN if dest_size would be exceeded. */
+static ProcessError append_escaped_win32_arg(char* dest, size_t dest_size, const char* arg, size_t* cursor) {
     /* Fast path: nothing that needs quoting */
     if (*arg != '\0' && !strpbrk(arg, " \t\n\v\"")) {
-        return SOLIDC_STRCAT_S(dest, dest_size, arg) == 0 ? PROCESS_SUCCESS : PROCESS_ERROR_UNKNOWN;
+        size_t len = strlen(arg);
+        if (*cursor + len + 1 > dest_size) return PROCESS_ERROR_UNKNOWN;
+        memcpy(dest + *cursor, arg, len + 1);
+        *cursor += len;
+        return PROCESS_SUCCESS;
     }
 
-    if (SOLIDC_STRCAT_S(dest, dest_size, "\"") != 0) {
-        return PROCESS_ERROR_UNKNOWN;
-    }
+    size_t pos = *cursor;
+    if (pos + 1 >= dest_size) return PROCESS_ERROR_UNKNOWN;
+    dest[pos++] = '"';
 
     for (const char* p = arg; *p != '\0';) {
         /* Count consecutive backslashes */
@@ -285,31 +291,34 @@ static ProcessError append_escaped_win32_arg(char* dest, size_t dest_size, const
             p++;
         }
 
+        /* Backslashes to emit for this run: doubled before a quote or the end */
+        int emit_bs;
         if (*p == '\0') {
-            /* Trailing backslashes: double them before the closing quote */
-            for (int k = 0; k < num_bs * 2; k++) {
-                if (SOLIDC_STRCAT_S(dest, dest_size, "\\") != 0) return PROCESS_ERROR_UNKNOWN;
-            }
-            break;
+            emit_bs = num_bs * 2;
         } else if (*p == '"') {
-            /* Backslashes before a quote: double them, then escape the quote */
-            for (int k = 0; k < num_bs * 2 + 1; k++) {
-                if (SOLIDC_STRCAT_S(dest, dest_size, "\\") != 0) return PROCESS_ERROR_UNKNOWN;
-            }
-            if (SOLIDC_STRCAT_S(dest, dest_size, "\"") != 0) return PROCESS_ERROR_UNKNOWN;
+            emit_bs = num_bs * 2 + 1;
+        } else {
+            emit_bs = num_bs;
+        }
+
+        if (pos + (size_t)emit_bs + 2 >= dest_size) return PROCESS_ERROR_UNKNOWN;
+        for (int k = 0; k < emit_bs; k++) dest[pos++] = '\\';
+
+        if (*p == '\0') break;
+        if (*p == '"') {
+            dest[pos++] = '"';
             p++;
         } else {
-            /* Literal backslashes followed by a normal char */
-            for (int k = 0; k < num_bs; k++) {
-                if (SOLIDC_STRCAT_S(dest, dest_size, "\\") != 0) return PROCESS_ERROR_UNKNOWN;
-            }
-            const char ch[2] = {*p, '\0'};
-            if (SOLIDC_STRCAT_S(dest, dest_size, ch) != 0) return PROCESS_ERROR_UNKNOWN;
+            dest[pos++] = *p;
             p++;
         }
     }
 
-    return SOLIDC_STRCAT_S(dest, dest_size, "\"") == 0 ? PROCESS_SUCCESS : PROCESS_ERROR_UNKNOWN;
+    if (pos + 2 > dest_size) return PROCESS_ERROR_UNKNOWN;
+    dest[pos++] = '"';
+    dest[pos] = '\0';
+    *cursor = pos;
+    return PROCESS_SUCCESS;
 }
 
 /** @brief CreateProcessA() backend for process_create(): sizes a worst-case command-line buffer (each char may double
@@ -340,14 +349,17 @@ ProcessError win32_create_process(ProcessHandle** handle, const char* command, c
     }
     cmdline[0] = '\0';
 
+    size_t cursor = 0;
     for (int i = 0; i < arg_count; i++) {
         if (i > 0) {
-            if (SOLIDC_STRCAT_S(cmdline, cmdline_len + 1, " ") != 0) {
+            if (cursor + 2 > cmdline_len + 1) {
                 free(cmdline);
                 return PROCESS_ERROR_UNKNOWN;
             }
+            cmdline[cursor++] = ' ';
+            cmdline[cursor] = '\0';
         }
-        ProcessError err = append_escaped_win32_arg(cmdline, cmdline_len + 1, argv[i]);
+        ProcessError err = append_escaped_win32_arg(cmdline, cmdline_len + 1, argv[i], &cursor);
         if (err != PROCESS_SUCCESS) {
             free(cmdline);
             return err;

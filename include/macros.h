@@ -1068,7 +1068,9 @@ static inline int solidc_strcat_s(char* dst, size_t dstsz, const char* src) {
 #include <intrin.h>
 #pragma intrinsic(_BitScanForward)
 #pragma intrinsic(_BitScanReverse)
+#if defined(_M_X64) || defined(_M_IX86)
 #pragma intrinsic(_mm_pause)
+#endif
 static inline int solidc_ctz_u32(uint32_t x) {
     unsigned long r;
     _BitScanForward(&r, (unsigned long)x);
@@ -1083,8 +1085,14 @@ static inline int solidc_clz_u32(uint32_t x) {
 #define SOLIDC_CLZ(x)       solidc_clz_u32((uint32_t)(x))
 #define SOLIDC_EXPECT(x, y) (x)
 #define SOLIDC_PREFETCH(p)  ((void)0)
-#define SOLIDC_PAUSE()      _mm_pause()
-#define SOLIDC_ISNAN(x)     isnan(x)
+#if defined(_M_X64) || defined(_M_IX86)
+#define SOLIDC_PAUSE() _mm_pause()
+#elif defined(_M_ARM64) || defined(_M_ARM)
+#define SOLIDC_PAUSE() __yield()
+#else
+#define SOLIDC_PAUSE() ((void)0)
+#endif
+#define SOLIDC_ISNAN(x) isnan(x)
 #else
 #define SOLIDC_CTZ(x)       __builtin_ctz((unsigned int)(x))
 #define SOLIDC_CLZ(x)       __builtin_clz((unsigned int)(x))
@@ -1141,10 +1149,30 @@ typedef max_align_t solidc_max_align_t;
 
 /* -------------------------------------------------------------------------
  * Secure zero — guaranteed not to be optimized away.
+ *
+ * Uses the strongest primitive available per platform:
+ *   - memset_s()          C11 Annex K (glibc with __STDC_WANT_LIB_EXT1__)
+ *   - SecureZeroMemory()  Win32 (explicit volatile implementation)
+ *   - explicit_bzero()    glibc/BSD
+ *   - volatile byte loop  portable fallback (de-facto non-elidable)
  * ---------------------------------------------------------------------- */
+#if defined(__STDC_WANT_LIB_EXT1__) || defined(__STDC_LIB_EXT1__)
+#include <string.h>
+#elif defined(_WIN32)
+#include <windows.h>
+#endif
+
 static inline void solidc_secure_zero(void* p, size_t n) {
+#if defined(__STDC_LIB_EXT1__) || defined(__STDC_WANT_LIB_EXT1__)
+    memset_s(p, n, 0, n);
+#elif defined(_WIN32)
+    SecureZeroMemory(p, n);
+#elif defined(__GLIBC__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+    explicit_bzero(p, n);
+#else
     volatile unsigned char* vp = (volatile unsigned char*)p;
     while (n--) *vp++ = 0;
+#endif
 }
 #define SOLIDC_SECURE_ZERO(p, n) solidc_secure_zero((p), (n))
 
