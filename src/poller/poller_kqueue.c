@@ -6,7 +6,12 @@
  *   - EV_CLEAR          <-> POLLER_EDGE
  *   - EV_EOF            <-> poller_event_is_hup()
  *   - EVFILT_READ/WRITE <-> POLLER_READ / POLLER_WRITE
- *   - udata             <-> registration node (for poller_event_fd/data)
+ *   - ident             <-> the descriptor (kqueue reports it directly)
+ *   - udata             <-> the user's opaque pointer, passed through
+ *
+ * The kernel never sees pointers into the registration table: udata carries
+ * the caller's pointer verbatim and the fd comes from kevent.ident, so
+ * growing or rehashing the table is always safe.
  *
  * One kqueue quirk: a descriptor can carry EVFILT_READ and EVFILT_WRITE as
  * two independent filters. poller_mod() therefore disables the filter that
@@ -24,6 +29,8 @@
 struct Poller {
     PollerBase base;
     int kqfd;
+    struct kevent* kevs; /**< Growable scratch buffer for poller_wait(). */
+    int kevs_cap;        /* Capacity of kevs (events, not bytes). */
 };
 
 Poller* poller_new(void) {
@@ -47,17 +54,18 @@ Poller* poller_new(void) {
 void poller_free(Poller* p) {
     if (!p) return;
     close(p->kqfd);
+    free(p->kevs);
     poller_regs_free(&p->base);
     free(p);
 }
 
 /** Appends one filter change to a kevent batch. Returns 0 on success. */
-static int kev_add(struct kevent* out, int kqfd, int fd, int16_t filter, bool enable, void* reg) {
+static int kev_add(struct kevent* out, int kqfd, int fd, int16_t filter, bool enable, void* udata) {
     if (enable) {
-        EV_SET(out, fd, filter, EV_ADD | EV_CLEAR, 0, 0, reg);
+        EV_SET(out, fd, filter, EV_ADD | EV_CLEAR, 0, 0, udata);
     } else {
         /* Disable (not delete) so the sibling filter stays intact. */
-        EV_SET(out, fd, filter, EV_DISABLE, 0, 0, reg);
+        EV_SET(out, fd, filter, EV_DISABLE, 0, 0, udata);
     }
     return kevent(kqfd, out, 1, NULL, 0, NULL);
 }
@@ -78,11 +86,11 @@ int poller_add(Poller* p, int fd, int events, void* data) {
     bool want_read = (events & POLLER_READ) != 0;
     bool want_write = (events & POLLER_WRITE) != 0;
 
-    if (kev_add(&ev, p->kqfd, fd, EVFILT_READ, want_read, reg) != 0) {
+    if (kev_add(&ev, p->kqfd, fd, EVFILT_READ, want_read, data) != 0) {
         poller_regs_remove(&p->base, fd);
         return -1;
     }
-    if (kev_add(&ev, p->kqfd, fd, EVFILT_WRITE, want_write, reg) != 0) {
+    if (kev_add(&ev, p->kqfd, fd, EVFILT_WRITE, want_write, data) != 0) {
         poller_regs_remove(&p->base, fd);
         return -1;
     }
@@ -106,8 +114,8 @@ int poller_mod(Poller* p, int fd, int events, void* data) {
     bool want_read = (events & POLLER_READ) != 0;
     bool want_write = (events & POLLER_WRITE) != 0;
 
-    if (kev_add(&ev, p->kqfd, fd, EVFILT_READ, want_read, reg) != 0) return -1;
-    return kev_add(&ev, p->kqfd, fd, EVFILT_WRITE, want_write, reg);
+    if (kev_add(&ev, p->kqfd, fd, EVFILT_READ, want_read, data) != 0) return -1;
+    return kev_add(&ev, p->kqfd, fd, EVFILT_WRITE, want_write, data);
 }
 
 int poller_del(Poller* p, int fd) {
@@ -134,10 +142,18 @@ int poller_wait(Poller* p, PollerEvent* events, int max, int timeout_ms) {
         return -1;
     }
 
-    struct kevent* kevs = (struct kevent*)malloc((size_t)max * sizeof(struct kevent));
-    if (!kevs) {
-        errno = ENOMEM;
-        return -1;
+    /* Grow the scratch buffer to the caller's batch size (never shrinks,
+     * so steady-state waits allocate nothing). */
+    if (max > p->kevs_cap) {
+        int cap = p->kevs_cap ? p->kevs_cap : 128;
+        while (cap < max) cap *= 2;
+        struct kevent* nkevs = (struct kevent*)realloc(p->kevs, (size_t)cap * sizeof(*nkevs));
+        if (!nkevs) {
+            errno = ENOMEM;
+            return -1;
+        }
+        p->kevs = nkevs;
+        p->kevs_cap = cap;
     }
 
     struct timespec ts, *ts_ptr = NULL;
@@ -147,20 +163,17 @@ int poller_wait(Poller* p, PollerEvent* events, int max, int timeout_ms) {
         ts_ptr = &ts;
     }
 
-    int n = kevent(p->kqfd, NULL, 0, kevs, max, ts_ptr);
+    int n = kevent(p->kqfd, NULL, 0, p->kevs, max, ts_ptr);
     if (n > 0) {
         for (int i = 0; i < n; i++) {
-            PollerReg* reg = (PollerReg*)kevs[i].udata;
-            events[i].fd = reg ? reg->fd : -1;
-            events[i].data = reg ? reg->data : NULL;
-            events[i].readable = (kevs[i].filter == EVFILT_READ);
-            events[i].writable = (kevs[i].filter == EVFILT_WRITE);
-            events[i].error = (kevs[i].flags & EV_ERROR) != 0;
-            events[i].hup = (kevs[i].flags & EV_EOF) != 0;
+            events[i].fd = (int)p->kevs[i].ident;
+            events[i].data = p->kevs[i].udata;
+            events[i].readable = (p->kevs[i].filter == EVFILT_READ);
+            events[i].writable = (p->kevs[i].filter == EVFILT_WRITE);
+            events[i].error = (p->kevs[i].flags & EV_ERROR) != 0;
+            events[i].hup = (p->kevs[i].flags & EV_EOF) != 0;
         }
     }
-
-    free(kevs);
     return n;
 }
 

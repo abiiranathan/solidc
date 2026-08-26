@@ -40,7 +40,7 @@ static int make_listener(Socket** out) {
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     addr.sin_port = 0;
-    if (socket_bind(s, (struct sockaddr*)&addr, sizeof(addr)) != 0 || socket_listen(s, 16) != 0) {
+    if (socket_bind(s, (struct sockaddr*)&addr, sizeof(addr)) != 0 || socket_listen(s, 512) != 0) {
         socket_close(s);
         return -1;
     }
@@ -269,11 +269,102 @@ static void test_multi_connection_echo(void) {
     poller_free(p);
 }
 
+/**
+ * Regression test for the epoll/kqueue pointer-lifetime bug: the poller
+ * table grows at 64/128/256 registrations and removals re-seat nodes, so
+ * any kernel-held pointer into the table dangles. Registers enough
+ * connections to force two growths, churns deletes, then verifies every
+ * event's fd AND user data round-trip correctly in batches larger than
+ * the historical 64-event cap.
+ */
+static void test_many_connections_and_growth(void) {
+    printf(ANSI_YELLOW "\n=== 150-connection growth + large-batch dispatch ===\n" ANSI_RESET);
+
+    enum { CLIENTS = 150 };
+    Socket* listener = NULL;
+    int port = make_listener(&listener);
+    check("listener created", port > 0);
+    socket_set_non_blocking(listener, true);
+
+    Poller* p = poller_new();
+    poller_add(p, socket_fd(listener), (int)POLLER_READ | (int)POLLER_EDGE, NULL);
+
+    Socket* clients[CLIENTS];
+    Socket* conns[CLIENTS];
+    int tags[CLIENTS]; /* user data registered per connection */
+    int edge_read = (int)POLLER_READ | (int)POLLER_EDGE;
+
+    for (int i = 0; i < CLIENTS; i++) {
+        clients[i] = connect_to(port);
+        conns[i] = NULL;
+        tags[i] = 1000 + i;
+        check("client connected", clients[i] != NULL);
+    }
+
+    /* Accept all + register each connection with its tag pointer. */
+    PollerEvent ev[256];
+    int accepted = 0;
+    while (accepted < CLIENTS) {
+        int n = poller_wait(p, ev, 256, 2000);
+        if (n <= 0) break;
+        for (int i = 0; i < n; i++) {
+            if (!poller_event_is_read(&ev[i])) continue;
+            Socket* c;
+            while ((c = socket_accept(listener, NULL, NULL)) != NULL && accepted < CLIENTS) {
+                conns[accepted++] = c;
+                check("add conn", poller_add(p, socket_fd(c), edge_read, &tags[accepted - 1]) == 0);
+            }
+        }
+    }
+    check("accepted all 150 connections", accepted == CLIENTS);
+
+    /* Delete-churn: remove and re-add every other connection. With the old
+     * design this relocated table nodes that the kernel still referenced. */
+    for (int i = 0; i < CLIENTS; i += 2) {
+        check("del conn", poller_del(p, socket_fd(conns[i])) == 0);
+        check("re-add conn", poller_add(p, socket_fd(conns[i]), edge_read, &tags[i]) == 0);
+    }
+
+    /* All clients send: one wait must report every connection (>64 events). */
+    for (int i = 0; i < CLIENTS; i++) socket_send(clients[i], "x", 1, 0);
+
+    /* Build fd -> index map for verification. */
+    int total_data_ok = 0, total_fd_seen = 0;
+    bool saw_all[CLIENTS];
+    memset(saw_all, 0, sizeof(saw_all));
+
+    /* Edge-triggered: a single batch must carry all 150 connections. */
+    int n = poller_wait(p, ev, 256, 1000);
+    check("single batch carried all events", n == CLIENTS);
+    for (int i = 0; i < n; i++) {
+        int fd = poller_event_fd(&ev[i]);
+        for (int c = 0; c < CLIENTS; c++) {
+            if (conns[c] && socket_fd(conns[c]) == fd) {
+                if (!saw_all[c]) {
+                    saw_all[c] = true;
+                    total_fd_seen++;
+                }
+                if (poller_event_data(&ev[i]) == &tags[c]) total_data_ok++;
+            }
+        }
+    }
+    check("all 150 fds reported", total_fd_seen == CLIENTS);
+    check("all user data round-tripped", total_data_ok == CLIENTS);
+
+    for (int i = 0; i < CLIENTS; i++) {
+        socket_close(clients[i]);
+        if (conns[i]) socket_close(conns[i]);
+    }
+    socket_close(listener);
+    poller_free(p);
+}
+
 int main(void) {
     test_lifecycle();
     test_read_event_and_data();
     test_hup_detection();
     test_multi_connection_echo();
+    test_many_connections_and_growth();
 
     printf("\n=== Summary ===\n");
     printf("Total: %d, Passed: %d, Failed: %d\n", g_passed + g_failed, g_passed, g_failed);

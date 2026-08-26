@@ -2,11 +2,14 @@
  * @file poller_internal.h
  * @brief Shared state between the poller backends (epoll / kqueue / win32).
  *
- * The public API promises poller_event_fd() always works. epoll and kqueue
- * deliver only the opaque user pointer, so each backend keeps an internal
- * fd -> registration map and stores a pointer to the registration node in
- * the platform's user-data field. WSAPoll reports the fd directly but uses
- * the map anyway for uniformity and for mod/del bookkeeping.
+ * Lifetime contract: the kernel must never hold pointers into the
+ * registration table, because both growth (regs_grow) and removal
+ * (backward-shift re-seat) relocate nodes. Backends therefore pass either
+ * the raw fd (epoll ev.data.fd) or the caller's own pointer (kqueue udata)
+ * to the kernel and resolve PollerReg entries by fd at wait time.
+ *
+ * The public API promises poller_event_fd() always works. WSAPoll reports
+ * the fd directly; the map is still used there for mod/del bookkeeping.
  */
 
 #ifndef SOLIDC_POLLER_INTERNAL_H
@@ -17,7 +20,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-/** Per-descriptor registration node. Never moves once allocated. */
+/** Per-descriptor registration node. Internal only: never handed to the
+ *  kernel, so it may be relocated by growth or rehash at any time. */
 typedef struct PollerReg {
     int fd;
     void* data;

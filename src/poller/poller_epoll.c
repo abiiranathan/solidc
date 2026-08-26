@@ -2,8 +2,10 @@
  * @file poller_epoll.c
  * @brief Linux epoll backend for poller.h.
  *
- * Registration nodes are stored in ev.data.ptr so poller_event_fd() can
- * always report the descriptor; the user's pointer is kept in the node.
+ * The kernel stores only the raw fd (ev.data.fd); the user pointer lives in
+ * the registration table and is resolved at wait time. This keeps internal
+ * table memory invisible to epoll, so growing or rehashing the table can
+ * never invalidate pointers the kernel holds.
  */
 
 #include "poller_internal.h"
@@ -17,6 +19,8 @@
 struct Poller {
     PollerBase base;
     int epfd;
+    struct epoll_event* evs; /**< Growable scratch buffer for poller_wait(). */
+    int evs_cap;             /* Capacity of evs (events, not bytes). */
 };
 
 Poller* poller_new(void) {
@@ -40,6 +44,7 @@ Poller* poller_new(void) {
 void poller_free(Poller* p) {
     if (!p) return;
     close(p->epfd);
+    free(p->evs);
     poller_regs_free(&p->base);
     free(p);
 }
@@ -72,7 +77,7 @@ int poller_add(Poller* p, int fd, int events, void* data) {
     struct epoll_event ev;
     memset(&ev, 0, sizeof(ev));
     ev.events = poller_to_epoll_events(events);
-    ev.data.ptr = reg;
+    ev.data.fd = fd;
 
     int op = epoll_ctl(p->epfd, EPOLL_CTL_MOD, fd, &ev) == 0
                  ? 0
@@ -99,7 +104,7 @@ int poller_mod(Poller* p, int fd, int events, void* data) {
     struct epoll_event ev;
     memset(&ev, 0, sizeof(ev));
     ev.events = poller_to_epoll_events(events);
-    ev.data.ptr = reg;
+    ev.data.fd = fd;
     return epoll_ctl(p->epfd, EPOLL_CTL_MOD, fd, &ev);
 }
 
@@ -121,20 +126,32 @@ int poller_wait(Poller* p, PollerEvent* events, int max, int timeout_ms) {
         return -1;
     }
 
-    struct epoll_event evs[64];
-    int want = max < 64 ? max : 64;
+    /* Grow the scratch buffer to the caller's batch size (never shrinks,
+     * so steady-state waits allocate nothing). */
+    if (max > p->evs_cap) {
+        int cap = p->evs_cap ? p->evs_cap : 128;
+        while (cap < max) cap *= 2;
+        struct epoll_event* nevs = (struct epoll_event*)realloc(p->evs, (size_t)cap * sizeof(*nevs));
+        if (!nevs) {
+            errno = ENOMEM;
+            return -1;
+        }
+        p->evs = nevs;
+        p->evs_cap = cap;
+    }
 
-    int n = epoll_wait(p->epfd, evs, want, timeout_ms);
+    int n = epoll_wait(p->epfd, p->evs, max, timeout_ms);
     if (n <= 0) return n;
 
     for (int i = 0; i < n; i++) {
-        PollerReg* reg = (PollerReg*)evs[i].data.ptr;
-        events[i].fd = reg ? reg->fd : -1;
+        int fd = p->evs[i].data.fd;
+        PollerReg* reg = poller_regs_get(&p->base, fd);
+        events[i].fd = fd;
         events[i].data = reg ? reg->data : NULL;
-        events[i].readable = (evs[i].events & EPOLLIN) != 0;
-        events[i].writable = (evs[i].events & EPOLLOUT) != 0;
-        events[i].error = (evs[i].events & EPOLLERR) != 0;
-        events[i].hup = (evs[i].events & (EPOLLRDHUP | EPOLLHUP)) != 0;
+        events[i].readable = (p->evs[i].events & EPOLLIN) != 0;
+        events[i].writable = (p->evs[i].events & EPOLLOUT) != 0;
+        events[i].error = (p->evs[i].events & EPOLLERR) != 0;
+        events[i].hup = (p->evs[i].events & (EPOLLRDHUP | EPOLLHUP)) != 0;
     }
     return n;
 }
