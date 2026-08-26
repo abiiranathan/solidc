@@ -125,7 +125,6 @@ set(SOURCES
     src/csvparser.c
     src/file.c
     src/poller/poller_common.c
-    src/poller/poller_epoll.c
     src/filepath/filepath.c
     src/filepath/filepath_string.c
     src/hash.c

@@ -184,7 +184,7 @@ ssize_t socket_send(Socket* sock, const void* buffer, size_t size, int flags) {
 }
 
 // Get the socket file descriptor
-int socket_fd(Socket* sock) { return sock ? sock->handle : -1; }
+int socket_fd(Socket* sock) { return sock != NULL ? sock->handle : -1; }
 
 int socket_error(void) {
 #ifdef _WIN32
