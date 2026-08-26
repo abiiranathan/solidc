@@ -7,8 +7,8 @@
 #include <string.h>
 
 static void init_afinet_addr(struct sockaddr_in* addr, uint16_t port) {
-    addr->sin_family      = AF_INET;
-    addr->sin_port        = htons(port);
+    addr->sin_family = AF_INET;
+    addr->sin_port = htons(port);
     addr->sin_addr.s_addr = INADDR_ANY;  // inet_addr("127.0.0.1")
 }
 
@@ -116,19 +116,20 @@ void test_bind_failure_reported(void) {
      * reported as failure — the old code returned 0 here. */
     struct sockaddr_in bad;
     memset(&bad, 0, sizeof(bad));
-    bad.sin_family      = AF_INET;
-    bad.sin_port        = htons(1);
+    bad.sin_family = AF_INET;
+    bad.sin_port = htons(1);
     bad.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    int rc              = socket_bind(s, (struct sockaddr*)&bad, sizeof(bad));
+    int rc = socket_bind(s, (struct sockaddr*)&bad, sizeof(bad));
 #ifndef _WIN32
-    if (geteuid() != 0) { ASSERT(rc != 0); }
+    if (geteuid() != 0) {
+        ASSERT(rc != 0);
+    }
 #endif
 
     socket_close(s);
     printf("bind-failure reporting passed\n");
 }
 
-// add -lws2_32 to the linker flags on Windows
 int main() {
     socket_initialize();
 

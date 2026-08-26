@@ -218,7 +218,7 @@ if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
         NOMINMAX
     )
 
-    target_link_libraries(solidc PUBLIC ws2_32 advapi32 kernel32)
+    target_link_libraries(solidc PUBLIC ws2_32 mswsock advapi32 kernel32)
 
     if(MINGW)
         target_link_libraries(solidc PUBLIC m)

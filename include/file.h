@@ -23,7 +23,10 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <io.h>
+#include <mswsock.h>
 #include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 
 // Define ssize_t for Windows if not already defined
 #if defined(_MSC_VER) && !defined(_SSIZE_T_DEFINED)

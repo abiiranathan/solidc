@@ -447,7 +447,9 @@ ChanStatus chan_merge(Channel* dest, Channel** sources, size_t count) {
     chan_merge_ctx* ctx = (chan_merge_ctx*)calloc(1, sizeof(chan_merge_ctx));
     if (!ctx) return CHAN_NOMEM;
     ctx->args = (merger_arg*)calloc(count, sizeof(merger_arg));
-    ctx->live = (atomic_int)count;
+
+    atomic_store(&ctx->live, count);
+
     Thread* threads = (Thread*)calloc(count, sizeof(Thread));
     if (!ctx->args || !threads) {
         free(ctx->args);

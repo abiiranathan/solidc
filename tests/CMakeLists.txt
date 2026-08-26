@@ -56,7 +56,7 @@ foreach(module ${TEST_MODULES})
     # Check for WIN32, MINGW, OR if the compiler path contains "mingw"
     if(WIN32 OR MINGW OR CMAKE_C_COMPILER MATCHES "mingw")
         # Windows-specific libraries
-        target_link_libraries(${module}_test PRIVATE ws2_32 advapi32 kernel32)
+        target_link_libraries(${module}_test PRIVATE ws2_32 mswsock advapi32 kernel32)
     elseif(APPLE)
         target_link_libraries(${module}_test PRIVATE pthread m)
     elseif(UNIX)
