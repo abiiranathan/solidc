@@ -192,13 +192,10 @@ target_link_libraries(solidc PUBLIC Threads::Threads)
 
 if(WIN32)
     target_compile_definitions(solidc PUBLIC _WIN32_WINNT=0x0602)  # Windows 8+
-endif()
-
-if(APPLE)
-    target_compile_definitions(solidc PRIVATE
-        _POSIX_C_SOURCE=200809L
-        _DARWIN_C_SOURCE
-    )
+elseif(APPLE)
+    # _DARWIN_C_SOURCE gives full POSIX + Darwin extensions (sendfile, etc.)
+    # DO NOT define _POSIX_C_SOURCE on Apple as it forces strict mode and hides sendfile
+    target_compile_definitions(solidc PRIVATE _DARWIN_C_SOURCE)
 else()
     target_compile_definitions(solidc PUBLIC _GNU_SOURCE)
 endif()
