@@ -14,10 +14,10 @@ extern "C" {
 
 // Cross-platform thread synchronization
 #ifdef _WIN32
-#include <windows.h>
+    #include "platform.h"
 typedef SRWLOCK rwlock_t;
 #else
-#include <pthread.h>
+    #include <pthread.h>
 typedef pthread_rwlock_t rwlock_t;
 #endif
 

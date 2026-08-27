@@ -23,32 +23,31 @@
 #include <stdio.h>
 
 #ifdef _WIN32
-#include "win32_dirent.h"
+    #include "win32_dirent.h"
+    // platform.h already included transitively via file.h / win32_dirent.h
 
-#include <windows.h>
-
-#ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x0400  // Required for syncapi
-#endif
-#define PATH_SEP     '\\'
-#define PATH_SEP_STR "\\"
+    #ifndef _WIN32_WINNT
+        #define _WIN32_WINNT 0x0400  // Required for syncapi
+    #endif
+    #define PATH_SEP     '\\'
+    #define PATH_SEP_STR "\\"
 #else
-#include <dirent.h>
-#include <pwd.h>
-#include <sys/mman.h>
-#include <sys/random.h>
-#include <sys/stat.h>
-#include <unistd.h>
+    #include <dirent.h>
+    #include <pwd.h>
+    #include <sys/mman.h>
+    #include <sys/random.h>
+    #include <sys/stat.h>
+    #include <unistd.h>
 
-/** Platform-specific directory separator character. */
-#define PATH_SEP     '/'
+    /** Platform-specific directory separator character. */
+    #define PATH_SEP     '/'
 
-/** Platform-specific directory separator string. */
-#define PATH_SEP_STR "/"
+    /** Platform-specific directory separator string. */
+    #define PATH_SEP_STR "/"
 
-#ifndef MAX_PATH
-#define MAX_PATH 1024
-#endif
+    #ifndef MAX_PATH
+        #define MAX_PATH 1024
+    #endif
 #endif
 
 #ifdef __cplusplus

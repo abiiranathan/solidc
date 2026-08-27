@@ -21,86 +21,86 @@ SOFTWARE.
 // Source: https://github.com/win32ports/dirent_h
 
 #ifdef _WIN32
-#ifdef __cplusplus
+    #ifdef __cplusplus
 extern "C" {
-#endif /* __cplusplus */
+    #endif /* __cplusplus */
 
-#include <ctype.h>  // for isdigit
-#include <errno.h>
-#include <shlwapi.h>  // for PathIsRelativeW
-#include <stdint.h>
-#include <stdlib.h>  // for malloc, free
-#include <string.h>  // for memcpy, memset
-#include <sys/types.h>
-#include <windows.h>   // for Windows API
-#include <winioctl.h>  // for FSCTL_GET_REPARSE_POINT
+    #include <ctype.h>  // for isdigit
+    #include <errno.h>
+    #include <shlwapi.h>  // for PathIsRelativeW
+    #include <stdint.h>
+    #include <stdlib.h>  // for malloc, free
+    #include <string.h>  // for memcpy, memset
+    #include <sys/types.h>
+    #include <winioctl.h>             // for FSCTL_GET_REPARSE_POINT
+    #include "../include/platform.h"  // for Windows API
 
-#ifdef _MSC_VER
-#pragma comment(lib, "Shlwapi.lib")
-#endif
+    #ifdef _MSC_VER
+        #pragma comment(lib, "Shlwapi.lib")
+    #endif
 
-#include <wincrypt.h>                 // For HCRYPTPROV, CryptAcquireContextW, CryptGenRandom, etc.
-#pragma comment(lib, "advapi32.lib")  // Link against the Crypto API library
+    #include <wincrypt.h>                 // For HCRYPTPROV, CryptAcquireContextW, CryptGenRandom, etc.
+    #pragma comment(lib, "advapi32.lib")  // Link against the Crypto API library
 
 /*
  * Constants and Macros
  */
 
-#ifndef NAME_MAX
-#define NAME_MAX 260
-#endif /* NAME_MAX */
+    #ifndef NAME_MAX
+        #define NAME_MAX 260
+    #endif /* NAME_MAX */
 
-#ifndef DT_UNKNOWN
-#define DT_UNKNOWN 0
-#endif /* DT_UNKNOWN */
+    #ifndef DT_UNKNOWN
+        #define DT_UNKNOWN 0
+    #endif /* DT_UNKNOWN */
 
-#ifndef DT_FIFO
-#define DT_FIFO 1
-#endif /* DT_FIFO */
+    #ifndef DT_FIFO
+        #define DT_FIFO 1
+    #endif /* DT_FIFO */
 
-#ifndef DT_CHR
-#define DT_CHR 2
-#endif /* DT_CHR */
+    #ifndef DT_CHR
+        #define DT_CHR 2
+    #endif /* DT_CHR */
 
-#ifndef DT_DIR
-#define DT_DIR 4
-#endif /* DT_DIR */
+    #ifndef DT_DIR
+        #define DT_DIR 4
+    #endif /* DT_DIR */
 
-#ifndef DT_BLK
-#define DT_BLK 6
-#endif /* DT_BLK */
+    #ifndef DT_BLK
+        #define DT_BLK 6
+    #endif /* DT_BLK */
 
-#ifndef DT_REG
-#define DT_REG 8
-#endif /* DT_REG */
+    #ifndef DT_REG
+        #define DT_REG 8
+    #endif /* DT_REG */
 
-#ifndef DT_LNK
-#define DT_LNK 10
-#endif /* DT_LNK */
+    #ifndef DT_LNK
+        #define DT_LNK 10
+    #endif /* DT_LNK */
 
-#ifndef DT_SOCK
-#define DT_SOCK 12
-#endif /* DT_SOCK */
+    #ifndef DT_SOCK
+        #define DT_SOCK 12
+    #endif /* DT_SOCK */
 
-#ifndef DT_WHT
-#define DT_WHT 14
-#endif /* DT_WHT */
+    #ifndef DT_WHT
+        #define DT_WHT 14
+    #endif /* DT_WHT */
 
-#ifndef NTFS_MAX_PATH
-#define NTFS_MAX_PATH 32768
-#endif /* NTFS_MAX_PATH */
+    #ifndef NTFS_MAX_PATH
+        #define NTFS_MAX_PATH 32768
+    #endif /* NTFS_MAX_PATH */
 
-#ifndef MAXIMUM_REPARSE_DATA_BUFFER_SIZE
-#define MAXIMUM_REPARSE_DATA_BUFFER_SIZE 16384
-#endif /* MAXIMUM_REPARSE_DATA_BUFFER_SIZE */
+    #ifndef MAXIMUM_REPARSE_DATA_BUFFER_SIZE
+        #define MAXIMUM_REPARSE_DATA_BUFFER_SIZE 16384
+    #endif /* MAXIMUM_REPARSE_DATA_BUFFER_SIZE */
 
-#ifndef IO_REPARSE_TAG_SYMLINK
-#define IO_REPARSE_TAG_SYMLINK 0xA000000C
-#endif /* IO_REPARSE_TAG_SYMLINK */
+    #ifndef IO_REPARSE_TAG_SYMLINK
+        #define IO_REPARSE_TAG_SYMLINK 0xA000000C
+    #endif /* IO_REPARSE_TAG_SYMLINK */
 
-#ifndef FILE_NAME_NORMALIZED
-#define FILE_NAME_NORMALIZED 0
-#endif /* FILE_NAME_NORMALIZED */
+    #ifndef FILE_NAME_NORMALIZED
+        #define FILE_NAME_NORMALIZED 0
+    #endif /* FILE_NAME_NORMALIZED */
 
 typedef void* DIR;
 
@@ -149,11 +149,11 @@ int closedir(DIR* dirp) {
 
 /** Sets errno in a compiler-agnostic way. */
 static void __seterrno(int value) {
-#ifdef _MSC_VER
+    #ifdef _MSC_VER
     _set_errno(value);
-#else  /* _MSC_VER */
+    #else  /* _MSC_VER */
     errno = value;
-#endif /* _MSC_VER */
+    #endif /* _MSC_VER */
 }
 
 /** Checks if a path is a symbolic link. */
@@ -174,7 +174,7 @@ static int __islink(const wchar_t* name, char* buffer) {
     return ((REPARSE_GUID_DATA_BUFFER*)buffer)->ReparseTag == IO_REPARSE_TAG_SYMLINK;
 }
 
-#pragma pack(push, 1)
+    #pragma pack(push, 1)
 
 typedef struct dirent_FILE_ID_128 {
     BYTE Identifier[16];
@@ -185,7 +185,7 @@ typedef struct _dirent_FILE_ID_INFO {
     dirent_FILE_ID_128 FileId;
 } dirent_FILE_ID_INFO;
 
-#pragma pack(pop)
+    #pragma pack(pop)
 
 typedef enum dirent_FILE_INFO_BY_HANDLE_CLASS { dirent_FileIdInfo = 18 } dirent_FILE_INFO_BY_HANDLE_CLASS;
 
@@ -599,8 +599,8 @@ int versionsort(const struct dirent** a, const struct dirent** b) {
     return __strverscmp((*a)->d_name, (*b)->d_name);
 }
 
-#ifdef __cplusplus
+    #ifdef __cplusplus
 }
-#endif /* __cplusplus */
+    #endif /* __cplusplus */
 
 #endif /* _WIN32 */

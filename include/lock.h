@@ -21,13 +21,13 @@ extern "C" {
 #endif
 
 #ifdef _WIN32
-#include <windows.h>
+    #include "platform.h"
 /** Platform-specific lock type (Windows Critical Section). */
 typedef CRITICAL_SECTION Lock;
 /** Platform-specific condition variable type (Windows Condition Variable). */
 typedef CONDITION_VARIABLE Condition;
 #else
-#include <pthread.h>
+    #include <pthread.h>
 /** Platform-specific lock type (POSIX mutex). */
 typedef pthread_mutex_t Lock;
 /** Platform-specific condition variable type (POSIX condition variable). */

@@ -7,7 +7,7 @@
 #define PROCESS_H
 
 #ifndef _GNU_SOURCE
-#define _GNU_SOURCE
+    #define _GNU_SOURCE
 #endif
 
 #include "env.h"
@@ -20,18 +20,19 @@
 #include <time.h>
 
 #ifdef _WIN32
-#include "wintypes.h"
+    #include "platform.h"
+    #include "wintypes.h"
 
-#include <io.h>
-#include <sys/stat.h>
-#include <windows.h>
+    #include <io.h>
+    #include <sys/stat.h>
+    #include "platform.h"
 #else
-#include <fcntl.h>
-#include <signal.h>
-#include <sys/select.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
+    #include <fcntl.h>
+    #include <signal.h>
+    #include <sys/select.h>
+    #include <sys/types.h>
+    #include <sys/wait.h>
+    #include <unistd.h>
 #endif
 
 #ifdef __cplusplus

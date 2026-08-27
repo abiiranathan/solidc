@@ -1,5 +1,5 @@
 #ifndef _GNU_SOURCE
-#define _GNU_SOURCE
+    #define _GNU_SOURCE
 #endif
 
 /* ============================================================================
@@ -160,28 +160,28 @@
 #include <time.h>
 
 #ifdef _WIN32
-#include <windows.h>
-#define thread_yield() SwitchToThread()
+    #include "../include/platform.h"
+    #define thread_yield() SwitchToThread()
 #else
-#include <sched.h>
-#include <unistd.h>
-#define thread_yield() sched_yield()
+    #include <sched.h>
+    #include <unistd.h>
+    #define thread_yield() sched_yield()
 #endif
 
 /* ── Hardware hints ──────────────────────────────────────────────────────── */
 #ifndef cpu_relax
-#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
-#if defined(_MSC_VER)
-#include <intrin.h>
-#define cpu_relax() _mm_pause()
-#else
-#define cpu_relax() __builtin_ia32_pause()
-#endif
-#elif defined(__aarch64__) || defined(__arm__)
-#define cpu_relax() __asm__ __volatile__("yield" ::: "memory")
-#else
-#define cpu_relax() ((void)0)
-#endif
+    #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+        #if defined(_MSC_VER)
+            #include <intrin.h>
+            #define cpu_relax() _mm_pause()
+        #else
+            #define cpu_relax() __builtin_ia32_pause()
+        #endif
+    #elif defined(__aarch64__) || defined(__arm__)
+        #define cpu_relax() __asm__ __volatile__("yield" ::: "memory")
+    #else
+        #define cpu_relax() ((void)0)
+    #endif
 #endif
 
 #define DEQUE_SIZE    (1u << 14) /* 16384 slots per private deque */
@@ -190,7 +190,7 @@
 #define GLOBAL_Q_MASK (GLOBAL_Q_SIZE - 1)
 
 #ifndef BATCH_SIZE
-#define BATCH_SIZE 64
+    #define BATCH_SIZE 64
 #endif
 
 #define PENDING_FLUSH_BATCH 64

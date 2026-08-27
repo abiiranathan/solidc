@@ -7,12 +7,12 @@
 #define SOCKET_H
 
 #ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 200112L
+    #define _POSIX_C_SOURCE 200112L
 #endif
 
 // for SO_REUSEPORT
 #ifndef _GNU_SOURCE
-#define _GNU_SOURCE
+    #define _GNU_SOURCE
 #endif
 
 #include <stdbool.h>
@@ -20,26 +20,22 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "platform.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-#ifdef _WIN32
-#include <winsock2.h>  // Must be first on Windows
-// Add commen to disable formatting messing up order
-#include <mswsock.h>
-#include <windows.h>  // Include after winsock2.h
-#include <ws2tcpip.h>
-#else
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
+#ifndef _WIN32
+    #include <arpa/inet.h>
+    #include <fcntl.h>
+    #include <netinet/in.h>
+    #include <sys/socket.h>
+    #include <sys/types.h>
+    #include <unistd.h>
 #endif
-
-#include "platform.h"
+// On Windows, platform.h already includes winsock2 \u2192 mswsock \u2192
+// windows \u2192 ws2tcpip in the correct order.
 
 // Socket abstraction that works on both Windows and Unix
 // On windows, you need to call initialize_winsock() before using any socket

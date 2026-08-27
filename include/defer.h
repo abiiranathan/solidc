@@ -60,9 +60,9 @@
 #define DEFER_H
 
 #if defined(__clang__) && !defined(__cplusplus)
-#define DEFER_VAR __block
+    #define DEFER_VAR __block
 #else
-#define DEFER_VAR
+    #define DEFER_VAR
 #endif
 
 /* token-paste used by all backends. */
@@ -74,9 +74,9 @@
  * trigger variables emitted by the GCC and Clang backends.
  */
 #ifdef _WIN32
-#define ATTR_UNUSED
+    #define ATTR_UNUSED
 #else
-#define ATTR_UNUSED __attribute__((__unused__))
+    #define ATTR_UNUSED __attribute__((__unused__))
 #endif
 
 /* ============================================================
@@ -84,7 +84,7 @@
  * ============================================================ */
 #ifdef __cplusplus
 
-#include <utility> /* std::forward */
+    #include <utility> /* std::forward */
 
 /**
  * @brief RAII holder that invokes a callable on destruction.
@@ -111,14 +111,14 @@ _DeferHolder<F> operator+(_DeferHelper, F&& f) {
     return _DeferHolder<F>(std::forward<F>(f));
 }
 
-/*
- * Expands to:
- *   auto _defer_var_N = _DeferHelper() + [&]() { <user block> };
- *
- * The trailing semicolon must be supplied by the caller:
- *   defer { cleanup(); };
- */
-#define defer auto _DEFER_CONCAT(_defer_var_, __COUNTER__) = _DeferHelper() + [&]()
+    /*
+     * Expands to:
+     *   auto _defer_var_N = _DeferHelper() + [&]() { <user block> };
+     *
+     * The trailing semicolon must be supplied by the caller:
+     *   defer { cleanup(); };
+     */
+    #define defer auto _DEFER_CONCAT(_defer_var_, __COUNTER__) = _DeferHelper() + [&]()
 
 /* ============================================================
  * C / GCC — nested functions with 'auto' storage class
@@ -133,23 +133,23 @@ _DeferHolder<F> operator+(_DeferHelper, F&& f) {
  */
 #elif defined(__GNUC__) && !defined(__clang__)
 
-#if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 9)
-#error "defer.h: GCC 4.9 or later is required for nested-function auto storage class."
-#endif
+    #if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 9)
+        #error "defer.h: GCC 4.9 or later is required for nested-function auto storage class."
+    #endif
 
-#define _DEFER_MAKE(F, V)                  \
-    auto void F(int*);                     \
-    [[gnu::cleanup(F)]] ATTR_UNUSED int V; \
-    auto void F(int* _unused ATTR_UNUSED)
+    #define _DEFER_MAKE(F, V)                  \
+        auto void F(int*);                     \
+        [[gnu::cleanup(F)]] ATTR_UNUSED int V; \
+        auto void F(int* _unused ATTR_UNUSED)
 
-#define _DEFER_N(N) _DEFER_MAKE(_DEFER_CONCAT(_defer_fn_, N), _DEFER_CONCAT(_defer_var_, N))
+    #define _DEFER_N(N) _DEFER_MAKE(_DEFER_CONCAT(_defer_fn_, N), _DEFER_CONCAT(_defer_var_, N))
 
-/*
- * Expands to an inline nested-function definition whose body is the
- * user's block:
- *   defer { cleanup(); }   ← no trailing semicolon required
- */
-#define defer       _DEFER_N(__COUNTER__)
+    /*
+     * Expands to an inline nested-function definition whose body is the
+     * user's block:
+     *   defer { cleanup(); }   ← no trailing semicolon required
+     */
+    #define defer       _DEFER_N(__COUNTER__)
 
 /* ============================================================
  * C / Clang — Blocks extension
@@ -161,7 +161,7 @@ _DeferHolder<F> operator+(_DeferHelper, F&& f) {
  */
 #elif defined(__clang__)
 
-#include <Block.h> /* Block.h from BlocksRuntime */
+    #include <Block.h> /* Block.h from BlocksRuntime */
 
 /** @brief Block type used as the deferred cleanup handler. */
 typedef void (^_defer_block_t)(void);
@@ -176,16 +176,16 @@ static inline void _defer_cleanup_block(_defer_block_t* blk) {
     }
 }
 
-/*
- * Expands to:
- *   __attribute__((cleanup(...))) _defer_block_t _defer_var_N = ^{ <user block> }
- *
- * The block literal (^{ }) captures surrounding locals by value automatically (unless __block type is specified)
- *   defer { cleanup(); };   ← trailing semicolon required
- */
-#define defer                                                                                            \
-    __attribute__((cleanup(_defer_cleanup_block))) ATTR_UNUSED _defer_block_t _DEFER_CONCAT(_defer_var_, \
-                                                                                            __COUNTER__) = ^
+    /*
+     * Expands to:
+     *   __attribute__((cleanup(...))) _defer_block_t _defer_var_N = ^{ <user block> }
+     *
+     * The block literal (^{ }) captures surrounding locals by value automatically (unless __block type is specified)
+     *   defer { cleanup(); };   ← trailing semicolon required
+     */
+    #define defer                                                                                            \
+        __attribute__((cleanup(_defer_cleanup_block))) ATTR_UNUSED _defer_block_t _DEFER_CONCAT(_defer_var_, \
+                                                                                                __COUNTER__) = ^
 
 /* ============================================================
  * C / MSVC — Structured Exception Handling __try/__finally
@@ -200,12 +200,12 @@ static inline void _defer_cleanup_block(_defer_block_t* blk) {
  */
 #elif defined(_MSC_VER)
 
-#define defer \
-    __try {   \
-    } __finally
+    #define defer \
+        __try {   \
+        } __finally
 
 #else
-#error "defer.h: unsupported compiler. Supported: GCC 4.9+, Clang (with -fblocks), MSVC, any C++ compiler."
+    #error "defer.h: unsupported compiler. Supported: GCC 4.9+, Clang (with -fblocks), MSVC, any C++ compiler."
 #endif
 
 // ================= DEFER WRAPPERS==============================================
@@ -276,13 +276,13 @@ static inline void _defer_cleanup_block(_defer_block_t* blk) {
  * DEFER_WIN32  — set when targeting Win32.
  */
 #if defined(_WIN32) || defined(_WIN64)
-#define DEFER_WIN32 1
+    #define DEFER_WIN32 1
 #else
-#if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
-#define DEFER_POSIX 1
-#elif defined(_POSIX_VERSION)
-#define DEFER_POSIX 1
-#endif
+    #if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
+        #define DEFER_POSIX 1
+    #elif defined(_POSIX_VERSION)
+        #define DEFER_POSIX 1
+    #endif
 #endif
 
 /* =========================================================================
@@ -399,141 +399,141 @@ static inline void _defer_cleanup_block(_defer_block_t* blk) {
 
 #if defined(DEFER_POSIX)
 
-/* -----------------------------------------------------------------------
- * §3.1  File descriptors
- * ----------------------------------------------------------------------- */
-#ifndef DEFER_NO_POSIX_FD
+    /* -----------------------------------------------------------------------
+     * §3.1  File descriptors
+     * ----------------------------------------------------------------------- */
+    #ifndef DEFER_NO_POSIX_FD
 
-#include <unistd.h> /* close() */
+        #include <unistd.h> /* close() */
 
-/**
- * @brief Close a POSIX file descriptor at scope exit.
- *
- * Skips close() for invalid descriptors (-1). Sets the variable to -1
- * after closing to prevent double-close bugs.
- *
- * @param fd An int lvalue holding a valid open file descriptor,
- *           or -1 (in which case no action is taken).
- *
- * Example:
- * @code
- *   int fd = open("data.bin", O_RDONLY);
- *   if (fd < 0) { return -1; }
- *   defer_close(fd);
- * @endcode
- */
-#define defer_close(fd)  \
-    defer {              \
-        if ((fd) >= 0) { \
-            close(fd);   \
-            (fd) = -1;   \
-        }                \
-    }
+        /**
+         * @brief Close a POSIX file descriptor at scope exit.
+         *
+         * Skips close() for invalid descriptors (-1). Sets the variable to -1
+         * after closing to prevent double-close bugs.
+         *
+         * @param fd An int lvalue holding a valid open file descriptor,
+         *           or -1 (in which case no action is taken).
+         *
+         * Example:
+         * @code
+         *   int fd = open("data.bin", O_RDONLY);
+         *   if (fd < 0) { return -1; }
+         *   defer_close(fd);
+         * @endcode
+         */
+        #define defer_close(fd)  \
+            defer {              \
+                if ((fd) >= 0) { \
+                    close(fd);   \
+                    (fd) = -1;   \
+                }                \
+            }
 
-#endif /* DEFER_NO_POSIX_FD */
+    #endif /* DEFER_NO_POSIX_FD */
 
-/* -----------------------------------------------------------------------
- * §3.2  mmap regions
- * ----------------------------------------------------------------------- */
-#ifndef DEFER_NO_POSIX_MMAP
+    /* -----------------------------------------------------------------------
+     * §3.2  mmap regions
+     * ----------------------------------------------------------------------- */
+    #ifndef DEFER_NO_POSIX_MMAP
 
-#include <sys/mman.h> /* munmap() */
+        #include <sys/mman.h> /* munmap() */
 
-/**
- * @brief Unmap an mmap'd region at scope exit.
- *
- * Calls munmap() only when ptr is not MAP_FAILED and len is non-zero.
- *
- * @param ptr A void* returned by mmap().
- * @param len The mapping length in bytes, as passed to mmap().
- *
- * Example:
- * @code
- *   void *map = mmap(NULL, len, PROT_READ, MAP_SHARED, fd, 0);
- *   if (map == MAP_FAILED) { return -1; }
- *   defer_munmap(map, len);
- * @endcode
- */
-#define defer_munmap(ptr, len)                  \
-    defer {                                     \
-        if ((ptr) != MAP_FAILED && (len) > 0) { \
-            munmap((ptr), (len));               \
-            (ptr) = MAP_FAILED;                 \
-        }                                       \
-    }
+        /**
+         * @brief Unmap an mmap'd region at scope exit.
+         *
+         * Calls munmap() only when ptr is not MAP_FAILED and len is non-zero.
+         *
+         * @param ptr A void* returned by mmap().
+         * @param len The mapping length in bytes, as passed to mmap().
+         *
+         * Example:
+         * @code
+         *   void *map = mmap(NULL, len, PROT_READ, MAP_SHARED, fd, 0);
+         *   if (map == MAP_FAILED) { return -1; }
+         *   defer_munmap(map, len);
+         * @endcode
+         */
+        #define defer_munmap(ptr, len)                  \
+            defer {                                     \
+                if ((ptr) != MAP_FAILED && (len) > 0) { \
+                    munmap((ptr), (len));               \
+                    (ptr) = MAP_FAILED;                 \
+                }                                       \
+            }
 
-#endif /* DEFER_NO_POSIX_MMAP */
+    #endif /* DEFER_NO_POSIX_MMAP */
 
-/* -----------------------------------------------------------------------
- * §3.3  pthreads — mutexes and rwlocks
- * ----------------------------------------------------------------------- */
-#ifndef DEFER_NO_PTHREAD
+    /* -----------------------------------------------------------------------
+     * §3.3  pthreads — mutexes and rwlocks
+     * ----------------------------------------------------------------------- */
+    #ifndef DEFER_NO_PTHREAD
 
-#include <pthread.h> /* pthread_mutex_unlock, pthread_rwlock_unlock */
+        #include <pthread.h> /* pthread_mutex_unlock, pthread_rwlock_unlock */
 
-/**
- * @brief Unlock a pthread mutex at scope exit.
- *
- * The mutex must already be locked by the calling thread at the point
- * this macro is declared. The unlock happens unconditionally on exit.
- *
- * @param mu A pthread_mutex_t lvalue (not a pointer).
- *
- * Example:
- * @code
- *   pthread_mutex_lock(&ctx->mu);
- *   defer_mutex_unlock(ctx->mu);
- *
- *   // ... critical section ...
- * @endcode
- */
-#define defer_mutex_unlock(mu) \
-    defer { pthread_mutex_unlock(&(mu)); }
+        /**
+         * @brief Unlock a pthread mutex at scope exit.
+         *
+         * The mutex must already be locked by the calling thread at the point
+         * this macro is declared. The unlock happens unconditionally on exit.
+         *
+         * @param mu A pthread_mutex_t lvalue (not a pointer).
+         *
+         * Example:
+         * @code
+         *   pthread_mutex_lock(&ctx->mu);
+         *   defer_mutex_unlock(ctx->mu);
+         *
+         *   // ... critical section ...
+         * @endcode
+         */
+        #define defer_mutex_unlock(mu) \
+            defer { pthread_mutex_unlock(&(mu)); }
 
-/**
- * @brief Release a pthread read-write lock at scope exit.
- *
- * Use after pthread_rwlock_rdlock() or pthread_rwlock_wrlock().
- * Calls pthread_rwlock_unlock() unconditionally on scope exit.
- *
- * @param rw A pthread_rwlock_t lvalue (not a pointer).
- *
- * Example:
- * @code
- *   pthread_rwlock_rdlock(&table->rw);
- *   defer_rwlock_unlock(table->rw);
- * @endcode
- */
-#define defer_rwlock_unlock(rw) \
-    defer { pthread_rwlock_unlock(&(rw)); }
+        /**
+         * @brief Release a pthread read-write lock at scope exit.
+         *
+         * Use after pthread_rwlock_rdlock() or pthread_rwlock_wrlock().
+         * Calls pthread_rwlock_unlock() unconditionally on scope exit.
+         *
+         * @param rw A pthread_rwlock_t lvalue (not a pointer).
+         *
+         * Example:
+         * @code
+         *   pthread_rwlock_rdlock(&table->rw);
+         *   defer_rwlock_unlock(table->rw);
+         * @endcode
+         */
+        #define defer_rwlock_unlock(rw) \
+            defer { pthread_rwlock_unlock(&(rw)); }
 
-#endif /* DEFER_NO_PTHREAD */
+    #endif /* DEFER_NO_PTHREAD */
 
-/* -----------------------------------------------------------------------
- * §3.4  DIR* (opendir / closedir)
- * ----------------------------------------------------------------------- */
+    /* -----------------------------------------------------------------------
+     * §3.4  DIR* (opendir / closedir)
+     * ----------------------------------------------------------------------- */
 
-#include <dirent.h> /* DIR, closedir() */
+    #include <dirent.h> /* DIR, closedir() */
 
-/**
- * @brief Close a DIR* at scope exit (NULL-safe).
- *
- * @param d A DIR* previously returned by opendir() or fdopendir().
- *
- * Example:
- * @code
- *   DIR *d = opendir("/tmp");
- *   if (!d) { return -1; }
- *   defer_closedir(d);
- * @endcode
- */
-#define defer_closedir(d)  \
-    defer {                \
-        if ((d)) {         \
-            closedir((d)); \
-            (d) = NULL;    \
-        }                  \
-    }
+    /**
+     * @brief Close a DIR* at scope exit (NULL-safe).
+     *
+     * @param d A DIR* previously returned by opendir() or fdopendir().
+     *
+     * Example:
+     * @code
+     *   DIR *d = opendir("/tmp");
+     *   if (!d) { return -1; }
+     *   defer_closedir(d);
+     * @endcode
+     */
+    #define defer_closedir(d)  \
+        defer {                \
+            if ((d)) {         \
+                closedir((d)); \
+                (d) = NULL;    \
+            }                  \
+        }
 
 #endif /* DEFER_POSIX */
 
@@ -544,140 +544,140 @@ static inline void _defer_cleanup_block(_defer_block_t* blk) {
 
 #if defined(DEFER_WIN32)
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h> /* HANDLE, CloseHandle, LocalFree, VirtualFree */
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+    #include "platform.h" /* HANDLE, CloseHandle, LocalFree, VirtualFree */
 
-/**
- * @brief Close a Win32 HANDLE at scope exit.
- *
- * Skips CloseHandle() for INVALID_HANDLE_VALUE and NULL. Sets the
- * variable to INVALID_HANDLE_VALUE after closing.
- *
- * @param h A HANDLE lvalue (file, event, thread, process, etc.).
- *
- * Example:
- * @code
- *   HANDLE h = CreateFile(...);
- *   if (h == INVALID_HANDLE_VALUE) { return -1; }
- *   defer_CloseHandle(h);
- * @endcode
- */
-#define defer_CloseHandle(h)                      \
-    defer {                                       \
-        if ((h) && (h) != INVALID_HANDLE_VALUE) { \
-            CloseHandle(h);                       \
-            (h) = INVALID_HANDLE_VALUE;           \
-        }                                         \
-    }
+    /**
+     * @brief Close a Win32 HANDLE at scope exit.
+     *
+     * Skips CloseHandle() for INVALID_HANDLE_VALUE and NULL. Sets the
+     * variable to INVALID_HANDLE_VALUE after closing.
+     *
+     * @param h A HANDLE lvalue (file, event, thread, process, etc.).
+     *
+     * Example:
+     * @code
+     *   HANDLE h = CreateFile(...);
+     *   if (h == INVALID_HANDLE_VALUE) { return -1; }
+     *   defer_CloseHandle(h);
+     * @endcode
+     */
+    #define defer_CloseHandle(h)                      \
+        defer {                                       \
+            if ((h) && (h) != INVALID_HANDLE_VALUE) { \
+                CloseHandle(h);                       \
+                (h) = INVALID_HANDLE_VALUE;           \
+            }                                         \
+        }
 
-/**
- * @brief Free a pointer allocated by LocalAlloc / LocalReAlloc at scope exit.
- *
- * @param p An HLOCAL (or LPVOID) previously returned by LocalAlloc.
- *
- * Example:
- * @code
- *   LPWSTR msg = NULL;
- *   FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | ..., ..., &msg, ...);
- *   defer_LocalFree(msg);
- * @endcode
- */
-#define defer_LocalFree(p)  \
-    defer {                 \
-        if ((p)) {          \
-            LocalFree((p)); \
-            (p) = NULL;     \
-        }                   \
-    }
+    /**
+     * @brief Free a pointer allocated by LocalAlloc / LocalReAlloc at scope exit.
+     *
+     * @param p An HLOCAL (or LPVOID) previously returned by LocalAlloc.
+     *
+     * Example:
+     * @code
+     *   LPWSTR msg = NULL;
+     *   FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | ..., ..., &msg, ...);
+     *   defer_LocalFree(msg);
+     * @endcode
+     */
+    #define defer_LocalFree(p)  \
+        defer {                 \
+            if ((p)) {          \
+                LocalFree((p)); \
+                (p) = NULL;     \
+            }                   \
+        }
 
-/**
- * @brief Release a VirtualAlloc'd region at scope exit.
- *
- * Calls VirtualFree with MEM_RELEASE (dwSize must be 0 per the API
- * contract when using MEM_RELEASE).
- *
- * @param p A LPVOID previously returned by VirtualAlloc.
- *
- * Example:
- * @code
- *   LPVOID mem = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
- *   if (!mem) { return -1; }
- *   defer_VirtualFree(mem);
- * @endcode
- */
-#define defer_VirtualFree(p)                  \
-    defer {                                   \
-        if ((p)) {                            \
-            VirtualFree((p), 0, MEM_RELEASE); \
-            (p) = NULL;                       \
-        }                                     \
-    }
+    /**
+     * @brief Release a VirtualAlloc'd region at scope exit.
+     *
+     * Calls VirtualFree with MEM_RELEASE (dwSize must be 0 per the API
+     * contract when using MEM_RELEASE).
+     *
+     * @param p A LPVOID previously returned by VirtualAlloc.
+     *
+     * Example:
+     * @code
+     *   LPVOID mem = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+     *   if (!mem) { return -1; }
+     *   defer_VirtualFree(mem);
+     * @endcode
+     */
+    #define defer_VirtualFree(p)                  \
+        defer {                                   \
+            if ((p)) {                            \
+                VirtualFree((p), 0, MEM_RELEASE); \
+                (p) = NULL;                       \
+            }                                     \
+        }
 
-/**
- * @brief Unmap a view of a file mapping at scope exit.
- *
- * Calls UnmapViewOfFile(); NULL-safe.
- *
- * @param view A LPVOID returned by MapViewOfFile().
- *
- * Example:
- * @code
- *   LPVOID view = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0);
- *   if (!view) { return -1; }
- *   defer_UnmapViewOfFile(view);
- * @endcode
- */
-#define defer_UnmapViewOfFile(view)  \
-    defer {                          \
-        if ((view)) {                \
-            UnmapViewOfFile((view)); \
-            (view) = NULL;           \
-        }                            \
-    }
+    /**
+     * @brief Unmap a view of a file mapping at scope exit.
+     *
+     * Calls UnmapViewOfFile(); NULL-safe.
+     *
+     * @param view A LPVOID returned by MapViewOfFile().
+     *
+     * Example:
+     * @code
+     *   LPVOID view = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0);
+     *   if (!view) { return -1; }
+     *   defer_UnmapViewOfFile(view);
+     * @endcode
+     */
+    #define defer_UnmapViewOfFile(view)  \
+        defer {                          \
+            if ((view)) {                \
+                UnmapViewOfFile((view)); \
+                (view) = NULL;           \
+            }                            \
+        }
 
 #endif /* DEFER_WIN32 */
 
 #ifdef DEFER_AUTOFREE
-/* =========================================================================
- * §5  autofree — automatic free() on scope exit
- *
- * Attaches a free() cleanup to a pointer variable so that it is freed
- * automatically when it goes out of scope. Analogous to GLib's g_autoptr
- * but restricted to malloc-family pointers (use defer_fclose / defer_close
- * for FILE* and file descriptors).
- *
- * Usage:
- *   autofree char *buf = malloc(256);
- *   autofree my_struct_t *obj = my_struct_create();
- *   // Both are freed at scope exit — no manual free() needed.
- *
- * The macro is a declaration specifier, not a statement. Place it at the
- * start of a pointer declaration. The variable must be a pointer type;
- * applying autofree to a non-pointer produces a compile-time error.
- *
- * Platform support:
- *   GCC 4.9+   — __attribute__((cleanup)) on the declared variable.
- *   Clang      — same; __block not required because cleanup fires on the
- *                variable directly, not inside a captured block.
- *   MSVC       — not supported; the macro expands to nothing and emits a
- *                #pragma message. Use defer_free() on MSVC instead.
- *   C++        — not supported; use RAII types (std::unique_ptr) instead.
- *                The macro expands to nothing with a diagnostic.
- * ========================================================================= */
+    /* =========================================================================
+     * §5  autofree — automatic free() on scope exit
+     *
+     * Attaches a free() cleanup to a pointer variable so that it is freed
+     * automatically when it goes out of scope. Analogous to GLib's g_autoptr
+     * but restricted to malloc-family pointers (use defer_fclose / defer_close
+     * for FILE* and file descriptors).
+     *
+     * Usage:
+     *   autofree char *buf = malloc(256);
+     *   autofree my_struct_t *obj = my_struct_create();
+     *   // Both are freed at scope exit — no manual free() needed.
+     *
+     * The macro is a declaration specifier, not a statement. Place it at the
+     * start of a pointer declaration. The variable must be a pointer type;
+     * applying autofree to a non-pointer produces a compile-time error.
+     *
+     * Platform support:
+     *   GCC 4.9+   — __attribute__((cleanup)) on the declared variable.
+     *   Clang      — same; __block not required because cleanup fires on the
+     *                variable directly, not inside a captured block.
+     *   MSVC       — not supported; the macro expands to nothing and emits a
+     *                #pragma message. Use defer_free() on MSVC instead.
+     *   C++        — not supported; use RAII types (std::unique_ptr) instead.
+     *                The macro expands to nothing with a diagnostic.
+     * ========================================================================= */
 
-#if defined(__cplusplus)
-/* C++: direct free() on a raw pointer is almost always wrong; push the
- * caller toward std::unique_ptr or a custom deleter. */
-#pragma message("autofree is a no-op in C++; use std::unique_ptr instead.")
-#define autofree /* nothing */
+    #if defined(__cplusplus)
+        /* C++: direct free() on a raw pointer is almost always wrong; push the
+         * caller toward std::unique_ptr or a custom deleter. */
+        #pragma message("autofree is a no-op in C++; use std::unique_ptr instead.")
+        #define autofree /* nothing */
 
-#elif defined(_MSC_VER)
-/* MSVC does not implement __attribute__((cleanup)). */
-#pragma message("autofree is a no-op on MSVC; use defer_free() instead.")
-#define autofree /* nothing */
-#else            /* GCC or Clang in C mode */
+    #elif defined(_MSC_VER)
+        /* MSVC does not implement __attribute__((cleanup)). */
+        #pragma message("autofree is a no-op on MSVC; use defer_free() instead.")
+        #define autofree /* nothing */
+    #else                /* GCC or Clang in C mode */
 
 /**
  * @brief Cleanup handler invoked by __attribute__((cleanup)) when an
@@ -696,9 +696,9 @@ static inline void _autofree_cleanup(void* ptr) {
     }
 }
 
-#define autofree __attribute__((cleanup(_autofree_cleanup)))
+        #define autofree __attribute__((cleanup(_autofree_cleanup)))
 
-#endif /* compiler dispatch */
+    #endif /* compiler dispatch */
 #endif
 
 #endif /* DEFER_H */

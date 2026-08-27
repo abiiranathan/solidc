@@ -1,5 +1,5 @@
 #ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 200809L
+    #define _POSIX_C_SOURCE 200809L
 #endif
 
 #include "stdstreams.h"
@@ -11,12 +11,12 @@
 #include <string.h>
 
 #ifdef _WIN32
-#include <windows.h>
+    #include "../include/platform.h"
 #else
-#include <sys/stat.h>
-#include <termios.h>
-#include <unistd.h>
-#include "macros.h"
+    #include <sys/stat.h>
+    #include <termios.h>
+    #include <unistd.h>
+    #include "macros.h"
 #endif
 
 /* Unlocked stdio — centralized via macros.h.

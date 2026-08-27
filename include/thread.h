@@ -35,27 +35,27 @@
 #define SOLIDC_THREADS_H
 
 #if !defined(_GNU_SOURCE)
-#define _GNU_SOURCE  // for nanosleep and extended POSIX features
+    #define _GNU_SOURCE  // for nanosleep and extended POSIX features
 #endif
 
 #include <stdint.h>  // for uintptr_t
 
 #ifdef _WIN32
-// Windows comes first before tlhelp32.h
-#include <windows.h>
+    // Windows comes first before tlhelp32.h
+    #include "platform.h"
 
-// This comment prevents clang-format messing order of imports
-#include <io.h>
-#include <lmcons.h>    // for UNLEN constant (get_username)
-#include <tlhelp32.h>  // for CreateToolhelp32Snapshot (get_ppid)
+    // This comment prevents clang-format messing order of imports
+    #include <io.h>
+    #include <lmcons.h>    // for UNLEN constant (get_username)
+    #include <tlhelp32.h>  // for CreateToolhelp32Snapshot (get_ppid)
 #else
-#include <errno.h>     // for error constants
-#include <grp.h>       // for getgrgid
-#include <pthread.h>   // for pthread functions
-#include <pwd.h>       // for getpwuid
-#include <sys/stat.h>  // for file operations
-#include <sys/wait.h>  // for process waiting
-#include <unistd.h>    // for POSIX system calls
+    #include <errno.h>     // for error constants
+    #include <grp.h>       // for getgrgid
+    #include <pthread.h>   // for pthread functions
+    #include <pwd.h>       // for getpwuid
+    #include <sys/stat.h>  // for file operations
+    #include <sys/wait.h>  // for process waiting
+    #include <unistd.h>    // for POSIX system calls
 #endif
 
 #ifdef __cplusplus

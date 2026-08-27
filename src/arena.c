@@ -7,10 +7,10 @@
 #include <string.h> /* memset   */
 
 #if defined(_WIN32)
-#include <windows.h>
+    #include "../include/platform.h"
 #else
-#include <sys/mman.h> /* (reserved for future mmap path) */
-#include <unistd.h>   /* sysconf */
+    #include <sys/mman.h> /* (reserved for future mmap path) */
+    #include <unistd.h>   /* sysconf */
 #endif
 
 /* -------------------------------------------------------------------------
@@ -56,32 +56,32 @@ static THREAD_LOCAL bool static_buffer_in_use = false;
  * ---------------------------------------------------------------------- */
 
 #ifndef ARENA_BLOCK_CACHE_COUNT
-#define ARENA_BLOCK_CACHE_COUNT 8
+    #define ARENA_BLOCK_CACHE_COUNT 8
 #endif
 #ifndef ARENA_BLOCK_CACHE_BYTES
-#define ARENA_BLOCK_CACHE_BYTES (16u << 20) /* 16 MB per thread */
+    #define ARENA_BLOCK_CACHE_BYTES (16u << 20) /* 16 MB per thread */
 #endif
 
 #if defined(__SANITIZE_ADDRESS__) || SOLIDC_HAS_FEATURE(address_sanitizer)
-#undef ARENA_BLOCK_CACHE_COUNT
-#define ARENA_BLOCK_CACHE_COUNT 0 /* sanitizers want exact alloc/free pairing */
+    #undef ARENA_BLOCK_CACHE_COUNT
+    #define ARENA_BLOCK_CACHE_COUNT 0 /* sanitizers want exact alloc/free pairing */
 #endif
 
 #if ARENA_BLOCK_CACHE_COUNT > 0
 
-#define ARENA_HAVE_BLOCK_CACHE 1
+    #define ARENA_HAVE_BLOCK_CACHE 1
 
 static THREAD_LOCAL ArenaBlock* blk_cache[ARENA_BLOCK_CACHE_COUNT];
 static THREAD_LOCAL size_t blk_cache_slab[ARENA_BLOCK_CACHE_COUNT]; /* full slab bytes */
 static THREAD_LOCAL size_t blk_cache_count = 0;
 static THREAD_LOCAL size_t blk_cache_bytes = 0;
 
-/* TLS destructor support: drain the bin when the owning thread exits.
- * Note: POSIX only runs key destructors from pthread_exit(); returning
- * from main() bypasses them on glibc, so we also hook atexit() which is
- * guaranteed to run on the main thread during normal shutdown. */
-#if !defined(_WIN32)
-#include <pthread.h>
+    /* TLS destructor support: drain the bin when the owning thread exits.
+     * Note: POSIX only runs key destructors from pthread_exit(); returning
+     * from main() bypasses them on glibc, so we also hook atexit() which is
+     * guaranteed to run on the main thread during normal shutdown. */
+    #if !defined(_WIN32)
+        #include <pthread.h>
 
 /** POSIX-only cache teardown path; drains the bin (defined below). */
 static void blk_cache_drain(void);
@@ -114,8 +114,8 @@ static void blk_cache_register(void) {
     }
 }
 
-#else
-#include <windows.h>
+    #else
+        #include "../include/platform.h"
 
 static DWORD blk_cache_fls_index = FLS_OUT_OF_INDEXES;
 static INIT_ONCE blk_cache_init_once = INIT_ONCE_STATIC_INIT;
@@ -143,7 +143,7 @@ static void blk_cache_register(void) {
     InitOnceExecuteOnce(&blk_cache_init_once, blk_cache_init_cb, NULL, NULL);
     if (blk_cache_fls_index != FLS_OUT_OF_INDEXES) FlsSetValue(blk_cache_fls_index, (PVOID)(uintptr_t)1);
 }
-#endif
+    #endif
 
 /** Releases every cached slab (freeing each pointer); called by the platform TLS destructor and safe to call
  * explicitly. */
@@ -198,7 +198,7 @@ static void blk_cache_put(ArenaBlock* block, size_t slab_size) {
 
 #else
 
-#define ARENA_HAVE_BLOCK_CACHE 0
+    #define ARENA_HAVE_BLOCK_CACHE 0
 /** Recycling disabled: drain is a no-op. */
 static void blk_cache_drain(void) {}
 /** Recycling disabled: never yields a slab. @return NULL unconditionally. */

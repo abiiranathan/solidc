@@ -6,8 +6,8 @@
 #define SOLIDC_FILE_H
 
 #if !defined(_POSIX_C_SOURCE) && !defined(_WIN32)
-#define _POSIX_C_SOURCE   200809L  // For fstat, fileno, pwrite, pread, fcntl, etc.
-#define _FILE_OFFSET_BITS 64       // Ensure 64-bit off_t on 32-bit POSIX systems
+    #define _POSIX_C_SOURCE   200809L  // For fstat, fileno, pwrite, pread, fcntl, etc.
+    #define _FILE_OFFSET_BITS 64       // Ensure 64-bit off_t on 32-bit POSIX systems
 #endif
 
 #include "platform.h"
@@ -19,31 +19,27 @@
 
 // Platform detection and feature setup
 #ifdef _WIN32
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <io.h>
-#include <mswsock.h>
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
+    #include <io.h>
 
-// Define ssize_t for Windows if not already defined
-#if defined(_MSC_VER) && !defined(_SSIZE_T_DEFINED)
+    // ssize_t and Windows headers (winsock2 → mswsock → windows → ws2tcpip)
+    // are provided by platform.h in the correct order.
+
+    // Define ssize_t for Windows if not already defined
+    #if defined(_MSC_VER) && !defined(_SSIZE_T_DEFINED)
 typedef intptr_t ssize_t;
-#define _SSIZE_T_DEFINED
-#endif
+        #define _SSIZE_T_DEFINED
+    #endif
 
 // Windows-specific file handle type
 typedef HANDLE native_handle_t;
-#define INVALID_NATIVE_HANDLE INVALID_HANDLE_VALUE
+    #define INVALID_NATIVE_HANDLE INVALID_HANDLE_VALUE
 
 #else  // POSIX systems
 
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <unistd.h>
+    #include <fcntl.h>
+    #include <sys/mman.h>
+    #include <sys/stat.h>
+    #include <unistd.h>
 
 // POSIX file handle type
 typedef int native_handle_t;

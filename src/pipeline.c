@@ -20,22 +20,22 @@
 #include <string.h>  // for strerror, strpbrk, strlen
 
 #ifdef _WIN32
-#include <fcntl.h>    // for _O_BINARY
-#include <io.h>       // for _pipe, _close, _dup2, _get_osfhandle
-#include <windows.h>  // for CreateProcess, HANDLE, STARTUPINFO, PROCESS_INFORMATION
+    #include <fcntl.h>                // for _O_BINARY
+    #include <io.h>                   // for _pipe, _close, _dup2, _get_osfhandle
+    #include "../include/platform.h"  // for CreateProcess, HANDLE, STARTUPINFO, PROCESS_INFORMATION
 
-#define pipe(fds)          _pipe(fds, PIPELINE_PIPE_BUFFER_SIZE, _O_BINARY)
-#define close(fd)          _close(fd)
-#define dup2(oldfd, newfd) _dup2(oldfd, newfd)
+    #define pipe(fds)          _pipe(fds, PIPELINE_PIPE_BUFFER_SIZE, _O_BINARY)
+    #define close(fd)          _close(fd)
+    #define dup2(oldfd, newfd) _dup2(oldfd, newfd)
 
 #else
-#include <spawn.h>     // for posix_spawn_file_actions_t, posix_spawnp
-#include <sys/wait.h>  // for waitpid
-#include <unistd.h>    // for pipe, close, dup2, STDIN_FILENO, STDOUT_FILENO
+    #include <spawn.h>     // for posix_spawn_file_actions_t, posix_spawnp
+    #include <sys/wait.h>  // for waitpid
+    #include <unistd.h>    // for pipe, close, dup2, STDIN_FILENO, STDOUT_FILENO
 
-#if defined(__linux__)
-#include <fcntl.h>  // for fcntl, F_SETPIPE_SZ (Linux-specific)
-#endif
+    #if defined(__linux__)
+        #include <fcntl.h>  // for fcntl, F_SETPIPE_SZ (Linux-specific)
+    #endif
 
 extern char** environ;  // for posix_spawnp's envp argument
 #endif
@@ -47,9 +47,9 @@ extern char** environ;  // for posix_spawnp's envp argument
 #define PIPELINE_PIPE_BUFFER_SIZE 4096
 
 #if defined(__linux__)
-/** Enlarged pipe capacity, in bytes, requested via F_SETPIPE_SZ on Linux to reduce context switches for high-throughput
- * stages. */
-#define PIPELINE_LINUX_PIPE_SIZE (1 << 20)
+    /** Enlarged pipe capacity, in bytes, requested via F_SETPIPE_SZ on Linux to reduce context switches for
+     * high-throughput stages. */
+    #define PIPELINE_LINUX_PIPE_SIZE (1 << 20)
 #endif
 
 /**
@@ -276,7 +276,7 @@ void execute_pipeline(CommandNode* head, int output_fd) {
                 perror("pipeline: pipe");
                 goto posix_reap_and_fail;
             }
-#if defined(__linux__)
+    #if defined(__linux__)
             /* Linux-only: enlarge the pipe to cut context switches for
              * high-throughput stages. Not fatal if unsupported (e.g. an
              * older kernel), so a failure here just keeps the default
@@ -284,7 +284,7 @@ void execute_pipeline(CommandNode* head, int output_fd) {
             if (fcntl(pipefd[1], F_SETPIPE_SZ, PIPELINE_LINUX_PIPE_SIZE) < 0) {
                 perror("pipeline: fcntl(F_SETPIPE_SZ)");
             }
-#endif
+    #endif
         }
 
         if (posix_spawn_file_actions_init(&actions) != 0) {
@@ -404,13 +404,13 @@ int main(void) {
     // Build the pipeline
     build_pipeline(commands);
 
-#ifdef _WIN32
+    #ifdef _WIN32
     // On Windows, we need to use _open instead of open
     int output_fd = _open("output.txt", _O_WRONLY | _O_CREAT | _O_TRUNC, _S_IWRITE);
-#else
+    #else
     // Open a file to capture the output of the last command
     int output_fd = open("output.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
-#endif
+    #endif
 
     if (output_fd < 0) {
         perror("open");

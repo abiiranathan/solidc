@@ -39,21 +39,21 @@ extern "C" {
  * ========================================================================= */
 
 #if defined(_MSC_VER)
-#define SOLIDC_MSVC  1
-#define SOLIDC_GCC   0
-#define SOLIDC_CLANG 0
+    #define SOLIDC_MSVC  1
+    #define SOLIDC_GCC   0
+    #define SOLIDC_CLANG 0
 #elif defined(__clang__)
-#define SOLIDC_MSVC  0
-#define SOLIDC_GCC   0
-#define SOLIDC_CLANG 1
+    #define SOLIDC_MSVC  0
+    #define SOLIDC_GCC   0
+    #define SOLIDC_CLANG 1
 #elif defined(__GNUC__)
-#define SOLIDC_MSVC  0
-#define SOLIDC_GCC   1
-#define SOLIDC_CLANG 0
+    #define SOLIDC_MSVC  0
+    #define SOLIDC_GCC   1
+    #define SOLIDC_CLANG 0
 #else
-#define SOLIDC_MSVC  0
-#define SOLIDC_GCC   0
-#define SOLIDC_CLANG 0
+    #define SOLIDC_MSVC  0
+    #define SOLIDC_GCC   0
+    #define SOLIDC_CLANG 0
 #endif
 
 /* =========================================================================
@@ -62,11 +62,11 @@ extern "C" {
 
 /** Hint that a condition is likely true (branch prediction). */
 #if SOLIDC_GCC || SOLIDC_CLANG
-#define LIKELY(x)   __builtin_expect(!!(x), 1)
-#define UNLIKELY(x) __builtin_expect(!!(x), 0)
+    #define LIKELY(x)   __builtin_expect(!!(x), 1)
+    #define UNLIKELY(x) __builtin_expect(!!(x), 0)
 #else
-#define LIKELY(x)   (x)
-#define UNLIKELY(x) (x)
+    #define LIKELY(x)   (x)
+    #define UNLIKELY(x) (x)
 #endif
 
 /**
@@ -74,11 +74,11 @@ extern "C" {
  * function annotated with this attribute is discarded by the caller.
  */
 #if SOLIDC_GCC || SOLIDC_CLANG
-#define WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+    #define WARN_UNUSED_RESULT __attribute__((warn_unused_result))
 #elif SOLIDC_MSVC
-#define WARN_UNUSED_RESULT _Check_return_
+    #define WARN_UNUSED_RESULT _Check_return_
 #else
-#define WARN_UNUSED_RESULT
+    #define WARN_UNUSED_RESULT
 #endif
 
 /**
@@ -87,30 +87,30 @@ extern "C" {
  * Example: void log(const char *fmt, ...) PRINTF_FORMAT(1, 2);
  */
 #if SOLIDC_GCC || SOLIDC_CLANG
-#define PRINTF_FORMAT(fmt, va) __attribute__((format(printf, fmt, va)))
+    #define PRINTF_FORMAT(fmt, va) __attribute__((format(printf, fmt, va)))
 #else
-#define PRINTF_FORMAT(fmt, va)
+    #define PRINTF_FORMAT(fmt, va)
 #endif
 
 /** NORETURN — annotate functions that never return (abort, exit wrappers). */
 #if SOLIDC_GCC || SOLIDC_CLANG
-#define NORETURN __attribute__((noreturn))
+    #define NORETURN __attribute__((noreturn))
 #elif SOLIDC_MSVC
-#define NORETURN __declspec(noreturn)
+    #define NORETURN __declspec(noreturn)
 #else
-#define NORETURN
+    #define NORETURN
 #endif
 
 /** UNUSED — silence "unused variable/parameter" warnings. */
 #define UNUSED(x) ((void)(x))
 
 #if SOLIDC_MSVC
-#define THREAD_LOCAL __declspec(thread)
+    #define THREAD_LOCAL __declspec(thread)
 #elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
-#define THREAD_LOCAL _Thread_local
+    #define THREAD_LOCAL _Thread_local
 #else
-/* GCC/Clang pre-C11 extension fallback */
-#define THREAD_LOCAL __thread
+    /* GCC/Clang pre-C11 extension fallback */
+    #define THREAD_LOCAL __thread
 #endif
 
 /* =========================================================================
@@ -119,12 +119,12 @@ extern "C" {
 
 /** STATIC_ASSERT(cond, msg) — compile-time assertion with a descriptive message. */
 #if defined(__cplusplus)
-#define STATIC_ASSERT(cond, msg) static_assert(cond, msg)
+    #define STATIC_ASSERT(cond, msg) static_assert(cond, msg)
 #elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
-#define STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
+    #define STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
 #else
-/* Pre-C11 fallback: causes an array-size error if cond is false. */
-#define STATIC_ASSERT(cond, msg) typedef char _static_assert_##__LINE__[(cond) ? 1 : -1]
+    /* Pre-C11 fallback: causes an array-size error if cond is false. */
+    #define STATIC_ASSERT(cond, msg) typedef char _static_assert_##__LINE__[(cond) ? 1 : -1]
 #endif
 
 /* =========================================================================
@@ -136,182 +136,182 @@ extern "C" {
 
 #ifndef NDEBUG
 
-/** ASSERT(cond) — abort if cond is false. */
-#define ASSERT(cond)                                                                                      \
-    do {                                                                                                  \
-        if (UNLIKELY(!(cond))) {                                                                          \
-            fprintf(stderr, "%s:%d [%s]: Assertion '%s' failed.\n", __FILE__, __LINE__, __func__, #cond); \
-            exit(1);                                                                                      \
-        }                                                                                                 \
-    } while (0)
+    /** ASSERT(cond) — abort if cond is false. */
+    #define ASSERT(cond)                                                                                      \
+        do {                                                                                                  \
+            if (UNLIKELY(!(cond))) {                                                                          \
+                fprintf(stderr, "%s:%d [%s]: Assertion '%s' failed.\n", __FILE__, __LINE__, __func__, #cond); \
+                exit(1);                                                                                      \
+            }                                                                                                 \
+        } while (0)
 
-/** ASSERT_TRUE(cond) — alias for ASSERT; documents boolean intent. */
-#define ASSERT_TRUE(cond) ASSERT(cond)
+    /** ASSERT_TRUE(cond) — alias for ASSERT; documents boolean intent. */
+    #define ASSERT_TRUE(cond) ASSERT(cond)
 
-/** ASSERT_NULL(ptr) — abort if ptr is not NULL. */
-#define ASSERT_NULL(ptr)                                                                                    \
-    do {                                                                                                    \
-        if (UNLIKELY((ptr) != NULL)) {                                                                      \
-            fprintf(stderr, "%s:%d [%s]: Expected '%s' to be NULL.\n", __FILE__, __LINE__, __func__, #ptr); \
-            exit(1);                                                                                        \
-        }                                                                                                   \
-    } while (0)
+    /** ASSERT_NULL(ptr) — abort if ptr is not NULL. */
+    #define ASSERT_NULL(ptr)                                                                                    \
+        do {                                                                                                    \
+            if (UNLIKELY((ptr) != NULL)) {                                                                      \
+                fprintf(stderr, "%s:%d [%s]: Expected '%s' to be NULL.\n", __FILE__, __LINE__, __func__, #ptr); \
+                exit(1);                                                                                        \
+            }                                                                                                   \
+        } while (0)
 
-/** ASSERT_NOT_NULL(ptr) — abort if ptr is NULL. */
-#define ASSERT_NOT_NULL(ptr)                                                                                    \
-    do {                                                                                                        \
-        if (UNLIKELY((ptr) == NULL)) {                                                                          \
-            fprintf(stderr, "%s:%d [%s]: Expected '%s' to not be NULL.\n", __FILE__, __LINE__, __func__, #ptr); \
-            exit(1);                                                                                            \
-        }                                                                                                       \
-    } while (0)
+    /** ASSERT_NOT_NULL(ptr) — abort if ptr is NULL. */
+    #define ASSERT_NOT_NULL(ptr)                                                                                    \
+        do {                                                                                                        \
+            if (UNLIKELY((ptr) == NULL)) {                                                                          \
+                fprintf(stderr, "%s:%d [%s]: Expected '%s' to not be NULL.\n", __FILE__, __LINE__, __func__, #ptr); \
+                exit(1);                                                                                            \
+            }                                                                                                       \
+        } while (0)
 
-/**
- * ASSERT_STR_EQ(a, b) — abort if two C strings are not equal.
- * Handles NULL on either side gracefully.
- */
-#define ASSERT_STR_EQ(a, b)                                                                                          \
-    do {                                                                                                             \
-        const char* _ase_a = (a);                                                                                    \
-        const char* _ase_b = (b);                                                                                    \
-        if (_ase_a == NULL || _ase_b == NULL) {                                                                      \
-            if (_ase_a != _ase_b) {                                                                                  \
-                fprintf(stderr, "%s:%d [%s]: '%s == %s' failed (one is NULL).\n", __FILE__, __LINE__, __func__, #a,  \
-                        #b);                                                                                         \
+    /**
+     * ASSERT_STR_EQ(a, b) — abort if two C strings are not equal.
+     * Handles NULL on either side gracefully.
+     */
+    #define ASSERT_STR_EQ(a, b)                                                                                      \
+        do {                                                                                                         \
+            const char* _ase_a = (a);                                                                                \
+            const char* _ase_b = (b);                                                                                \
+            if (_ase_a == NULL || _ase_b == NULL) {                                                                  \
+                if (_ase_a != _ase_b) {                                                                              \
+                    fprintf(stderr, "%s:%d [%s]: '%s == %s' failed (one is NULL).\n", __FILE__, __LINE__, __func__,  \
+                            #a, #b);                                                                                 \
+                    exit(1);                                                                                         \
+                }                                                                                                    \
+            } else if (strcmp(_ase_a, _ase_b) != 0) {                                                                \
+                fprintf(stderr, "%s:%d [%s]: '%s == %s' failed (\"%s\" != \"%s\").\n", __FILE__, __LINE__, __func__, \
+                        #a, #b, _ase_a, _ase_b);                                                                     \
                 exit(1);                                                                                             \
             }                                                                                                        \
-        } else if (strcmp(_ase_a, _ase_b) != 0) {                                                                    \
-            fprintf(stderr, "%s:%d [%s]: '%s == %s' failed (\"%s\" != \"%s\").\n", __FILE__, __LINE__, __func__, #a, \
-                    #b, _ase_a, _ase_b);                                                                             \
-            exit(1);                                                                                                 \
-        }                                                                                                            \
-    } while (0)
+        } while (0)
 
-/**
- * ASSERT_FLOAT_EQ(a, b, epsilon) — abort if |a - b| > epsilon.
- * Both operands are promoted to double for the comparison.
- */
-#define ASSERT_FLOAT_EQ(a, b, epsilon)                                               \
-    do {                                                                             \
-        double _afe_a = (double)(a);                                                 \
-        double _afe_b = (double)(b);                                                 \
-        double _afe_eps = (double)(epsilon);                                         \
-        double _afe_d = _afe_a - _afe_b;                                             \
-        /* Use manual abs to avoid pulling in <math.h> for fabs. */                  \
-        if ((_afe_d > _afe_eps) || (-_afe_d > _afe_eps)) {                           \
-            fprintf(stderr,                                                          \
-                    "%s:%d [%s]: Float '%s == %s' failed"                            \
-                    " (%.6f != %.6f, eps=%.6f).\n",                                  \
-                    __FILE__, __LINE__, __func__, #a, #b, _afe_a, _afe_b, _afe_eps); \
-            exit(1);                                                                 \
-        }                                                                            \
-    } while (0)
+    /**
+     * ASSERT_FLOAT_EQ(a, b, epsilon) — abort if |a - b| > epsilon.
+     * Both operands are promoted to double for the comparison.
+     */
+    #define ASSERT_FLOAT_EQ(a, b, epsilon)                                               \
+        do {                                                                             \
+            double _afe_a = (double)(a);                                                 \
+            double _afe_b = (double)(b);                                                 \
+            double _afe_eps = (double)(epsilon);                                         \
+            double _afe_d = _afe_a - _afe_b;                                             \
+            /* Use manual abs to avoid pulling in <math.h> for fabs. */                  \
+            if ((_afe_d > _afe_eps) || (-_afe_d > _afe_eps)) {                           \
+                fprintf(stderr,                                                          \
+                        "%s:%d [%s]: Float '%s == %s' failed"                            \
+                        " (%.6f != %.6f, eps=%.6f).\n",                                  \
+                        __FILE__, __LINE__, __func__, #a, #b, _afe_a, _afe_b, _afe_eps); \
+                exit(1);                                                                 \
+            }                                                                            \
+        } while (0)
 
-/*
- * ASSERT_EQ / ASSERT_NE / ASSERT_RANGE
- *
- * These macros compare two values using temporary variables to avoid
- * double evaluation. Under GCC/Clang we use __typeof__ to preserve the
- * exact type. Under MSVC, which lacks typeof in C mode, we fall back to
- * intptr_t — wide enough for any scalar and pointer coerced to integer.
- * Floating-point comparisons should use ASSERT_FLOAT_EQ instead.
- */
-#if SOLIDC_GCC || SOLIDC_CLANG
+    /*
+     * ASSERT_EQ / ASSERT_NE / ASSERT_RANGE
+     *
+     * These macros compare two values using temporary variables to avoid
+     * double evaluation. Under GCC/Clang we use __typeof__ to preserve the
+     * exact type. Under MSVC, which lacks typeof in C mode, we fall back to
+     * intptr_t — wide enough for any scalar and pointer coerced to integer.
+     * Floating-point comparisons should use ASSERT_FLOAT_EQ instead.
+     */
+    #if SOLIDC_GCC || SOLIDC_CLANG
 
-/** ASSERT_EQ(a, b) — abort if a != b. */
-#define ASSERT_EQ(a, b)                                                                          \
-    do {                                                                                         \
-        __typeof__(a) _aeq_a = (a);                                                              \
-        __typeof__(b) _aeq_b = (b);                                                              \
-        if (UNLIKELY(_aeq_a != _aeq_b)) {                                                        \
-            fprintf(stderr,                                                                      \
-                    "%s:%d [%s]: '%s == %s' failed"                                              \
-                    " (%td != %td).\n",                                                          \
-                    __FILE__, __LINE__, __func__, #a, #b, (ptrdiff_t)_aeq_a, (ptrdiff_t)_aeq_b); \
-            exit(1);                                                                             \
-        }                                                                                        \
-    } while (0)
+        /** ASSERT_EQ(a, b) — abort if a != b. */
+        #define ASSERT_EQ(a, b)                                                                          \
+            do {                                                                                         \
+                __typeof__(a) _aeq_a = (a);                                                              \
+                __typeof__(b) _aeq_b = (b);                                                              \
+                if (UNLIKELY(_aeq_a != _aeq_b)) {                                                        \
+                    fprintf(stderr,                                                                      \
+                            "%s:%d [%s]: '%s == %s' failed"                                              \
+                            " (%td != %td).\n",                                                          \
+                            __FILE__, __LINE__, __func__, #a, #b, (ptrdiff_t)_aeq_a, (ptrdiff_t)_aeq_b); \
+                    exit(1);                                                                             \
+                }                                                                                        \
+            } while (0)
 
-/** ASSERT_NE(a, b) — abort if a == b. */
-#define ASSERT_NE(a, b)                                                       \
-    do {                                                                      \
-        __typeof__(a) _ane_a = (a);                                           \
-        __typeof__(b) _ane_b = (b);                                           \
-        if (UNLIKELY(_ane_a == _ane_b)) {                                     \
-            fprintf(stderr,                                                   \
-                    "%s:%d [%s]: '%s != %s' failed"                           \
-                    " (both %td).\n",                                         \
-                    __FILE__, __LINE__, __func__, #a, #b, (ptrdiff_t)_ane_a); \
-            exit(1);                                                          \
-        }                                                                     \
-    } while (0)
+        /** ASSERT_NE(a, b) — abort if a == b. */
+        #define ASSERT_NE(a, b)                                                       \
+            do {                                                                      \
+                __typeof__(a) _ane_a = (a);                                           \
+                __typeof__(b) _ane_b = (b);                                           \
+                if (UNLIKELY(_ane_a == _ane_b)) {                                     \
+                    fprintf(stderr,                                                   \
+                            "%s:%d [%s]: '%s != %s' failed"                           \
+                            " (both %td).\n",                                         \
+                            __FILE__, __LINE__, __func__, #a, #b, (ptrdiff_t)_ane_a); \
+                    exit(1);                                                          \
+                }                                                                     \
+            } while (0)
 
-/** ASSERT_RANGE(val, min, max) — abort if val is outside [min, max]. */
-#define ASSERT_RANGE(val, min, max)                                                                        \
-    do {                                                                                                   \
-        __typeof__(val) _ar_v = (val);                                                                     \
-        __typeof__(min) _ar_min = (min);                                                                   \
-        __typeof__(max) _ar_max = (max);                                                                   \
-        if (UNLIKELY(_ar_v < _ar_min || _ar_v > _ar_max)) {                                                \
-            fprintf(stderr, "%s:%d [%s]: %s=%td not in [%td, %td].\n", __FILE__, __LINE__, __func__, #val, \
-                    (ptrdiff_t)_ar_v, (ptrdiff_t)_ar_min, (ptrdiff_t)_ar_max);                             \
-            exit(1);                                                                                       \
-        }                                                                                                  \
-    } while (0)
+        /** ASSERT_RANGE(val, min, max) — abort if val is outside [min, max]. */
+        #define ASSERT_RANGE(val, min, max)                                                                        \
+            do {                                                                                                   \
+                __typeof__(val) _ar_v = (val);                                                                     \
+                __typeof__(min) _ar_min = (min);                                                                   \
+                __typeof__(max) _ar_max = (max);                                                                   \
+                if (UNLIKELY(_ar_v < _ar_min || _ar_v > _ar_max)) {                                                \
+                    fprintf(stderr, "%s:%d [%s]: %s=%td not in [%td, %td].\n", __FILE__, __LINE__, __func__, #val, \
+                            (ptrdiff_t)_ar_v, (ptrdiff_t)_ar_min, (ptrdiff_t)_ar_max);                             \
+                    exit(1);                                                                                       \
+                }                                                                                                  \
+            } while (0)
 
-#else /* MSVC or unknown — typeof unavailable */
+    #else /* MSVC or unknown — typeof unavailable */
 
-#define ASSERT_EQ(a, b)                                                    \
-    do {                                                                   \
-        intptr_t _aeq_a = (intptr_t)(a);                                   \
-        intptr_t _aeq_b = (intptr_t)(b);                                   \
-        if (UNLIKELY(_aeq_a != _aeq_b)) {                                  \
-            fprintf(stderr,                                                \
-                    "%s:%d [%s]: '%s == %s' failed"                        \
-                    " (%td != %td).\n",                                    \
-                    __FILE__, __LINE__, __func__, #a, #b, _aeq_a, _aeq_b); \
-            exit(1);                                                       \
-        }                                                                  \
-    } while (0)
+        #define ASSERT_EQ(a, b)                                                    \
+            do {                                                                   \
+                intptr_t _aeq_a = (intptr_t)(a);                                   \
+                intptr_t _aeq_b = (intptr_t)(b);                                   \
+                if (UNLIKELY(_aeq_a != _aeq_b)) {                                  \
+                    fprintf(stderr,                                                \
+                            "%s:%d [%s]: '%s == %s' failed"                        \
+                            " (%td != %td).\n",                                    \
+                            __FILE__, __LINE__, __func__, #a, #b, _aeq_a, _aeq_b); \
+                    exit(1);                                                       \
+                }                                                                  \
+            } while (0)
 
-#define ASSERT_NE(a, b)                                            \
-    do {                                                           \
-        intptr_t _ane_a = (intptr_t)(a);                           \
-        intptr_t _ane_b = (intptr_t)(b);                           \
-        if (UNLIKELY(_ane_a == _ane_b)) {                          \
-            fprintf(stderr,                                        \
-                    "%s:%d [%s]: '%s != %s' failed"                \
-                    " (both %td).\n",                              \
-                    __FILE__, __LINE__, __func__, #a, #b, _ane_a); \
-            exit(1);                                               \
-        }                                                          \
-    } while (0)
+        #define ASSERT_NE(a, b)                                            \
+            do {                                                           \
+                intptr_t _ane_a = (intptr_t)(a);                           \
+                intptr_t _ane_b = (intptr_t)(b);                           \
+                if (UNLIKELY(_ane_a == _ane_b)) {                          \
+                    fprintf(stderr,                                        \
+                            "%s:%d [%s]: '%s != %s' failed"                \
+                            " (both %td).\n",                              \
+                            __FILE__, __LINE__, __func__, #a, #b, _ane_a); \
+                    exit(1);                                               \
+                }                                                          \
+            } while (0)
 
-#define ASSERT_RANGE(val, min, max)                                                                               \
-    do {                                                                                                          \
-        intptr_t _ar_v = (intptr_t)(val);                                                                         \
-        intptr_t _ar_min = (intptr_t)(min);                                                                       \
-        intptr_t _ar_max = (intptr_t)(max);                                                                       \
-        if (UNLIKELY(_ar_v < _ar_min || _ar_v > _ar_max)) {                                                       \
-            fprintf(stderr, "%s:%d [%s]: %s=%td not in [%td, %td].\n", __FILE__, __LINE__, __func__, #val, _ar_v, \
-                    _ar_min, _ar_max);                                                                            \
-            exit(1);                                                                                              \
-        }                                                                                                         \
-    } while (0)
+        #define ASSERT_RANGE(val, min, max)                                                                        \
+            do {                                                                                                   \
+                intptr_t _ar_v = (intptr_t)(val);                                                                  \
+                intptr_t _ar_min = (intptr_t)(min);                                                                \
+                intptr_t _ar_max = (intptr_t)(max);                                                                \
+                if (UNLIKELY(_ar_v < _ar_min || _ar_v > _ar_max)) {                                                \
+                    fprintf(stderr, "%s:%d [%s]: %s=%td not in [%td, %td].\n", __FILE__, __LINE__, __func__, #val, \
+                            _ar_v, _ar_min, _ar_max);                                                              \
+                    exit(1);                                                                                       \
+                }                                                                                                  \
+            } while (0)
 
-#endif /* SOLIDC_GCC || SOLIDC_CLANG */
+    #endif /* SOLIDC_GCC || SOLIDC_CLANG */
 
 #else /* NDEBUG — strip all runtime assertions */
 
-#define ASSERT(cond)             UNUSED(cond)
-#define ASSERT_TRUE(cond)        UNUSED(cond)
-#define ASSERT_NULL(ptr)         UNUSED(ptr)
-#define ASSERT_NOT_NULL(ptr)     UNUSED(ptr)
-#define ASSERT_STR_EQ(a, b)      (UNUSED(a), UNUSED(b))
-#define ASSERT_FLOAT_EQ(a, b, e) (UNUSED(a), UNUSED(b), UNUSED(e))
-#define ASSERT_EQ(a, b)          (UNUSED(a), UNUSED(b))
-#define ASSERT_NE(a, b)          (UNUSED(a), UNUSED(b))
-#define ASSERT_RANGE(v, lo, hi)  (UNUSED(v), UNUSED(lo), UNUSED(hi))
+    #define ASSERT(cond)             UNUSED(cond)
+    #define ASSERT_TRUE(cond)        UNUSED(cond)
+    #define ASSERT_NULL(ptr)         UNUSED(ptr)
+    #define ASSERT_NOT_NULL(ptr)     UNUSED(ptr)
+    #define ASSERT_STR_EQ(a, b)      (UNUSED(a), UNUSED(b))
+    #define ASSERT_FLOAT_EQ(a, b, e) (UNUSED(a), UNUSED(b), UNUSED(e))
+    #define ASSERT_EQ(a, b)          (UNUSED(a), UNUSED(b))
+    #define ASSERT_NE(a, b)          (UNUSED(a), UNUSED(b))
+    #define ASSERT_RANGE(v, lo, hi)  (UNUSED(v), UNUSED(lo), UNUSED(hi))
 
 #endif /* NDEBUG */
 
@@ -448,24 +448,24 @@ static inline uint32_t round_up_pow2_u32(uint32_t x) {
 
 #ifndef NDEBUG
 
-/** DEBUG_PRINT(fmt, ...) — print a formatted debug message with source location. */
-#define DEBUG_PRINT(fmt, ...) printf("[DEBUG] %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+    /** DEBUG_PRINT(fmt, ...) — print a formatted debug message with source location. */
+    #define DEBUG_PRINT(fmt, ...) printf("[DEBUG] %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 
-/** DEBUG_VAR(var) — print a scalar variable's name and value as a signed integer. */
-#define DEBUG_VAR(var) printf("[DEBUG] %s:%d: %s = %td\n", __FILE__, __LINE__, #var, (ptrdiff_t)(var))
+    /** DEBUG_VAR(var) — print a scalar variable's name and value as a signed integer. */
+    #define DEBUG_VAR(var) printf("[DEBUG] %s:%d: %s = %td\n", __FILE__, __LINE__, #var, (ptrdiff_t)(var))
 
-/** DEBUG_STR(str) — print a string variable's name and value, handling NULL. */
-#define DEBUG_STR(str) printf("[DEBUG] %s:%d: %s = \"%s\"\n", __FILE__, __LINE__, #str, (str) ? (str) : "(null)")
+    /** DEBUG_STR(str) — print a string variable's name and value, handling NULL. */
+    #define DEBUG_STR(str) printf("[DEBUG] %s:%d: %s = \"%s\"\n", __FILE__, __LINE__, #str, (str) ? (str) : "(null)")
 
-/** LOG_DEBUG(fmt, ...) — print a debug-level log message to stdout with source location. */
-#define LOG_DEBUG(fmt, ...) printf("[DEBUG] %s:%d [%s]: " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+    /** LOG_DEBUG(fmt, ...) — print a debug-level log message to stdout with source location. */
+    #define LOG_DEBUG(fmt, ...) printf("[DEBUG] %s:%d [%s]: " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
 #else /* NDEBUG */
 
-#define DEBUG_PRINT(fmt, ...) ((void)0)
-#define DEBUG_VAR(var)        UNUSED(var)
-#define DEBUG_STR(str)        UNUSED(str)
-#define LOG_DEBUG(fmt, ...)   ((void)0)
+    #define DEBUG_PRINT(fmt, ...) ((void)0)
+    #define DEBUG_VAR(var)        UNUSED(var)
+    #define DEBUG_STR(str)        UNUSED(str)
+    #define LOG_DEBUG(fmt, ...)   ((void)0)
 
 #endif /* NDEBUG */
 
@@ -494,41 +494,41 @@ static inline uint32_t round_up_pow2_u32(uint32_t x) {
 
 #if SOLIDC_GCC || SOLIDC_CLANG
 
-/**
- * FOR_EACH_ARRAY(item, array) — iterate over every element of a
- * stack-allocated array. `item` is a pointer to the current element.
- *
- * Example:
- *   int nums[] = {1, 2, 3};
- *   FOR_EACH_ARRAY(n, nums) { printf("%d\n", *n); }
- */
-#define FOR_EACH_ARRAY(item, array) \
-    for (__typeof__(&(array)[0]) item = (array), _fea_end = (array) + ARRAY_SIZE(array); item < _fea_end; ++item)
+    /**
+     * FOR_EACH_ARRAY(item, array) — iterate over every element of a
+     * stack-allocated array. `item` is a pointer to the current element.
+     *
+     * Example:
+     *   int nums[] = {1, 2, 3};
+     *   FOR_EACH_ARRAY(n, nums) { printf("%d\n", *n); }
+     */
+    #define FOR_EACH_ARRAY(item, array) \
+        for (__typeof__(&(array)[0]) item = (array), _fea_end = (array) + ARRAY_SIZE(array); item < _fea_end; ++item)
 
-/**
- * FOR_EACH_RANGE(var, start, end) — iterate var over [start, end).
- *
- * Example:
- *   FOR_EACH_RANGE(i, 0, 10) { printf("%d\n", i); }
- */
-#define FOR_EACH_RANGE(var, start, end) for (__typeof__(start) var = (start); var < (end); ++var)
+    /**
+     * FOR_EACH_RANGE(var, start, end) — iterate var over [start, end).
+     *
+     * Example:
+     *   FOR_EACH_RANGE(i, 0, 10) { printf("%d\n", i); }
+     */
+    #define FOR_EACH_RANGE(var, start, end) for (__typeof__(start) var = (start); var < (end); ++var)
 
 #else /* MSVC — typeof unavailable */
 
-/**
- * FOR_EACH_ARRAY — MSVC fallback using size_t index.
- * `item` is a void* pointing to the current element; cast before use.
- *
- * Example:
- *   FOR_EACH_ARRAY(i, arr, sizeof(arr[0])) { int *n = (int*)item; }
- *
- * Prefer the three-argument variant when element size is not obvious.
- */
-#define FOR_EACH_ARRAY(item, array)                                                                         \
-    for (void *item = (void*)(array), *_fea_end = (void*)((char*)(array) + sizeof(array)); item < _fea_end; \
-         item = (char*)item + (sizeof((array)[0])))
+    /**
+     * FOR_EACH_ARRAY — MSVC fallback using size_t index.
+     * `item` is a void* pointing to the current element; cast before use.
+     *
+     * Example:
+     *   FOR_EACH_ARRAY(i, arr, sizeof(arr[0])) { int *n = (int*)item; }
+     *
+     * Prefer the three-argument variant when element size is not obvious.
+     */
+    #define FOR_EACH_ARRAY(item, array)                                                                         \
+        for (void *item = (void*)(array), *_fea_end = (void*)((char*)(array) + sizeof(array)); item < _fea_end; \
+             item = (char*)item + (sizeof((array)[0])))
 
-#define FOR_EACH_RANGE(var, start, end) for (ptrdiff_t var = (ptrdiff_t)(start); var < (ptrdiff_t)(end); ++var)
+    #define FOR_EACH_RANGE(var, start, end) for (ptrdiff_t var = (ptrdiff_t)(start); var < (ptrdiff_t)(end); ++var)
 
 #endif /* SOLIDC_GCC || SOLIDC_CLANG */
 
@@ -552,68 +552,69 @@ static inline uint32_t round_up_pow2_u32(uint32_t x) {
 
 #if defined(_WIN32)
 
-#include <windows.h> /* LARGE_INTEGER, QueryPerformanceCounter, etc. */
+    #include "platform.h" /* LARGE_INTEGER, QueryPerformanceCounter, etc. */
 
-/**
- * TIME_DIFF(start, end, freq) — elapsed seconds between two LARGE_INTEGER
- * timestamps captured with QueryPerformanceCounter.
- */
-#define TIME_DIFF(start, end, freq) ((double)((end).QuadPart - (start).QuadPart) / (double)(freq).QuadPart)
+    /**
+     * TIME_DIFF(start, end, freq) — elapsed seconds between two LARGE_INTEGER
+     * timestamps captured with QueryPerformanceCounter.
+     */
+    #define TIME_DIFF(start, end, freq) ((double)((end).QuadPart - (start).QuadPart) / (double)(freq).QuadPart)
 
-/**
- * TIME_DIFF_MS(start, end, freq) — elapsed milliseconds between two
- * LARGE_INTEGER timestamps captured with QueryPerformanceCounter.
- */
-#define TIME_DIFF_MS(start, end, freq) ((double)((end).QuadPart - (start).QuadPart) * 1000.0 / (double)(freq).QuadPart)
+    /**
+     * TIME_DIFF_MS(start, end, freq) — elapsed milliseconds between two
+     * LARGE_INTEGER timestamps captured with QueryPerformanceCounter.
+     */
+    #define TIME_DIFF_MS(start, end, freq) \
+        ((double)((end).QuadPart - (start).QuadPart) * 1000.0 / (double)(freq).QuadPart)
 
-#define TIME_BLOCK(name, block)                                           \
-    do {                                                                  \
-        LARGE_INTEGER _freq, _t0, _t1;                                    \
-        QueryPerformanceFrequency(&_freq);                                \
-        QueryPerformanceCounter(&_t0);                                    \
-        block QueryPerformanceCounter(&_t1);                              \
-        printf("Time[%s]: %.6f s\n", (name), TIME_DIFF(_t0, _t1, _freq)); \
-    } while (0)
+    #define TIME_BLOCK(name, block)                                           \
+        do {                                                                  \
+            LARGE_INTEGER _freq, _t0, _t1;                                    \
+            QueryPerformanceFrequency(&_freq);                                \
+            QueryPerformanceCounter(&_t0);                                    \
+            block QueryPerformanceCounter(&_t1);                              \
+            printf("Time[%s]: %.6f s\n", (name), TIME_DIFF(_t0, _t1, _freq)); \
+        } while (0)
 
-#define TIME_BLOCK_MS(name, block)                                            \
-    do {                                                                      \
-        LARGE_INTEGER _freq, _t0, _t1;                                        \
-        QueryPerformanceFrequency(&_freq);                                    \
-        QueryPerformanceCounter(&_t0);                                        \
-        block QueryPerformanceCounter(&_t1);                                  \
-        printf("Time[%s]: %.3f ms\n", (name), TIME_DIFF_MS(_t0, _t1, _freq)); \
-    } while (0)
+    #define TIME_BLOCK_MS(name, block)                                            \
+        do {                                                                      \
+            LARGE_INTEGER _freq, _t0, _t1;                                        \
+            QueryPerformanceFrequency(&_freq);                                    \
+            QueryPerformanceCounter(&_t0);                                        \
+            block QueryPerformanceCounter(&_t1);                                  \
+            printf("Time[%s]: %.3f ms\n", (name), TIME_DIFF_MS(_t0, _t1, _freq)); \
+        } while (0)
 
 #else /* POSIX — use clock_gettime(CLOCK_MONOTONIC) */
 
-/**
- * TIME_DIFF(start, end) — elapsed seconds between two struct timespec values.
- */
-#define TIME_DIFF(start, end) \
-    ((double)((end).tv_sec - (start).tv_sec) + (double)((end).tv_nsec - (start).tv_nsec) / 1.0e9)
+    /**
+     * TIME_DIFF(start, end) — elapsed seconds between two struct timespec values.
+     */
+    #define TIME_DIFF(start, end) \
+        ((double)((end).tv_sec - (start).tv_sec) + (double)((end).tv_nsec - (start).tv_nsec) / 1.0e9)
 
-/**
- * TIME_DIFF_MS(start, end) — elapsed milliseconds between two struct timespec
- * values.
- */
-#define TIME_DIFF_MS(start, end) \
-    ((double)((end).tv_sec - (start).tv_sec) * 1000.0 + (double)((end).tv_nsec - (start).tv_nsec) / 1.0e6)
+    /**
+     * TIME_DIFF_MS(start, end) — elapsed milliseconds between two struct timespec
+     * values.
+     */
+    #define TIME_DIFF_MS(start, end) \
+        ((double)((end).tv_sec - (start).tv_sec) * 1000.0 + (double)((end).tv_nsec - (start).tv_nsec) / 1.0e6)
 
-#define TIME_BLOCK(name, block)                                    \
-    do {                                                           \
-        struct timespec _t0, _t1;                                  \
-        clock_gettime(CLOCK_MONOTONIC, &_t0);                      \
-        block clock_gettime(CLOCK_MONOTONIC, &_t1);                \
-        printf("Time[%s]: %.6f s\n", (name), TIME_DIFF(_t0, _t1)); \
-    } while (0)
+    #define TIME_BLOCK(name, block)                                    \
+        do {                                                           \
+            struct timespec _t0, _t1;                                  \
+            clock_gettime(CLOCK_MONOTONIC, &_t0);                      \
+            block clock_gettime(CLOCK_MONOTONIC, &_t1);                \
+            printf("Time[%s]: %.6f s\n", (name), TIME_DIFF(_t0, _t1)); \
+        } while (0)
 
-#define TIME_BLOCK_MS(name, block)                                     \
-    do {                                                               \
-        struct timespec _t0, _t1;                                      \
-        clock_gettime(CLOCK_MONOTONIC, &_t0);                          \
-        block clock_gettime(CLOCK_MONOTONIC, &_t1);                    \
-        printf("Time[%s]: %.3f ms\n", (name), TIME_DIFF_MS(_t0, _t1)); \
-    } while (0)
+    #define TIME_BLOCK_MS(name, block)                                     \
+        do {                                                               \
+            struct timespec _t0, _t1;                                      \
+            clock_gettime(CLOCK_MONOTONIC, &_t0);                          \
+            block clock_gettime(CLOCK_MONOTONIC, &_t1);                    \
+            printf("Time[%s]: %.3f ms\n", (name), TIME_DIFF_MS(_t0, _t1)); \
+        } while (0)
 
 #endif /* _WIN32 */
 
@@ -662,8 +663,8 @@ static inline uint64_t get_time_ms(void) { return get_time_ns() / UINT64_C(10000
 
 #if SOLIDC_MSVC
 
-/** strtok_r — reentrant strtok; maps to strtok_s on MSVC. */
-#define strtok_r(str, delim, saveptr) strtok_s((str), (delim), (saveptr))
+    /** strtok_r — reentrant strtok; maps to strtok_s on MSVC. */
+    #define strtok_r(str, delim, saveptr) strtok_s((str), (delim), (saveptr))
 
 /**
  * gmtime_r — reentrant gmtime.
@@ -696,15 +697,15 @@ static inline struct tm* localtime_r(const time_t* timep, struct tm* result) {
  * ========================================================================= */
 
 #if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__)
-#define SOLIDC_BIG_ENDIAN (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+    #define SOLIDC_BIG_ENDIAN (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #elif defined(_WIN32)
-/* Windows targets (x86, x64, ARM64) are all little-endian. */
-#define SOLIDC_BIG_ENDIAN 0
+    /* Windows targets (x86, x64, ARM64) are all little-endian. */
+    #define SOLIDC_BIG_ENDIAN 0
 #elif defined(__BIG_ENDIAN__)
-#define SOLIDC_BIG_ENDIAN 1
+    #define SOLIDC_BIG_ENDIAN 1
 #else
-/* Default assumption: little-endian (true for x86/x64/ARM/RISC-V default mode). */
-#define SOLIDC_BIG_ENDIAN 0
+    /* Default assumption: little-endian (true for x86/x64/ARM/RISC-V default mode). */
+    #define SOLIDC_BIG_ENDIAN 0
 #endif
 
 /** IS_BIG_ENDIAN — 1 if the target is big-endian, 0 otherwise. Usable in #if. */
@@ -814,42 +815,42 @@ static inline uint64_t bswap64(uint64_t x) {
 
 /** HAS_SSE2 — 1 if the compiler was told to target SSE2, 0 otherwise. */
 #if defined(__SSE2__) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2) || defined(_M_X64) || defined(_M_AMD64)
-#define HAS_SSE2 1
+    #define HAS_SSE2 1
 #else
-#define HAS_SSE2 0
+    #define HAS_SSE2 0
 #endif
 
 /** HAS_AVX — 1 if the compiler was told to target AVX, 0 otherwise. */
 #if defined(__AVX__)
-#define HAS_AVX 1
+    #define HAS_AVX 1
 #else
-#define HAS_AVX 0
+    #define HAS_AVX 0
 #endif
 
 /** HAS_AVX2 — 1 if the compiler was told to target AVX2, 0 otherwise. */
 #if defined(__AVX2__)
-#define HAS_AVX2 1
+    #define HAS_AVX2 1
 #else
-#define HAS_AVX2 0
+    #define HAS_AVX2 0
 #endif
 
 /** HAS_AVX512F — 1 if the compiler was told to target AVX-512 Foundation, 0 otherwise. */
 #if defined(__AVX512F__)
-#define HAS_AVX512F 1
+    #define HAS_AVX512F 1
 #else
-#define HAS_AVX512F 0
+    #define HAS_AVX512F 0
 #endif
 
 /** HAS_NEON — 1 if the compiler was told to target ARM NEON, 0 otherwise. */
 #if defined(__ARM_NEON) || defined(__ARM_NEON__)
-#define HAS_NEON 1
+    #define HAS_NEON 1
 #else
-#define HAS_NEON 0
+    #define HAS_NEON 0
 #endif
 
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
 
-#if SOLIDC_GCC || SOLIDC_CLANG
+    #if SOLIDC_GCC || SOLIDC_CLANG
 
 /**
  * cpu_has_sse2 — check at runtime whether the executing CPU supports SSE2.
@@ -876,9 +877,9 @@ static inline int cpu_has_avx2(void) { return !!__builtin_cpu_supports("avx2"); 
  */
 static inline int cpu_has_avx512f(void) { return !!__builtin_cpu_supports("avx512f"); }
 
-#elif SOLIDC_MSVC
+    #elif SOLIDC_MSVC
 
-#include <intrin.h> /* __cpuid, __cpuidex */
+        #include <intrin.h> /* __cpuid, __cpuidex */
 
 /**
  * cpu_has_sse2 — check at runtime whether the executing CPU supports SSE2.
@@ -929,14 +930,14 @@ static inline int cpu_has_avx512f(void) {
     return (regs[1] >> 16) & 1; /* EBX */
 }
 
-#else /* Unknown x86 compiler — fall back to compile-time result */
+    #else /* Unknown x86 compiler — fall back to compile-time result */
 
 static inline int cpu_has_sse2(void) { return HAS_SSE2; }
 static inline int cpu_has_avx(void) { return HAS_AVX; }
 static inline int cpu_has_avx2(void) { return HAS_AVX2; }
 static inline int cpu_has_avx512f(void) { return HAS_AVX512F; }
 
-#endif /* SOLIDC_GCC || SOLIDC_CLANG */
+    #endif /* SOLIDC_GCC || SOLIDC_CLANG */
 
 #endif /* x86 / x64 */
 
@@ -951,8 +952,8 @@ static inline int cpu_has_neon(void) { return 1; }
 
 #elif defined(__arm__) && defined(__linux__)
 
-#include <asm/hwcap.h> /* HWCAP_NEON */
-#include <sys/auxv.h>  /* getauxval, AT_HWCAP */
+    #include <asm/hwcap.h> /* HWCAP_NEON */
+    #include <sys/auxv.h>  /* getauxval, AT_HWCAP */
 
 /**
  * cpu_has_neon — check at runtime whether the executing CPU supports NEON.
@@ -986,41 +987,41 @@ static inline int cpu_has_neon(void) { return HAS_NEON; }
  * OS detection — prefer these over raw _WIN32/__APPLE__ checks.
  * ---------------------------------------------------------------------- */
 #if defined(_WIN32)
-#define SOLIDC_OS_WINDOWS 1
-#define SOLIDC_OS_POSIX   0
+    #define SOLIDC_OS_WINDOWS 1
+    #define SOLIDC_OS_POSIX   0
 #elif defined(__APPLE__)
-#define SOLIDC_OS_APPLE 1
-#define SOLIDC_OS_POSIX 1
+    #define SOLIDC_OS_APPLE 1
+    #define SOLIDC_OS_POSIX 1
 #elif defined(__linux__)
-#define SOLIDC_OS_LINUX 1
-#define SOLIDC_OS_POSIX 1
+    #define SOLIDC_OS_LINUX 1
+    #define SOLIDC_OS_POSIX 1
 #elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
-#define SOLIDC_OS_BSD   1
-#define SOLIDC_OS_POSIX 1
+    #define SOLIDC_OS_BSD   1
+    #define SOLIDC_OS_POSIX 1
 #else
-#define SOLIDC_OS_POSIX 1
+    #define SOLIDC_OS_POSIX 1
 #endif
 #ifndef SOLIDC_OS_WINDOWS
-#define SOLIDC_OS_WINDOWS 0
+    #define SOLIDC_OS_WINDOWS 0
 #endif
 #ifndef SOLIDC_OS_APPLE
-#define SOLIDC_OS_APPLE 0
+    #define SOLIDC_OS_APPLE 0
 #endif
 #ifndef SOLIDC_OS_LINUX
-#define SOLIDC_OS_LINUX 0
+    #define SOLIDC_OS_LINUX 0
 #endif
 #ifndef SOLIDC_OS_BSD
-#define SOLIDC_OS_BSD 0
+    #define SOLIDC_OS_BSD 0
 #endif
 #ifndef SOLIDC_OS_POSIX
-#define SOLIDC_OS_POSIX 0
+    #define SOLIDC_OS_POSIX 0
 #endif
 
 /* -------------------------------------------------------------------------
  * Feature-test wrapper — safe on compilers that lack __has_feature.
  * ---------------------------------------------------------------------- */
 #ifndef __has_feature
-#define __has_feature(x) 0
+    #define __has_feature(x) 0
 #endif
 #define SOLIDC_HAS_FEATURE(x) __has_feature(x)
 
@@ -1032,10 +1033,10 @@ static inline int cpu_has_neon(void) { return HAS_NEON; }
  * and callers should use these instead of raw strcat/strcpy/sprintf.
  * ---------------------------------------------------------------------- */
 #if SOLIDC_MSVC || defined(_WIN32)
-#include <string.h> /* strcat_s et al. via <string.h> on MSVC/MinGW */
-#define SOLIDC_STRCPY_S(dst, dstsz, src) strcpy_s((dst), (dstsz), (src))
-#define SOLIDC_STRCAT_S(dst, dstsz, src) strcat_s((dst), (dstsz), (src))
-#define SOLIDC_SNPRINTF                  snprintf
+    #include <string.h> /* strcat_s et al. via <string.h> on MSVC/MinGW */
+    #define SOLIDC_STRCPY_S(dst, dstsz, src) strcpy_s((dst), (dstsz), (src))
+    #define SOLIDC_STRCAT_S(dst, dstsz, src) strcat_s((dst), (dstsz), (src))
+    #define SOLIDC_SNPRINTF                  snprintf
 #else
 static inline int solidc_strcpy_s(char* dst, size_t dstsz, const char* src) {
     size_t n = strlen(src);
@@ -1056,21 +1057,21 @@ static inline int solidc_strcat_s(char* dst, size_t dstsz, const char* src) {
     memcpy(dst + dlen, src, slen + 1);
     return 0;
 }
-#define SOLIDC_STRCPY_S(dst, dstsz, src) solidc_strcpy_s((dst), (dstsz), (src))
-#define SOLIDC_STRCAT_S(dst, dstsz, src) solidc_strcat_s((dst), (dstsz), (src))
-#define SOLIDC_SNPRINTF                  snprintf
+    #define SOLIDC_STRCPY_S(dst, dstsz, src) solidc_strcpy_s((dst), (dstsz), (src))
+    #define SOLIDC_STRCAT_S(dst, dstsz, src) solidc_strcat_s((dst), (dstsz), (src))
+    #define SOLIDC_SNPRINTF                  snprintf
 #endif
 
 /* -------------------------------------------------------------------------
  * Builtin wrappers — map GCC/Clang builtins to MSVC equivalents.
  * ---------------------------------------------------------------------- */
 #if SOLIDC_MSVC
-#include <intrin.h>
-#pragma intrinsic(_BitScanForward)
-#pragma intrinsic(_BitScanReverse)
-#if defined(_M_X64) || defined(_M_IX86)
-#pragma intrinsic(_mm_pause)
-#endif
+    #include <intrin.h>
+    #pragma intrinsic(_BitScanForward)
+    #pragma intrinsic(_BitScanReverse)
+    #if defined(_M_X64) || defined(_M_IX86)
+        #pragma intrinsic(_mm_pause)
+    #endif
 static inline int solidc_ctz_u32(uint32_t x) {
     unsigned long r;
     _BitScanForward(&r, (unsigned long)x);
@@ -1081,31 +1082,31 @@ static inline int solidc_clz_u32(uint32_t x) {
     _BitScanReverse(&r, (unsigned long)x);
     return 31 - (int)r;
 }
-#define SOLIDC_CTZ(x)       solidc_ctz_u32((uint32_t)(x))
-#define SOLIDC_CLZ(x)       solidc_clz_u32((uint32_t)(x))
-#define SOLIDC_EXPECT(x, y) (x)
-#define SOLIDC_PREFETCH(p)  ((void)0)
-#if defined(_M_X64) || defined(_M_IX86)
-#define SOLIDC_PAUSE() _mm_pause()
-#elif defined(_M_ARM64) || defined(_M_ARM)
-#define SOLIDC_PAUSE() __yield()
+    #define SOLIDC_CTZ(x)       solidc_ctz_u32((uint32_t)(x))
+    #define SOLIDC_CLZ(x)       solidc_clz_u32((uint32_t)(x))
+    #define SOLIDC_EXPECT(x, y) (x)
+    #define SOLIDC_PREFETCH(p)  ((void)0)
+    #if defined(_M_X64) || defined(_M_IX86)
+        #define SOLIDC_PAUSE() _mm_pause()
+    #elif defined(_M_ARM64) || defined(_M_ARM)
+        #define SOLIDC_PAUSE() __yield()
+    #else
+        #define SOLIDC_PAUSE() ((void)0)
+    #endif
+    #define SOLIDC_ISNAN(x) isnan(x)
 #else
-#define SOLIDC_PAUSE() ((void)0)
-#endif
-#define SOLIDC_ISNAN(x) isnan(x)
-#else
-#define SOLIDC_CTZ(x)       __builtin_ctz((unsigned int)(x))
-#define SOLIDC_CLZ(x)       __builtin_clz((unsigned int)(x))
-#define SOLIDC_EXPECT(x, y) __builtin_expect((x), (y))
-#define SOLIDC_PREFETCH(p)  __builtin_prefetch((p))
-#if defined(__x86_64__) || defined(__i386__)
-#define SOLIDC_PAUSE() __builtin_ia32_pause()
-#elif defined(__aarch64__) || defined(__arm__)
-#define SOLIDC_PAUSE() __asm__ __volatile__("yield" ::: "memory")
-#else
-#define SOLIDC_PAUSE() ((void)0)
-#endif
-#define SOLIDC_ISNAN(x) __builtin_isnan((x))
+    #define SOLIDC_CTZ(x)       __builtin_ctz((unsigned int)(x))
+    #define SOLIDC_CLZ(x)       __builtin_clz((unsigned int)(x))
+    #define SOLIDC_EXPECT(x, y) __builtin_expect((x), (y))
+    #define SOLIDC_PREFETCH(p)  __builtin_prefetch((p))
+    #if defined(__x86_64__) || defined(__i386__)
+        #define SOLIDC_PAUSE() __builtin_ia32_pause()
+    #elif defined(__aarch64__) || defined(__arm__)
+        #define SOLIDC_PAUSE() __asm__ __volatile__("yield" ::: "memory")
+    #else
+        #define SOLIDC_PAUSE() ((void)0)
+    #endif
+    #define SOLIDC_ISNAN(x) __builtin_isnan((x))
 #endif
 
 /* -------------------------------------------------------------------------
@@ -1128,23 +1129,23 @@ typedef max_align_t solidc_max_align_t;
  * Unlocked stdio — block-level fread_unlocked is glibc/BSD-only.
  * ---------------------------------------------------------------------- */
 #if defined(__GLIBC__) || defined(__FreeBSD__)
-#define SOLIDC_HAS_FREAD_UNLOCKED 1
+    #define SOLIDC_HAS_FREAD_UNLOCKED 1
 #else
-#define SOLIDC_HAS_FREAD_UNLOCKED 0
+    #define SOLIDC_HAS_FREAD_UNLOCKED 0
 #endif
 #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__unix__)
-#define SOLIDC_HAS_GETC_UNLOCKED 1
+    #define SOLIDC_HAS_GETC_UNLOCKED 1
 #else
-#define SOLIDC_HAS_GETC_UNLOCKED 0
+    #define SOLIDC_HAS_GETC_UNLOCKED 0
 #endif
 
 /* -------------------------------------------------------------------------
  * Condition-variable clock — MONOTONIC on Linux, REALTIME on macOS.
  * ---------------------------------------------------------------------- */
 #if SOLIDC_OS_APPLE
-#define SOLIDC_COND_CLOCK CLOCK_REALTIME
+    #define SOLIDC_COND_CLOCK CLOCK_REALTIME
 #else
-#define SOLIDC_COND_CLOCK CLOCK_MONOTONIC
+    #define SOLIDC_COND_CLOCK CLOCK_MONOTONIC
 #endif
 
 /* -------------------------------------------------------------------------
@@ -1157,9 +1158,9 @@ typedef max_align_t solidc_max_align_t;
  *   - volatile byte loop  portable fallback (de-facto non-elidable)
  * ---------------------------------------------------------------------- */
 #if defined(__STDC_WANT_LIB_EXT1__) || defined(__STDC_LIB_EXT1__)
-#include <string.h>
+    #include <string.h>
 #elif defined(_WIN32)
-#include <windows.h>
+    #include "platform.h"
 #endif
 
 static inline void solidc_secure_zero(void* p, size_t n) {
@@ -1180,9 +1181,9 @@ static inline void solidc_secure_zero(void* p, size_t n) {
  * SIMD shuffle — __builtin_shufflevector is clang-only.
  * ---------------------------------------------------------------------- */
 #if defined(__clang__)
-#define SOLIDC_HAS_SHUFFLE_VECTOR 1
+    #define SOLIDC_HAS_SHUFFLE_VECTOR 1
 #else
-#define SOLIDC_HAS_SHUFFLE_VECTOR 0
+    #define SOLIDC_HAS_SHUFFLE_VECTOR 0
 #endif
 
 #if defined(__cplusplus)

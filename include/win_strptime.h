@@ -3,30 +3,27 @@
 
 #if defined(_WIN32)
 
-// Define timespec for older MSVC versions
-#if defined(_MSC_VER) && _MSC_VER < 1900
+    // Define timespec for older MSVC versions
+    #if defined(_MSC_VER) && _MSC_VER < 1900
 // Before VS2015
 struct timespec {
     time_t tv_sec;  // Seconds
     long tv_nsec;   // Nanoseconds [0, 999999999]
 };
-#else
-// VS2015+: Prevent redefinition if using pthread or other libs
-#ifndef HAVE_STRUCT_TIMESPEC
-#define HAVE_STRUCT_TIMESPEC
-#endif
-#include <time.h>
-#endif
+    #else
+        // VS2015+: Prevent redefinition if using pthread or other libs
+        #ifndef HAVE_STRUCT_TIMESPEC
+            #define HAVE_STRUCT_TIMESPEC
+        #endif
+        #include <time.h>
+    #endif
 
-// Windows headers
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
+    // Windows headers
+    #include "platform.h"
 
-#ifdef __cplusplus
+    #ifdef __cplusplus
 extern "C" {
-#endif
+    #endif
 
 /**
  * @brief Parse a time string according to a format string.
@@ -130,9 +127,9 @@ extern "C" {
  */
 char* strptime(const char* buf, const char* fmt, struct tm* tm);
 
-#ifdef __cplusplus
+    #ifdef __cplusplus
 }
-#endif
+    #endif
 
 #endif  // defined(_MSC_VER)
 

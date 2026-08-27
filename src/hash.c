@@ -4,17 +4,17 @@
 #include <string.h>
 
 #ifndef _WIN32
-#include <pthread.h>
+    #include <pthread.h>
 #else
-#include <windows.h>
+    #include "../include/platform.h"
 #endif
 
 #if defined(__x86_64__) || defined(__i386__)
-#define HASH_ARCH_X86 1
-#if defined(__GNUC__)
-#include <nmmintrin.h> /* _mm_crc32_u64 (SSE4.2) */
-#define HASH_GNU_TARGET_ATTR 1
-#endif
+    #define HASH_ARCH_X86 1
+    #if defined(__GNUC__)
+        #include <nmmintrin.h> /* _mm_crc32_u64 (SSE4.2) */
+        #define HASH_GNU_TARGET_ATTR 1
+    #endif
 #endif
 
 /*
@@ -399,11 +399,11 @@ static int crc32c_have_hw = -1;
 
 static inline int crc32c_use_hw(void) {
     if (crc32c_have_hw < 0) {
-#if defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8)) || defined(__clang__)
+    #if defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8)) || defined(__clang__)
         crc32c_have_hw = __builtin_cpu_supports("sse4.2") ? 1 : 0;
-#else
+    #else
         crc32c_have_hw = 0;
-#endif
+    #endif
     }
     return crc32c_have_hw;
 }

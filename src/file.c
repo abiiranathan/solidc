@@ -1,3 +1,11 @@
+/* Ensure Darwin extensions (sendfile) are visible before any POSIX headers.
+ * _DARWIN_C_SOURCE must be defined before the first system header.
+ * CMake defines it via -D_DARWIN_C_SOURCE, but defining it here makes the
+ * file self-contained for standalone builds. */
+#if defined(__APPLE__) && !defined(_DARWIN_C_SOURCE)
+    #define _DARWIN_C_SOURCE 1
+#endif
+
 #include "../include/file.h"
 
 #include <errno.h>
@@ -6,20 +14,20 @@
 #include <string.h>
 
 #ifndef _WIN32
-#include <sys/stat.h> /* fstat, S_ISREG for the file_readall fast path */
-#ifdef __linux__
-#include <linux/version.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0)
-#define HAVE_COPY_FILE_RANGE 1
-#endif
-#endif
+    #include <sys/stat.h> /* fstat, S_ISREG for the file_readall fast path */
+    #ifdef __linux__
+        #include <linux/version.h>
+        #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0)
+            #define HAVE_COPY_FILE_RANGE 1
+        #endif
+    #endif
 #endif
 
 #ifdef _WIN32
-#include <io.h>
+    #include <io.h>
 #else
-#include <pwd.h>
-#include <sys/types.h>
+    #include <pwd.h>
+    #include <sys/types.h>
 #endif
 
 /** Human-readable size formatting precision threshold. */
@@ -156,29 +164,29 @@ int populate_file_attrs(const char* path, FileAttributes* attr) {
         attr->attrs |= FATTR_SYMLINK;
     }
 
-#ifdef S_ISCHR
+    #ifdef S_ISCHR
     if (S_ISCHR(st.st_mode)) {
         attr->attrs |= FATTR_CHARDEV;
     }
-#endif
+    #endif
 
-#ifdef S_ISBLK
+    #ifdef S_ISBLK
     if (S_ISBLK(st.st_mode)) {
         attr->attrs |= FATTR_BLOCKDEV;
     }
-#endif
+    #endif
 
-#ifdef S_ISFIFO
+    #ifdef S_ISFIFO
     if (S_ISFIFO(st.st_mode)) {
         attr->attrs |= FATTR_FIFO;
     }
-#endif
+    #endif
 
-#ifdef S_ISSOCK
+    #ifdef S_ISSOCK
     if (S_ISSOCK(st.st_mode)) {
         attr->attrs |= FATTR_SOCKET;
     }
-#endif
+    #endif
 
     // Check if hidden (starts with '.' on Unix)
     const char* name = path;
@@ -821,16 +829,29 @@ file_result_t file_seek(file_t* file, int64_t offset, int whence) {
  * Cross-platform sendfile
  * ---------------------------------------------------------------------- */
 
+/* -------------------------------------------------------------------------
+ * Cross-platform sendfile
+ *
+ * Linux:   <sys/sendfile.h>  ssize_t sendfile(int out, int in, off_t *off, size_t n)
+ * macOS:   <sys/socket.h>    int sendfile(int fd, int s, off_t off, off_t *len, struct sf_hdtr *hd, int flags)
+ *          file \u2192 socket only; file\u2192file must use fallback/copyfile
+ * FreeBSD: <sys/socket.h> + <sys/uio.h>  int sendfile(int fd, int s, off_t off, size_t n, struct sf_hdtr *hd, off_t
+ * *sbytes, int flags)
+ * ---------------------------------------------------------------------- */
+
 #if defined(__linux__)
-#include <sys/sendfile.h>
-#elif defined(__APPLE__) || defined(__FreeBSD__)
-#include <sys/socket.h>
-#include <sys/uio.h>
+    #include <sys/sendfile.h>
+#elif defined(__FreeBSD__)
+    #include <sys/socket.h>
+    #include <sys/uio.h>
+#elif defined(__APPLE__)
+    #include <sys/socket.h>
+    #include <sys/uio.h>
 #endif
-#if defined(_WIN32)
-#include <mswsock.h>  /* TransmitFile */
-#include <winsock2.h> /* must precede windows.h (LEAN_AND_MEAN) */
-#endif
+/* Windows socket extension APIs (TransmitFile) are provided via
+ * platform.h (winsock2 → mswsock → windows → ws2tcpip) which is
+ * included transitively through file.h. No additional Windows
+ * headers are needed here. */
 
 /**
  * Fallback used when the OS has no native sendfile: pread from in_fd,
@@ -883,10 +904,19 @@ int64_t file_sendfile(int out_fd, int in_fd, int64_t* offset, size_t count) {
     return (int64_t)sent;
 
 #elif defined(__APPLE__)
+    /* macOS sendfile only supports file \u2192 socket. For file\u2192file (or any
+     * non-socket dest) it fails with ENOTSOCK/EINVAL. Fall back to the
+     * portable pread+write loop in that case, which also handles the
+     * required socket-only restriction transparently. */
     off_t len = (off_t)count;
     int r = sendfile(in_fd, out_fd, (off_t)*offset, &len, NULL, 0);
-    if (r == -1 && errno != EAGAIN) return -1;
-    /* EAGAIN: partial send happened; len reports how much. */
+    if (r == -1) {
+        if (errno == ENOTSOCK || errno == ENOTSUP || errno == EINVAL || errno == ENOTCONN || errno == EOPNOTSUPP) {
+            return file_sendfile_fallback(out_fd, in_fd, offset, count);
+        }
+        if (errno != EAGAIN) return -1;
+        /* EAGAIN: partial send happened; len reports how much. */
+    }
     *offset += (int64_t)len;
     return (int64_t)len;
 
