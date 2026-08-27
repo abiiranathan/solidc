@@ -841,13 +841,12 @@ file_result_t file_seek(file_t* file, int64_t offset, int whence) {
 
 #if defined(__linux__)
     #include <sys/sendfile.h>
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__APPLE__)
     #include <sys/socket.h>
-    #include <sys/uio.h>
-#elif defined(__APPLE__)
-    #include <sys/socket.h>
+    #include <sys/types.h>
     #include <sys/uio.h>
 #endif
+
 /* Windows socket extension APIs (TransmitFile) are provided via
  * platform.h (winsock2 → mswsock → windows → ws2tcpip) which is
  * included transitively through file.h. No additional Windows
