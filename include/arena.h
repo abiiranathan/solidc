@@ -76,26 +76,26 @@ extern "C" {
  * ---------------------------------------------------------------------- */
 
 #ifdef _MSC_VER
-#include <intrin.h>
-#define ARENA_INLINE               __forceinline
-#define ARENA_PREFETCH(addr)       _mm_prefetch((const char*)(addr), _MM_HINT_T0)
-#define ARENA_LIKELY(x)            (x)
-#define ARENA_UNLIKELY(x)          (x)
-#define ARENA_ATTR_MALLOC          __declspec(restrict)
-#define ARENA_ATTR_ALLOC_SIZE(n)   /* not available on MSVC */
-#define ARENA_ATTR_RETURNS_NONNULL /* not available on MSVC */
-#define ARENA_UNREACHABLE()        __assume(0)
+    #include <intrin.h>
+    #define ARENA_INLINE               __forceinline
+    #define ARENA_PREFETCH(addr)       _mm_prefetch((const char*)(addr), _MM_HINT_T0)
+    #define ARENA_LIKELY(x)            (x)
+    #define ARENA_UNLIKELY(x)          (x)
+    #define ARENA_ATTR_MALLOC          __declspec(restrict)
+    #define ARENA_ATTR_ALLOC_SIZE(n)   /* not available on MSVC */
+    #define ARENA_ATTR_RETURNS_NONNULL /* not available on MSVC */
+    #define ARENA_UNREACHABLE()        __assume(0)
 #else
-#define ARENA_INLINE               inline __attribute__((always_inline))
-#define ARENA_PREFETCH(addr)       __builtin_prefetch((addr), 1, 3)
-#define ARENA_LIKELY(x)            __builtin_expect(!!(x), 1)
-#define ARENA_UNLIKELY(x)          __builtin_expect(!!(x), 0)
-/** Tells the compiler the returned pointer aliases no existing object. */
-#define ARENA_ATTR_MALLOC          __attribute__((malloc))
-/** Tells the compiler which argument encodes the allocation size. */
-#define ARENA_ATTR_ALLOC_SIZE(n)   __attribute__((alloc_size(n)))
-#define ARENA_ATTR_RETURNS_NONNULL __attribute__((returns_nonnull))
-#define ARENA_UNREACHABLE()        __builtin_unreachable()
+    #define ARENA_INLINE               inline __attribute__((always_inline))
+    #define ARENA_PREFETCH(addr)       __builtin_prefetch((addr), 1, 3)
+    #define ARENA_LIKELY(x)            __builtin_expect(!!(x), 1)
+    #define ARENA_UNLIKELY(x)          __builtin_expect(!!(x), 0)
+    /** Tells the compiler the returned pointer aliases no existing object. */
+    #define ARENA_ATTR_MALLOC          __attribute__((malloc))
+    /** Tells the compiler which argument encodes the allocation size. */
+    #define ARENA_ATTR_ALLOC_SIZE(n)   __attribute__((alloc_size(n)))
+    #define ARENA_ATTR_RETURNS_NONNULL __attribute__((returns_nonnull))
+    #define ARENA_UNREACHABLE()        __builtin_unreachable()
 #endif
 
 /* -------------------------------------------------------------------------
@@ -108,29 +108,29 @@ extern "C" {
  * ---------------------------------------------------------------------- */
 
 #ifdef ARENA_ABORT_ON_OOM
-#include <stdio.h>  /* fprintf  */
-#include <stdlib.h> /* abort    */
-#ifndef ARENA_OOM_HANDLER
-/**
- * Called by arena allocators when an allocation fails and ARENA_ABORT_ON_OOM
- * is defined.  @p size is the byte count that could not be satisfied.
- * The default implementation prints a diagnostic and calls abort().
- * Define your own before including arena.h to override.
- */
-#define ARENA_OOM_HANDLER(size)                                                         \
-    do {                                                                                \
-        fprintf(stderr, "arena: out of memory allocating %zu bytes\n", (size_t)(size)); \
-        abort();                                                                        \
-    } while (0)
-#endif /* ARENA_OOM_HANDLER */
+    #include <stdio.h>  /* fprintf  */
+    #include <stdlib.h> /* abort    */
+    #ifndef ARENA_OOM_HANDLER
+        /**
+         * Called by arena allocators when an allocation fails and ARENA_ABORT_ON_OOM
+         * is defined.  @p size is the byte count that could not be satisfied.
+         * The default implementation prints a diagnostic and calls abort().
+         * Define your own before including arena.h to override.
+         */
+        #define ARENA_OOM_HANDLER(size)                                                         \
+            do {                                                                                \
+                fprintf(stderr, "arena: out of memory allocating %zu bytes\n", (size_t)(size)); \
+                abort();                                                                        \
+            } while (0)
+    #endif /* ARENA_OOM_HANDLER */
 
-/** Internal: applied to functions that abort on OOM so callers skip NULL checks. */
-#define ARENA_NONNULL_ ARENA_ATTR_RETURNS_NONNULL
+    /** Internal: applied to functions that abort on OOM so callers skip NULL checks. */
+    #define ARENA_NONNULL_ ARENA_ATTR_RETURNS_NONNULL
 
 #else /* !ARENA_ABORT_ON_OOM */
 
-#define ARENA_NONNULL_ /* nothing — callers must check for NULL */
-/* ARENA_UNREACHABLE() is already defined in the compiler-helpers block above. */
+    #define ARENA_NONNULL_ /* nothing — callers must check for NULL */
+    /* ARENA_UNREACHABLE() is already defined in the compiler-helpers block above. */
 
 #endif /* ARENA_ABORT_ON_OOM */
 

@@ -8,20 +8,20 @@
 #include <string.h>  // for memset, strlen
 
 #ifdef _WIN32
-// Windows CRT provides _s variants; adapt them to the _r call sites below.
-// NULL-return contract matches POSIX so error checks keep working.
-#include <time.h>
-#define gmtime_r(timep, result)    (((gmtime_s)((result), (timep)) == 0) ? (result) : NULL)
-#define localtime_r(timep, result) (((localtime_s)((result), (timep)) == 0) ? (result) : NULL)
+    // Windows CRT provides _s variants; adapt them to the _r call sites below.
+    // NULL-return contract matches POSIX so error checks keep working.
+    #include <time.h>
+    #define gmtime_r(timep, result)    (((gmtime_s)((result), (timep)) == 0) ? (result) : NULL)
+    #define localtime_r(timep, result) (((localtime_s)((result), (timep)) == 0) ? (result) : NULL)
 #endif
 
 #if defined(__APPLE__) || defined(__unix__) || defined(__linux__)
-#include <sys/time.h>  // for gettimeofday
+    #include <sys/time.h>  // for gettimeofday
 #endif
 
 // Platform-specific includes for high-resolution time
 #if defined(__APPLE__)
-#include <mach/mach_time.h>
+    #include <mach/mach_time.h>
 #endif
 
 /** Nanoseconds per second */

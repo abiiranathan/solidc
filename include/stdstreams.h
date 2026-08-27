@@ -31,22 +31,22 @@ extern "C" {
  * --------------------------------------------------------------------- */
 
 #if defined(__GNUC__) || defined(__clang__)
-#define STREAM_LIKELY(x)   __builtin_expect(!!(x), 1)
-#define STREAM_UNLIKELY(x) __builtin_expect(!!(x), 0)
-#define STREAM_INLINE      inline __attribute__((always_inline))
-#define STREAM_RESTRICT    __restrict__
+    #define STREAM_LIKELY(x)   __builtin_expect(!!(x), 1)
+    #define STREAM_UNLIKELY(x) __builtin_expect(!!(x), 0)
+    #define STREAM_INLINE      inline __attribute__((always_inline))
+    #define STREAM_RESTRICT    __restrict__
 #else
-#define STREAM_LIKELY(x)   (x)
-#define STREAM_UNLIKELY(x) (x)
-#define STREAM_INLINE      inline
-#define STREAM_RESTRICT
+    #define STREAM_LIKELY(x)   (x)
+    #define STREAM_UNLIKELY(x) (x)
+    #define STREAM_INLINE      inline
+    #define STREAM_RESTRICT
 #endif
 
 #ifndef NDEBUG
-#include <assert.h>
-#define STREAM_ASSERT(x) assert(x)
+    #include <assert.h>
+    #define STREAM_ASSERT(x) assert(x)
 #else
-#define STREAM_ASSERT(x) ((void)0)
+    #define STREAM_ASSERT(x) ((void)0)
 #endif
 
 /** Inline buffer capacity for Small String Optimization (SSO). */

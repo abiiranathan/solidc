@@ -202,7 +202,7 @@ void socket_strerror(int err, char* buffer, size_t size) {
     /* Ensure NUL-termination (FormatMessageA does not guarantee it on short buffers). */
     buffer[size - 1] = '\0';
 #else
-#if defined(__GLIBC__)
+    #if defined(__GLIBC__)
     /*
      * GNU strerror_r: returns char* which may point to a static string
      * rather than `buffer`.  Copy it into the caller's buffer if needed.
@@ -214,11 +214,11 @@ void socket_strerror(int err, char* buffer, size_t size) {
         memcpy(buffer, msg, copy);
         buffer[copy] = '\0';
     }
-#else
+    #else
     /* POSIX strerror_r (macOS, BSD): always writes into buffer, returns int. */
     strerror_r(err, buffer, size);
     buffer[size - 1] = '\0'; /* ensure NUL-termination */
-#endif
+    #endif
 #endif
 }
 
@@ -272,12 +272,12 @@ int socket_reuse_port(Socket* sock, int enable) {
         ret = -1;
     }
 
-// SO_REUSEPORT is available on Linux and modern BSD/macOS
-#ifdef SO_REUSEPORT
+    // SO_REUSEPORT is available on Linux and modern BSD/macOS
+    #ifdef SO_REUSEPORT
     if (setsockopt(sock->handle, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) != 0) {
         ret = -1;
     }
-#endif
+    #endif
 
     return ret;
 #endif

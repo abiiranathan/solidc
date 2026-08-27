@@ -21,13 +21,13 @@
 #include "../../include/lock.h"
 
 #ifdef __linux__
-#include <sys/syscall.h>
-#include <sys/utsname.h>
+    #include <sys/syscall.h>
+    #include <sys/utsname.h>
 
-// Linux getdents64 structures
-#ifndef SYS_getdents64
-#define SYS_getdents64 217
-#endif
+    // Linux getdents64 structures
+    #ifndef SYS_getdents64
+        #define SYS_getdents64 217
+    #endif
 
 struct linux_dirent64 {
     ino64_t d_ino;
@@ -277,26 +277,26 @@ const FileAttributes* lazy_get_attrs(LazyFileAttributes* lazy) {
     } else if (S_ISLNK(st.st_mode)) {
         lazy->cached.attrs |= FATTR_SYMLINK;
     }
-#ifdef S_ISCHR
+    #ifdef S_ISCHR
     else if (S_ISCHR(st.st_mode)) {
         lazy->cached.attrs |= FATTR_CHARDEV;
     }
-#endif
-#ifdef S_ISBLK
+    #endif
+    #ifdef S_ISBLK
     else if (S_ISBLK(st.st_mode)) {
         lazy->cached.attrs |= FATTR_BLOCKDEV;
     }
-#endif
-#ifdef S_ISFIFO
+    #endif
+    #ifdef S_ISFIFO
     else if (S_ISFIFO(st.st_mode)) {
         lazy->cached.attrs |= FATTR_FIFO;
     }
-#endif
-#ifdef S_ISSOCK
+    #endif
+    #ifdef S_ISSOCK
     else if (S_ISSOCK(st.st_mode)) {
         lazy->cached.attrs |= FATTR_SOCKET;
     }
-#endif
+    #endif
 #else
     // Fallback for non-Linux POSIX: use lstat on the full fd-relative path is
     // not portable without fstatat, so callers on other platforms always pass
@@ -564,26 +564,26 @@ static int fast_map_attrs(int dirfd, const char* name, unsigned char d_type, Fil
     } else if (S_ISLNK(st.st_mode)) {
         attr->attrs |= FATTR_SYMLINK;
     }
-#ifdef S_ISCHR
+    #ifdef S_ISCHR
     else if (S_ISCHR(st.st_mode)) {
         attr->attrs |= FATTR_CHARDEV;
     }
-#endif
-#ifdef S_ISBLK
+    #endif
+    #ifdef S_ISBLK
     else if (S_ISBLK(st.st_mode)) {
         attr->attrs |= FATTR_BLOCKDEV;
     }
-#endif
-#ifdef S_ISFIFO
+    #endif
+    #ifdef S_ISFIFO
     else if (S_ISFIFO(st.st_mode)) {
         attr->attrs |= FATTR_FIFO;
     }
-#endif
-#ifdef S_ISSOCK
+    #endif
+    #ifdef S_ISSOCK
     else if (S_ISSOCK(st.st_mode)) {
         attr->attrs |= FATTR_SOCKET;
     }
-#endif
+    #endif
     return 0;
 }
 

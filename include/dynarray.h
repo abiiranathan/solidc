@@ -20,17 +20,17 @@ extern "C" {
 /* -------------------------------------------------------------------------- */
 
 #if defined(__GNUC__) || defined(__clang__)
-#define DYNARRAY_LIKELY(x)   __builtin_expect(!!(x), 1)
-#define DYNARRAY_UNLIKELY(x) __builtin_expect(!!(x), 0)
-#define DYNARRAY_INLINE      inline __attribute__((always_inline))
-#define DYNARRAY_COLD        __attribute__((cold, noinline))
-#define DYNARRAY_RESTRICT    __restrict__
+    #define DYNARRAY_LIKELY(x)   __builtin_expect(!!(x), 1)
+    #define DYNARRAY_UNLIKELY(x) __builtin_expect(!!(x), 0)
+    #define DYNARRAY_INLINE      inline __attribute__((always_inline))
+    #define DYNARRAY_COLD        __attribute__((cold, noinline))
+    #define DYNARRAY_RESTRICT    __restrict__
 #else
-#define DYNARRAY_LIKELY(x)   (x)
-#define DYNARRAY_UNLIKELY(x) (x)
-#define DYNARRAY_INLINE      inline
-#define DYNARRAY_COLD
-#define DYNARRAY_RESTRICT
+    #define DYNARRAY_LIKELY(x)   (x)
+    #define DYNARRAY_UNLIKELY(x) (x)
+    #define DYNARRAY_INLINE      inline
+    #define DYNARRAY_COLD
+    #define DYNARRAY_RESTRICT
 #endif
 
 /** Initial capacity when array is first created. */

@@ -121,19 +121,19 @@ char* strptime(const char* buf, const char* fmt, struct tm* tm) {
             s++;
         }
 
-#define WIN_STRPTIME_READ_1OR2(var)                           \
-    do {                                                      \
-        if (!isdigit((unsigned char)s[0])) {                  \
-            return NULL;                                      \
-        }                                                     \
-        (var) = (unsigned char)s[0] - '0';                    \
-        if (isdigit((unsigned char)s[1])) {                   \
-            (var) = (var) * 10 + ((unsigned char)s[1] - '0'); \
-            s += 2;                                           \
-        } else {                                              \
-            s += 1;                                           \
-        }                                                     \
-    } while (0)
+    #define WIN_STRPTIME_READ_1OR2(var)                           \
+        do {                                                      \
+            if (!isdigit((unsigned char)s[0])) {                  \
+                return NULL;                                      \
+            }                                                     \
+            (var) = (unsigned char)s[0] - '0';                    \
+            if (isdigit((unsigned char)s[1])) {                   \
+                (var) = (var) * 10 + ((unsigned char)s[1] - '0'); \
+                s += 2;                                           \
+            } else {                                              \
+                s += 1;                                           \
+            }                                                     \
+        } while (0)
 
         switch (*f) {
             case 'Y': {  // Year: consumes 1-4 digits (glibc/strtol parity)

@@ -22,11 +22,11 @@ extern "C" {
 
 // Allow user to customize initial map size and load factor threshold
 #ifndef INITIAL_MAP_SIZE
-#define INITIAL_MAP_SIZE (size_t)16
+    #define INITIAL_MAP_SIZE (size_t)16
 #endif
 
 #ifndef LOAD_FACTOR_THRESHOLD
-#define LOAD_FACTOR_THRESHOLD (double)0.75
+    #define LOAD_FACTOR_THRESHOLD (double)0.75
 #endif
 
 // Define alignment for cache line optimization
@@ -34,23 +34,23 @@ extern "C" {
 
 // Cross-platform prefetch macros
 #if defined(__GNUC__) || defined(__clang__)
-#define PREFETCH_READ(addr)  __builtin_prefetch((addr), 0, 3)
-#define PREFETCH_WRITE(addr) __builtin_prefetch((addr), 1, 3)
+    #define PREFETCH_READ(addr)  __builtin_prefetch((addr), 0, 3)
+    #define PREFETCH_WRITE(addr) __builtin_prefetch((addr), 1, 3)
 #elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
-#include <intrin.h>
-#define PREFETCH_READ(addr)  _mm_prefetch((char*)(addr), _MM_HINT_T0)
-#define PREFETCH_WRITE(addr) _mm_prefetch((char*)(addr), _MM_HINT_T0)
+    #include <intrin.h>
+    #define PREFETCH_READ(addr)  _mm_prefetch((char*)(addr), _MM_HINT_T0)
+    #define PREFETCH_WRITE(addr) _mm_prefetch((char*)(addr), _MM_HINT_T0)
 #elif defined(__has_builtin)
-#if __has_builtin(__builtin_prefetch)
-#define PREFETCH_READ(addr)  __builtin_prefetch((addr), 0, 3)
-#define PREFETCH_WRITE(addr) __builtin_prefetch((addr), 1, 3)
+    #if __has_builtin(__builtin_prefetch)
+        #define PREFETCH_READ(addr)  __builtin_prefetch((addr), 0, 3)
+        #define PREFETCH_WRITE(addr) __builtin_prefetch((addr), 1, 3)
+    #else
+        #define PREFETCH_READ(addr)  ((void)0)
+        #define PREFETCH_WRITE(addr) ((void)0)
+    #endif
 #else
-#define PREFETCH_READ(addr)  ((void)0)
-#define PREFETCH_WRITE(addr) ((void)0)
-#endif
-#else
-#define PREFETCH_READ(addr)  ((void)0)
-#define PREFETCH_WRITE(addr) ((void)0)
+    #define PREFETCH_READ(addr)  ((void)0)
+    #define PREFETCH_WRITE(addr) ((void)0)
 #endif
 
 typedef size_t (*HashFunction)(const void* key, size_t size);

@@ -18,7 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #ifdef _WIN32
-#include <direct.h>
+    #include <direct.h>
 #endif
 
 // Generate a random string for temporary file/directory names.

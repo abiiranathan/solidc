@@ -21,7 +21,7 @@
 #define DIR_SEP  "/"
 
 #ifndef X_OK
-#define X_OK 1
+    #define X_OK 1
 #endif
 
 /* Process handle: a POSIX child pid. */

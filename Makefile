@@ -55,7 +55,7 @@ clean:
 	rm -rf $(BUILD_DIR) .cache a.out
 
 format:
-	find . -name '*.c' -o -name '*.h' | xargs clang-format -i
+	find src/ include/ -name '*.c' -o -name '*.h' | xargs clang-format -i
 
 bench:
 	$(CC) -D_GNU_SOURCE benchmarks/bench_arena.c src/arena.c src/lock.c \

@@ -5,7 +5,7 @@
 #ifndef SOLIDC_FILE_H
 #define SOLIDC_FILE_H
 
-#if !defined(_POSIX_C_SOURCE) && !defined(_WIN32)
+#if !defined(_POSIX_C_SOURCE) && !defined(_WIN32) && !defined(__APPLE__)
     #define _POSIX_C_SOURCE   200809L  // For fstat, fileno, pwrite, pread, fcntl, etc.
     #define _FILE_OFFSET_BITS 64       // Ensure 64-bit off_t on 32-bit POSIX systems
 #endif

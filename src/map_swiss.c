@@ -5,9 +5,9 @@
 #include "../include/swiss_map.h"
 
 #if defined(__SSE2__)
-#include <emmintrin.h>
+    #include <emmintrin.h>
 #elif defined(__ARM_NEON) || defined(__ARM_NEON__)
-#include <arm_neon.h>
+    #include <arm_neon.h>
 #endif
 
 #include <stdbool.h>
@@ -19,10 +19,10 @@
 #include "macros.h"
 
 #ifdef _MSC_VER
-#include <BaseTsd.h>
-#ifndef ssize_t
+    #include <BaseTsd.h>
+    #ifndef ssize_t
 typedef SSIZE_T ssize_t;
-#endif
+    #endif
 #endif
 
 #define XXH_INLINE_ALL
@@ -68,7 +68,7 @@ struct swiss_map {
 /* ------------------------------------------------------------------ */
 
 #if defined(__SSE2__)
-#define SW_HAVE_SSE2 1
+    #define SW_HAVE_SSE2 1
 typedef __m128i sw_group_t;
 
 static inline sw_group_t sw_group_load(const unsigned char* p) { return _mm_loadu_si128((const __m128i*)p); }
@@ -83,7 +83,7 @@ static inline uint32_t sw_group_match_deleted(sw_group_t g) {
 }
 
 #elif defined(__ARM_NEON) || defined(__ARM_NEON__)
-#define SW_HAVE_NEON 1
+    #define SW_HAVE_NEON 1
 typedef uint8x16_t sw_group_t;
 
 static inline sw_group_t sw_group_load(const unsigned char* p) { return vld1q_u8(p); }
@@ -92,16 +92,16 @@ static inline uint32_t sw_neon_movemask(uint8x16_t eq) {
     static const uint8_t mask_bits[16]
         __attribute__((aligned(16))) = {1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128};
     uint8x16_t masked = vandq_u8(eq, vld1q_u8(mask_bits));
-#if defined(__aarch64__) || defined(_M_ARM64)
+    #if defined(__aarch64__) || defined(_M_ARM64)
     uint8_t low_sum = vaddv_u8(vget_low_u8(masked));
     uint8_t high_sum = vaddv_u8(vget_high_u8(masked));
     return (uint32_t)low_sum | ((uint32_t)high_sum << 8);
-#else
+    #else
     uint8x8_t p1 = vpadd_u8(vget_low_u8(masked), vget_high_u8(masked));
     uint8x8_t p2 = vpadd_u8(p1, p1);
     uint8x8_t p3 = vpadd_u8(p2, p2);
     return (uint32_t)vget_lane_u8(p3, 0) | ((uint32_t)vget_lane_u8(p3, 1) << 8);
-#endif
+    #endif
 }
 
 static inline uint32_t sw_group_match(sw_group_t g, unsigned char needle) {

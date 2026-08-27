@@ -28,14 +28,14 @@
 #define SPINLOCK_H
 
 #ifdef __cplusplus
-#include <atomic>
+    #include <atomic>
 extern "C" {
 #else
-#include <stdatomic.h>
+    #include <stdatomic.h>
 #endif
 
 #if defined(__x86_64__) || defined(__i386__)
-#include <emmintrin.h>  // For _mm_pause on x86
+    #include <emmintrin.h>  // For _mm_pause on x86
 #endif
 
 /**
@@ -76,7 +76,7 @@ static inline void cpu_relax(void) {
 #elif defined(__aarch64__) || defined(__arm__)
     __asm__ volatile("yield");
 #else
-    /* No-op on other platforms */
+        /* No-op on other platforms */
 #endif
 }
 

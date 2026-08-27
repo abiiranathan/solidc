@@ -14,22 +14,22 @@
  * GCC 5+ and Clang 3.8+ support these.
  */
 #if defined(__has_builtin)
-#if __has_builtin(__builtin_add_overflow)
-#define SOLIDC_USE_BUILTINS
-#endif
+    #if __has_builtin(__builtin_add_overflow)
+        #define SOLIDC_USE_BUILTINS
+    #endif
 #elif defined(__GNUC__) && (__GNUC__ >= 5)
-#define SOLIDC_USE_BUILTINS
+    #define SOLIDC_USE_BUILTINS
 #endif
 
 #ifdef SOLIDC_USE_BUILTINS
 
-/*
- * Generic Macros: These work for int, long, size_t, etc.
- * Returns true (1) if overflow occurred, false (0) otherwise.
- */
-#define ckd_add(r, a, b) __builtin_add_overflow((a), (b), (r))
-#define ckd_sub(r, a, b) __builtin_sub_overflow((a), (b), (r))
-#define ckd_mul(r, a, b) __builtin_mul_overflow((a), (b), (r))
+    /*
+     * Generic Macros: These work for int, long, size_t, etc.
+     * Returns true (1) if overflow occurred, false (0) otherwise.
+     */
+    #define ckd_add(r, a, b) __builtin_add_overflow((a), (b), (r))
+    #define ckd_sub(r, a, b) __builtin_sub_overflow((a), (b), (r))
+    #define ckd_mul(r, a, b) __builtin_mul_overflow((a), (b), (r))
 
 #else
 

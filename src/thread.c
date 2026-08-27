@@ -8,15 +8,15 @@
 #include <time.h>    // for nanosleep
 
 #ifdef _WIN32
-#include <process.h>  // for Windows threading
+    #include <process.h>  // for Windows threading
 #else
-#include <sys/syscall.h>  // for syscall numbers
+    #include <sys/syscall.h>  // for syscall numbers
 #endif
 
 /* Platform-specific error code handling */
 #ifdef _WIN32
-/** Maximum Windows error code we'll handle (prevents overflow). */
-#define MAX_WIN_ERROR 0x7FFFFFFF
+    /** Maximum Windows error code we'll handle (prevents overflow). */
+    #define MAX_WIN_ERROR 0x7FFFFFFF
 
 /**
  * Converts Windows error code to portable error code.

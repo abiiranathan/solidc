@@ -14,9 +14,9 @@
 #include <xxhash.h>
 
 #ifdef _MSC_VER
-#ifndef __builtin_prefetch
-#define __builtin_prefetch(x, ...) ((void)0)
-#endif
+    #ifndef __builtin_prefetch
+        #define __builtin_prefetch(x, ...) ((void)0)
+    #endif
 #endif
 
 /** Maximum linear probe sequence length during open addressing collisions. */
@@ -33,14 +33,14 @@
 
 /** Pause hint while spinning on a seqlock writer (PAUSE/YIELD/nop). */
 #if defined(_MSC_VER)
-#include <intrin.h>
-#define CACHE_PAUSE() _mm_pause()
+    #include <intrin.h>
+    #define CACHE_PAUSE() _mm_pause()
 #elif defined(__x86_64__) || defined(__i386__)
-#define CACHE_PAUSE() __builtin_ia32_pause()
+    #define CACHE_PAUSE() __builtin_ia32_pause()
 #elif defined(__aarch64__) || defined(__arm__)
-#define CACHE_PAUSE() __asm__ __volatile__("yield" ::: "memory")
+    #define CACHE_PAUSE() __asm__ __volatile__("yield" ::: "memory")
 #else
-#define CACHE_PAUSE() ((void)0)
+    #define CACHE_PAUSE() ((void)0)
 #endif
 
 /** Block unit stored in ABA-safe lock-free slab allocator pool. */

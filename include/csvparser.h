@@ -15,21 +15,21 @@ extern "C" {
 #endif
 
 #ifndef _GNU_SOURCE
-#define _GNU_SOURCE 1
+    #define _GNU_SOURCE 1
 #endif
 
 #ifndef CSV_ARENA_BLOCK_SIZE
-#define CSV_ARENA_BLOCK_SIZE (1 << 20)
+    #define CSV_ARENA_BLOCK_SIZE (1 << 20)
 #endif
 
 #ifndef MAX_FIELD_SIZE
-// Maximum size of the csv line.
-#define MAX_FIELD_SIZE 1024
+    // Maximum size of the csv line.
+    #define MAX_FIELD_SIZE 1024
 #endif
 
 // static assert to ensure MAX_FIELD_SIZE is reasonable for stack allocation
 #if MAX_FIELD_SIZE > 4096
-#error "MAX_FIELD_SIZE is too large for stack allocation. Please reduce it to 4096 or less."
+    #error "MAX_FIELD_SIZE is too large for stack allocation. Please reduce it to 4096 or less."
 #endif
 
 /**

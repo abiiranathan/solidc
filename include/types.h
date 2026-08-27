@@ -14,15 +14,15 @@
 
 // Check for C11 compiler support.
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ < 201112L
-#error "solidc requires a C11-compliant compiler"
+    #error "solidc requires a C11-compliant compiler"
 #endif
 
 // ── Detect compiler / platform ───────────────────────────────────────────────
 // Used to gate features that are not available on all compilers (e.g. atomics on MSVC).
 #if defined(_MSC_VER)
-#define SOLIDC_MSVC
+    #define SOLIDC_MSVC
 #elif defined(__GNUC__) || defined(__clang__)
-#define SOLIDC_GCC_LIKE
+    #define SOLIDC_GCC_LIKE
 #endif
 
 // ── Signed integers ──────────────────────────────────────────────────────────
@@ -103,27 +103,27 @@ typedef uint8_t byte;
 // out entirely (useful for embedded or C99 targets).
 // Check SOLIDC_HAS_ATOMICS in downstream code instead of repeating this guard.
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L && !defined(SOLIDC_NO_ATOMICS)
-#include <stdatomic.h>
-#ifndef atomic_i32
+    #include <stdatomic.h>
+    #ifndef atomic_i32
 /** Atomic 32-bit signed integer (C11 only). */
 typedef _Atomic(i32) atomic_i32;
-#endif
-#ifndef atomic_u32
+    #endif
+    #ifndef atomic_u32
 /** Atomic 32-bit unsigned integer (C11 only). */
 typedef _Atomic(u32) atomic_u32;
-#endif
-#ifndef atomic_i64
+    #endif
+    #ifndef atomic_i64
 /** Atomic 64-bit signed integer (C11 only). */
 typedef _Atomic(i64) atomic_i64;
-#endif
-#ifndef atomic_u64
+    #endif
+    #ifndef atomic_u64
 /** Atomic 64-bit unsigned integer (C11 only). */
 typedef _Atomic(u64) atomic_u64;
-#endif
+    #endif
 
-#define SOLIDC_HAS_ATOMICS 1
+    #define SOLIDC_HAS_ATOMICS 1
 #else
-#define SOLIDC_HAS_ATOMICS 0
+    #define SOLIDC_HAS_ATOMICS 0
 #endif
 
 // ── Compile-time width checks ────────────────────────────────────────────────

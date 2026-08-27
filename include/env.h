@@ -30,47 +30,47 @@ extern "C" {
 
 // Platform detection
 #if defined(__linux__)
-#define GETENV(name) secure_getenv(name)
+    #define GETENV(name) secure_getenv(name)
 #else
-#define GETENV(name) getenv(name)
+    #define GETENV(name) getenv(name)
 #endif
 
 // SETENV macro - cross-platform environment variable setting
 #if defined(_WIN32) || defined(_WIN64)
-#include <stdlib.h>  // for _putenv_s
-/**
- * Sets environment variable on Windows.
- * @param name Variable name
- * @param value Variable value
- * @param overwrite Ignored on Windows (always overwrites)
- * @return 0 on success, non-zero on failure
- */
-#define SETENV(name, value, overwrite) _putenv_s(name, value)
+    #include <stdlib.h>  // for _putenv_s
+    /**
+     * Sets environment variable on Windows.
+     * @param name Variable name
+     * @param value Variable value
+     * @param overwrite Ignored on Windows (always overwrites)
+     * @return 0 on success, non-zero on failure
+     */
+    #define SETENV(name, value, overwrite) _putenv_s(name, value)
 
-/**
- * Removes environment variable on Windows.
- * @param name Variable name to remove
- * @return 0 on success, non-zero on failure
- * @note Windows unsets by setting to empty string
- */
-#define UNSETENV(name) _putenv_s(name, "")
+    /**
+     * Removes environment variable on Windows.
+     * @param name Variable name to remove
+     * @return 0 on success, non-zero on failure
+     * @note Windows unsets by setting to empty string
+     */
+    #define UNSETENV(name) _putenv_s(name, "")
 #else
-// POSIX systems (Linux, macOS, BSD, etc.)
-/**
- * Sets environment variable on POSIX systems.
- * @param name Variable name
- * @param value Variable value
- * @param overwrite 1 to overwrite existing value, 0 to preserve
- * @return 0 on success, -1 on failure
- */
-#define SETENV(name, value, overwrite) setenv(name, value, overwrite)
+    // POSIX systems (Linux, macOS, BSD, etc.)
+    /**
+     * Sets environment variable on POSIX systems.
+     * @param name Variable name
+     * @param value Variable value
+     * @param overwrite 1 to overwrite existing value, 0 to preserve
+     * @return 0 on success, -1 on failure
+     */
+    #define SETENV(name, value, overwrite) setenv(name, value, overwrite)
 
-/**
- * Removes environment variable on POSIX systems.
- * @param name Variable name to remove
- * @return 0 on success, -1 on failure
- */
-#define UNSETENV(name)                 unsetenv(name)
+    /**
+     * Removes environment variable on POSIX systems.
+     * @param name Variable name to remove
+     * @return 0 on success, -1 on failure
+     */
+    #define UNSETENV(name)                 unsetenv(name)
 #endif
 
 #ifdef __cplusplus

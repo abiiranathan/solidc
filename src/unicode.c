@@ -33,7 +33,7 @@
 #include "macros.h"
 
 #if defined(__SSE2__)
-#include <emmintrin.h>
+    #include <emmintrin.h>
 #endif
 
 #include <stdint.h>  // for SIZE_MAX

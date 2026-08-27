@@ -16,8 +16,8 @@
 #define ACCESS _access
 
 #ifndef X_OK
-// Windows doesn't have X_OK, but MinGW does.
-#define X_OK 0
+    // Windows doesn't have X_OK, but MinGW does.
+    #define X_OK 0
 #endif
 
 /* Process handle: primary process/thread handles from CreateProcess. */

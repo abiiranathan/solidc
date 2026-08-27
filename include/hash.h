@@ -29,7 +29,7 @@
 #include <stdint.h>
 
 #ifndef XXH_INLINE_ALL
-#define XXH_INLINE_ALL
+    #define XXH_INLINE_ALL
 #endif
 
 // Include xxhash heaader

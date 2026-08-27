@@ -20,12 +20,12 @@ extern "C" {
 
 /** Maximum length of an environment variable name. */
 #ifndef MAX_VAR_NAME_LEN
-#define MAX_VAR_NAME_LEN 256
+    #define MAX_VAR_NAME_LEN 256
 #endif
 
 // Maximum length of a line in the .env file
 #ifndef MAX_LINE_LENGTH
-#define MAX_LINE_LENGTH 1024
+    #define MAX_LINE_LENGTH 1024
 #endif
 
 /**

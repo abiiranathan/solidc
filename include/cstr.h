@@ -52,21 +52,21 @@ extern "C" {
  * ---------------------------------------------------------------------- */
 
 #if defined(__GNUC__) || defined(__clang__)
-#define CSTR_LIKELY(x)    __builtin_expect(!!(x), 1)
-#define CSTR_UNLIKELY(x)  __builtin_expect(!!(x), 0)
-#define CSTR_INLINE       static inline __attribute__((always_inline))
-#define CSTR_NONNULL(...) __attribute__((nonnull(__VA_ARGS__)))
-#define CSTR_PURE         __attribute__((pure))
-#define CSTR_WARN_UNUSED  __attribute__((warn_unused_result))
-#define CSTR_RESTRICT     __restrict__
+    #define CSTR_LIKELY(x)    __builtin_expect(!!(x), 1)
+    #define CSTR_UNLIKELY(x)  __builtin_expect(!!(x), 0)
+    #define CSTR_INLINE       static inline __attribute__((always_inline))
+    #define CSTR_NONNULL(...) __attribute__((nonnull(__VA_ARGS__)))
+    #define CSTR_PURE         __attribute__((pure))
+    #define CSTR_WARN_UNUSED  __attribute__((warn_unused_result))
+    #define CSTR_RESTRICT     __restrict__
 #else
-#define CSTR_LIKELY(x)   (x)
-#define CSTR_UNLIKELY(x) (x)
-#define CSTR_INLINE      static inline
-#define CSTR_NONNULL(...)
-#define CSTR_PURE
-#define CSTR_WARN_UNUSED
-#define CSTR_RESTRICT
+    #define CSTR_LIKELY(x)   (x)
+    #define CSTR_UNLIKELY(x) (x)
+    #define CSTR_INLINE      static inline
+    #define CSTR_NONNULL(...)
+    #define CSTR_PURE
+    #define CSTR_WARN_UNUSED
+    #define CSTR_RESTRICT
 #endif
 
 /* -------------------------------------------------------------------------
@@ -109,11 +109,11 @@ typedef struct cstr {
 } cstr;
 
 #ifndef STATIC_ASSERT
-#if defined(__cplusplus)
-#define STATIC_ASSERT(cond, msg) static_assert(cond, msg)
-#else
-#define STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
-#endif
+    #if defined(__cplusplus)
+        #define STATIC_ASSERT(cond, msg) static_assert(cond, msg)
+    #else
+        #define STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
+    #endif
 #endif
 
 /* Compile-time layout assertions */

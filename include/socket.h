@@ -6,10 +6,6 @@
 #ifndef SOCKET_H
 #define SOCKET_H
 
-#ifndef _POSIX_C_SOURCE
-    #define _POSIX_C_SOURCE 200112L
-#endif
-
 // for SO_REUSEPORT
 #ifndef _GNU_SOURCE
     #define _GNU_SOURCE

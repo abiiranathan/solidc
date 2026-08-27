@@ -54,30 +54,30 @@
  * Note: We assume SSE2 is available on all modern x86 targets.
  */
 #if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86)
-#define SIMD_ARCH_X86
-#include <immintrin.h>
+    #define SIMD_ARCH_X86
+    #include <immintrin.h>
 
-/* Check for SSE4.1 support (Standard on Core 2 Duo Penryn and later) */
-#if defined(__SSE4_1__)
-#define SIMD_HAS_SSE41
-#endif
+    /* Check for SSE4.1 support (Standard on Core 2 Duo Penryn and later) */
+    #if defined(__SSE4_1__)
+        #define SIMD_HAS_SSE41
+    #endif
 
 /*
  * Detect ARM NEON.
  * Distinguishes between AArch64 (ARMv8) and ARMv7 (32-bit).
  */
 #elif defined(__aarch64__) || defined(__arm64__) || defined(_M_ARM64)
-#define SIMD_ARCH_ARM
-#define SIMD_ARCH_ARM64
-#include <arm_neon.h>
+    #define SIMD_ARCH_ARM
+    #define SIMD_ARCH_ARM64
+    #include <arm_neon.h>
 #elif defined(__ARM_NEON) || defined(__ARM_NEON__)
-#define SIMD_ARCH_ARM
-#define SIMD_ARCH_ARM32
-#include <arm_neon.h>
+    #define SIMD_ARCH_ARM
+    #define SIMD_ARCH_ARM32
+    #include <arm_neon.h>
 
 /* Fallback for generic C implementation */
 #else
-#define SIMD_ARCH_SCALAR
+    #define SIMD_ARCH_SCALAR
 #endif
 
 /* =========================================================
@@ -269,11 +269,11 @@ static inline simd_vec_t simd_div(simd_vec_t a, simd_vec_t b) {
  */
 static inline simd_vec_t simd_madd(simd_vec_t a, simd_vec_t b, simd_vec_t c) {
 #if defined(SIMD_ARCH_X86)
-#if defined(__FMA__)
+    #if defined(__FMA__)
     return _mm_fmadd_ps(a, b, c);
-#else
+    #else
     return _mm_add_ps(_mm_mul_ps(a, b), c);
-#endif
+    #endif
 #elif defined(SIMD_ARCH_ARM)
     return vmlaq_f32(c, a, b);  // NEON instruction acts as accumulator: c += a*b
 #else
@@ -389,15 +389,15 @@ static inline simd_vec_t simd_rcp(simd_vec_t v) {
 /** @brief Round down to nearest integer (returns float) */
 static inline simd_vec_t simd_floor(simd_vec_t v) {
 #if defined(SIMD_ARCH_X86)
-#ifdef SIMD_HAS_SSE41
+    #ifdef SIMD_HAS_SSE41
     return _mm_floor_ps(v);
-#else
+    #else
     /* SSE2 Fallback: conversion via scalar math */
     float temp[4];
     _mm_storeu_ps(temp, v);
     for (int i = 0; i < 4; ++i) temp[i] = floorf(temp[i]);
     return _mm_loadu_ps(temp);
-#endif
+    #endif
 #elif defined(SIMD_ARCH_ARM64)
     return vrndmq_f32(v);  // Round towards minus infinity
 #elif defined(SIMD_ARCH_ARM32)
@@ -413,14 +413,14 @@ static inline simd_vec_t simd_floor(simd_vec_t v) {
 /** @brief Round up to nearest integer (returns float) */
 static inline simd_vec_t simd_ceil(simd_vec_t v) {
 #if defined(SIMD_ARCH_X86)
-#ifdef SIMD_HAS_SSE41
+    #ifdef SIMD_HAS_SSE41
     return _mm_ceil_ps(v);
-#else
+    #else
     float temp[4];
     _mm_storeu_ps(temp, v);
     for (int i = 0; i < 4; ++i) temp[i] = ceilf(temp[i]);
     return _mm_loadu_ps(temp);
-#endif
+    #endif
 #elif defined(SIMD_ARCH_ARM64)
     return vrndpq_f32(v);  // Round towards plus infinity
 #elif defined(SIMD_ARCH_ARM32)
@@ -436,14 +436,14 @@ static inline simd_vec_t simd_ceil(simd_vec_t v) {
 /** @brief Round to nearest integer */
 static inline simd_vec_t simd_round(simd_vec_t v) {
 #if defined(SIMD_ARCH_X86)
-#ifdef SIMD_HAS_SSE41
+    #ifdef SIMD_HAS_SSE41
     return _mm_round_ps(v, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
-#else
+    #else
     float temp[4];
     _mm_storeu_ps(temp, v);
     for (int i = 0; i < 4; ++i) temp[i] = roundf(temp[i]);
     return _mm_loadu_ps(temp);
-#endif
+    #endif
 #elif defined(SIMD_ARCH_ARM64)
     return vrndnq_f32(v);  // Round nearest, ties to even
 #elif defined(SIMD_ARCH_ARM32)
@@ -644,22 +644,22 @@ static inline simd_vec_t simd_andnot(simd_vec_t a, simd_vec_t b) {
 
 /* Macros to duplicate a specific component across the vector */
 #if defined(SIMD_ARCH_X86)
-/* _MM_SHUFFLE parameters are (w, z, y, x) indices */
-#define simd_dup_x(v) _mm_shuffle_ps(v, v, _MM_SHUFFLE(0, 0, 0, 0))
-#define simd_dup_y(v) _mm_shuffle_ps(v, v, _MM_SHUFFLE(1, 1, 1, 1))
-#define simd_dup_z(v) _mm_shuffle_ps(v, v, _MM_SHUFFLE(2, 2, 2, 2))
-#define simd_dup_w(v) _mm_shuffle_ps(v, v, _MM_SHUFFLE(3, 3, 3, 3))
+    /* _MM_SHUFFLE parameters are (w, z, y, x) indices */
+    #define simd_dup_x(v) _mm_shuffle_ps(v, v, _MM_SHUFFLE(0, 0, 0, 0))
+    #define simd_dup_y(v) _mm_shuffle_ps(v, v, _MM_SHUFFLE(1, 1, 1, 1))
+    #define simd_dup_z(v) _mm_shuffle_ps(v, v, _MM_SHUFFLE(2, 2, 2, 2))
+    #define simd_dup_w(v) _mm_shuffle_ps(v, v, _MM_SHUFFLE(3, 3, 3, 3))
 #elif defined(SIMD_ARCH_ARM)
-/* NEON lane extraction requires compile-time constant indices */
-#define simd_dup_x(v) vdupq_n_f32(vgetq_lane_f32(v, 0))
-#define simd_dup_y(v) vdupq_n_f32(vgetq_lane_f32(v, 1))
-#define simd_dup_z(v) vdupq_n_f32(vgetq_lane_f32(v, 2))
-#define simd_dup_w(v) vdupq_n_f32(vgetq_lane_f32(v, 3))
+    /* NEON lane extraction requires compile-time constant indices */
+    #define simd_dup_x(v) vdupq_n_f32(vgetq_lane_f32(v, 0))
+    #define simd_dup_y(v) vdupq_n_f32(vgetq_lane_f32(v, 1))
+    #define simd_dup_z(v) vdupq_n_f32(vgetq_lane_f32(v, 2))
+    #define simd_dup_w(v) vdupq_n_f32(vgetq_lane_f32(v, 3))
 #else
-#define simd_dup_x(v) simd_set1(v.f[0])
-#define simd_dup_y(v) simd_set1(v.f[1])
-#define simd_dup_z(v) simd_set1(v.f[2])
-#define simd_dup_w(v) simd_set1(v.f[3])
+    #define simd_dup_x(v) simd_set1(v.f[0])
+    #define simd_dup_y(v) simd_set1(v.f[1])
+    #define simd_dup_z(v) simd_set1(v.f[2])
+    #define simd_dup_w(v) simd_set1(v.f[3])
 #endif
 
 /**
@@ -675,13 +675,13 @@ static inline simd_vec_t simd_andnot(simd_vec_t a, simd_vec_t b) {
  */
 static inline simd_vec_t simd_blend(simd_vec_t false_vec, simd_vec_t true_vec, simd_vec_t mask) {
 #if defined(SIMD_ARCH_X86)
-#ifdef SIMD_HAS_SSE41
+    #ifdef SIMD_HAS_SSE41
     /* SSE4.1 dedicated blend instruction */
     return _mm_blendv_ps(false_vec, true_vec, mask);
-#else
+    #else
     /* SSE2 Fallback: (mask & true) | (~mask & false) */
     return _mm_or_ps(_mm_and_ps(mask, true_vec), _mm_andnot_ps(mask, false_vec));
-#endif
+    #endif
 #elif defined(SIMD_ARCH_ARM)
     /* vbslq: Bitwise Select. Selects from true_vec if mask bit is 1, else false_vec */
     uint32x4_t uint_mask = vreinterpretq_u32_f32(mask);
@@ -791,9 +791,9 @@ static inline float simd_hmax(simd_vec_t v) {
  */
 static inline float simd_dot3(simd_vec_t a, simd_vec_t b) {
 #if defined(SIMD_ARCH_X86)
-#ifdef SIMD_HAS_SSE41
+    #ifdef SIMD_HAS_SSE41
     return _mm_cvtss_f32(_mm_dp_ps(a, b, 0x71)); /* mask: xxxx0111 */
-#else
+    #else
     __m128 mul = _mm_mul_ps(a, b);
 
     /*
@@ -807,17 +807,17 @@ static inline float simd_dot3(simd_vec_t a, simd_vec_t b) {
     mul = _mm_and_ps(mul, _mm_castsi128_ps(imask));
 
     return simd_hadd(mul);
-#endif
+    #endif
 #elif defined(SIMD_ARCH_ARM)
     simd_vec_t mul = vmulq_f32(a, b);
     mul = vsetq_lane_f32(0.0f, mul, 3); /* zero W lane (no NaN risk: 0 literal) */
-#if defined(SIMD_ARCH_ARM64)
+    #if defined(SIMD_ARCH_ARM64)
     return vaddvq_f32(mul);
-#else
+    #else
     float32x2_t r = vadd_f32(vget_high_f32(mul), vget_low_f32(mul));
     r = vpadd_f32(r, r);
     return vget_lane_f32(r, 0);
-#endif
+    #endif
 #else
     return a.f[0] * b.f[0] + a.f[1] * b.f[1] + a.f[2] * b.f[2];
 #endif
@@ -829,21 +829,21 @@ static inline float simd_dot3(simd_vec_t a, simd_vec_t b) {
  */
 static inline float simd_dot4(simd_vec_t a, simd_vec_t b) {
 #if defined(SIMD_ARCH_X86)
-#ifdef SIMD_HAS_SSE41
+    #ifdef SIMD_HAS_SSE41
     /* _mm_dp_ps mask 0xF1: SrcMask=1111 (xyzw), DstMask=0001 (store in x) */
     return _mm_cvtss_f32(_mm_dp_ps(a, b, 0xF1));
-#else
+    #else
     return simd_hadd(_mm_mul_ps(a, b));
-#endif
+    #endif
 #elif defined(SIMD_ARCH_ARM)
     simd_vec_t mul = vmulq_f32(a, b);
-#if defined(SIMD_ARCH_ARM64)
+    #if defined(SIMD_ARCH_ARM64)
     return vaddvq_f32(mul);
-#else
+    #else
     float32x2_t r = vadd_f32(vget_high_f32(mul), vget_low_f32(mul));
     r = vpadd_f32(r, r);
     return vget_lane_f32(r, 0);
-#endif
+    #endif
 #else
     return a.f[0] * b.f[0] + a.f[1] * b.f[1] + a.f[2] * b.f[2] + a.f[3] * b.f[3];
 #endif
@@ -928,9 +928,9 @@ static inline simd_vec_t simd_normalize3(simd_vec_t v) {
 
         /* Restore original W component */
 #if defined(SIMD_ARCH_X86)
-#if defined(SIMD_HAS_SSE41)
+    #if defined(SIMD_HAS_SSE41)
         return _mm_blend_ps(result, v, 0x8);  // Mask 1000: copy W from v
-#else
+    #else
         /* SSE2 fallback: bitwise blend keeps xyz of result and takes w
          * from v.  Bitwise AND/OR do not propagate NaN/Inf lanes. */
         {
@@ -941,7 +941,7 @@ static inline simd_vec_t simd_normalize3(simd_vec_t v) {
             www = _mm_and_ps(www, _mm_castsi128_ps(keep_w));
             return _mm_or_ps(result, www);
         }
-#endif
+    #endif
 #elif defined(SIMD_ARCH_ARM)
         return vsetq_lane_f32(vgetq_lane_f32(v, 3), result, 3);
 #else
@@ -985,9 +985,9 @@ static inline simd_vec_t simd_normalize3_fast(simd_vec_t v) {
 
     /* Restore W */
 #if defined(SIMD_ARCH_X86)
-#if defined(SIMD_HAS_SSE41)
+    #if defined(SIMD_HAS_SSE41)
     return _mm_blend_ps(result, v, 0x8);
-#else
+    #else
     {
         __m128 www = _mm_shuffle_ps(v, v, _MM_SHUFFLE(3, 3, 3, 3));
         const __m128i keep_xyz = _mm_set_epi32(0, -1, -1, -1);
@@ -996,7 +996,7 @@ static inline simd_vec_t simd_normalize3_fast(simd_vec_t v) {
         www = _mm_and_ps(www, _mm_castsi128_ps(keep_w));
         return _mm_or_ps(result, www);
     }
-#endif
+    #endif
 #elif defined(SIMD_ARCH_ARM)
     return vsetq_lane_f32(vgetq_lane_f32(v, 3), result, 3);
 #else
@@ -1061,23 +1061,23 @@ static inline bool simd_equals_eps(simd_vec_t a, simd_vec_t b, float epsilon) {
  */
 #if defined(SIMD_ARCH_X86)
 
-/*
- * _MM_SHUFFLE(w, z, y, x) takes indices in reverse order.
- * We pass v for both inputs to shuffle from the same vector.
- */
-#define simd_swizzle(v, x, y, z, w) _mm_shuffle_ps((v), (v), _MM_SHUFFLE((w), (z), (y), (x)))
+    /*
+     * _MM_SHUFFLE(w, z, y, x) takes indices in reverse order.
+     * We pass v for both inputs to shuffle from the same vector.
+     */
+    #define simd_swizzle(v, x, y, z, w) _mm_shuffle_ps((v), (v), _MM_SHUFFLE((w), (z), (y), (x)))
 
 #elif defined(SIMD_ARCH_ARM)
 
-/*
- * __builtin_shufflevector is a CLANG extension; GCC on ARM does not have
- * it (GCC uses the differently-shaped __builtin_shuffle).  Non-clang
- * compilers therefore take the portable NEON load/store fallback below,
- * which every ARM compiler optimizes to vtbl/vext/ins sequences.
- */
-#if defined(__clang__)
-#define simd_swizzle(v, x, y, z, w) __builtin_shufflevector((v), (v), (x), (y), (z), (w))
-#else
+    /*
+     * __builtin_shufflevector is a CLANG extension; GCC on ARM does not have
+     * it (GCC uses the differently-shaped __builtin_shuffle).  Non-clang
+     * compilers therefore take the portable NEON load/store fallback below,
+     * which every ARM compiler optimizes to vtbl/vext/ins sequences.
+     */
+    #if defined(__clang__)
+        #define simd_swizzle(v, x, y, z, w) __builtin_shufflevector((v), (v), (x), (y), (z), (w))
+    #else
 /** Portable fallback for simd_swizzle() on compilers without shuffle builtins. */
 static inline simd_vec_t simd_swizzle_fallback(simd_vec_t v, int i0, int i1, int i2, int i3) {
     float d[4];
@@ -1085,13 +1085,13 @@ static inline simd_vec_t simd_swizzle_fallback(simd_vec_t v, int i0, int i1, int
     float r[4] = {d[i0], d[i1], d[i2], d[i3]};
     return vld1q_f32(r);
 }
-#define simd_swizzle(v, x, y, z, w) simd_swizzle_fallback((v), (x), (y), (z), (w))
-#endif
+        #define simd_swizzle(v, x, y, z, w) simd_swizzle_fallback((v), (x), (y), (z), (w))
+    #endif
 
 #else
 
-/* Scalar Fallback */
-#define simd_swizzle(v, x, y, z, w) ((simd_vec_t){{(v).f[(x)], (v).f[(y)], (v).f[(z)], (v).f[(w)]}})
+    /* Scalar Fallback */
+    #define simd_swizzle(v, x, y, z, w) ((simd_vec_t){{(v).f[(x)], (v).f[(y)], (v).f[(z)], (v).f[(w)]}})
 
 #endif
 
@@ -1137,26 +1137,26 @@ static inline bool simd_check_all(simd_vec_t mask) {
 
 /** @brief Transposes a 4x4 matrix defined by 4 row/col vectors in-place. */
 #if defined(SIMD_ARCH_X86)
-#define simd_transpose4(r0, r1, r2, r3) _MM_TRANSPOSE4_PS(r0, r1, r2, r3)
+    #define simd_transpose4(r0, r1, r2, r3) _MM_TRANSPOSE4_PS(r0, r1, r2, r3)
 #elif defined(SIMD_ARCH_ARM)
-#define simd_transpose4(r0, r1, r2, r3)                                        \
-    do {                                                                       \
-        float32x4x2_t t0 = vtrnq_f32(r0, r1);                                  \
-        float32x4x2_t t1 = vtrnq_f32(r2, r3);                                  \
-        r0 = vcombine_f32(vget_low_f32(t0.val[0]), vget_low_f32(t1.val[0]));   \
-        r1 = vcombine_f32(vget_low_f32(t0.val[1]), vget_low_f32(t1.val[1]));   \
-        r2 = vcombine_f32(vget_high_f32(t0.val[0]), vget_high_f32(t1.val[0])); \
-        r3 = vcombine_f32(vget_high_f32(t0.val[1]), vget_high_f32(t1.val[1])); \
-    } while (0)
+    #define simd_transpose4(r0, r1, r2, r3)                                        \
+        do {                                                                       \
+            float32x4x2_t t0 = vtrnq_f32(r0, r1);                                  \
+            float32x4x2_t t1 = vtrnq_f32(r2, r3);                                  \
+            r0 = vcombine_f32(vget_low_f32(t0.val[0]), vget_low_f32(t1.val[0]));   \
+            r1 = vcombine_f32(vget_low_f32(t0.val[1]), vget_low_f32(t1.val[1]));   \
+            r2 = vcombine_f32(vget_high_f32(t0.val[0]), vget_high_f32(t1.val[0])); \
+            r3 = vcombine_f32(vget_high_f32(t0.val[1]), vget_high_f32(t1.val[1])); \
+        } while (0)
 #else
-#define simd_transpose4(r0, r1, r2, r3)                          \
-    do {                                                         \
-        simd_vec_t t0 = r0, t1 = r1, t2 = r2, t3 = r3;           \
-        r0 = (simd_vec_t){{t0.f[0], t1.f[0], t2.f[0], t3.f[0]}}; \
-        r1 = (simd_vec_t){{t0.f[1], t1.f[1], t2.f[1], t3.f[1]}}; \
-        r2 = (simd_vec_t){{t0.f[2], t1.f[2], t2.f[2], t3.f[2]}}; \
-        r3 = (simd_vec_t){{t0.f[3], t1.f[3], t2.f[3], t3.f[3]}}; \
-    } while (0)
+    #define simd_transpose4(r0, r1, r2, r3)                          \
+        do {                                                         \
+            simd_vec_t t0 = r0, t1 = r1, t2 = r2, t3 = r3;           \
+            r0 = (simd_vec_t){{t0.f[0], t1.f[0], t2.f[0], t3.f[0]}}; \
+            r1 = (simd_vec_t){{t0.f[1], t1.f[1], t2.f[1], t3.f[1]}}; \
+            r2 = (simd_vec_t){{t0.f[2], t1.f[2], t2.f[2], t3.f[2]}}; \
+            r3 = (simd_vec_t){{t0.f[3], t1.f[3], t2.f[3], t3.f[3]}}; \
+        } while (0)
 #endif
 
 /* =========================================================================

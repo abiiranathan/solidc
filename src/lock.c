@@ -1,5 +1,5 @@
 #ifndef _GNU_SOURCE
-#define _GNU_SOURCE
+    #define _GNU_SOURCE
 #endif
 
 #include "../include/lock.h"
@@ -241,7 +241,7 @@ int cond_init(Condition* condition) {
         return -1;
     }
 
-#if SOLIDC_OS_APPLE
+    #if SOLIDC_OS_APPLE
     /* No condattr clock selection on Darwin; cond uses CLOCK_REALTIME. */
     ret = pthread_cond_init(condition, &attr);
     pthread_condattr_destroy(&attr);
@@ -250,7 +250,7 @@ int cond_init(Condition* condition) {
         return -1;
     }
     return 0;
-#else
+    #else
     ret = pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
     if (ret != 0) {
         /* Very old platforms may lack MONOTONIC support for condvars;
@@ -273,7 +273,7 @@ int cond_init(Condition* condition) {
     }
 
     return 0;
-#endif /* __APPLE__ */
+    #endif /* __APPLE__ */
 }
 
 int cond_signal(Condition* condition) {
