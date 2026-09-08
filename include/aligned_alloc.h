@@ -15,7 +15,7 @@ extern "C" {
 #endif
 
 #if defined(_WIN32) || defined(__CYGWIN__)
-    #include <malloc.h>  // _aligned_malloc and _aligned_free
+#include <malloc.h>  // _aligned_malloc and _aligned_free
 #endif
 
 /**
