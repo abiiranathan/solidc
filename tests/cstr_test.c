@@ -13,8 +13,8 @@ void print_cstr(const cstr* s) {
     if (!s) {
         printf("NULL\n");
     } else {
-        printf("\"%s\" (len=%zu, cap=%zu, heap=%d)\n", cstr_data_const(s), cstr_len(s), cstr_capacity(s),
-               cstr_allocated(s));
+        printf("\"%s\" (len=%zu, cap=%zu, heap=%d)\n", cstr_data_const(s), cstr_len(s),
+               cstr_capacity(s), cstr_allocated(s));
     }
 }
 
@@ -259,6 +259,19 @@ int main(void) {
         cstr_free(s);
     }
 
+    // Test str_remove_substr
+    {
+        printf("\nTesting str_remove_substr...\n");
+        cstr* s = cstr_new("0123456789");
+        cstr_remove_substr(s, 3, 4);
+        ASSERT_cstr_equals(s, "012789", "str_remove_substr middle range");
+        cstr_remove_substr(s, 4, 100);
+        ASSERT_cstr_equals(s, "0127", "str_remove_substr clamps length");
+        cstr_remove_substr(s, 4, 1);
+        ASSERT_cstr_equals(s, "0127", "str_remove_substr at end is a no-op");
+        cstr_free(s);
+    }
+
     // Test str_at
     {
         printf("\nTesting str_at...\n");
@@ -289,6 +302,13 @@ int main(void) {
         cstr_free(s);
         v = cstr_as_view(NULL);
         ASSERT(v.data == NULL && v.length == 0 && "str_as_view with NULL");
+
+        v = cstr_view_from_len("prefix-suffix", 6);
+        ASSERT(v.length == 6 && memcmp(v.data, "prefix", v.length) == 0 && "cstr_view_from_len");
+        v = cstr_view_from_str("view");
+        ASSERT(v.length == 4 && memcmp(v.data, "view", v.length) == 0 && "cstr_view_from_str");
+        v = cstr_view_from_str(NULL);
+        ASSERT(v.data == NULL && v.length == 0 && "cstr_view_from_str NULL");
         printf("str_as_view: Passed\n");
     }
 
@@ -343,6 +363,16 @@ int main(void) {
         printf("str_ends_with: Passed\n");
     }
 
+    {
+        printf("\nTesting view prefix and suffix matching...\n");
+        cstr* s = cstr_new("Hello, World");
+        ASSERT(cstr_starts_with_view(s, (cstr_view){"Hello", 5}));
+        ASSERT(!cstr_starts_with_view(s, (cstr_view){"World", 5}));
+        ASSERT(cstr_ends_with_view(s, (cstr_view){"World", 5}));
+        ASSERT(!cstr_ends_with_view(s, (cstr_view){"Hello", 5}));
+        cstr_free(s);
+    }
+
     // Test str_find
     {
         printf("\nTesting str_find...\n");
@@ -363,6 +393,18 @@ int main(void) {
         printf("str_rfind: Passed\n");
     }
 
+    {
+        printf("\nTesting view search and contains...\n");
+        cstr* s = cstr_new("abc abc");
+        cstr_view needle = {"abc", 3};
+        ASSERT(cstr_find_view(s, needle) == 0);
+        ASSERT(cstr_rfind_view(s, needle) == 4);
+        ASSERT(cstr_contains(s, "abc"));
+        ASSERT(cstr_contains_view(s, needle));
+        ASSERT(!cstr_contains_view(s, (cstr_view){"xyz", 3}));
+        cstr_free(s);
+    }
+
     // Test cstr_lower (scalar, SWAR, and scalar cleanup paths)
     {
         printf("\nTesting cstr_lower...\n");
@@ -379,7 +421,8 @@ int main(void) {
         ASSERT_cstr_equals(s_exact, "abcdefgh", "cstr_lower exact 8-byte SWAR");
         cstr_free(s_exact);
 
-        // 3. Long string (> 8 bytes with symbols/numbers: tests multiple SWAR chunks + scalar cleanup)
+        // 3. Long string (> 8 bytes with symbols/numbers: tests multiple SWAR chunks + scalar
+        // cleanup)
         const char* input_long = "HELLO WORLD! 123 TESTING_SWAR_PATH_WITH_LONG_STRING_64BIT";
         const char* expected_long = "hello world! 123 testing_swar_path_with_long_string_64bit";
 
@@ -405,7 +448,8 @@ int main(void) {
         ASSERT_cstr_equals(s_exact, "ABCDEFGH", "cstr_upper exact 8-byte SWAR");
         cstr_free(s_exact);
 
-        // 3. Long string (> 8 bytes with symbols/numbers: tests multiple SWAR chunks + scalar cleanup)
+        // 3. Long string (> 8 bytes with symbols/numbers: tests multiple SWAR chunks + scalar
+        // cleanup)
         const char* input_long = "hello world! 123 testing_swar_path_with_long_string_64bit";
         const char* expected_long = "HELLO WORLD! 123 TESTING_SWAR_PATH_WITH_LONG_STRING_64BIT";
 
@@ -472,8 +516,9 @@ int main(void) {
             for (uint32_t i = 0; i < len; i++) {
                 rng = rng * 1103515245u + 12345u;
                 unsigned r = (rng >> 16) % 10;
-                in[i] = (char)((r < 6) ? ('A' + (rng >> 3) % 26)
-                                       : ((r < 9) ? ('a' + (rng >> 3) % 26) : ('!' + (rng >> 5) % 6)));
+                in[i] =
+                    (char)((r < 6) ? ('A' + (rng >> 3) % 26)
+                                   : ((r < 9) ? ('a' + (rng >> 3) % 26) : ('!' + (rng >> 5) % 6)));
             }
             in[len] = '\0';
             for (uint32_t i = 0; i < len; i++) {
@@ -581,7 +626,8 @@ int main(void) {
         // 2. Mixed case, multiple spaces, and non-alpha symbols
         cstr* s2 = cstr_new("  hElLo   wORLD!  foo-bar_baz  ");
         cstr_titlecase(s2);
-        ASSERT_cstr_equals(s2, "  Hello   World!  Foo-Bar_Baz  ", "str_title_case mixed formatting");
+        ASSERT_cstr_equals(s2, "  Hello   World!  Foo-Bar_Baz  ",
+                           "str_title_case mixed formatting");
         cstr_free(s2);
     }
 
@@ -626,6 +672,12 @@ int main(void) {
         printf("\nTesting str_count_substr...\n");
         cstr* s = cstr_new("hello hello world");
         ASSERT(cstr_count_substr(s, "hello") == 2 && "str_count_substr count");
+        ASSERT(cstr_count_substr_len(s, "hello", 5) == 2 && "str_count_substr_len count");
+        cstr* hello = cstr_new("hello");
+        ASSERT(cstr_count_substr_cstr(s, hello) == 2 && "str_count_substr_cstr count");
+        cstr_free(hello);
+        cstr_view hello_view = {"hello", 5};
+        ASSERT(cstr_count_substr_view(s, hello_view) == 2 && "str_count_substr_view count");
         ASSERT(cstr_count_substr(s, "notfound") == 0 && "str_count_substr not found");
         cstr_free(s);
         printf("str_count_substr: Passed\n");
@@ -724,7 +776,8 @@ int main(void) {
 
         // Verify first and last segments
         ASSERT_cstr_equals(arr[0], "It was the best of times", "long prose first element");
-        ASSERT_cstr_equals(arr[expected_splits - 1], "it was the winter of despair.", "long prose last element");
+        ASSERT_cstr_equals(arr[expected_splits - 1], "it was the winter of despair.",
+                           "long prose last element");
 
         // Verify a middle segment
         ASSERT_cstr_equals(arr[7], "it was the season of Darkness", "long prose middle element");
