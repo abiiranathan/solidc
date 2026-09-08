@@ -13,12 +13,12 @@
  *    Struct is 32 bytes on 64-bit.  length and capacity fit in L1 cache
  *    together with one hot 16-byte SSO string.
  *
- *  Search — cstr_search_impl()
- *    Uses a Sunday/Horspool bad-character skip table for needle length > 8.
- *    For short needles (≤ 8 bytes) it uses a SWAR (SIMD-Within-A-Register)
- *    first-byte scan to skip directly to candidates, avoiding glibc memmem's
- *    dynamic dispatch and the dynamic linker overhead it sometimes carries.
- *    Both paths avoid touching more haystack memory than necessary.
+ *  Search — cstr_search()
+ *    Uses a SIMD-accelerated first-byte scan (`memchr`) combined with a
+ *    guard-byte check on the last needle byte, and an unrolled scalar loop
+ *    for short needles (<= 9 bytes).  Avoids glibc memmem's dynamic dispatch
+ *    and internal strlen overhead while processing candidates at maximum
+ *    cache bandwidth.
  *
  *  replace_all
  *    Single forward scan with a fixed-size stack-local offset table to avoid
@@ -41,17 +41,15 @@
 #include <string.h>
 
 /* -------------------------------------------------------------------------
- * Internal macros
+ * Internal macros & helpers
  * ---------------------------------------------------------------------- */
 
 #define CSTR_MAX_SIZE ((size_t)CSTR_MAX_LEN)
 
-// Branch prediction hints for better CPU pipeline utilization
-/* Branch prediction — centralized via macros.h */
-#define likely(x)   SOLIDC_EXPECT(!!(x), 1)
-#define unlikely(x) SOLIDC_EXPECT(!!(x), 0)
+#define likely(x)   CSTR_LIKELY(x)
+#define unlikely(x) CSTR_UNLIKELY(x)
 
-/** Round x up to the next power-of-two ≥ x. Undefined for x == 0. */
+/** Round x up to the next power-of-two >= x. Undefined for x == 0. */
 static inline uint32_t next_pow2_u32(uint32_t x) {
     if (x <= 1) return 1;
     x--;
@@ -71,8 +69,7 @@ static inline uint32_t cstr_grow_cap(uint32_t current, uint32_t need) {
     if (cap >= need) return cap;
 
 #if defined(__GNUC__) || defined(__clang__)
-    // O(1) bit count leading zeros
-    uint32_t clz = (uint32_t)SOLIDC_CLZ(need - 1);
+    uint32_t clz = (uint32_t)__builtin_clz(need - 1);
     cap = 1u << (32u - clz);
 #else
     cap = next_pow2_u32(need);
@@ -84,7 +81,7 @@ static inline uint32_t cstr_grow_cap(uint32_t current, uint32_t need) {
 }
 
 /** -------------------------------------------------------------------------
- * Internal: promote SSO → heap, or grow existing heap.
+ * Internal: promote SSO -> heap, or grow existing heap.
  *
  * After a successful call, s->data points to heap memory of size cap,
  * s->capacity has the heap flag set, and existing content is preserved.
@@ -122,6 +119,52 @@ static bool cstr_ensure_cap(cstr* s, size_t need) {
     s->data = mem;
     s->capacity = CSTR_HEAP_FLAG | new_cap;
     return true;
+}
+
+/* -------------------------------------------------------------------------
+ * Search — fast needle-in-haystack without memmem
+ * ---------------------------------------------------------------------- */
+
+static const char* cstr_search(const char* hs, size_t hlen, const char* nd, size_t nlen) {
+    if (unlikely(nlen == 0)) return hs;
+    if (unlikely(hlen < nlen)) return NULL;
+
+    /* Single char: Delegate to SIMD memchr */
+    if (nlen == 1) return (const char*)memchr(hs, (unsigned char)nd[0], hlen);
+
+    const char* cur = hs;
+    const char* end = hs + hlen - nlen;
+    unsigned char n_first = (unsigned char)nd[0];
+    unsigned char n_last = (unsigned char)nd[nlen - 1];
+
+    while (cur <= end) {
+        /* A. SIMD Scan for first character */
+        cur = (const char*)memchr(cur, n_first, (size_t)(end - cur + 1));
+        if (unlikely(!cur)) return NULL;
+
+        /* B. Guard Byte Check (verify the last byte before full verification) */
+        if ((unsigned char)cur[nlen - 1] == n_last) {
+            /* C. Small String Optimization: unrolled loop for lengths 2-9 */
+            if (nlen <= 9) {
+                const char* p_hay = cur + 1;
+                const char* p_nd = nd + 1;
+                size_t k = nlen - 2;
+                size_t i = 0;
+                for (; i < k; i++) {
+                    if (p_hay[i] != p_nd[i]) goto next_iter;
+                }
+                return cur; /* Match found */
+            } else {
+                /* D. Long String: Fallback to memcmp */
+                if (memcmp(cur + 1, nd + 1, nlen - 2) == 0) return cur;
+            }
+        }
+
+    next_iter:
+        cur++;
+    }
+
+    return NULL;
 }
 
 /* -------------------------------------------------------------------------
@@ -171,6 +214,8 @@ cstr* cstr_new_len(const char* data, size_t length) {
     return s;
 }
 
+cstr* cstr_new_view(cstr_view v) { return cstr_new_len(v.data, v.length); }
+
 void cstr_drop(cstr* s) {
     if (!s) return;
     if (cstr_is_heap(s)) {
@@ -185,7 +230,7 @@ void cstr_free(cstr* s) {
     if (cstr_is_heap(s)) {
         free(s->data);
         s->data = NULL;
-    };
+    }
     free(s);
 }
 
@@ -198,7 +243,8 @@ void cstr_debug(const cstr* s) {
     fprintf(stderr,
             "cstr { data=%p, length=%u, capacity=%u, mode=%s }\n"
             "  content: \"%.*s\"\n",
-            (const void*)s->data, s->length, (unsigned)(cstr_is_heap(s) ? cstr_heap_cap(s) : CSTR_SSO_CAP - 1u),
+            (const void*)s->data, s->length,
+            (unsigned)(cstr_is_heap(s) ? cstr_heap_cap(s) : CSTR_SSO_CAP - 1u),
             cstr_is_heap(s) ? "heap" : "sso", (int)s->length, s->data);
 }
 
@@ -214,58 +260,48 @@ void cstr_shrink_to_fit(cstr* s) {
         s->data = mem;
         s->capacity = CSTR_HEAP_FLAG | needed;
     }
-    /* Failure is non-fatal — we just stay oversized. */
 }
 
 /* -------------------------------------------------------------------------
- * Append / prepend / insert
+ * Append / prepend / insert with aliasing safety
  * ---------------------------------------------------------------------- */
 
-bool cstr_append(cstr* s, const char* CSTR_RESTRICT append_str) {
-    size_t n = strlen(append_str);
-    if (n == 0) return true;
+bool cstr_append_len(cstr* s, const char* str, size_t len) {
+    if (len == 0) return true;
+    if (CSTR_UNLIKELY(!str)) return false;
 
-    size_t new_len = (size_t)s->length + n;
+    size_t new_len = (size_t)s->length + len;
     if (CSTR_UNLIKELY(new_len > CSTR_MAX_SIZE)) return false;
+
+    /* Check for self-aliasing into s's existing buffer */
+    bool is_aliased = (str >= s->data && str < s->data + s->length);
+    size_t alias_offset = is_aliased ? (size_t)(str - s->data) : 0;
+
     if (CSTR_UNLIKELY(!cstr_ensure_cap(s, new_len + 1))) return false;
 
-    memcpy(s->data + s->length, append_str, n + 1); /* +1 copies NUL */
+    const char* src = is_aliased ? (s->data + alias_offset) : str;
+    memcpy(s->data + s->length, src, len);
+    s->data[new_len] = '\0';
     s->length = (uint32_t)new_len;
     return true;
 }
 
-bool cstr_append_cstr(cstr* s, const cstr* append) {
-    uint32_t n = append->length;
-    if (n == 0) return true;
-
-    uint32_t new_len = s->length + n;
-    if (CSTR_UNLIKELY(new_len < s->length)) return false;
-
-    // Check for pointer aliasing within s's buffer
-    bool is_aliased = (append->data >= s->data && append->data < s->data + s->length);
-    size_t alias_offset = is_aliased ? (size_t)(append->data - s->data) : 0;
-
-    if (CSTR_UNLIKELY(!cstr_ensure_cap(s, (size_t)new_len + 1))) return false;
-
-    const char* src = is_aliased ? (s->data + alias_offset) : append->data;
-    memcpy(s->data + s->length, src, n);
-    s->data[new_len] = '\0';
-    s->length = new_len;
-    return true;
+bool cstr_append(cstr* s, const char* CSTR_RESTRICT append_str) {
+    if (CSTR_UNLIKELY(!append_str)) return false;
+    return cstr_append_len(s, append_str, strlen(append_str));
 }
 
+bool cstr_append_cstr(cstr* s, const cstr* append) {
+    if (CSTR_UNLIKELY(!append)) return false;
+    return cstr_append_len(s, append->data, append->length);
+}
+
+bool cstr_append_view(cstr* s, cstr_view v) { return cstr_append_len(s, v.data, v.length); }
+
 bool cstr_ncat(cstr* dest, const cstr* src, size_t n) {
-    uint32_t copy_n = (n < (size_t)src->length) ? (uint32_t)n : src->length;
-    if (copy_n == 0) return true;
-
-    uint32_t new_len = dest->length + copy_n;
-    if (CSTR_UNLIKELY(new_len < dest->length)) return false;
-    if (CSTR_UNLIKELY(!cstr_ensure_cap(dest, (size_t)new_len + 1))) return false;
-
-    memcpy(dest->data + dest->length, src->data, copy_n);
-    dest->data[new_len] = '\0';
-    dest->length = new_len;
-    return true;
+    if (CSTR_UNLIKELY(!src)) return false;
+    size_t copy_n = (n < (size_t)src->length) ? n : (size_t)src->length;
+    return cstr_append_len(dest, src->data, copy_n);
 }
 
 bool cstr_append_char(cstr* s, char c) {
@@ -277,33 +313,36 @@ bool cstr_append_char(cstr* s, char c) {
     return true;
 }
 
-bool cstr_prepend(cstr* s, const char* prepend_str) {
-    size_t n = strlen(prepend_str);
-    if (n == 0) return true;
+bool cstr_prepend_len(cstr* s, const char* str, size_t len) {
+    if (len == 0) return true;
+    if (CSTR_UNLIKELY(!str)) return false;
 
-    size_t new_len = (size_t)s->length + n;
+    size_t new_len = (size_t)s->length + len;
     if (CSTR_UNLIKELY(new_len > CSTR_MAX_SIZE)) return false;
+
+    bool is_aliased = (str >= s->data && str < s->data + s->length);
+    size_t alias_offset = is_aliased ? (size_t)(str - s->data) : 0;
+
     if (CSTR_UNLIKELY(!cstr_ensure_cap(s, new_len + 1))) return false;
 
-    memmove(s->data + n, s->data, s->length + 1);
-    memcpy(s->data, prepend_str, n);
+    const char* src = is_aliased ? (s->data + alias_offset) : str;
+    memmove(s->data + len, s->data, s->length + 1);
+    memcpy(s->data, src, len);
     s->length = (uint32_t)new_len;
     return true;
 }
 
-bool cstr_prepend_cstr(cstr* s, const cstr* prepend) {
-    uint32_t n = prepend->length;
-    if (n == 0) return true;
-
-    uint32_t new_len = s->length + n;
-    if (CSTR_UNLIKELY(new_len < s->length)) return false;
-    if (CSTR_UNLIKELY(!cstr_ensure_cap(s, (size_t)new_len + 1))) return false;
-
-    memmove(s->data + n, s->data, s->length + 1);
-    memcpy(s->data, prepend->data, n);
-    s->length = new_len;
-    return true;
+bool cstr_prepend(cstr* s, const char* prepend_str) {
+    if (CSTR_UNLIKELY(!prepend_str)) return false;
+    return cstr_prepend_len(s, prepend_str, strlen(prepend_str));
 }
+
+bool cstr_prepend_cstr(cstr* s, const cstr* prepend) {
+    if (CSTR_UNLIKELY(!prepend)) return false;
+    return cstr_prepend_len(s, prepend->data, prepend->length);
+}
+
+bool cstr_prepend_view(cstr* s, cstr_view v) { return cstr_prepend_len(s, v.data, v.length); }
 
 bool cstr_prepend_fast(cstr* s, const char* prepend_str) {
     size_t n = strlen(prepend_str);
@@ -314,52 +353,57 @@ bool cstr_prepend_fast(cstr* s, const char* prepend_str) {
     return true;
 }
 
-bool cstr_insert(cstr* s, size_t index, const char* insert_str) {
+bool cstr_insert_len(cstr* s, size_t index, const char* str, size_t len) {
     if (CSTR_UNLIKELY(index > (size_t)s->length)) return false;
+    if (len == 0) return true;
+    if (CSTR_UNLIKELY(!str)) return false;
 
-    size_t n = strlen(insert_str);
-    if (n == 0) return true;
-
-    size_t new_len = (size_t)s->length + n;
+    size_t new_len = (size_t)s->length + len;
     if (CSTR_UNLIKELY(new_len > CSTR_MAX_SIZE)) return false;
+
+    bool is_aliased = (str >= s->data && str < s->data + s->length);
+    size_t alias_offset = is_aliased ? (size_t)(str - s->data) : 0;
+
     if (CSTR_UNLIKELY(!cstr_ensure_cap(s, new_len + 1))) return false;
 
+    const char* src = is_aliased ? (s->data + alias_offset) : str;
     char* pos = s->data + index;
-    memmove(pos + n, pos, s->length - index + 1);
-    memcpy(pos, insert_str, n);
+    memmove(pos + len, pos, s->length - index + 1);
+    memmove(pos, src, len);
     s->length = (uint32_t)new_len;
     return true;
 }
 
+bool cstr_insert(cstr* s, size_t index, const char* insert_str) {
+    if (CSTR_UNLIKELY(!insert_str)) return false;
+    return cstr_insert_len(s, index, insert_str, strlen(insert_str));
+}
+
 bool cstr_insert_cstr(cstr* s, size_t index, const cstr* insert) {
-    if (CSTR_UNLIKELY(index > (size_t)s->length)) return false;
+    if (CSTR_UNLIKELY(!insert)) return false;
+    return cstr_insert_len(s, index, insert->data, insert->length);
+}
 
-    uint32_t n = insert->length;
-    if (n == 0) return true;
+bool cstr_insert_view(cstr* s, size_t index, cstr_view v) {
+    return cstr_insert_len(s, index, v.data, v.length);
+}
 
-    uint32_t new_len = s->length + n;
-    if (CSTR_UNLIKELY(new_len < s->length)) return false;
-    if (CSTR_UNLIKELY(!cstr_ensure_cap(s, (size_t)new_len + 1))) return false;
+static inline void cstr_delete_range(cstr* s, uint32_t start, uint32_t del_len) {
+    if (del_len == 0) return;
 
-    char* pos = s->data + index;
-    memmove(pos + n, pos, s->length - index + 1);
-    /* memmove, not memcpy: insert may alias s (self-insert), making the
-     * regions overlap after the shift above. */
-    memmove(pos, insert->data, n);
-    s->length = new_len;
-    return true;
+    uint32_t len = s->length;
+    uint32_t tail = len - start - del_len;
+    memmove(s->data + start, s->data + start + del_len, tail + 1);
+    s->length = len - del_len;
 }
 
 bool cstr_remove(cstr* s, size_t index, size_t count) {
     uint32_t len = s->length;
-    if (CSTR_UNLIKELY(index > len)) return (index == len && count == 0);
+    if (CSTR_UNLIKELY(index > len)) return false;
 
     uint32_t idx = (uint32_t)index;
     uint32_t cnt = (count > (size_t)(len - idx)) ? (len - idx) : (uint32_t)count;
-    if (cnt == 0) return true;
-
-    memmove(s->data + idx, s->data + idx + cnt, len - idx - cnt + 1);
-    s->length = len - cnt;
+    cstr_delete_range(s, idx, cnt);
     return true;
 }
 
@@ -435,25 +479,13 @@ bool cstr_copy(cstr* dest, const cstr* src) {
  * ---------------------------------------------------------------------- */
 
 size_t cstr_remove_all(cstr* s, const char* substr) {
-    if (!*substr) return 0;
-    size_t sub_len = strlen(substr);
-    char* d = s->data;
-    char *w = d, *r = d;
-    const char* end = d + s->length;
-    size_t count = 0;
-
-    while (r < end) {
-        size_t rem = (size_t)(end - r);
-        if (rem >= sub_len && memcmp(r, substr, sub_len) == 0) {
-            r += sub_len;
-            count++;
-        } else {
-            *w++ = *r++;
-        }
-    }
-    *w = '\0';
-    s->length = (uint32_t)(w - d);
-    return count;
+    if (!substr || !*substr) return 0;
+    cstr view = {
+        .data = (char*)substr,
+        .length = (uint32_t)strlen(substr),
+        .capacity = 0,
+    };
+    return cstr_remove_all_cstr(s, &view);
 }
 
 size_t cstr_remove_all_cstr(cstr* s, const cstr* substr) {
@@ -519,82 +551,10 @@ void cstr_remove_char(cstr* s, char c) {
 void cstr_remove_substr(cstr* s, size_t start, size_t slen) {
     uint32_t len = s->length;
     if (CSTR_UNLIKELY(start >= len || slen == 0)) return;
-    if (slen > len - start) slen = len - start;
-    char* d = s->data;
-    size_t tail = len - start - slen;
-    if (tail > 0)
-        memmove(d + start, d + start + slen, tail + 1);
-    else
-        d[start] = '\0';
-    s->length = len - (uint32_t)slen;
-}
 
-/** -------------------------------------------------------------------------
- * Search — fast needle-in-haystack without memmem
- *
- * Strategy:
- *   needle_len == 0 → trivially found at 0
- *   needle_len == 1 → memchr (branchless SIMD on any modern libc)
- *   needle_len 2-8  → first-byte scan with memchr, then verify remainder
- *   needle_len > 8  → Sunday (simplified Horspool) bad-character skip table
- *
- * This beats glibc memmem for short needles because:
- *   - memmem does an internal strlen on the needle even if you know the length
- *   - On older glibc, memmem isn't SIMD-accelerated for small haystacks
- *   - Our memchr-scan path goes through glibc's optimised memchr for the
- *     common first-byte scan and only does a memcmp on real candidates.
- * ---------------------------------------------------------------------- */
-static const char* cstr_search(const char* hs, size_t hlen, const char* nd, size_t nlen) {
-    // Trivial cases
-    if (unlikely(nlen == 0)) return hs;
-    if (unlikely(hlen < nlen)) return NULL;
-
-    // Single char: Delegate to SIMD
-    if (nlen == 1) return (const char*)memchr(hs, (unsigned char)nd[0], hlen);
-
-    const char* cur = hs;
-    const char* end = hs + hlen - nlen;
-    unsigned char n_first = (unsigned char)nd[0];
-    unsigned char n_last = (unsigned char)nd[nlen - 1];
-
-    // Main Loop
-    while (cur <= end) {
-        // A. SIMD Scan for first char
-        // We calculate the remaining search space to be safe
-        cur = (const char*)memchr(cur, n_first, (size_t)(end - cur + 1));
-        if (unlikely(!cur)) return NULL;
-
-        // B. Guard Byte Check (Check the last char first)
-        if ((unsigned char)cur[nlen - 1] == n_last) {
-            // C. Small String Optimization
-            // For lengths 2-9, a tight unrolled loop is much faster than memcmp call overhead.
-            if (nlen <= 9) {
-                // We already checked [0] and [nlen-1]. Check the middle.
-                // Compiler will unroll this completely for small nlen.
-                const char* p_hay = cur + 1;
-                const char* p_nd = nd + 1;
-                size_t k = nlen - 2;
-
-                // Do a manual check.
-                // Note: We use a do-while or simple for.
-                // Since nlen >= 2, k can be 0.
-                size_t i = 0;
-                for (; i < k; i++) {
-                    if (p_hay[i] != p_nd[i]) goto next_iter;
-                }
-                return cur;  // Match found
-            } else {
-                // D. Long String: Fallback to memcmp
-                // We offset by 1 and subtract 2 because first/last are already verified.
-                if (memcmp(cur + 1, nd + 1, nlen - 2) == 0) return cur;
-            }
-        }
-
-    next_iter:
-        cur++;
-    }
-
-    return NULL;
+    uint32_t st = (uint32_t)start;
+    uint32_t cnt = (slen > (size_t)(len - st)) ? (len - st) : (uint32_t)slen;
+    cstr_delete_range(s, st, cnt);
 }
 
 /* -------------------------------------------------------------------------
@@ -609,6 +569,11 @@ int cstr_find(const cstr* s, const char* substr) {
 
 int cstr_find_cstr(const cstr* s, const cstr* sub) {
     const char* found = cstr_search(s->data, s->length, sub->data, sub->length);
+    return found ? (int)(found - s->data) : CSTR_NPOS;
+}
+
+int cstr_find_view(const cstr* s, cstr_view sub) {
+    const char* found = cstr_search(s->data, s->length, sub.data, sub.length);
     return found ? (int)(found - s->data) : CSTR_NPOS;
 }
 
@@ -633,16 +598,22 @@ int cstr_rfind(const cstr* s, const char* substr) {
 int cstr_rfind_cstr(const cstr* s, const cstr* sub) {
     if (sub->length == 0) return (int)s->length;
     if (sub->length > s->length) return CSTR_NPOS;
+    return cstr_rfind_view(s, (cstr_view){sub->data, sub->length});
+}
+
+int cstr_rfind_view(const cstr* s, cstr_view sub) {
+    if (sub.length == 0) return (int)s->length;
+    if (sub.length > s->length) return CSTR_NPOS;
 
     const char* hs = s->data;
     size_t hlen = s->length;
     const char* last = NULL;
     const char* p = hs;
 
-    while ((p = cstr_search(p, hlen - (size_t)(p - hs), sub->data, sub->length)) != NULL) {
+    while ((p = cstr_search(p, hlen - (size_t)(p - hs), sub.data, sub.length)) != NULL) {
         last = p;
         p++;
-        if ((size_t)(p - hs) + sub->length > hlen) break;
+        if ((size_t)(p - hs) + sub.length > hlen) break;
     }
     return last ? (int)(last - hs) : CSTR_NPOS;
 }
@@ -677,10 +648,14 @@ bool cstr_starts_with(const cstr* s, const char* prefix) {
 }
 
 bool cstr_starts_with_cstr(const cstr* s, const cstr* prefix) {
-    uint32_t plen = prefix->length;
+    return cstr_starts_with_view(s, (cstr_view){prefix->data, prefix->length});
+}
+
+bool cstr_starts_with_view(const cstr* s, cstr_view prefix) {
+    uint32_t plen = prefix.length;
     if (plen == 0) return true;
     if (plen > s->length) return false;
-    return memcmp(s->data, prefix->data, plen) == 0;
+    return memcmp(s->data, prefix.data, plen) == 0;
 }
 
 bool cstr_ends_with(const cstr* s, const char* suffix) {
@@ -691,17 +666,21 @@ bool cstr_ends_with(const cstr* s, const char* suffix) {
 }
 
 bool cstr_ends_with_cstr(const cstr* s, const cstr* suffix) {
-    uint32_t slen = suffix->length;
-    if (slen == 0) return true;
-    if (slen > s->length) return false;
-    return memcmp(s->data + s->length - slen, suffix->data, slen) == 0;
+    return cstr_ends_with_view(s, (cstr_view){suffix->data, suffix->length});
 }
 
-/** -------------------------------------------------------------------------
+bool cstr_ends_with_view(const cstr* s, cstr_view suffix) {
+    uint32_t slen = suffix.length;
+    if (slen == 0) return true;
+    if (slen > s->length) return false;
+    return memcmp(s->data + s->length - slen, suffix.data, slen) == 0;
+}
+
+/* -------------------------------------------------------------------------
  * Count occurrences
  * ---------------------------------------------------------------------- */
-size_t cstr_count_substr(const cstr* s, const char* substr) {
-    size_t nlen = strlen(substr);
+
+size_t cstr_count_substr_len(const cstr* s, const char* substr, size_t nlen) {
     if (nlen == 0 || nlen > s->length) return 0;
 
     const char* p = s->data;
@@ -729,47 +708,33 @@ size_t cstr_count_substr(const cstr* s, const char* substr) {
     return count;
 }
 
-size_t cstr_count_substr_cstr(const cstr* s, const cstr* sub) {
-    if (sub->length == 0 || sub->length > s->length) return 0;
-    return cstr_count_substr(s, sub->data);
+size_t cstr_count_substr(const cstr* s, const char* substr) {
+    return cstr_count_substr_len(s, substr, strlen(substr));
 }
+
+size_t cstr_count_substr_cstr(const cstr* s, const cstr* sub) {
+    return cstr_count_substr_len(s, sub->data, sub->length);
+}
+
+size_t cstr_count_substr_view(const cstr* s, cstr_view sub) {
+    return cstr_count_substr_len(s, sub.data, sub.length);
+}
+
 /* -------------------------------------------------------------------------
- * Case conversion
+ * Case conversion & memory hygiene
  * ---------------------------------------------------------------------- */
 
-void cstr_lower(cstr* s) {
-    /* Delegates to simd_ascii_lower(): true SIMD lanes (SSE2/NEON) classify
-     * ASCII letters exactly, including boundary characters, and never touch
-     * bytes >= 0x80.  The previous GPR-SWAR implementation suffered
-     * cross-byte carry contamination and corrupted both ASCII neighbours
-     * ('[', '{', missing 'a'/'A') and UTF-8 content — see the discussion in
-     * include/simd.h. */
-    simd_ascii_lower(s->data, s->length);
-}
+void cstr_lower(cstr* s) { simd_ascii_lower(s->data, s->length); }
 
-/**
- * @brief Securely zero out string memory (guaranteed not optimized away).
- */
+void cstr_upper(cstr* s) { simd_ascii_upper(s->data, s->length); }
+
 void cstr_wipe(cstr* s) {
     if (!s || !s->data) return;
-
     size_t cap = cstr_capacity(s);
     SOLIDC_SECURE_ZERO(s->data, cap);
-
     s->length = 0;
 }
 
-void cstr_upper(cstr* s) {
-    /* Delegates to simd_ascii_upper() — see cstr_lower() and simd.h. */
-    simd_ascii_upper(s->data, s->length);
-}
-
-/**
- * Underscore injection decision for snake_case, evaluated on the ORIGINAL
- * input (mirrors str_snake_should_underscore() in str.h):
- *   lower -> UPPER   myVar     -> my_var
- *   UPPER -> UPPERlower (acronym end)  XMLParser -> xml_parser
- */
 static inline bool cstr_snake_should_underscore(const char* d, uint32_t i, uint32_t len) {
     (void)len;
     if (i == 0) return false;
@@ -825,7 +790,8 @@ bool cstr_snakecase(cstr* s) {
         }
 
         bool curr_upper = (unsigned)(c - 'A') <= 25u;
-        if (curr_upper && cstr_snake_should_underscore(d, i, orig) && !last_was_underscore && w > 0) {
+        if (curr_upper && cstr_snake_should_underscore(d, i, orig) && !last_was_underscore &&
+            w > 0) {
             tmp[w++] = '_';
         }
 
@@ -996,7 +962,7 @@ void cstr_trim_chars(cstr* s, const char* chars) {
 }
 
 /* -------------------------------------------------------------------------
- * Substrings
+ * Substrings & Replacement
  * ---------------------------------------------------------------------- */
 
 cstr* cstr_substr(const cstr* s, size_t start, size_t length) {
@@ -1006,10 +972,6 @@ cstr* cstr_substr(const cstr* s, size_t start, size_t length) {
     uint32_t copy = (length > avail) ? avail : (uint32_t)length;
     return cstr_new_len(s->data + start, copy);
 }
-
-/* -------------------------------------------------------------------------
- * Replace (first occurrence) — builds result in one allocation
- * ---------------------------------------------------------------------- */
 
 cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) {
     size_t old_len = strlen(old_str);
@@ -1035,10 +997,6 @@ cstr* cstr_replace(const cstr* s, const char* old_str, const char* new_str) {
     return r;
 }
 
-/* -------------------------------------------------------------------------
- * Replace all — stack-allocated offset table (heap fallback for > 64 hits)
- * ---------------------------------------------------------------------- */
-
 #define RA_STACK_CAP 64
 
 cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) {
@@ -1060,7 +1018,7 @@ cstr* cstr_replace_all(const cstr* s, const char* old_sub, const char* new_sub) 
 
     while ((p = cstr_search(p, rem, old_sub, old_len)) != NULL) {
         if (CSTR_UNLIKELY(count >= offs_cap)) {
-            /* FIX: Guard against integer overflow before multiplying. */
+            /* Guard against integer overflow before multiplying. */
             if (CSTR_UNLIKELY(offs_cap > SIZE_MAX / 2 / sizeof(size_t))) goto oom;
 
             size_t new_cap = offs_cap * 2;
@@ -1145,7 +1103,6 @@ oom:
 cstr** cstr_split(const cstr* s, const char* delim, size_t* count_out) {
     *count_out = 0;
 
-    /* Handle empty or NULL delimiter */
     if (!delim || !*delim) {
         cstr** r = (cstr**)malloc(sizeof(cstr*));
         if (CSTR_UNLIKELY(!r)) return NULL;
@@ -1230,7 +1187,6 @@ split_err:
 cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
     if (CSTR_UNLIKELY(!strings || count == 0)) return cstr_new_len("", 0);
 
-    /* Single element fast path: no delimiter needed */
     if (count == 1) {
         if (CSTR_UNLIKELY(!strings[0])) return NULL;
         return cstr_new_len(strings[0]->data, strings[0]->length);
@@ -1244,11 +1200,11 @@ cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
         if (CSTR_UNLIKELY(!strings[i])) return NULL;
 
         size_t slen = strings[i]->length;
-        if (CSTR_UNLIKELY(slen > CSTR_MAX_SIZE - total)) return NULL; /* Overflow */
+        if (CSTR_UNLIKELY(slen > CSTR_MAX_SIZE - total)) return NULL;
         total += slen;
 
         if (i + 1 < count && dlen) {
-            if (CSTR_UNLIKELY(dlen > CSTR_MAX_SIZE - total)) return NULL; /* Overflow */
+            if (CSTR_UNLIKELY(dlen > CSTR_MAX_SIZE - total)) return NULL;
             total += dlen;
         }
     }
@@ -1258,7 +1214,6 @@ cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
 
     char* w = r->data;
 
-    /* Write 1st string outside loop to eliminate 'i + 1 < count' check inside loop */
     uint32_t first_len = strings[0]->length;
     if (first_len) {
         memcpy(w, strings[0]->data, first_len);
@@ -1267,7 +1222,6 @@ cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
 
     /* Pass 2: Copy remaining strings */
     if (dlen == 1) {
-        /* Specialized fast-path: 1-byte delimiter (direct byte store) */
         char d_char = delim[0];
         for (size_t i = 1; i < count; i++) {
             *w++ = d_char;
@@ -1278,7 +1232,6 @@ cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
             }
         }
     } else if (dlen > 1) {
-        /* Multi-byte delimiter path */
         for (size_t i = 1; i < count; i++) {
             memcpy(w, delim, dlen);
             w += dlen;
@@ -1289,7 +1242,6 @@ cstr* cstr_join(const cstr** strings, size_t count, const char* delim) {
             }
         }
     } else {
-        /* No delimiter path */
         for (size_t i = 1; i < count; i++) {
             uint32_t slen = strings[i]->length;
             if (slen) {

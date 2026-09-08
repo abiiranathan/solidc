@@ -12,40 +12,44 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 
+// ─── Compiler Branch Hints ───────────────────────────────────────────────────
+
+#if defined(__GNUC__) || defined(__clang__)
+#define SS_LIKELY(x)   __builtin_expect(!!(x), 1)
+#define SS_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#else
+#define SS_LIKELY(x)   (x)
+#define SS_UNLIKELY(x) (x)
+#endif
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-// A non-owning view into a byte sequence.
-// The slice does NOT null-terminate and does NOT free its data.
-// The caller must ensure the underlying buffer outlives all slices into it.
 typedef struct {
-    const char* data;  // pointer into some external buffer
+    const char* data;  // pointer into external buffer
     size_t len;        // number of bytes in the view
 } StrSlice;
 
-// Typed result — never use errno for slice ops.
 typedef enum {
     SS_OK = 0,
     SS_NULL = 1,       // null data pointer
     SS_BOUNDS = 2,     // out-of-range indices
     SS_NOT_FOUND = 3,  // substring not found
-    SS_OVERFLOW = 4,   // value exceeds the target type's range
-    SS_INVALID = 5,    // malformed input (e.g. "1.2.3", bare "e", "maybe")
+    SS_OVERFLOW = 4,   // value exceeds target type's range
+    SS_INVALID = 5,    // malformed input
 } StrSliceErr;
 
-// ─── Construction ─────────────────────────────────────────────────────────────
-
-// Wrap a pointer + explicit length. Does NOT check for null terminator.
-static inline StrSlice ss_from(const char* data, size_t len) { return (StrSlice){.data = data, .len = len}; }
+// ss_from() wraps a pointer and length into a slice (does not copy).
+static inline StrSlice ss_from(const char* data, size_t len) {
+    return (StrSlice){.data = data, .len = len};
+}
 
 // Wrap a null-terminated C string (measures with strlen at call time).
 static inline StrSlice ss_from_cstr(const char* cstr) {
-    if (!cstr) return (StrSlice){0};
+    if (SS_UNLIKELY(!cstr)) return (StrSlice){0};
     return (StrSlice){.data = cstr, .len = strlen(cstr)};
 }
 
-// Convenience macro for string literals — no strlen call at all.
-// Usage:  StrSlice s = SS_LIT("hello");
-#define SS_LIT(literal) ((StrSlice){.data = (literal), .len = sizeof(literal) - 1})
+#define SS_LIT(literal) ((StrSlice){.data = ("" literal), .len = sizeof(literal) - 1})
 
 // Empty slice (len == 0, data may be NULL).
 static inline StrSlice ss_empty(void) { return (StrSlice){0}; }
@@ -57,48 +61,34 @@ static inline void ss_print(StrSlice s) {
 
 static inline void ss_println(StrSlice s) {
     ss_print(s);
-    printf("\n");
+    putchar('\n');
 }
-
-// ─── Validity ─────────────────────────────────────────────────────────────────
 
 // A slice is valid if it has a non-null data pointer or zero length (empty view).
-static inline bool ss_is_valid(StrSlice s) {
-    // A zero-length slice with a non-null pointer is valid (empty view).
-    // A non-zero length with a null pointer is always invalid.
-    return s.len == 0 || s.data != NULL;
-}
+static inline bool ss_is_valid(StrSlice s) { return s.len == 0 || s.data != NULL; }
 
 // A slice is empty if its length is zero, regardless of the data pointer.
 static inline bool ss_is_empty(StrSlice s) { return s.len == 0; }
 
-// Convert to a NUL-terminated owned string. Caller must free() the result.
-// Returns NULL if the slice is invalid (e.g. non-null pointer with positive length).
+// O(1) length knowledge: direct allocation and copy without redundant strlen/strnlen
 static inline char* ss_to_owned_cstr(StrSlice s) {
-    if (!ss_is_valid(s)) return NULL;
-#if defined(_WIN32)
-    // strndup is a POSIX/glibc extension and is unavailable on Windows.
-    size_t n = strnlen(s.data, s.len);
-    char* out = (char*)malloc(n + 1);
-    if (!out) return NULL;
-    memcpy(out, s.data, n);
-    out[n] = '\0';
+    if (SS_UNLIKELY(!ss_is_valid(s))) return NULL;
+    char* out = (char*)malloc(s.len + 1);
+    if (SS_UNLIKELY(!out)) return NULL;
+    if (s.len > 0) memcpy(out, s.data, s.len);
+    out[s.len] = '\0';
     return out;
-#else
-    return strndup(s.data, s.len);
-#endif
 }
 
 // ─── Sub-slicing ──────────────────────────────────────────────────────────────
 
-// Returns a sub-slice [start, start+len).
-// Sets *err on bounds violation; returns ss_empty() on error.
+// Overflow-safe bounds check: avoids (start + len > s.len) wrapping bugs
 static inline StrSlice ss_slice(StrSlice s, size_t start, size_t len, StrSliceErr* err) {
-    if (!ss_is_valid(s)) {
+    if (SS_UNLIKELY(!ss_is_valid(s))) {
         if (err) *err = SS_NULL;
         return ss_empty();
     }
-    if (start + len > s.len) {
+    if (SS_UNLIKELY(start > s.len || len > s.len - start)) {
         if (err) *err = SS_BOUNDS;
         return ss_empty();
     }
@@ -124,39 +114,69 @@ static inline bool ss_equal(StrSlice a, StrSlice b) {
     return a.len == b.len && (a.data == b.data || memcmp(a.data, b.data, a.len) == 0);
 }
 
-// Case-insensitive ASCII equality.
+// Correct ASCII case-insensitive equality: fixes '@'/''`'' and '['/'{'' collision bugs
 static inline bool ss_equal_nocase(StrSlice a, StrSlice b) {
     if (a.len != b.len) return false;
-    for (size_t i = 0; i < a.len; ++i) {
-        unsigned char ca = (unsigned char)a.data[i];
-        unsigned char cb = (unsigned char)b.data[i];
-        if ((ca | 32u) != (cb | 32u)) return false;
+    if (a.data == b.data) return true;
+
+    const unsigned char* pa = (const unsigned char*)a.data;
+    const unsigned char* pb = (const unsigned char*)b.data;
+    size_t len = a.len;
+
+    for (size_t i = 0; i < len; ++i) {
+        unsigned char ca = pa[i];
+        unsigned char cb = pb[i];
+        if (ca == cb) continue;  // Fast-path identical characters
+        // ASCII letter case-flip check
+        if (((ca ^ cb) != 0x20) || (unsigned)((ca | 0x20) - 'a') > ('z' - 'a')) {
+            return false;
+        }
     }
     return true;
 }
 
 static inline bool ss_starts_with(StrSlice s, StrSlice prefix) {
-    return s.len >= prefix.len && memcmp(s.data, prefix.data, prefix.len) == 0;
+    return s.len >= prefix.len &&
+           (s.data == prefix.data || memcmp(s.data, prefix.data, prefix.len) == 0);
 }
 
 static inline bool ss_ends_with(StrSlice s, StrSlice suffix) {
     return s.len >= suffix.len && memcmp(s.data + s.len - suffix.len, suffix.data, suffix.len) == 0;
 }
 
-// ─── Search ───────────────────────────────────────────────────────────────────
-
 // Returns the byte offset of the first occurrence of `needle`, or (size_t)-1.
 static inline size_t ss_find(StrSlice haystack, StrSlice needle) {
-    if (needle.len == 0) return 0;
-    if (needle.len > haystack.len) return (size_t)-1;
-    size_t limit = haystack.len - needle.len;
-    for (size_t i = 0; i <= limit; ++i) {
-        if (memcmp(haystack.data + i, needle.data, needle.len) == 0) return i;
+    if (SS_UNLIKELY(needle.len == 0)) return 0;
+    if (SS_UNLIKELY(needle.len > haystack.len)) return (size_t)-1;
+
+    const char* h = haystack.data;
+    const char* n = needle.data;
+    size_t n_len = needle.len;
+
+    // Single character fast-path: 100% vectorized SIMD memchr
+    if (n_len == 1) {
+        const char* p = (const char*)memchr(h, n[0], haystack.len);
+        return p ? (size_t)(p - h) : (size_t)-1;
+    }
+
+    char first = n[0];
+    size_t max_idx = haystack.len - n_len;
+
+    for (size_t i = 0; i <= max_idx;) {
+        const char* p = (const char*)memchr(h + i, first, max_idx - i + 1);
+        if (!p) return (size_t)-1;
+        i = (size_t)(p - h);
+        if (memcmp(p + 1, n + 1, n_len - 1) == 0) {
+            return i;
+        }
+        ++i;
     }
     return (size_t)-1;
 }
 
-static inline bool ss_contains(StrSlice s, StrSlice needle) { return ss_find(s, needle) != (size_t)-1; }
+static inline bool ss_contains(StrSlice s, StrSlice needle) {
+    return ss_find(s, needle) != (size_t)-1;
+}
 
 // Split at the first occurrence of `sep`.
 // On success: *head = everything before sep, *tail = everything after sep.
@@ -169,9 +189,13 @@ static inline StrSliceErr ss_split_on(StrSlice s, StrSlice sep, StrSlice* head, 
     return SS_OK;
 }
 
-// ─── Trimming ─────────────────────────────────────────────────────────────────
+// ─── Trimming (Branchless Bitmask) ────────────────────────────────────────────
 
-static inline bool _ss_is_space(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
+// 9='\t', 10='\n', 13='\r', 32=' '. Zero branches: compiles to `bt` or `shr + and`.
+static inline bool _ss_is_space(char c) {
+    unsigned char uc = (unsigned char)c;
+    return (uc <= 32) && ((0x100002600ULL >> uc) & 1ULL);
+}
 
 static inline StrSlice ss_trim(StrSlice s) {
     size_t lo = 0, hi = s.len;
@@ -180,99 +204,73 @@ static inline StrSlice ss_trim(StrSlice s) {
     return (StrSlice){.data = s.data + lo, .len = hi - lo};
 }
 
-// ─── Access ───────────────────────────────────────────────────────────────────
-
-// Safe single-byte fetch. Returns false on out-of-bounds.
 static inline bool ss_get(StrSlice s, size_t i, char* out) {
     if (i >= s.len) return false;
     *out = s.data[i];
     return true;
 }
 
-/**
- * Parses an optional sign followed by decimal digits.
- * Stops at the first non-digit after the sign.
- *
- * Returns:
- *   SS_OK        — *out is set to the parsed value
- *   SS_NOT_FOUND — no digits found (empty slice, sign with no digits)
- *   SS_OVERFLOW  — value exceeds [INT_MIN, INT_MAX]
- *   SS_NULL      — out is NULL
- *
- * Call ss_trim() beforehand if leading whitespace is possible.
- */
+// ─── Parsing: Integer (Division-Free) ─────────────────────────────────────────
+
 static inline StrSliceErr ss_to_int(StrSlice s, int* out) {
-    if (!out) return SS_NULL;
+    if (SS_UNLIKELY(!out)) return SS_NULL;
 
     size_t i = 0;
     bool neg = false;
 
-    if (i < s.len && s.data[i] == '-') {
-        neg = true;
-        ++i;
-    } else if (i < s.len && s.data[i] == '+') {
-        ++i;
+    if (i < s.len) {
+        if (s.data[i] == '-') {
+            neg = true;
+            ++i;
+        } else if (s.data[i] == '+') {
+            ++i;
+        }
     }
 
-    if (i >= s.len || s.data[i] < '0' || s.data[i] > '9') return SS_NOT_FOUND;
+    if (SS_UNLIKELY(i >= s.len || (unsigned)(s.data[i] - '0') > 9)) return SS_NOT_FOUND;
 
-    // Accumulate into unsigned to avoid signed-overflow UB (C11 §6.5),
-    // then range-check before the final cast.
-    unsigned int acc = 0;
+    // Accumulate in 64-bit register: eliminates division inside loop entirely
+    uint64_t acc = 0;
     for (; i < s.len; ++i) {
-        char c = s.data[i];
-        if (c < '0' || c > '9') break;
-        unsigned int d = (unsigned int)(c - '0');
-        // Would acc*10+d wrap past UINT_MAX?
-        if (acc > (UINT_MAX - d) / 10u) return SS_OVERFLOW;
-        acc = acc * 10u + d;
+        unsigned char d = (unsigned char)(s.data[i] - '0');
+        if (d > 9) break;
+        acc = acc * 10 + d;
+        // 2147483648 is max magnitude (INT_MIN = -2147483648)
+        if (SS_UNLIKELY(acc > 2147483648ULL)) return SS_OVERFLOW;
     }
 
     if (neg) {
-        // INT_MIN = -(INT_MAX + 1); the +1u is safe in unsigned arithmetic.
-        if (acc > (unsigned int)INT_MAX + 1u) return SS_OVERFLOW;
-        *out = (acc == (unsigned int)INT_MAX + 1u) ? INT_MIN : -(int)acc;
+        if (SS_UNLIKELY(acc > 2147483648ULL)) return SS_OVERFLOW;
+        *out = (int)(-(int64_t)acc);
     } else {
-        if (acc > (unsigned int)INT_MAX) return SS_OVERFLOW;
+        if (SS_UNLIKELY(acc > 2147483647ULL)) return SS_OVERFLOW;
         *out = (int)acc;
     }
     return SS_OK;
 }
 
-/**
- * Parses:  [sign] digit* ['.' digit*] [('e'|'E') [sign] digit+]
- *
- * Accumulates the mantissa as a 64-bit integer (exact for up to 19 significant
- * digits) then applies the combined decimal exponent in a single step, which
- * avoids the rounding drift that builds up when multiplying by 0.1 per digit.
- *
- * Returns:
- *   SS_OK        — *out is set
- *   SS_NOT_FOUND — no digits found
- *   SS_INVALID   — exponent marker with no digits following ("1e" "1e+")
- *   SS_NULL      — out is NULL
- *
- * Overflow/underflow of the final double maps to ±HUGE_VAL / 0.0 respectively
- * (IEEE 754 behaviour); no SS_OVERFLOW is raised since those are valid doubles.
- */
+// ─── Parsing: Double (O(1) Two-Level Scale Lookup) ────────────────────────────
+
 static inline StrSliceErr ss_to_double(StrSlice s, double* out) {
-    if (!out) return SS_NULL;
+    if (SS_UNLIKELY(!out)) return SS_NULL;
 
     size_t i = 0;
     bool neg = false;
 
-    if (i < s.len && s.data[i] == '-') {
-        neg = true;
-        ++i;
-    } else if (i < s.len && s.data[i] == '+') {
-        ++i;
+    if (i < s.len) {
+        if (s.data[i] == '-') {
+            neg = true;
+            ++i;
+        } else if (s.data[i] == '+') {
+            ++i;
+        }
     }
 
     uint64_t mantissa = 0;
-    int dec_shift = 0;  // net decimal places (positive = divide)
+    int dec_shift = 0;
     bool seen_dot = false;
     bool has_digits = false;
-    bool saturated = false;  // mantissa too wide; extra digits are dropped
+    bool saturated = false;
 
     for (; i < s.len; ++i) {
         char c = s.data[i];
@@ -280,9 +278,9 @@ static inline StrSliceErr ss_to_double(StrSlice s, double* out) {
             has_digits = true;
             if (!saturated) {
                 uint64_t d = (uint64_t)(c - '0');
-                if (mantissa > (UINT64_MAX - d) / 10ull) {
-                    // Mantissa full.  Integer digits still shift the scale;
-                    // fractional digits beyond this point are simply dropped.
+                // Branchless division constant check: UINT64_MAX / 10 = 1844674407370955161ULL
+                if (SS_UNLIKELY(mantissa >= 1844674407370955161ULL &&
+                                (mantissa > 1844674407370955161ULL || d > 5))) {
                     saturated = true;
                     if (!seen_dot) ++dec_shift;
                 } else {
@@ -290,7 +288,7 @@ static inline StrSliceErr ss_to_double(StrSlice s, double* out) {
                     if (seen_dot) --dec_shift;
                 }
             } else if (!seen_dot) {
-                ++dec_shift;  // track magnitude of overflowing integer part
+                ++dec_shift;
             }
         } else if (c == '.' && !seen_dot) {
             seen_dot = true;
@@ -299,50 +297,44 @@ static inline StrSliceErr ss_to_double(StrSlice s, double* out) {
         }
     }
 
-    if (!has_digits) return SS_NOT_FOUND;
+    if (SS_UNLIKELY(!has_digits)) return SS_NOT_FOUND;
 
-    // Optional exponent.
     int exp_shift = 0;
     if (i < s.len && (s.data[i] == 'e' || s.data[i] == 'E')) {
         ++i;
         bool exp_neg = false;
-        if (i < s.len && s.data[i] == '-') {
-            exp_neg = true;
-            ++i;
-        } else if (i < s.len && s.data[i] == '+') {
-            ++i;
+        if (i < s.len) {
+            if (s.data[i] == '-') {
+                exp_neg = true;
+                ++i;
+            } else if (s.data[i] == '+') {
+                ++i;
+            }
         }
 
-        // Exponent marker with no digits is malformed.
-        if (i >= s.len || s.data[i] < '0' || s.data[i] > '9') return SS_INVALID;
+        if (SS_UNLIKELY(i >= s.len || s.data[i] < '0' || s.data[i] > '9')) return SS_INVALID;
 
         for (; i < s.len && s.data[i] >= '0' && s.data[i] <= '9'; ++i) {
-            if (exp_shift < 100000)  // cap before int overflow; range check below
-                exp_shift = exp_shift * 10 + (s.data[i] - '0');
+            if (exp_shift < 10000) exp_shift = exp_shift * 10 + (s.data[i] - '0');
         }
         if (exp_neg) exp_shift = -exp_shift;
     }
 
     int total_exp = dec_shift + exp_shift;
 
-    // Build result = mantissa × 10^total_exp.
-    // Powers up to ±22 are exact in IEEE 754 double; beyond that we iterate.
-    // The range of finite doubles is roughly 10^±308, so cap the loop.
-    static const double _p10[23] = {
-        1e0,  1e1,  1e2,  1e3,  1e4,  1e5,  1e6,  1e7,  1e8,  1e9,  1e10, 1e11,
-        1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22,
-    };
+    // Two-level O(1) table: covers IEEE 754 limits (10^±308) in 1 multiplication
+    static const double _p10_low[16] = {1e0, 1e1, 1e2,  1e3,  1e4,  1e5,  1e6,  1e7,
+                                        1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15};
+    static const double _p10_high[20] = {1e0,   1e16,  1e32,  1e48,  1e64,  1e80,  1e96,
+                                         1e112, 1e128, 1e144, 1e160, 1e176, 1e192, 1e208,
+                                         1e224, 1e240, 1e256, 1e272, 1e288, 1e304};
+
     double result = (double)mantissa;
     if (total_exp != 0) {
         int abs_exp = total_exp < 0 ? -total_exp : total_exp;
-        if (abs_exp > 308) abs_exp = 308;  // clamp; IEEE will give ±inf / 0
-        double scale;
-        if (abs_exp <= 22) {
-            scale = _p10[abs_exp];
-        } else {
-            scale = 1.0;
-            for (int j = 0; j < abs_exp; ++j) scale *= 10.0;
-        }
+        if (abs_exp > 308) abs_exp = 308;
+
+        double scale = _p10_low[abs_exp & 15] * _p10_high[(abs_exp >> 4)];
         result = (total_exp < 0) ? result / scale : result * scale;
     }
 
@@ -350,28 +342,57 @@ static inline StrSliceErr ss_to_double(StrSlice s, double* out) {
     return SS_OK;
 }
 
-/**
- * Recognises the common human-readable boolean vocabulary:
- *
- *   true  : "true", "yes", "on",  "1"
- *   false : "false", "no",  "off", "0"
- *
- * All string forms are matched case-insensitively.
- * Anything else returns SS_INVALID — the caller knows the input was garbage.
- */
+// ─── Parsing: Boolean (Length-Indexed O(1) Jump) ───────────────────────────────
+
 static inline StrSliceErr ss_to_bool(StrSlice s, bool* out) {
-    if (!out) return SS_NULL;
+    if (SS_UNLIKELY(!out)) return SS_NULL;
 
-    if (ss_equal_nocase(s, SS_LIT("true")) || ss_equal_nocase(s, SS_LIT("yes")) || ss_equal_nocase(s, SS_LIT("on")) ||
-        ss_equal(s, SS_LIT("1"))) {
-        *out = true;
-        return SS_OK;
-    }
-
-    if (ss_equal_nocase(s, SS_LIT("false")) || ss_equal_nocase(s, SS_LIT("no")) || ss_equal_nocase(s, SS_LIT("off")) ||
-        ss_equal(s, SS_LIT("0"))) {
-        *out = false;
-        return SS_OK;
+    // Fast switch based on slice length completely avoids multiple full-string scans
+    switch (s.len) {
+        case 1:
+            if (s.data[0] == '1') {
+                *out = true;
+                return SS_OK;
+            }
+            if (s.data[0] == '0') {
+                *out = false;
+                return SS_OK;
+            }
+            break;
+        case 2:
+            if ((s.data[0] | 0x20) == 'o' && (s.data[1] | 0x20) == 'n') {
+                *out = true;
+                return SS_OK;
+            }
+            if ((s.data[0] | 0x20) == 'n' && (s.data[1] | 0x20) == 'o') {
+                *out = false;
+                return SS_OK;
+            }
+            break;
+        case 3:
+            if (ss_equal_nocase(s, SS_LIT("yes"))) {
+                *out = true;
+                return SS_OK;
+            }
+            if (ss_equal_nocase(s, SS_LIT("off"))) {
+                *out = false;
+                return SS_OK;
+            }
+            break;
+        case 4:
+            if (ss_equal_nocase(s, SS_LIT("true"))) {
+                *out = true;
+                return SS_OK;
+            }
+            break;
+        case 5:
+            if (ss_equal_nocase(s, SS_LIT("false"))) {
+                *out = false;
+                return SS_OK;
+            }
+            break;
+        default:
+            break;
     }
     return SS_INVALID;
 }
