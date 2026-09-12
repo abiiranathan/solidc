@@ -1,0 +1,29 @@
+<map id="include/channels.h" name="include/channels.h">
+<area shape="rect" id="Node000001" title="Go&#45;style typed channels for thread communication." alt="" coords="258,5,401,31"/>
+<area shape="rect" id="Node000002" href="$macros_8h.html" title="Portable utility macros for assertions, memory, math, iteration, timing, and platform compatibility." alt="" coords="288,79,371,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="332,31,332,65,327,65,327,31"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="5,152,80,177"/>
+<area shape="poly" id="edge11_Node000001_Node000005" title=" " alt="" coords="308,33,79,148,76,144,305,28"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="105,152,175,177"/>
+<area shape="poly" id="edge12_Node000001_Node000006" title=" " alt="" coords="315,33,168,146,164,142,312,29"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="395,79,477,104"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="348,28,409,69,406,73,345,33"/>
+<area shape="rect" id="Node000012" href="$lock_8h.html" title="Cross&#45;platform mutex and condition variable wrapper." alt="" coords="643,79,704,104"/>
+<area shape="poly" id="edge13_Node000001_Node000012" title=" " alt="" coords="385,28,630,78,629,84,384,33"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="478,152,546,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="360,102,470,144,468,149,358,107"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="570,152,657,177"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="372,101,558,147,556,152,371,106"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="288,106,94,153,93,148,287,100"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="300,107,185,149,183,144,298,102"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="681,152,748,177"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="372,99,383,101,524,124,668,149,667,154,523,130,382,107,371,104"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="199,152,270,177"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="316,106,263,146,260,141,313,102"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="294,152,365,177"/>
+<area shape="poly" id="edge8_Node000002_Node000009" title=" " alt="" coords="332,104,332,138,327,138,327,104"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="389,152,453,177"/>
+<area shape="poly" id="edge9_Node000002_Node000010" title=" " alt="" coords="346,102,397,141,394,146,342,106"/>
+<area shape="rect" id="Node000013" title=" " alt="" coords="773,152,857,177"/>
+<area shape="poly" id="edge14_Node000012_Node000013" title=" " alt="" coords="697,102,781,143,778,148,695,106"/>
+</map>

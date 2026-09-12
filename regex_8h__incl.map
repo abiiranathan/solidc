@@ -1,0 +1,13 @@
+<map id="include/regex.h" name="include/regex.h">
+<area shape="rect" id="Node000001" title="A robust, idiomatic C API wrapping the PCRE2 library." alt="" coords="185,5,308,31"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,79,88,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="215,33,93,76,92,71,214,28"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="112,79,187,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="233,33,178,72,175,68,229,29"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="211,79,282,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="249,31,249,65,244,65,244,31"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="307,79,373,104"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="263,29,316,68,312,72,260,33"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="398,79,469,104"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="278,28,391,71,389,76,276,33"/>
+</map>

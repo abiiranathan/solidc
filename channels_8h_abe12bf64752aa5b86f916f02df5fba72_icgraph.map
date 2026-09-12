@@ -1,0 +1,5 @@
+<map id="chan_send" name="chan_send">
+<area shape="rect" id="Node000001" title="Sends a value by copying value_size bytes from value." alt="" coords="216,5,307,31"/>
+<area shape="rect" id="Node000002" href="$chan__patterns_8c.html#a3e73429e707a73fa9f4ac65c23235380" title="Submits a work item (copied by value). Never blocks." alt="" coords="5,5,168,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="202,21,168,21,168,15,202,15"/>
+</map>

@@ -1,0 +1,13 @@
+<map id="include/filepath.h" name="include/filepath.h">
+<area shape="rect" id="Node000001" title="Cross&#45;platform file path manipulation and directory traversal utilities." alt="" coords="280,5,415,31"/>
+<area shape="rect" id="Node000002" href="$filepath__internal_8h.html" title="Internal contract between the portable filepath code and the per&#45;platform implementations (filepath_p..." alt="" coords="274,79,421,119"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="350,44,350,79,345,79,345,44"/>
+<area shape="rect" id="Node000003" href="$filepath_8c.html" title="Portable (platform&#45;neutral) filepath and directory operations." alt="" coords="5,174,164,199"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="277,126,120,177,119,171,276,120"/>
+<area shape="rect" id="Node000004" href="$filepath__posix_8c.html" title="POSIX (Linux/macOS/BSD) implementation of the filepath backends." alt="" coords="189,167,335,207"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="321,130,283,168,279,165,317,127"/>
+<area shape="rect" id="Node000005" href="$filepath__string_8c.html" title="Pure string manipulation for file paths: separators, basename, dirname, extension,..." alt="" coords="359,167,506,207"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="378,127,416,165,412,168,374,130"/>
+<area shape="rect" id="Node000006" href="$filepath__win32_8c.html" title="Win32 implementation of the filepath backends." alt="" coords="530,167,677,207"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="417,121,548,164,546,169,416,126"/>
+</map>

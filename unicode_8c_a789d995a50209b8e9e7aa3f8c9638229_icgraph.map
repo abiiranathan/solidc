@@ -1,0 +1,5 @@
+<map id="is_codepoint_digit" name="is_codepoint_digit">
+<area shape="rect" id="Node000001" title="Checks if a codepoint represents a digit." alt="" coords="156,5,296,31"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a0bb308da5e4e999b234bbb2111cdae90" title="Checks if a UTF&#45;8 character represents a digit." alt="" coords="5,5,108,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="142,21,108,21,108,15,142,15"/>
+</map>

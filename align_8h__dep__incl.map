@@ -1,0 +1,26 @@
+<map id="include/align.h" name="include/align.h">
+<area shape="rect" id="Node000001" title="Memory alignment utilities and macros for cross&#45;platform alignment." alt="" coords="511,5,629,31"/>
+<area shape="rect" id="Node000002" href="$simd_8h.html" title="Portable Single Instruction Multiple Data (SIMD) Intrinsics Wrapper." alt="" coords="381,79,498,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="538,40,462,81,459,76,535,35"/>
+<area shape="rect" id="Node000011" href="$cache_8c_source.html" title=" " alt="" coords="523,79,617,104"/>
+<area shape="poly" id="edge11_Node000001_Node000011" title=" " alt="" coords="573,44,573,79,567,79,567,44"/>
+<area shape="rect" id="Node000012" href="$threadpool_8c_source.html" title=" " alt="" coords="641,79,768,104"/>
+<area shape="poly" id="edge12_Node000001_Node000012" title=" " alt="" coords="605,35,684,76,681,81,602,39"/>
+<area shape="rect" id="Node000003" href="$str_8h.html" title="High&#45;performance, header&#45;only string utility library for C11." alt="" coords="203,152,305,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="398,111,285,154,283,149,396,106"/>
+<area shape="rect" id="Node000007" href="$vec_8h_source.html" title=" " alt="" coords="385,152,493,177"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="442,118,442,152,437,152,437,118"/>
+<area shape="rect" id="Node000010" href="$cstr_8c.html" title="Implementation of high&#45;performance C string with SSO." alt="" coords="517,152,596,177"/>
+<area shape="poly" id="edge10_Node000002_Node000010" title=" " alt="" coords="471,109,539,149,536,154,469,113"/>
+<area shape="rect" id="Node000004" href="$csvparser_8c_source.html" title=" " alt="" coords="5,225,124,251"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="212,185,97,228,95,223,210,180"/>
+<area shape="rect" id="Node000005" href="$dotenv_8c_source.html" title=" " alt="" coords="148,225,248,251"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="238,190,209,227,205,224,234,187"/>
+<area shape="rect" id="Node000006" href="$str__to__num_8c_source.html" title=" " alt="" coords="272,225,401,251"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="279,184,325,223,321,227,276,188"/>
+<area shape="rect" id="Node000008" href="$linear__alg_8h.html" title="Linear algebra operations and utilities." alt="" coords="415,299,565,324"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="449,190,467,250,487,297,482,299,462,252,443,192"/>
+<area shape="rect" id="Node000009" href="$matrix_8h.html" title="Matrix operations and mathematical utilities." alt="" coords="477,225,605,251"/>
+<area shape="poly" id="edge8_Node000007_Node000009" title=" " alt="" coords="468,183,526,223,523,227,465,187"/>
+<area shape="poly" id="edge9_Node000009_Node000008" title=" " alt="" coords="526,264,500,300,496,297,522,261"/>
+</map>

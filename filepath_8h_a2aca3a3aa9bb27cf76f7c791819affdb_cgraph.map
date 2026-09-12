@@ -1,0 +1,7 @@
+<map id="lazy_is_dir" name="lazy_is_dir">
+<area shape="rect" id="Node000001" title="Directory check for lazy walks: uses cached d_type when known (Linux), else one cached stat via lazy_..." alt="" coords="5,31,96,56"/>
+<area shape="rect" id="Node000002" href="$filepath__win32_8c.html#a06829bd1ee7fb9a164f831624ae950f4" title="stat()&#45;based directory check; follows symbolic links." alt="" coords="173,5,230,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="96,33,158,22,159,28,96,38"/>
+<area shape="rect" id="Node000003" href="$filepath__win32_8c.html#ad4b6d8d265f76f81e3338531f268cad5" title="Returns full FileAttributes for a lazily walked entry: on first use performs fstatat(dirfd,..." alt="" coords="144,55,259,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="96,48,131,53,130,59,96,53"/>
+</map>

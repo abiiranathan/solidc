@@ -1,0 +1,16 @@
+<map id="chan_workers_submit" name="chan_workers_submit">
+<area shape="rect" id="Node000001" title="Submits a work item (copied by value). Never blocks." alt="" coords="5,103,168,128"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#abe12bf64752aa5b86f916f02df5fba72" title="Sends a value by copying value_size bytes from value." alt="" coords="216,103,307,128"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="168,113,202,113,202,118,168,118"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="355,29,459,55"/>
+<area shape="poly" id="edge8_Node000001_Node000004" title=" " alt="" coords="142,100,341,54,342,59,144,105"/>
+<area shape="rect" id="Node000005" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="355,176,459,201"/>
+<area shape="poly" id="edge9_Node000001_Node000005" title=" " alt="" coords="144,125,342,171,341,176,142,131"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#a90c1124b43ee197ab3060448eb893395" title=" " alt="" coords="357,103,456,128"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="307,113,343,113,343,118,307,118"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="284,100,353,64,364,58,367,63,356,68,287,105"/>
+<area shape="poly" id="edge6_Node000002_Node000005" title=" " alt="" coords="289,126,369,167,367,172,286,130"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="382,104,377,94,380,85,390,78,407,76,427,80,435,88,431,92,424,84,407,81,392,83,384,88,382,94,387,101"/>
+<area shape="poly" id="edge5_Node000004_Node000004" title=" " alt="" coords="382,30,377,21,380,11,390,5,407,3,427,6,435,15,431,18,424,11,407,8,392,10,384,15,382,20,387,28"/>
+<area shape="poly" id="edge7_Node000005_Node000005" title=" " alt="" coords="382,177,377,168,380,158,390,152,407,149,427,153,435,161,431,165,424,158,407,155,392,157,384,161,382,167,387,175"/>
+</map>

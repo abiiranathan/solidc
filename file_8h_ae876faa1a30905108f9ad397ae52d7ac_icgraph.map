@@ -1,0 +1,6 @@
+<map id="populate_file_attrs" name="populate_file_attrs">
+<area shape="rect" id="Node000001" title=" " alt="" coords="135,29,277,55"/>
+<area shape="poly" id="edge2_Node000001_Node000001" title=" " alt="" coords="234,19,226,11,206,8,189,10,181,15,179,20,184,28,179,31,173,21,176,11,188,5,206,3,228,6,237,15"/>
+<area shape="rect" id="Node000002" href="$file_8c.html#a81d0134870ca46f804e9fc14d2c15952" title="Opens a file and fills file with its stream, native handle, and attributes; on any failure the stream..." alt="" coords="5,29,87,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="121,45,87,45,87,39,121,39"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="dir_create" name="dir_create">
+<area shape="rect" id="Node000001" title="CreateDirectoryA() backend with default ACLs." alt="" coords="192,5,279,31"/>
+<area shape="rect" id="Node000002" href="$filepath_8c.html#ab3ca60cea6e403d482f0f91b5e9693ef" title="Creates path and every missing parent component (mkdir &#45;p semantics), accepting both &#39;/&#39; and &#39;\&#39; sepa..." alt="" coords="5,5,144,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="178,21,144,21,144,15,178,15"/>
+</map>

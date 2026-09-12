@@ -1,0 +1,5 @@
+<map id="poller_regs_put" name="poller_regs_put">
+<area shape="rect" id="Node000001" title=" " alt="" coords="144,5,267,31"/>
+<area shape="rect" id="Node000002" href="$poller__win32_8c.html#a1dded8c3847687a09e02ab12081e3a3b" title="Registers a descriptor for the given events." alt="" coords="5,5,96,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="130,21,96,21,96,15,130,15"/>
+</map>

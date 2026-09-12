@@ -1,0 +1,5 @@
+<map id="filepath_basename" name="filepath_basename">
+<area shape="rect" id="Node000001" title="Copies the basename of path (everything after the final &#39;/&#39; or &#39;\&#39;) into basename; empty string if pa..." alt="" coords="5,5,152,31"/>
+<area shape="rect" id="Node000002" href="$filepath__string_8c.html#a9eb09c7e2719cbee4dded5a2f453f796" title="Bounds&#45;safe string copy used across the filepath module: copies src into dst, always NUL&#45;terminates,..." alt="" coords="200,5,287,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="152,15,186,15,186,21,152,21"/>
+</map>

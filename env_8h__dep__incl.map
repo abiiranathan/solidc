@@ -1,0 +1,29 @@
+<map id="include/env.h" name="include/env.h">
+<area shape="rect" id="Node000001" title="Environment variable utilities and safe access functions." alt="" coords="240,5,348,31"/>
+<area shape="rect" id="Node000002" href="$dotenv_8h.html" title="Environment variable loading from .env files." alt="" coords="32,86,161,111"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="254,38,126,88,124,83,252,33"/>
+<area shape="rect" id="Node000004" href="$process_8h.html" title="A modern, cross&#45;platform API for process management and IPC." alt="" coords="227,86,361,111"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="297,44,297,86,291,86,291,44"/>
+<area shape="rect" id="Node000010" href="$filepath__internal_8h.html" title="Internal contract between the portable filepath code and the per&#45;platform implementations (filepath_p..." alt="" coords="659,79,806,119"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="362,29,660,82,659,87,361,34"/>
+<area shape="rect" id="Node000003" href="$dotenv_8c_source.html" title=" " alt="" coords="5,174,105,199"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="88,125,63,175,59,172,83,123"/>
+<area shape="rect" id="Node000005" href="$chan__patterns_8c.html" title="Implementations for the pub/sub, worker&#45;pool, and select abstractions declared in chan_patterns...." alt="" coords="129,174,277,199"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="274,123,218,175,214,172,270,119"/>
+<area shape="rect" id="Node000006" href="$process__internal_8h.html" title="Internal contract between the portable process code and the per&#45;platform implementations (process_pos..." alt="" coords="302,167,451,207"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="316,119,360,164,356,168,313,123"/>
+<area shape="rect" id="Node000007" href="$process_8c.html" title="Portable (platform&#45;neutral) process management logic." alt="" coords="118,262,278,287"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="327,215,223,264,221,260,324,210"/>
+<area shape="rect" id="Node000008" href="$process__posix_8c.html" title="POSIX (Linux/macOS/BSD) implementation of the process management backends: fork/exec process creation..." alt="" coords="302,255,451,295"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="379,221,379,254,374,254,374,221"/>
+<area shape="rect" id="Node000009" href="$process__win32_8c.html" title="Win32 implementation of the process management backends: CreateProcess&#45;based spawning with MSDN&#45;safe ..." alt="" coords="475,255,625,295"/>
+<area shape="poly" id="edge8_Node000006_Node000009" title=" " alt="" coords="428,210,513,252,511,257,426,215"/>
+<area shape="rect" id="Node000011" href="$filepath_8c.html" title="Portable (platform&#45;neutral) filepath and directory operations." alt="" coords="476,174,635,199"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="682,127,580,176,578,172,680,122"/>
+<area shape="rect" id="Node000012" href="$filepath__posix_8c.html" title="POSIX (Linux/macOS/BSD) implementation of the filepath backends." alt="" coords="659,167,806,207"/>
+<area shape="poly" id="edge11_Node000010_Node000012" title=" " alt="" coords="735,133,735,166,730,166,730,133"/>
+<area shape="rect" id="Node000013" href="$filepath__string_8c.html" title="Pure string manipulation for file paths: separators, basename, dirname, extension,..." alt="" coords="830,167,977,207"/>
+<area shape="poly" id="edge12_Node000010_Node000013" title=" " alt="" coords="784,122,867,164,865,169,781,127"/>
+<area shape="rect" id="Node000014" href="$filepath__win32_8c.html" title="Win32 implementation of the filepath backends." alt="" coords="1001,167,1147,207"/>
+<area shape="poly" id="edge13_Node000010_Node000014" title=" " alt="" coords="820,119,1001,164,1000,170,819,124"/>
+</map>

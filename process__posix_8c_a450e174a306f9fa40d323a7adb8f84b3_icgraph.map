@@ -1,0 +1,7 @@
+<map id="NANOSLEEP" name="NANOSLEEP">
+<area shape="rect" id="Node000001" title="POSIX backend of the cross&#45;platform sleep: a direct nanosleep(2) call." alt="" coords="395,5,495,31"/>
+<area shape="rect" id="Node000002" href="$process__win32_8c.html#aab27c2b93b61c29afa2279842d1c3642" title="Wait for a process to complete." alt="" coords="240,5,347,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="381,21,347,21,347,15,381,15"/>
+<area shape="rect" id="Node000003" href="$process_8c.html#a307d90f179ea36983056ddae376ad076" title="Run a command and capture its output." alt="" coords="5,5,192,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="226,21,192,21,192,15,226,15"/>
+</map>

@@ -1,0 +1,37 @@
+<map id="include/linear_alg.h" name="include/linear_alg.h">
+<area shape="rect" id="Node000001" title="Linear algebra operations and utilities." alt="" coords="497,5,646,31"/>
+<area shape="rect" id="Node000002" href="$matrix_8h.html" title="Matrix operations and mathematical utilities." alt="" coords="394,79,471,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="550,33,469,75,466,70,548,28"/>
+<area shape="rect" id="Node000003" href="$vec_8h_source.html" title=" " alt="" coords="260,152,317,177"/>
+<area shape="poly" id="edge17_Node000001_Node000003" title=" " alt="" coords="514,33,449,52,383,81,342,111,309,144,306,140,339,107,381,76,447,47,512,28"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="402,299,485,324"/>
+<area shape="poly" id="edge18_Node000001_Node000008" title=" " alt="" coords="579,30,595,69,610,127,614,159,613,192,606,223,592,252,573,273,550,288,499,306,497,301,547,283,570,269,588,249,601,221,608,191,609,159,605,128,590,71,574,32"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="284,299,355,324"/>
+<area shape="poly" id="edge20_Node000001_Node000009" title=" " alt="" coords="575,31,574,97,566,139,548,179,531,202,510,223,463,257,414,282,369,299,367,294,412,277,461,252,507,219,527,199,544,176,560,137,568,96,570,31"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="5,299,76,324"/>
+<area shape="poly" id="edge22_Node000001_Node000010" title=" " alt="" coords="508,33,428,52,343,81,270,113,214,141,162,175,103,227,76,258,56,288,51,285,72,254,99,223,159,171,211,136,267,108,341,76,426,47,506,28"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="659,79,734,104"/>
+<area shape="poly" id="edge19_Node000001_Node000012" title=" " alt="" coords="593,28,666,69,663,74,590,33"/>
+<area shape="rect" id="Node000013" title=" " alt="" coords="759,79,829,104"/>
+<area shape="poly" id="edge21_Node000001_Node000013" title=" " alt="" coords="608,28,746,72,745,77,606,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="411,106,326,148,323,143,408,102"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="363,225,430,251"/>
+<area shape="poly" id="edge16_Node000002_Node000004" title=" " alt="" coords="431,105,417,153,404,213,398,211,411,151,426,104"/>
+<area shape="poly" id="edge15_Node000002_Node000008" title=" " alt="" coords="436,104,445,225,446,285,441,285,439,225,431,104"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="471,152,533,177"/>
+<area shape="poly" id="edge14_Node000002_Node000011" title=" " alt="" coords="446,102,483,140,479,144,442,106"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="307,175,369,215,366,220,305,180"/>
+<area shape="rect" id="Node000005" href="$simd_8h.html" title="Portable Single Instruction Multiple Data (SIMD) Intrinsics Wrapper." alt="" coords="171,225,238,251"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="277,179,231,218,227,214,273,175"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="100,299,168,324"/>
+<area shape="poly" id="edge10_Node000003_Node000007" title=" " alt="" coords="261,174,210,193,184,207,161,227,146,255,139,285,133,284,141,253,157,224,180,203,207,188,259,169"/>
+<area shape="poly" id="edge11_Node000003_Node000008" title=" " alt="" coords="297,176,320,210,353,249,381,271,410,290,408,294,378,276,349,253,316,214,293,179"/>
+<area shape="poly" id="edge12_Node000003_Node000009" title=" " alt="" coords="294,177,317,285,311,286,289,178"/>
+<area shape="poly" id="edge13_Node000003_Node000010" title=" " alt="" coords="260,177,204,197,142,228,99,259,63,291,60,287,95,255,139,223,202,192,259,172"/>
+<area shape="rect" id="Node000006" href="$align_8h.html" title="Memory alignment utilities and macros for cross&#45;platform alignment." alt="" coords="193,299,259,324"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="211,250,221,285,216,286,206,252"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="195,253,157,291,153,287,191,249"/>
+<area shape="poly" id="edge7_Node000005_Node000008" title=" " alt="" coords="239,247,392,292,391,297,238,252"/>
+<area shape="poly" id="edge8_Node000005_Node000009" title=" " alt="" coords="224,248,290,289,288,294,222,253"/>
+<area shape="poly" id="edge9_Node000005_Node000010" title=" " alt="" coords="179,253,81,296,79,291,177,248"/>
+</map>

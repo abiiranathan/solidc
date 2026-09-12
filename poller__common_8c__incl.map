@@ -1,0 +1,30 @@
+<map id="src/poller/poller_common.c" name="src/poller/poller_common.c">
+<area shape="rect" id="Node000001" title="fd &#45;&gt; registration hash table shared by all poller backends." alt="" coords="517,5,715,31"/>
+<area shape="rect" id="Node000002" href="$poller__internal_8h.html" title="Shared state between the poller backends (epoll / kqueue / win32)." alt="" coords="552,79,680,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="619,31,619,65,613,65,613,31"/>
+<area shape="rect" id="Node000003" href="$poller_8h.html" title="Cross&#45;platform readiness polling for high&#45;performance servers." alt="" coords="349,152,494,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="586,107,467,150,465,145,584,102"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="581,299,651,324"/>
+<area shape="poly" id="edge14_Node000002_Node000010" title=" " alt="" coords="619,104,619,284,613,284,613,104"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="675,299,746,324"/>
+<area shape="poly" id="edge15_Node000002_Node000011" title=" " alt="" coords="624,103,702,285,698,287,619,105"/>
+<area shape="rect" id="Node000004" href="$macros_8h.html" title="Portable utility macros for assertions, memory, math, iteration, timing, and platform compatibility." alt="" coords="327,225,409,251"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="415,179,387,216,383,213,410,176"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="5,299,80,324"/>
+<area shape="poly" id="edge13_Node000003_Node000007" title=" " alt="" coords="392,180,86,296,84,291,390,175"/>
+<area shape="rect" id="Node000013" title=" " alt="" coords="433,225,516,251"/>
+<area shape="poly" id="edge12_Node000003_Node000013" title=" " alt="" coords="432,176,460,213,456,216,428,179"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="283,299,351,324"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="362,253,336,289,331,286,357,249"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="375,299,462,324"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="379,249,405,286,400,289,374,253"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="327,251,94,301,93,296,326,245"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="486,299,557,324"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="394,248,485,290,483,295,392,253"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="104,299,171,324"/>
+<area shape="poly" id="edge8_Node000004_Node000009" title=" " alt="" coords="332,253,185,298,183,293,330,248"/>
+<area shape="poly" id="edge9_Node000004_Node000010" title=" " alt="" coords="409,248,568,294,566,299,407,253"/>
+<area shape="poly" id="edge10_Node000004_Node000011" title=" " alt="" coords="410,246,422,248,662,296,661,301,421,253,409,251"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="195,299,259,324"/>
+<area shape="poly" id="edge11_Node000004_Node000012" title=" " alt="" coords="346,253,263,295,261,290,344,248"/>
+</map>

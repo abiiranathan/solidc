@@ -1,0 +1,12 @@
+<map id="is_codepoint_whitespace" name="is_codepoint_whitespace">
+<area shape="rect" id="Node000001" title="Checks if a codepoint represents whitespace." alt="" coords="465,31,651,56"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#ad7d24e5bc418ae563b5afc21c6898e10" title="Checks if a UTF&#45;8 character represents whitespace." alt="" coords="271,31,417,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="452,46,418,46,418,41,452,41"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#a358a6ddb4231f045fa1996354bb69b56" title="Removes leading whitespace from a UTF&#45;8 string in&#45;place." alt="" coords="136,5,223,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="256,33,223,27,223,22,257,27"/>
+<area shape="rect" id="Node000005" href="$unicode_8c.html#a673ecb04bcd3fc52c6222a67233a8ce1" title="Removes trailing whitespace from a UTF&#45;8 string in&#45;place." alt="" coords="136,55,223,80"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="257,59,223,64,223,58,256,53"/>
+<area shape="rect" id="Node000004" href="$unicode_8c.html#a8ec9a3447456e99105106536e4dfe39a" title="Removes leading and trailing whitespace from a UTF&#45;8 string in&#45;place." alt="" coords="5,31,88,56"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="123,31,89,38,88,33,122,26"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="122,60,88,53,89,48,123,54"/>
+</map>

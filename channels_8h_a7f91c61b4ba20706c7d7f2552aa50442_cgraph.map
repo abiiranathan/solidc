@@ -1,0 +1,9 @@
+<map id="chan_is_closed" name="chan_is_closed">
+<area shape="rect" id="Node000001" title="Whether the channel has been closed." alt="" coords="5,67,125,92"/>
+<area shape="rect" id="Node000002" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="173,29,277,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="120,64,159,55,160,60,121,69"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="173,103,277,128"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="123,89,161,98,159,103,122,95"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="198,31,193,21,196,11,207,5,225,3,247,6,257,15,253,19,245,11,225,8,209,10,200,15,198,20,203,28"/>
+<area shape="poly" id="edge4_Node000003_Node000003" title=" " alt="" coords="198,104,193,94,196,85,207,78,225,76,247,79,257,88,253,92,245,84,225,81,209,83,200,88,198,94,203,101"/>
+</map>

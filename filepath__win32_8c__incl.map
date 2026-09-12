@@ -1,0 +1,79 @@
+<map id="src/filepath/filepath_win32.c" name="src/filepath/filepath_win32.c">
+<area shape="rect" id="Node000001" title="Win32 implementation of the filepath backends." alt="" coords="1153,5,1299,45"/>
+<area shape="rect" id="Node000002" href="$filepath__internal_8h.html" title="Internal contract between the portable filepath code and the per&#45;platform implementations (filepath_p..." alt="" coords="816,93,956,119"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1153,46,950,93,948,88,1152,41"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="100,313,171,339"/>
+<area shape="poly" id="edge45_Node000001_Node000004" title=" " alt="" coords="1153,31,1039,36,893,47,731,66,569,96,467,124,371,169,311,203,252,241,163,307,159,302,249,237,308,199,369,164,465,119,568,91,730,61,892,41,1039,30,1152,25"/>
+<area shape="rect" id="Node000006" href="$platform_8h.html" title="Cross&#45;platform compatibility definitions and canonical Windows header inclusion point." alt="" coords="1006,313,1097,339"/>
+<area shape="poly" id="edge49_Node000001_Node000006" title=" " alt="" coords="1217,47,1067,303,1063,300,1213,44"/>
+<area shape="rect" id="Node000020" title=" " alt="" coords="5,313,76,339"/>
+<area shape="poly" id="edge46_Node000001_Node000020" title=" " alt="" coords="1152,32,797,54,607,72,530,83,471,96,426,111,394,127,321,169,182,245,73,308,70,304,179,241,318,164,391,122,424,106,469,91,529,78,607,67,797,48,1152,27"/>
+<area shape="rect" id="Node000021" title=" " alt="" coords="195,313,259,339"/>
+<area shape="poly" id="edge47_Node000001_Node000021" title=" " alt="" coords="1152,32,1013,42,829,64,728,82,625,105,522,134,424,169,370,198,320,235,278,273,248,305,244,301,275,269,317,231,367,194,422,164,521,129,623,100,727,77,828,59,1013,36,1152,26"/>
+<area shape="rect" id="Node000025" href="$wintypes_8h.html" title="Windows&#45;specific type definitions and compatibility macros for cross&#45;platform development." alt="" coords="1265,240,1433,265"/>
+<area shape="poly" id="edge37_Node000001_Node000025" title=" " alt="" coords="1239,44,1338,226,1333,229,1234,47"/>
+<area shape="rect" id="Node000026" title=" " alt="" coords="1315,93,1383,119"/>
+<area shape="poly" id="edge43_Node000001_Node000026" title=" " alt="" coords="1257,43,1320,84,1318,88,1254,48"/>
+<area shape="rect" id="Node000027" title=" " alt="" coords="1407,93,1453,119"/>
+<area shape="poly" id="edge44_Node000001_Node000027" title=" " alt="" coords="1276,43,1394,88,1393,93,1274,48"/>
+<area shape="rect" id="Node000028" title=" " alt="" coords="1478,93,1550,119"/>
+<area shape="poly" id="edge48_Node000001_Node000028" title=" " alt="" coords="1296,43,1465,89,1464,94,1294,48"/>
+<area shape="rect" id="Node000003" href="$env_8h.html" title="Environment variable utilities and safe access functions." alt="" coords="435,167,567,192"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="825,121,577,167,576,161,824,116"/>
+<area shape="rect" id="Node000005" href="$file_8h.html" title="Cross&#45;platform file handling API with synchronous and asynchronous I/O support." alt="" coords="907,240,1036,265"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="895,118,960,227,955,229,891,120"/>
+<area shape="rect" id="Node000016" href="$filepath_8h.html" title="Cross&#45;platform file path manipulation and directory traversal utilities." alt="" coords="748,167,907,192"/>
+<area shape="poly" id="edge15_Node000002_Node000016" title=" " alt="" coords="878,121,847,158,843,155,874,117"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="459,195,390,215,314,242,236,277,170,309,167,305,233,272,312,238,389,210,458,190"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="986,263,1030,302,1026,306,982,267"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="899,313,982,339"/>
+<area shape="poly" id="edge7_Node000005_Node000008" title=" " alt="" coords="969,267,953,302,949,300,964,265"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="578,313,653,339"/>
+<area shape="poly" id="edge8_Node000005_Node000009" title=" " alt="" coords="910,268,667,316,666,316,665,311,665,311,909,263"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="677,313,748,339"/>
+<area shape="poly" id="edge9_Node000005_Node000010" title=" " alt="" coords="930,268,762,314,761,309,929,263"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="487,313,554,339"/>
+<area shape="poly" id="edge10_Node000005_Node000011" title=" " alt="" coords="907,264,756,284,568,316,567,311,755,279,906,259"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="1121,313,1184,339"/>
+<area shape="poly" id="edge11_Node000005_Node000012" title=" " alt="" coords="1001,263,1111,306,1109,311,999,268"/>
+<area shape="rect" id="Node000013" title=" " alt="" coords="772,313,875,339"/>
+<area shape="poly" id="edge12_Node000005_Node000013" title=" " alt="" coords="949,268,861,310,859,305,946,263"/>
+<area shape="rect" id="Node000014" title=" " alt="" coords="1307,313,1393,339"/>
+<area shape="poly" id="edge13_Node000005_Node000014" title=" " alt="" coords="1036,263,1294,310,1293,316,1035,268"/>
+<area shape="rect" id="Node000015" title=" " alt="" coords="1209,313,1283,339"/>
+<area shape="poly" id="edge14_Node000005_Node000015" title=" " alt="" coords="1016,263,1196,309,1195,314,1015,268"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="1193,387,1289,412"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="1083,336,1198,379,1196,384,1081,341"/>
+<area shape="poly" id="edge16_Node000016_Node000005" title=" " alt="" coords="852,190,937,231,934,236,849,194"/>
+<area shape="poly" id="edge26_Node000016_Node000006" title=" " alt="" coords="908,189,993,209,1028,222,1051,238,1059,253,1062,269,1060,300,1055,299,1057,269,1054,255,1047,242,1026,227,991,214,907,195"/>
+<area shape="poly" id="edge27_Node000016_Node000008" title=" " alt="" coords="839,191,925,301,921,304,835,194"/>
+<area shape="poly" id="edge28_Node000016_Node000009" title=" " alt="" coords="748,188,683,194,615,204,558,220,537,230,523,242,518,251,517,259,528,276,548,292,574,305,571,310,545,296,524,280,512,260,513,249,519,238,534,226,556,215,614,199,682,189,748,182"/>
+<area shape="poly" id="edge29_Node000016_Node000010" title=" " alt="" coords="820,194,732,304,728,301,816,191"/>
+<area shape="poly" id="edge30_Node000016_Node000011" title=" " alt="" coords="748,187,680,193,608,203,548,219,525,230,511,242,504,255,503,270,511,301,506,302,498,270,499,253,507,238,523,225,546,214,607,198,679,188,748,182"/>
+<area shape="poly" id="edge33_Node000016_Node000013" title=" " alt="" coords="830,193,827,300,821,300,824,192"/>
+<area shape="poly" id="edge35_Node000016_Node000014" title=" " alt="" coords="899,189,1004,209,1120,237,1225,272,1312,306,1310,311,1223,277,1119,243,1003,215,898,195"/>
+<area shape="poly" id="edge36_Node000016_Node000015" title=" " alt="" coords="891,189,978,209,1072,237,1150,271,1215,304,1213,309,1148,276,1070,243,976,214,889,195"/>
+<area shape="rect" id="Node000017" href="$macros_8h.html" title="Portable utility macros for assertions, memory, math, iteration, timing, and platform compatibility." alt="" coords="325,240,407,265"/>
+<area shape="poly" id="edge17_Node000016_Node000017" title=" " alt="" coords="748,194,426,243,422,243,421,238,426,237,748,189"/>
+<area shape="rect" id="Node000022" title=" " alt="" coords="1467,313,1539,339"/>
+<area shape="poly" id="edge31_Node000016_Node000022" title=" " alt="" coords="907,177,1040,180,1197,188,1274,196,1344,206,1403,220,1446,238,1463,250,1477,266,1496,299,1491,302,1472,270,1459,254,1443,242,1401,225,1343,211,1273,201,1197,193,1040,185,907,183"/>
+<area shape="rect" id="Node000023" title=" " alt="" coords="533,240,594,265"/>
+<area shape="poly" id="edge32_Node000016_Node000023" title=" " alt="" coords="786,195,608,242,606,237,784,189"/>
+<area shape="rect" id="Node000024" title=" " alt="" coords="619,240,729,265"/>
+<area shape="poly" id="edge34_Node000016_Node000024" title=" " alt="" coords="804,194,712,237,710,232,802,190"/>
+<area shape="poly" id="edge23_Node000017_Node000004" title=" " alt="" coords="330,268,184,312,183,307,328,263"/>
+<area shape="poly" id="edge20_Node000017_Node000009" title=" " alt="" coords="407,263,565,308,564,313,405,268"/>
+<area shape="poly" id="edge21_Node000017_Node000010" title=" " alt="" coords="408,259,664,311,663,316,407,264"/>
+<area shape="poly" id="edge22_Node000017_Node000011" title=" " alt="" coords="392,263,484,305,482,310,390,268"/>
+<area shape="rect" id="Node000018" title=" " alt="" coords="284,313,352,339"/>
+<area shape="poly" id="edge18_Node000017_Node000018" title=" " alt="" coords="360,267,336,304,331,301,356,264"/>
+<area shape="rect" id="Node000019" title=" " alt="" coords="376,313,463,339"/>
+<area shape="poly" id="edge19_Node000017_Node000019" title=" " alt="" coords="377,264,405,301,400,304,373,267"/>
+<area shape="poly" id="edge24_Node000017_Node000020" title=" " alt="" coords="325,265,90,315,89,310,324,260"/>
+<area shape="poly" id="edge25_Node000017_Node000021" title=" " alt="" coords="345,268,263,309,261,305,343,263"/>
+<area shape="poly" id="edge41_Node000025_Node000007" title=" " alt="" coords="1367,263,1386,278,1403,297,1412,318,1412,329,1407,340,1386,362,1360,378,1331,389,1303,395,1302,390,1329,384,1357,373,1382,358,1402,337,1407,328,1407,319,1398,300,1382,282,1364,267"/>
+<area shape="poly" id="edge39_Node000025_Node000012" title=" " alt="" coords="1318,268,1198,311,1196,306,1316,263"/>
+<area shape="poly" id="edge40_Node000025_Node000014" title=" " alt="" coords="1352,266,1352,300,1347,300,1346,266"/>
+<area shape="poly" id="edge42_Node000025_Node000015" title=" " alt="" coords="1334,268,1276,307,1273,303,1331,263"/>
+<area shape="poly" id="edge38_Node000025_Node000022" title=" " alt="" coords="1375,263,1467,305,1465,310,1372,268"/>
+</map>

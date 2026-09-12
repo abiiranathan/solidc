@@ -1,0 +1,7 @@
+<map id="lazy_get_attrs" name="lazy_get_attrs">
+<area shape="rect" id="Node000001" title="Returns full FileAttributes for a lazily walked entry: on first use performs fstatat(dirfd,..." alt="" coords="148,31,263,56"/>
+<area shape="rect" id="Node000002" href="$filepath_8c.html#a2aca3a3aa9bb27cf76f7c791819affdb" title="Directory check for lazy walks: uses cached d_type when known (Linux), else one cached stat via lazy_..." alt="" coords="7,5,98,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="134,34,98,28,99,23,135,29"/>
+<area shape="rect" id="Node000003" href="$filepath_8c.html#a0503d00accea26d21e460eb13c99b6e0" title="Regular&#45;file check for lazy walks: trusts d_type when known (Linux), falling back to a stat via lazy_..." alt="" coords="5,55,100,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="135,57,101,63,100,57,134,52"/>
+</map>

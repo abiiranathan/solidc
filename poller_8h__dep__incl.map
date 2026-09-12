@@ -1,0 +1,13 @@
+<map id="include/poller.h" name="include/poller.h">
+<area shape="rect" id="Node000001" title="Cross&#45;platform readiness polling for high&#45;performance servers." alt="" coords="357,5,479,31"/>
+<area shape="rect" id="Node000002" href="$poller__internal_8h.html" title="Shared state between the poller backends (epoll / kqueue / win32)." alt="" coords="322,79,514,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="421,44,421,79,415,79,415,44"/>
+<area shape="rect" id="Node000003" href="$poller__common_8c.html" title="fd &#45;&gt; registration hash table shared by all poller backends." alt="" coords="5,152,204,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="355,110,156,154,155,149,354,104"/>
+<area shape="rect" id="Node000004" href="$poller__epoll_8c.html" title="Linux epoll backend for poller.h." alt="" coords="229,152,402,177"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="392,114,334,154,331,150,389,110"/>
+<area shape="rect" id="Node000005" href="$poller__kqueue_8c.html" title="macOS/BSD kqueue backend for poller.h." alt="" coords="426,152,615,177"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="447,110,505,150,502,154,444,114"/>
+<area shape="rect" id="Node000006" href="$poller__win32_8c.html" title="Windows WSAPoll backend for poller.h." alt="" coords="640,152,820,177"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="482,104,680,149,679,154,481,110"/>
+</map>

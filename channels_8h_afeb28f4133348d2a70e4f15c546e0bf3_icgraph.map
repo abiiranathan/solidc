@@ -1,0 +1,7 @@
+<map id="chan_value_size" name="chan_value_size">
+<area shape="rect" id="Node000001" title="Size in bytes of the values this channel carries." alt="" coords="156,31,285,56"/>
+<area shape="rect" id="Node000002" href="$chan__patterns_8c.html#a373a62d87fe6b40545bb85598cf5afa7" title="Merges count source channels into one destination channel." alt="" coords="5,5,108,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="142,34,108,29,109,23,143,29"/>
+<area shape="rect" id="Node000003" href="$chan__patterns_8c.html#aa337face452cd5f7dec009bd997dec4f" title="Waits until one of count channels holds a value, then receives it." alt="" coords="7,55,106,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="143,57,107,63,106,57,142,52"/>
+</map>

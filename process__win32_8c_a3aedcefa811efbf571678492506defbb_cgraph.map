@@ -1,0 +1,5 @@
+<map id="win32_create_process" name="win32_create_process">
+<area shape="rect" id="Node000001" title="CreateProcessA() backend for process_create(): sizes a worst&#45;case command&#45;line buffer (each char may ..." alt="" coords="5,5,172,31"/>
+<area shape="rect" id="Node000002" href="$process__win32_8c.html#afb3fcc72cac00f40bcddd7b344e48c85" title="Maps GetLastError() onto ProcessError codes: invalid parameter, out of memory, access denied,..." alt="" coords="220,5,385,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="172,15,206,15,206,21,172,21"/>
+</map>

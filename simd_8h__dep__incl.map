@@ -1,0 +1,20 @@
+<map id="include/simd.h" name="include/simd.h">
+<area shape="rect" id="Node000001" title="Portable Single Instruction Multiple Data (SIMD) Intrinsics Wrapper." alt="" coords="381,5,498,31"/>
+<area shape="rect" id="Node000002" href="$str_8h.html" title="High&#45;performance, header&#45;only string utility library for C11." alt="" coords="203,79,305,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="398,38,285,81,283,76,396,33"/>
+<area shape="rect" id="Node000006" href="$vec_8h_source.html" title=" " alt="" coords="385,79,493,104"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="442,44,442,79,437,79,437,44"/>
+<area shape="rect" id="Node000009" href="$cstr_8c.html" title="Implementation of high&#45;performance C string with SSO." alt="" coords="517,79,596,104"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="471,35,539,76,536,81,469,40"/>
+<area shape="rect" id="Node000003" href="$csvparser_8c_source.html" title=" " alt="" coords="5,152,124,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="212,111,97,154,95,149,210,106"/>
+<area shape="rect" id="Node000004" href="$dotenv_8c_source.html" title=" " alt="" coords="148,152,248,177"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="238,117,209,154,205,150,234,113"/>
+<area shape="rect" id="Node000005" href="$str__to__num_8c_source.html" title=" " alt="" coords="272,152,401,177"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="279,111,325,150,321,154,276,115"/>
+<area shape="rect" id="Node000007" href="$linear__alg_8h.html" title="Linear algebra operations and utilities." alt="" coords="415,225,565,251"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="449,117,467,176,487,224,482,226,462,178,443,118"/>
+<area shape="rect" id="Node000008" href="$matrix_8h.html" title="Matrix operations and mathematical utilities." alt="" coords="477,152,605,177"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="468,110,526,150,523,154,465,114"/>
+<area shape="poly" id="edge8_Node000008_Node000007" title=" " alt="" coords="526,190,500,227,496,224,522,187"/>
+</map>

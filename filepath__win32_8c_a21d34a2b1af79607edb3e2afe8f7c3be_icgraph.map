@@ -1,0 +1,7 @@
+<map id="dir_next" name="dir_next">
+<area shape="rect" id="Node000001" title="Advances the FindFirstFileW enumeration and converts cFileName to UTF&#45;8 into the handle&#39;s private nam..." alt="" coords="216,31,291,56"/>
+<area shape="rect" id="Node000002" href="$filepath_8c.html#a9288507f81483b0f6983d238b38977c8" title="Lists every entry of a directory, including &quot;.&quot; and &quot;..&quot;." alt="" coords="53,5,120,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="202,38,120,26,121,20,203,33"/>
+<area shape="rect" id="Node000003" href="$filepath_8c.html#a9a153c4ce322fc099eb4725fa95b2c57" title="Invokes callback for each entry of path except &quot;.&quot; and &quot;..&quot;; silently returns if arguments are invali..." alt="" coords="5,55,168,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="202,53,169,58,168,53,202,48"/>
+</map>

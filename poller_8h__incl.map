@@ -1,0 +1,24 @@
+<map id="include/poller.h" name="include/poller.h">
+<area shape="rect" id="Node000001" title="Cross&#45;platform readiness polling for high&#45;performance servers." alt="" coords="282,5,403,31"/>
+<area shape="rect" id="Node000002" href="$macros_8h.html" title="Portable utility macros for assertions, memory, math, iteration, timing, and platform compatibility." alt="" coords="301,79,384,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="345,31,345,65,340,65,340,31"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="5,152,80,177"/>
+<area shape="poly" id="edge11_Node000001_Node000005" title=" " alt="" coords="320,33,80,148,77,144,317,28"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="408,79,491,104"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="361,28,422,69,419,73,358,33"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="105,152,173,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="311,107,185,150,184,145,309,102"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="197,152,283,177"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="328,106,270,146,267,142,325,102"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="302,105,94,154,93,149,300,100"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="307,152,378,177"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="345,104,345,138,340,138,340,104"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="403,152,469,177"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="359,102,412,141,408,146,356,106"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="494,152,565,177"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="374,102,487,145,485,149,372,107"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="589,152,659,177"/>
+<area shape="poly" id="edge8_Node000002_Node000009" title=" " alt="" coords="385,101,576,149,575,154,384,106"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="684,152,748,177"/>
+<area shape="poly" id="edge9_Node000002_Node000010" title=" " alt="" coords="385,99,396,101,532,124,671,149,670,155,531,129,396,107,384,104"/>
+</map>

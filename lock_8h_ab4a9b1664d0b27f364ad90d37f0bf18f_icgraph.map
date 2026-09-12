@@ -1,0 +1,18 @@
+<map id="cond_broadcast" name="cond_broadcast">
+<area shape="rect" id="Node000001" title=" " alt="" coords="388,129,512,155"/>
+<area shape="poly" id="edge8_Node000001_Node000001" title=" " alt="" coords="477,119,469,111,450,108,434,110,425,115,423,120,428,128,423,131,418,121,421,111,432,105,450,103,472,106,481,115"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#a578b7986be91d7c73980dd7bf1deee8d" title="Closes the channel. Idempotent." alt="" coords="245,129,340,155"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="374,145,340,145,340,139,374,139"/>
+<area shape="rect" id="Node000003" href="$chan__patterns_8c.html#a373a62d87fe6b40545bb85598cf5afa7" title="Merges count source channels into one destination channel." alt="" coords="50,5,153,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="273,119,240,80,219,61,196,44,152,28,154,23,199,40,222,57,244,77,277,116"/>
+<area shape="rect" id="Node000004" href="$chan__patterns_8c.html#aa8b578190b11ca08a2278f3e35e0e248" title="Closes the hub: every subscriber queue is closed (after draining) and publishing is rejected...." alt="" coords="27,55,175,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="258,125,196,94,162,83,163,78,198,89,260,120"/>
+<area shape="rect" id="Node000005" href="$chan__patterns_8c.html#ac7d571f3850e5b1007361287e694501d" title="Frees the hub and all subscriber queues." alt="" coords="31,104,171,129"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="231,137,171,129,172,123,232,131"/>
+<area shape="rect" id="Node000006" href="$chan__patterns_8c.html#a7a1ca0d4e1aee1a4e1c63ed6e88317b6" title="Removes a subscriber and destroys its queue (pending values are discarded)." alt="" coords="5,153,197,179"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="232,152,198,157,197,151,231,147"/>
+<area shape="rect" id="Node000007" href="$chan__patterns_8c.html#a9129053474a38b1a4c6268f0cbc218db" title="Starts a worker pool: worker_count threads consuming from one shared work channel." alt="" coords="29,203,174,228"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="259,164,198,192,159,205,157,200,196,188,256,159"/>
+<area shape="rect" id="Node000008" href="$chan__patterns_8c.html#ab82c70c3257d5158ea3fae16a3fde22f" title="Shuts down: closes the work channel, waits for workers to drain every queued item,..." alt="" coords="11,252,192,277"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="276,168,243,206,199,242,170,254,168,250,196,237,239,202,272,164"/>
+</map>

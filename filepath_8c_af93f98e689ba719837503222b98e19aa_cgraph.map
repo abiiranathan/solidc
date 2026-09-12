@@ -1,0 +1,7 @@
+<map id="filepath_expanduser_buf" name="filepath_expanduser_buf">
+<area shape="rect" id="Node000001" title="Buffer variant of filepath_expanduser(): writes the expanded (or verbatim) path into expanded,..." alt="" coords="5,31,188,56"/>
+<area shape="rect" id="Node000002" href="$filepath__string_8c.html#a9eb09c7e2719cbee4dded5a2f453f796" title="Bounds&#45;safe string copy used across the filepath module: copies src into dst, always NUL&#45;terminates,..." alt="" coords="252,5,339,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="188,29,238,23,238,28,189,34"/>
+<area shape="rect" id="Node000003" href="$filepath__win32_8c.html#a971699c9d184e986bb626cd592dfa126" title="Returns $HOME as the user&#39;s home directory." alt="" coords="236,55,355,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="189,52,223,56,222,61,188,57"/>
+</map>

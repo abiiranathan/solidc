@@ -1,0 +1,25 @@
+<map id="chan_merge" name="chan_merge">
+<area shape="rect" id="Node000001" title="Merges count source channels into one destination channel." alt="" coords="5,225,108,251"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#a578b7986be91d7c73980dd7bf1deee8d" title="Closes the channel. Idempotent." alt="" coords="173,103,268,128"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="66,223,102,181,127,158,155,137,164,131,167,136,157,142,131,162,106,185,70,226"/>
+<area shape="rect" id="Node000006" href="$channels_8c.html#afeb28f4133348d2a70e4f15c546e0bf3" title="Size in bytes of the values this channel carries." alt="" coords="156,152,285,177"/>
+<area shape="poly" id="edge8_Node000001_Node000006" title=" " alt="" coords="81,223,155,186,170,180,172,185,157,191,83,228"/>
+<area shape="rect" id="Node000007" href="$thread_8c.html#a2429c28f13bbe7bcec4bef63c7d7e26b" title=" " alt="" coords="165,225,277,251"/>
+<area shape="poly" id="edge9_Node000001_Node000007" title=" " alt="" coords="108,235,151,235,151,241,108,241"/>
+<area shape="rect" id="Node000008" href="$thread_8c.html#abebaaed6dd2a2595573d54d73712b006" title=" " alt="" coords="163,299,278,324"/>
+<area shape="poly" id="edge11_Node000001_Node000008" title=" " alt="" coords="87,248,180,291,178,295,85,253"/>
+<area shape="rect" id="Node000009" href="$thread_8c.html#ac2ea321a5ad4280208f81ad332fe2d31" title=" " alt="" coords="173,372,268,397"/>
+<area shape="poly" id="edge13_Node000001_Node000009" title=" " alt="" coords="71,249,109,288,158,335,192,362,189,366,154,339,105,292,68,253"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#ab4a9b1664d0b27f364ad90d37f0bf18f" title=" " alt="" coords="333,29,457,55"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="249,100,332,64,348,57,350,62,334,68,251,105"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="343,103,447,128"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="268,113,329,113,329,118,268,118"/>
+<area shape="rect" id="Node000005" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="343,176,447,201"/>
+<area shape="poly" id="edge6_Node000002_Node000005" title=" " alt="" coords="258,126,286,137,355,167,353,172,284,142,256,131"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="366,31,360,21,364,11,376,5,395,3,419,6,429,15,426,19,417,11,395,8,377,10,368,15,366,20,371,28"/>
+<area shape="poly" id="edge5_Node000004_Node000004" title=" " alt="" coords="366,104,360,94,364,85,376,78,395,76,419,80,429,88,426,92,417,84,395,81,377,83,368,88,366,94,371,101"/>
+<area shape="poly" id="edge7_Node000005_Node000005" title=" " alt="" coords="366,177,360,168,364,158,376,152,395,149,419,153,429,162,426,166,417,158,395,155,377,157,368,161,366,167,371,174"/>
+<area shape="poly" id="edge10_Node000007_Node000007" title=" " alt="" coords="193,227,188,217,191,207,202,201,221,199,243,202,253,211,249,215,241,207,221,204,204,206,195,211,193,216,198,224"/>
+<area shape="poly" id="edge12_Node000008_Node000008" title=" " alt="" coords="193,300,188,290,191,281,202,274,221,272,243,275,253,284,249,288,241,280,221,277,204,279,195,284,193,290,198,297"/>
+<area shape="poly" id="edge14_Node000009_Node000009" title=" " alt="" coords="193,373,188,364,191,354,202,348,221,345,243,349,253,357,249,361,241,354,221,351,204,353,195,357,193,363,198,370"/>
+</map>

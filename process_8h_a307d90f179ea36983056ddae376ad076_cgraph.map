@@ -1,0 +1,19 @@
+<map id="process_run_and_capture" name="process_run_and_capture">
+<area shape="rect" id="Node000001" title="Run a command and capture its output." alt="" coords="5,92,192,117"/>
+<area shape="rect" id="Node000002" href="$process_8c.html#a4ae7664bb48e61bb2211a010678fb860" title="Public entry point for process creation: validates arguments, applies DEFAULT_OPTIONS when options is..." alt="" coords="240,43,360,68"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="151,89,233,69,235,74,152,95"/>
+<area shape="rect" id="Node000006" href="$process_8c.html#a878c2f499845f3b3948c33d013bd16cf" title="Frees the memory backing a process handle. Does not wait for or terminate the process." alt="" coords="247,92,353,117"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="192,102,234,102,234,107,192,107"/>
+<area shape="rect" id="Node000007" href="$process__win32_8c.html#aab27c2b93b61c29afa2279842d1c3642" title="Wait for a process to complete." alt="" coords="247,141,353,167"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="152,115,235,135,233,141,151,120"/>
+<area shape="rect" id="Node000003" href="$process__posix_8c.html#a8fecfdde215cae0f34aaad5a9eb7f9c6" title="fork()/exec() backend for process_create(). In the child: chdir()s to working_directory,..." alt="" coords="414,5,569,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="360,41,412,31,413,36,361,46"/>
+<area shape="rect" id="Node000004" href="$process__win32_8c.html#a3aedcefa811efbf571678492506defbb" title="CreateProcessA() backend for process_create(): sizes a worst&#45;case command&#45;line buffer (each char may ..." alt="" coords="408,55,575,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="361,56,395,59,394,64,360,62"/>
+<area shape="rect" id="Node000005" href="$process__win32_8c.html#afb3fcc72cac00f40bcddd7b344e48c85" title="Maps GetLastError() onto ProcessError codes: invalid parameter, out of memory, access denied,..." alt="" coords="623,55,788,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="575,65,609,65,609,70,575,70"/>
+<area shape="rect" id="Node000008" href="$process__posix_8c.html#a450e174a306f9fa40d323a7adb8f84b3" title="POSIX backend of the cross&#45;platform sleep: a direct nanosleep(2) call." alt="" coords="441,116,541,141"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="353,144,427,134,428,140,354,150"/>
+<area shape="rect" id="Node000009" href="$process__posix_8c.html#afb3fcc72cac00f40bcddd7b344e48c85" title="Translates the current errno into the closest ProcessError: EINVAL, ENOMEM, EACCES/EPERM,..." alt="" coords="409,165,574,191"/>
+<area shape="poly" id="edge8_Node000007_Node000009" title=" " alt="" coords="354,158,395,163,394,169,353,163"/>
+</map>

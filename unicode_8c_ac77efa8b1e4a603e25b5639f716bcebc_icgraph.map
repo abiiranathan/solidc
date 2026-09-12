@@ -1,0 +1,7 @@
+<map id="ucp_to_utf8" name="ucp_to_utf8">
+<area shape="rect" id="Node000001" title="Converts a Unicode codepoint to its UTF&#45;8 byte sequence." alt="" coords="159,31,257,56"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#ae3f31481d188b5fbe03ca760b031677b" title="Converts all uppercase characters to lowercase in&#45;place." alt="" coords="6,5,110,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="145,35,110,29,111,24,146,30"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#a0695d31239b48bbee503c9191bdfc627" title="Converts all lowercase characters to uppercase in&#45;place." alt="" coords="5,55,111,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="146,56,111,62,110,56,145,51"/>
+</map>

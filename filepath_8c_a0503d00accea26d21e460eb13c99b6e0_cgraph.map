@@ -1,0 +1,5 @@
+<map id="lazy_is_file" name="lazy_is_file">
+<area shape="rect" id="Node000001" title="Regular&#45;file check for lazy walks: trusts d_type when known (Linux), falling back to a stat via lazy_..." alt="" coords="5,5,100,31"/>
+<area shape="rect" id="Node000002" href="$filepath__win32_8c.html#ad4b6d8d265f76f81e3338531f268cad5" title="Returns full FileAttributes for a lazily walked entry: on first use performs fstatat(dirfd,..." alt="" coords="148,5,263,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="100,15,134,15,134,21,100,21"/>
+</map>
