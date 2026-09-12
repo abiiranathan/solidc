@@ -25,6 +25,19 @@ if(MSVC)
     string(REGEX REPLACE "/W[0-4]" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 endif()
 
+set(CMAKE_C_EXTENSIONS ON)
+
+# Retain debug info in Release builds so perf/gdb can symbolize optimized
+# binaries without a separate Debug build. -DNDEBUG still disables asserts;
+# -g only adds DWARF info and does not affect codegen or performance.
+if(NOT MSVC)
+    set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG -g")
+else()
+    set(CMAKE_C_FLAGS_RELEASE "/Zi /O2 /DNDEBUG")
+    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG")
+    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
+endif()
+
 if(UNIX AND NOT APPLE)
     set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 endif()

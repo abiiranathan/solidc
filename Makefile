@@ -73,11 +73,6 @@ release:
 	$(MAKE) BUILD_TYPE=Release
 
 # === Cross-Platform Checks ===
-# One command to surface every -Werror failure that CI would hit on
-# Linux (x64 + aarch64 cross), Windows (MinGW cross), and macOS/BSD.
-# Each cross-check is skipped gracefully when its toolchain/SDK is absent,
-# so `make check-platforms` is useful on a plain Linux dev box and still
-# exhaustive on the CI matrix (where every runner IS native for its OS).
 .PHONY: check-platforms check-linux check-linux-aarch64 check-windows check-macos check-bsd
 
 check-platforms: check-linux check-linux-aarch64 check-windows check-macos check-bsd

@@ -24,9 +24,7 @@ static void print_result(const char* name, int ok) {
     ok ? g_pass++ : g_fail++;
 }
 
-static void print_section(const char* name) {
-    printf("\n%s\n", name);
-}
+static void print_section(const char* name) { printf("\n%s\n", name); }
 
 static int validate_pattern(void* ptr, size_t size, unsigned char byte) {
     if (!ptr) return 0;
@@ -81,7 +79,8 @@ static void test_basic_allocations(void) {
     char* a2 = arena_alloc(a, 64);
     memset(a1, 0x11, 64);
     memset(a2, 0x22, 64);
-    print_result("consecutive allocs don't overlap", validate_pattern(a1, 64, 0x11) && validate_pattern(a2, 64, 0x22));
+    print_result("consecutive allocs don't overlap",
+                 validate_pattern(a1, 64, 0x11) && validate_pattern(a2, 64, 0x22));
 
     arena_destroy(a);
 }
@@ -145,7 +144,8 @@ static void test_stack_arena(void) {
     // Allocations come from buf
     char* p = arena_alloc(&a, 16);
     print_result("alloc from stack arena non-NULL", p != NULL);
-    print_result("alloc is inside the stack buffer", (char*)p >= buf && (char*)p < buf + sizeof(buf));
+    print_result("alloc is inside the stack buffer",
+                 (char*)p >= buf && (char*)p < buf + sizeof(buf));
 
     // Writing to it works
     memset(p, 0xCC, 16);
@@ -195,9 +195,9 @@ static void test_stack_arena_overflow(void) {
     memset(first, 0x11, 64);
     memset(second, 0x22, 64);
     memset(third, 0x33, 64);
-    print_result("all three allocs writable and independent", validate_pattern(first, 64, 0x11) &&
-                                                                  validate_pattern(second, 64, 0x22) &&
-                                                                  validate_pattern(third, 64, 0x33));
+    print_result("all three allocs writable and independent",
+                 validate_pattern(first, 64, 0x11) && validate_pattern(second, 64, 0x22) &&
+                     validate_pattern(third, 64, 0x33));
 
     // Heap overflow block freed without crash
     arena_destroy(&a);
@@ -234,6 +234,7 @@ static void test_reset(void) {
 
     Arena* a = arena_create(0);
     ASSERT(a);
+    print_result("head_base matches head->base after init", a->head_base == a->head->base);
 
     char* p1 = arena_alloc(a, 128);
     memset(p1, 0xBB, 128);
@@ -285,7 +286,8 @@ static void test_reset_with_overflow(void) {
                  (char*)after_reset >= buf && (char*)after_reset < buf + sizeof(buf));
 
     // Committed size unchanged (pages retained)
-    print_result("committed_size unchanged after reset with overflow", arena_committed_size(&a) == committed);
+    print_result("committed_size unchanged after reset with overflow",
+                 arena_committed_size(&a) == committed);
 
     arena_destroy(&a);
 }
@@ -314,7 +316,8 @@ static void test_macros(void) {
     // ARENA_ALLOC_ZERO
     TestStruct* zeroed = arena_alloc_zero(a, sizeof(TestStruct));
     print_result("ARENA_ALLOC_ZERO non-NULL", zeroed != NULL);
-    print_result("ARENA_ALLOC_ZERO all bytes zero", zeroed && zeroed->x == 0 && zeroed->y == 0.0f && zeroed->z == 0.0);
+    print_result("ARENA_ALLOC_ZERO all bytes zero",
+                 zeroed && zeroed->x == 0 && zeroed->y == 0.0f && zeroed->z == 0.0);
 
     // ARENA_ALLOC_ARRAY
     int* arr = arena_alloc(a, sizeof(int) * 64);
@@ -325,8 +328,7 @@ static void test_macros(void) {
     int* zarr = arena_alloc_zero(a, sizeof(int) * 64);
     int all_zero = 1;
     if (zarr)
-        for (int i = 0; i < 64; i++)
-            all_zero &= (zarr[i] == 0);
+        for (int i = 0; i < 64; i++) all_zero &= (zarr[i] == 0);
     print_result("ARENA_ALLOC_ARRAY_ZERO all elements zero", zarr != NULL && all_zero);
 
     arena_destroy(a);
@@ -493,8 +495,7 @@ static void* thread_func(void* arg) {
         printf("  Thread %lu: array alloc failed\n", (unsigned long)thread_self());
         return NULL;
     }
-    for (int i = 0; i < 10; i++)
-        numbers[i] = i;
+    for (int i = 0; i < 10; i++) numbers[i] = i;
 
     return NULL;
 }
@@ -506,10 +507,8 @@ static void test_multithreaded(void) {
     ASSERT(a);
 
     Thread threads[NUM_THREADS] = {0};
-    for (int i = 0; i < NUM_THREADS; i++)
-        thread_create(&threads[i], thread_func, a);
-    for (int i = 0; i < NUM_THREADS; i++)
-        thread_join(threads[i], NULL);
+    for (int i = 0; i < NUM_THREADS; i++) thread_create(&threads[i], thread_func, a);
+    for (int i = 0; i < NUM_THREADS; i++) thread_join(threads[i], NULL);
 
     print_result("multithreaded allocs (no crash)", 1);
     arena_destroy(a);
@@ -579,13 +578,12 @@ int main(void) {
     printf("Results: %d passed, %d failed\n", g_pass, g_fail);
 
     TIME_BLOCK_MS("10M iteration loop", {
-        for (volatile int i = 0; i < 10000000; ++i) {}
+        for (volatile int i = 0; i < 10000000; ++i) {
+        }
     });
 
     int arr[] = {1, 2, 3, 4};
-    FOR_EACH_ARRAY(n, arr) {
-        printf("  n=%d\n", *n);
-    }
+    FOR_EACH_ARRAY(n, arr) { printf("  n=%d\n", *n); }
 
     return g_fail > 0 ? 1 : 0;
 }

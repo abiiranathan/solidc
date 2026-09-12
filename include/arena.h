@@ -193,15 +193,16 @@ typedef struct ArenaCheckpoint {
 /**
  * Arena control structure.
  *
- * The two hottest fields — @c curr and @c end — are placed first so they
- * share a cache line with each other and with @c current_block, regardless
- * of where the struct is allocated.  @c aligned_alloc_xp(64, sizeof(Arena))
- * in arena_create() ensures the heap-allocated instance starts on a 64-byte
- * boundary, keeping the fast path in a single cache line fetch.
+ * The hot-path state lives at the front of @c Arena so reset and allocation
+ * touch only this resident cache line: @c curr, @c end, @c head_base,
+ * @c current_block, and @c head are kept together.  @c aligned_alloc_xp(64,
+ * sizeof(Arena)) in arena_create() keeps the heap-allocated instance aligned
+ * to a 64-byte boundary so the fast path stays in a single cache-line fetch.
  */
 typedef struct Arena {
     char* curr;                /**< Next byte to dispense (bump pointer).                   */
     char* end;                 /**< One past the last byte of the current block.            */
+    char* head_base;           /**< Cached base of the head block for clean-path checks.   */
     ArenaBlock* current_block; /**< Block currently being allocated from.                   */
     ArenaBlock* head;          /**< Head of the block chain (always the first block).       */
     size_t page_size;          /**< OS page size used to round block sizes (usually 4096).  */
@@ -257,11 +258,13 @@ static ARENA_INLINE void arena_reset(Arena* a) {
 
     /* Dirty check: if we're still on the head block and the cursor hasn't
      * moved off its base, no allocation has happened since the last reset.
-     * Skip the writes entirely rather than re-storing identical values. */
-    if (a->current_block == a->head && a->curr == a->head->base) return;
+     * Skip the writes entirely rather than re-storing identical values.
+     * head_base is cached on the hot path so we avoid a second cache-line
+     * touch through the head block when the arena is already clean. */
+    if (a->current_block == a->head && a->curr == a->head_base) return;
 
     a->current_block = a->head;
-    a->curr = a->head->base;
+    a->curr = a->head_base;
     a->end = a->head->end;
 }
 

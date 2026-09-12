@@ -23,6 +23,8 @@
 #define WARMUP_ITERATIONS      200
 #define MEASUREMENT_ITERATIONS 2000
 #define ALLOCS_PER_ITER        10000
+#define RESET_BENCH_ITERATIONS 5000
+#define RESET_BENCH_REPS       2048
 
 /* -------------------------------------------------------------------------
  * Memory touch — identical for every allocator path.
@@ -33,9 +35,7 @@
  * original benchmark did) produces incomparable timings on Linux due to
  * different CoW paths.
  * ---------------------------------------------------------------------- */
-static inline void touch_memory(void* ptr) {
-    *(volatile char*)ptr = 1;
-}
+static inline void touch_memory(void* ptr) { *(volatile char*)ptr = 1; }
 
 /* -------------------------------------------------------------------------
  * Statistics
@@ -66,8 +66,7 @@ static void calculate_stats(double* samples, size_t count, BenchmarkStats* out) 
     out->p99_ns = samples[(size_t)(count * 0.99)];
 
     double sum = 0.0;
-    for (size_t i = 0; i < count; i++)
-        sum += samples[i];
+    for (size_t i = 0; i < count; i++) sum += samples[i];
     out->avg_ns = sum / (double)count;
 
     double var = 0.0;
@@ -264,46 +263,113 @@ static void bench_single_alloc_latency(void) {
     printf("  StdDev  : %.1f ns\n", s.stddev_ns);
 }
 
+static void bench_reset_cost(void) {
+    printf("\nReset cost (clean vs dirty path):\n");
+
+    for (int sc = 0; sc < NUM_SCENARIOS; sc++) {
+        const Scenario* scenario = &SCENARIOS[sc];
+        init_sizes(scenario);
+
+        double* clean_samples = (double*)malloc(sizeof(double) * RESET_BENCH_ITERATIONS);
+        double* dirty_samples = (double*)malloc(sizeof(double) * RESET_BENCH_ITERATIONS);
+        if (!clean_samples || !dirty_samples) {
+            free(clean_samples);
+            free(dirty_samples);
+            fprintf(stderr, "bench_reset_cost: out of memory\n");
+            return;
+        }
+
+        Arena* clean = arena_create(0);
+        for (int i = 0; i < 8192; i++) {
+            void* p = arena_alloc(clean, 64);
+            touch_memory(p);
+        }
+        arena_reset(clean);
+
+        for (size_t i = 0; i < RESET_BENCH_ITERATIONS; i++) {
+            uint64_t t0 = get_time_ns();
+            for (int rep = 0; rep < RESET_BENCH_REPS; rep++) {
+                arena_reset(clean);
+            }
+            uint64_t t1 = get_time_ns();
+            clean_samples[i] = (double)(t1 - t0) / (double)RESET_BENCH_REPS;
+        }
+        arena_destroy(clean);
+
+        Arena* dirty = arena_create(0);
+        for (size_t i = 0; i < RESET_BENCH_ITERATIONS; i++) {
+            /* Make the arena dirty and then time a single reset. */
+            for (int j = 0; j < 256; j++) {
+                void* p = arena_alloc(dirty, g_sizes[j % ALLOCS_PER_ITER]);
+                touch_memory(p);
+            }
+            uint64_t t0 = get_time_ns();
+            arena_reset(dirty);
+            uint64_t t1 = get_time_ns();
+            dirty_samples[i] = (double)(t1 - t0);
+        }
+        arena_destroy(dirty);
+
+        BenchmarkStats clean_stats = {0}, dirty_stats = {0};
+        calculate_stats(clean_samples, RESET_BENCH_ITERATIONS, &clean_stats);
+        calculate_stats(dirty_samples, RESET_BENCH_ITERATIONS, &dirty_stats);
+
+        printf("  %-20s  clean no-op reset = %8.2f ns  | dirty reset = %8.2f ns\n", scenario->name,
+               clean_stats.avg_ns, dirty_stats.avg_ns);
+
+        free(clean_samples);
+        free(dirty_samples);
+    }
+}
+
 /* -------------------------------------------------------------------------
  * Output formatting
  * ---------------------------------------------------------------------- */
 static void print_table_header(void) {
     printf("\n");
     printf(
-        "╔══════════════════════╦══════════════╦════════════╦════════════╦════════════╦════════════╦═══════════════╗"
+        "╔══════════════════════╦══════════════╦════════════╦════════════╦════════════╦════════════"
+        "╦═══════════════╗"
         "\n");
     printf(
-        "║ Scenario / Allocator ║  Min (μs)    ║  Avg (μs)  ║  Med (μs)  ║  p99 (μs)  ║ StdDev(μs) ║  Throughput   "
+        "║ Scenario / Allocator ║  Min (μs)    ║  Avg (μs)  ║  Med (μs)  ║  p99 (μs)  ║ StdDev(μs) "
+        "║  Throughput   "
         "║\n");
     printf(
-        "╠══════════════════════╬══════════════╬════════════╬════════════╬════════════╬════════════╬═══════════════╣"
+        "╠══════════════════════╬══════════════╬════════════╬════════════╬════════════╬════════════"
+        "╬═══════════════╣"
         "\n");
 }
 
 static void print_row(const char* label, const BenchmarkStats* s) {
-    printf("║ %-20s ║ %12.2f ║ %10.2f ║ %10.2f ║ %10.2f ║ %10.2f ║ %13.0f ║\n", label, s->min_ns / 1000.0,
-           s->avg_ns / 1000.0, s->median_ns / 1000.0, s->p99_ns / 1000.0, s->stddev_ns / 1000.0, s->throughput);
+    printf("║ %-20s ║ %12.2f ║ %10.2f ║ %10.2f ║ %10.2f ║ %10.2f ║ %13.0f ║\n", label,
+           s->min_ns / 1000.0, s->avg_ns / 1000.0, s->median_ns / 1000.0, s->p99_ns / 1000.0,
+           s->stddev_ns / 1000.0, s->throughput);
 }
 
 static void print_scenario_divider(const char* scenario_name) {
     printf(
-        "╠══════════════════════╩══════════════╩════════════╩════════════╩════════════╩════════════╩═══════════════╣"
+        "╠══════════════════════╩══════════════╩════════════╩════════════╩════════════╩════════════"
+        "╩═══════════════╣"
         "\n");
     printf("║  %-87s║\n", scenario_name);
     printf(
-        "╠══════════════════════╦══════════════╦════════════╦════════════╦════════════╦════════════╦═══════════════╣"
+        "╠══════════════════════╦══════════════╦════════════╦════════════╦════════════╦════════════"
+        "╦═══════════════╣"
         "\n");
 }
 
 static void print_row_divider(void) {
     printf(
-        "╟──────────────────────┼──────────────┼────────────┼────────────┼────────────┼────────────┼───────────────╢"
+        "╟──────────────────────┼──────────────┼────────────┼────────────┼────────────┼────────────"
+        "┼───────────────╢"
         "\n");
 }
 
 static void print_table_footer(void) {
     printf(
-        "╚══════════════════════╩══════════════╩════════════╩════════════╩════════════╩════════════╩═══════════════╝"
+        "╚══════════════════════╩══════════════╩════════════╩════════════╩════════════╩════════════"
+        "╩═══════════════╝"
         "\n");
 }
 
@@ -313,11 +379,13 @@ static void print_table_footer(void) {
 int main(void) {
     printf("Arena Allocator Benchmark\n");
     printf("  Allocations per iteration : %d\n", ALLOCS_PER_ITER);
-    printf("  Measurement iterations    : %d (+ %d warmup)\n", MEASUREMENT_ITERATIONS, WARMUP_ITERATIONS);
+    printf("  Measurement iterations    : %d (+ %d warmup)\n", MEASUREMENT_ITERATIONS,
+           WARMUP_ITERATIONS);
     printf("\nScenarios\n");
     for (int s = 0; s < NUM_SCENARIOS; s++) {
         size_t ws = working_set_bytes(&SCENARIOS[s]);
-        printf("  [%d] %-20s  working set ~%.1f MB\n", s + 1, SCENARIOS[s].name, (double)ws / (1024.0 * 1024.0));
+        printf("  [%d] %-20s  working set ~%.1f MB\n", s + 1, SCENARIOS[s].name,
+               (double)ws / (1024.0 * 1024.0));
     }
 
     double* arena_warm_s = (double*)malloc(sizeof(double) * MEASUREMENT_ITERATIONS);
@@ -365,17 +433,19 @@ int main(void) {
         double speedup_warm = ms.avg_ns / ws.avg_ns;
         double speedup_cold = ms.avg_ns / cs.avg_ns;
         printf(
-            "╟──────────────────────────────────────────────────────────────────────────────────────────────────────╢"
+            "╟─────────────────────────────────────────────────────────────────────────────────────"
+            "─────────────────╢"
             "\n");
-        printf("║  Speedup vs malloc:  warm arena = %5.1fx    cold arena = %5.1fx%-43s║\n", speedup_warm, speedup_cold,
-               "");
+        printf("║  Speedup vs malloc:  warm arena = %5.1fx    cold arena = %5.1fx%-43s║\n",
+               speedup_warm, speedup_cold, "");
     }
 
     print_table_footer();
 
-    /* Single-allocation latency — printed separately, not mixed into the
-     * throughput table which measures batch workloads. */
+    /* Single-allocation latency and reset-cost checks are printed separately,
+     * not mixed into the throughput table which measures batch workloads. */
     bench_single_alloc_latency();
+    bench_reset_cost();
 
     free(arena_warm_s);
     free(arena_cold_s);

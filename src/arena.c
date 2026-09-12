@@ -7,10 +7,10 @@
 #include <string.h> /* memset   */
 
 #if defined(_WIN32)
-    #include "../include/platform.h"
+#include "../include/platform.h"
 #else
-    #include <sys/mman.h> /* (reserved for future mmap path) */
-    #include <unistd.h>   /* sysconf */
+#include <sys/mman.h> /* (reserved for future mmap path) */
+#include <unistd.h>   /* sysconf */
 #endif
 
 /* -------------------------------------------------------------------------
@@ -56,32 +56,32 @@ static THREAD_LOCAL bool static_buffer_in_use = false;
  * ---------------------------------------------------------------------- */
 
 #ifndef ARENA_BLOCK_CACHE_COUNT
-    #define ARENA_BLOCK_CACHE_COUNT 8
+#define ARENA_BLOCK_CACHE_COUNT 8
 #endif
 #ifndef ARENA_BLOCK_CACHE_BYTES
-    #define ARENA_BLOCK_CACHE_BYTES (16u << 20) /* 16 MB per thread */
+#define ARENA_BLOCK_CACHE_BYTES (16u << 20) /* 16 MB per thread */
 #endif
 
 #if defined(__SANITIZE_ADDRESS__) || SOLIDC_HAS_FEATURE(address_sanitizer)
-    #undef ARENA_BLOCK_CACHE_COUNT
-    #define ARENA_BLOCK_CACHE_COUNT 0 /* sanitizers want exact alloc/free pairing */
+#undef ARENA_BLOCK_CACHE_COUNT
+#define ARENA_BLOCK_CACHE_COUNT 0 /* sanitizers want exact alloc/free pairing */
 #endif
 
 #if ARENA_BLOCK_CACHE_COUNT > 0
 
-    #define ARENA_HAVE_BLOCK_CACHE 1
+#define ARENA_HAVE_BLOCK_CACHE 1
 
 static THREAD_LOCAL ArenaBlock* blk_cache[ARENA_BLOCK_CACHE_COUNT];
 static THREAD_LOCAL size_t blk_cache_slab[ARENA_BLOCK_CACHE_COUNT]; /* full slab bytes */
 static THREAD_LOCAL size_t blk_cache_count = 0;
 static THREAD_LOCAL size_t blk_cache_bytes = 0;
 
-    /* TLS destructor support: drain the bin when the owning thread exits.
-     * Note: POSIX only runs key destructors from pthread_exit(); returning
-     * from main() bypasses them on glibc, so we also hook atexit() which is
-     * guaranteed to run on the main thread during normal shutdown. */
-    #if !defined(_WIN32)
-        #include <pthread.h>
+/* TLS destructor support: drain the bin when the owning thread exits.
+ * Note: POSIX only runs key destructors from pthread_exit(); returning
+ * from main() bypasses them on glibc, so we also hook atexit() which is
+ * guaranteed to run on the main thread during normal shutdown. */
+#if !defined(_WIN32)
+#include <pthread.h>
 
 /** POSIX-only cache teardown path; drains the bin (defined below). */
 static void blk_cache_drain(void);
@@ -102,7 +102,8 @@ static void blk_cache_tls_dtor(void* unused) {
 /** atexit() handler covering main(), whose return bypasses pthread key destructors on glibc. */
 static void blk_cache_atexit_hook(void) { blk_cache_drain(); }
 
-/** Arms the TLS destructor for this thread and registers the one-shot atexit fallback; idempotent. */
+/** Arms the TLS destructor for this thread and registers the one-shot atexit fallback; idempotent.
+ */
 static void blk_cache_register(void) {
     pthread_once(&blk_cache_once, blk_cache_key_create);
     /* Any non-NULL value arms the key destructor for this thread. */
@@ -114,8 +115,8 @@ static void blk_cache_register(void) {
     }
 }
 
-    #else
-        #include "../include/platform.h"
+#else
+#include "../include/platform.h"
 
 static DWORD blk_cache_fls_index = FLS_OUT_OF_INDEXES;
 static INIT_ONCE blk_cache_init_once = INIT_ONCE_STATIC_INIT;
@@ -141,12 +142,13 @@ static BOOL CALLBACK blk_cache_init_cb(PINIT_ONCE once, PVOID param, PVOID* ctx)
 /** Arms the FLS destructor for this thread; idempotent. */
 static void blk_cache_register(void) {
     InitOnceExecuteOnce(&blk_cache_init_once, blk_cache_init_cb, NULL, NULL);
-    if (blk_cache_fls_index != FLS_OUT_OF_INDEXES) FlsSetValue(blk_cache_fls_index, (PVOID)(uintptr_t)1);
+    if (blk_cache_fls_index != FLS_OUT_OF_INDEXES)
+        FlsSetValue(blk_cache_fls_index, (PVOID)(uintptr_t)1);
 }
-    #endif
+#endif
 
-/** Releases every cached slab (freeing each pointer); called by the platform TLS destructor and safe to call
- * explicitly. */
+/** Releases every cached slab (freeing each pointer); called by the platform TLS destructor and
+ * safe to call explicitly. */
 static void blk_cache_drain(void) {
     for (size_t i = 0; i < blk_cache_count; i++) {
         aligned_free_xp(blk_cache[i]);
@@ -155,8 +157,8 @@ static void blk_cache_drain(void) {
     blk_cache_bytes = 0;
 }
 
-/** Best-fit take: removes the smallest cached slab with size >= @p min_slab, writing its full slab size to @p slab_out;
- * returns NULL when nothing fits. */
+/** Best-fit take: removes the smallest cached slab with size >= @p min_slab, writing its full slab
+ * size to @p slab_out; returns NULL when nothing fits. */
 static char* blk_cache_take(size_t min_slab, size_t* slab_out) {
     if (ARENA_UNLIKELY(blk_cache_count == 0)) return NULL;
 
@@ -186,7 +188,8 @@ static void blk_cache_put(ArenaBlock* block, size_t slab_size) {
         registered = true;
     }
 
-    if (blk_cache_count >= ARENA_BLOCK_CACHE_COUNT || blk_cache_bytes + slab_size > ARENA_BLOCK_CACHE_BYTES) {
+    if (blk_cache_count >= ARENA_BLOCK_CACHE_COUNT ||
+        blk_cache_bytes + slab_size > ARENA_BLOCK_CACHE_BYTES) {
         aligned_free_xp(block);
         return;
     }
@@ -198,7 +201,7 @@ static void blk_cache_put(ArenaBlock* block, size_t slab_size) {
 
 #else
 
-    #define ARENA_HAVE_BLOCK_CACHE 0
+#define ARENA_HAVE_BLOCK_CACHE 0
 /** Recycling disabled: drain is a no-op. */
 static void blk_cache_drain(void) {}
 /** Recycling disabled: never yields a slab. @return NULL unconditionally. */
@@ -234,9 +237,10 @@ static ARENA_INLINE size_t get_page_size(void) {
  * Public API — lifecycle
  * ---------------------------------------------------------------------- */
 
-/** @brief Initialises @p a using caller-provided storage as its first block (no heap allocation, no TLS lookup). The
- * arena never frees @p buf; overflow blocks are heap-owned and freed by arena_destroy(). @param a Caller-owned Arena
- * struct. @param buf Backing buffer for the first block; must outlive the arena. @param size Size of @p buf in bytes.
+/** @brief Initialises @p a using caller-provided storage as its first block (no heap allocation, no
+ * TLS lookup). The arena never frees @p buf; overflow blocks are heap-owned and freed by
+ * arena_destroy(). @param a Caller-owned Arena struct. @param buf Backing buffer for the first
+ * block; must outlive the arena. @param size Size of @p buf in bytes.
  */
 void arena_init(Arena* a, void* buf, size_t size) {
     memset(a, 0, sizeof(Arena));
@@ -250,16 +254,18 @@ void arena_init(Arena* a, void* buf, size_t size) {
     a->first_block.next = NULL;
 
     a->head = &a->first_block;
+    a->head_base = a->head->base;
     a->current_block = a->head;
-    a->curr = a->head->base;
+    a->curr = a->head_base;
     a->end = a->head->end;
     a->total_committed = size;
 }
 
-/** @brief Allocates and initialises a heap-backed Arena, claiming the per-thread TLS buffer as the first block when it
- * is free and @p reserve_size fits in it; otherwise heap-allocates a page-rounded initial block. @param reserve_size
- * Hint for the initial block size in bytes; 0 selects the default (TLS buffer or ARENA_MIN_BLOCK_SIZE). @return
- * Ready-to-use Arena, or NULL on allocation failure. */
+/** @brief Allocates and initialises a heap-backed Arena, claiming the per-thread TLS buffer as the
+ * first block when it is free and @p reserve_size fits in it; otherwise heap-allocates a
+ * page-rounded initial block. @param reserve_size Hint for the initial block size in bytes; 0
+ * selects the default (TLS buffer or ARENA_MIN_BLOCK_SIZE). @return Ready-to-use Arena, or NULL on
+ * allocation failure. */
 Arena* arena_create(size_t reserve_size) {
     Arena* a = (Arena*)aligned_alloc_xp(64, sizeof(Arena));
 #ifdef ARENA_ABORT_ON_OOM
@@ -299,9 +305,10 @@ Arena* arena_create(size_t reserve_size) {
     return a;
 }
 
-/** @brief Releases all arena resources: overflow blocks are offered to the thread-local recycle bin, a heap-allocated
- * first block is freed (caller-owned buffers are not), a claimed TLS buffer is unclaimed via its origin flag, and the
- * struct itself is freed when heap-allocated. @param a Arena to destroy; NULL is safely ignored. */
+/** @brief Releases all arena resources: overflow blocks are offered to the thread-local recycle
+ * bin, a heap-allocated first block is freed (caller-owned buffers are not), a claimed TLS buffer
+ * is unclaimed via its origin flag, and the struct itself is freed when heap-allocated. @param a
+ * Arena to destroy; NULL is safely ignored. */
 void arena_destroy(Arena* a) {
     if (!a) return;
 
@@ -340,11 +347,11 @@ void arena_destroy(Arena* a) {
  * Slow path — new block allocation
  * ---------------------------------------------------------------------- */
 
-/** @private Slow path for arena_alloc_align(): first searches blocks after current_block for one with room, else
- * allocates a fresh page-rounded slab (recycle bin first, doubling capacity up to ARENA_MAX_BLOCK_SIZE), links it at
- * the chain tail so skipped blocks are revisited, and bumps the cursor. @param a Owning arena. @param size Bytes
- * requested. @param alignment Required power-of-two alignment. @return Aligned pointer into the block, or NULL on
- * allocation failure. */
+/** @private Slow path for arena_alloc_align(): first searches blocks after current_block for one
+ * with room, else allocates a fresh page-rounded slab (recycle bin first, doubling capacity up to
+ * ARENA_MAX_BLOCK_SIZE), links it at the chain tail so skipped blocks are revisited, and bumps the
+ * cursor. @param a Owning arena. @param size Bytes requested. @param alignment Required
+ * power-of-two alignment. @return Aligned pointer into the block, or NULL on allocation failure. */
 void* _arena_alloc_slow(Arena* a, size_t size, size_t alignment) {
     /* --- Try existing cached blocks after current_block first ------------ */
 
@@ -369,7 +376,8 @@ void* _arena_alloc_slow(Arena* a, size_t size, size_t alignment) {
     size_t needed = sizeof(ArenaBlock) + (alignment - 1) + size;
 
     // Check for overflow.
-    size_t next_size = (current_capacity <= ARENA_MAX_BLOCK_SIZE / 2) ? current_capacity * 2 : ARENA_MAX_BLOCK_SIZE;
+    size_t next_size = (current_capacity <= ARENA_MAX_BLOCK_SIZE / 2) ? current_capacity * 2
+                                                                      : ARENA_MAX_BLOCK_SIZE;
     if (next_size < needed) next_size = needed;
     if (next_size < ARENA_MIN_BLOCK_SIZE) next_size = ARENA_MIN_BLOCK_SIZE;
 
