@@ -1,0 +1,5 @@
+<map id="include/strsim.h" name="include/strsim.h">
+<area shape="rect" id="Node000001" title="String similarity algorithms: cosine similarity, Levenshtein distance, Damerau&#45;Levenshtein distance,..." alt="" coords="5,5,132,31"/>
+<area shape="rect" id="Node000002" href="$strsim_8c.html" title="Implementations of cosine similarity, Levenshtein distance, Damerau&#45;Levenshtein distance,..." alt="" coords="20,79,117,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="71,44,71,79,66,79,66,44"/>
+</map>

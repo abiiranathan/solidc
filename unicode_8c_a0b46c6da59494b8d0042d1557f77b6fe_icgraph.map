@@ -1,0 +1,7 @@
+<map id="utf8_count_codepoints" name="utf8_count_codepoints">
+<area shape="rect" id="Node000001" title="Counts the number of Unicode codepoints in a UTF&#45;8 string." alt="" coords="180,31,349,56"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a362e284c2424f2331d08094cb9decba0" title="Replaces the first occurrence of a substring with another string." alt="" coords="17,5,120,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="166,33,120,27,121,22,167,28"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#a81f33e66332d41c30b0a7c120d59a4d2" title="Replaces all occurrences of a substring with another string." alt="" coords="5,55,132,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="166,58,133,62,132,57,166,53"/>
+</map>

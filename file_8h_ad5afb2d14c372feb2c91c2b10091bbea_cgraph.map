@@ -1,0 +1,7 @@
+<map id="file_copy" name="file_copy">
+<area shape="rect" id="Node000001" title="Copies from src&#39;s current position to EOF, appending at dst&#39;s current position, then flushes dst...." alt="" coords="5,31,85,56"/>
+<area shape="rect" id="Node000002" href="$file_8c.html#a335f0dbdf02ed9e484f39db8d10a1be0" title="Buffered fread wrapper; returns 0 for NULL buffer or zero size/count instead of touching the stream." alt="" coords="135,5,214,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="85,33,121,26,122,31,86,38"/>
+<area shape="rect" id="Node000003" href="$file_8c.html#ae717d08b8429474f8af4df156cf6d103" title="Buffered fwrite wrapper; does not flush the stream. Returns 0 for NULL buffer or zero size/count." alt="" coords="133,55,216,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="86,48,120,55,119,60,85,53"/>
+</map>

@@ -1,0 +1,22 @@
+<map id="process_system_error" name="process_system_error">
+<area shape="rect" id="Node000001" title="Translates the current errno into the closest ProcessError: EINVAL, ENOMEM, EACCES/EPERM,..." alt="" coords="675,129,840,155"/>
+<area shape="rect" id="Node000002" href="$process__win32_8c.html#a6088010e67167eb4437b4045045dbb5d" title="Read data from a pipe." alt="" coords="495,5,582,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="731,122,685,82,625,44,581,29,583,24,628,40,688,78,735,118"/>
+<area shape="rect" id="Node000003" href="$process__win32_8c.html#afe2dac50d9e8ba914ec1e7b019a8e9aa" title="Set non&#45;blocking mode on a pipe." alt="" coords="457,55,620,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="713,127,626,94,589,83,590,77,628,89,715,122"/>
+<area shape="rect" id="Node000004" href="$process__win32_8c.html#a60520fb7bd233f6a4538ed73cc111f4c" title="Write data to a pipe." alt="" coords="493,104,584,129"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="661,133,584,125,585,119,661,128"/>
+<area shape="rect" id="Node000005" href="$process__posix_8c.html#a4e7312983a2af50f89e7484babb8f889" title="Create a new file redirection for a process." alt="" coords="451,153,627,179"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="661,155,627,159,627,154,661,150"/>
+<area shape="rect" id="Node000007" href="$process__win32_8c.html#aab27c2b93b61c29afa2279842d1c3642" title="Wait for a process to complete." alt="" coords="268,205,375,231"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="717,162,674,179,627,193,560,205,491,213,375,220,375,215,491,208,559,200,626,187,673,174,715,157"/>
+<area shape="rect" id="Node000009" href="$process__win32_8c.html#a3aedcefa811efbf571678492506defbb" title="CreateProcessA() backend for process_create(): sizes a worst&#45;case command&#45;line buffer (each char may ..." alt="" coords="455,255,622,280"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="732,166,685,202,628,238,583,257,581,252,625,233,682,197,729,161"/>
+<area shape="rect" id="Node000006" href="$process__posix_8c.html#ad4abdfb43ea2dfe9e5a5193c3574af7a" title="Create a process that redirects its output from stdout and/or stderr to files." alt="" coords="240,141,403,181"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="437,166,403,165,403,160,437,161"/>
+<area shape="rect" id="Node000008" href="$process_8c.html#a307d90f179ea36983056ddae376ad076" title="Run a command and capture its output." alt="" coords="5,231,192,256"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="254,228,193,235,192,230,254,223"/>
+<area shape="rect" id="Node000010" href="$process_8c.html#a4ae7664bb48e61bb2211a010678fb860" title="Create a new process When custom environment is provided, command must be an absolute path or relativ..." alt="" coords="261,255,381,280"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="441,270,382,270,382,265,441,265"/>
+<area shape="poly" id="edge10_Node000010_Node000008" title=" " alt="" coords="247,262,192,256,193,251,248,257"/>
+</map>

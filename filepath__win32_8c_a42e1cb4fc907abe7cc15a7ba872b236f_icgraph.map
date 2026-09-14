@@ -1,0 +1,5 @@
+<map id="fp_dir_remove_entry" name="fp_dir_remove_entry">
+<area shape="rect" id="Node000001" title="Deletion callback for fp_dir_walk_depth_first_impl(): RemoveDirectoryA()s empty directories and Delet..." alt="" coords="149,5,307,31"/>
+<area shape="rect" id="Node000002" href="$filepath_8c.html#afae02b4234ea48108fb575ac53f7f0a1" title="Removes a directory. When recursive, contents are deleted depth&#45;first (post&#45;order,..." alt="" coords="5,5,101,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="136,21,102,21,102,15,136,15"/>
+</map>

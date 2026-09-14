@@ -1,0 +1,7 @@
+<map id="fp_dir_walk_depth_first_impl" name="fp_dir_walk_depth_first_impl">
+<area shape="rect" id="Node000001" title="Dispatcher for dir_walk_depth_first(): uses the post&#45;order getdents64 fast path on Linux when availab..." alt="" coords="351,5,560,31"/>
+<area shape="rect" id="Node000002" href="$filepath_8c.html#af54d8cbf030f00437fdef2047afdafb3" title="Recursively walks a directory tree depth&#45;first (post&#45;order): entries are processed after their childr..." alt="" coords="149,5,303,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="337,21,303,21,303,15,337,15"/>
+<area shape="rect" id="Node000003" href="$filepath_8c.html#afae02b4234ea48108fb575ac53f7f0a1" title="Removes a directory. When recursive, contents are deleted depth&#45;first (post&#45;order,..." alt="" coords="5,5,101,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="135,21,102,21,102,15,135,15"/>
+</map>

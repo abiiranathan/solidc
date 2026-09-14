@@ -1,0 +1,9 @@
+<map id="dir_list" name="dir_list">
+<area shape="rect" id="Node000001" title="Lists every entry of a directory, including &quot;.&quot; and &quot;..&quot;." alt="" coords="5,55,72,80"/>
+<area shape="rect" id="Node000002" href="$filepath__win32_8c.html#ac8e3c6d41770ce40cf0669d2b99b037a" title="closedir() backend: closes the stream and frees the handle. Safe to pass NULL." alt="" coords="120,5,200,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="70,52,114,34,116,39,72,57"/>
+<area shape="rect" id="Node000003" href="$filepath__win32_8c.html#a21d34a2b1af79607edb3e2afe8f7c3be" title="readdir() backend: advances the stream." alt="" coords="123,55,197,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="72,65,109,65,109,70,72,70"/>
+<area shape="rect" id="Node000004" href="$filepath__win32_8c.html#aed2439100a9cc53757707f5753afb9a8" title="opendir() backend: allocates a Directory handle wrapping the DIR stream plus a copy of path." alt="" coords="121,104,199,129"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="72,78,116,96,114,101,70,83"/>
+</map>

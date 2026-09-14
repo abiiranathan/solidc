@@ -1,0 +1,9 @@
+<map id="process_create" name="process_create">
+<area shape="rect" id="Node000001" title="Create a new process When custom environment is provided, command must be an absolute path or relativ..." alt="" coords="5,31,125,56"/>
+<area shape="rect" id="Node000002" href="$process__posix_8c.html#a8fecfdde215cae0f34aaad5a9eb7f9c6" title="fork()/exec() backend for process_create(). In the child: chdir()s to working_directory,..." alt="" coords="179,5,334,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="125,33,165,27,166,33,126,38"/>
+<area shape="rect" id="Node000003" href="$process__win32_8c.html#a3aedcefa811efbf571678492506defbb" title="CreateProcessA() backend for process_create(): sizes a worst&#45;case command&#45;line buffer (each char may ..." alt="" coords="173,55,340,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="126,48,160,53,159,58,126,54"/>
+<area shape="rect" id="Node000004" href="$process__win32_8c.html#afb3fcc72cac00f40bcddd7b344e48c85" title="Maps GetLastError() onto ProcessError codes: invalid parameter, out of memory, access denied,..." alt="" coords="388,55,553,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="340,65,374,65,374,70,340,70"/>
+</map>

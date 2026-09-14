@@ -1,0 +1,5 @@
+<map id="fp_create_tempfile" name="fp_create_tempfile">
+<area shape="rect" id="Node000001" title="Turns candidate (a path ending in &quot;XXXXXX&quot;) into a unique file via mkstemp() and closes the descripto..." alt="" coords="172,5,316,31"/>
+<area shape="rect" id="Node000002" href="$filepath_8c.html#a8a7e59889c6bd2c87851dc91e65434bb" title="Builds &quot;&lt;tempdir&gt;/&lt;random prefix&gt;XXXXXX&quot; and creates the file via fp_create_tempfile() (mode 0600 on ..." alt="" coords="5,5,124,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="158,21,124,21,124,15,158,15"/>
+</map>

@@ -1,0 +1,20 @@
+<map id="chan_recv" name="chan_recv">
+<area shape="rect" id="Node000001" title="Receives the next value into out, blocking until one arrives." alt="" coords="5,140,93,165"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#ac8f26d4194018d7909208ab629cbb9e5" title="Receives with a bounded wait." alt="" coords="141,140,288,165"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="93,150,128,150,128,155,93,155"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#a90c1124b43ee197ab3060448eb893395" title=" " alt="" coords="360,29,459,55"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="229,138,274,102,335,64,349,57,351,62,337,68,278,106,232,142"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#a817db5657996111335ebc9d470d79aaf" title=" " alt="" coords="336,103,483,128"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="281,137,329,128,330,133,282,143"/>
+<area shape="rect" id="Node000006" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="357,176,461,201"/>
+<area shape="poly" id="edge8_Node000002_Node000006" title=" " alt="" coords="284,163,344,174,343,179,283,168"/>
+<area shape="rect" id="Node000007" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="357,249,461,275"/>
+<area shape="poly" id="edge10_Node000002_Node000007" title=" " alt="" coords="240,163,375,240,373,245,237,168"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="382,31,376,21,379,11,390,5,409,3,432,6,442,15,438,19,430,11,409,8,392,10,383,15,381,20,386,28"/>
+<area shape="poly" id="edge7_Node000004_Node000004" title=" " alt="" coords="382,104,376,94,379,85,390,78,409,76,432,79,442,88,438,92,430,84,409,81,392,83,383,88,381,94,386,101"/>
+<area shape="rect" id="Node000005" href="$lock_8c.html#a2460579b5ba8ad8079d42d449d9bcc80" title=" " alt="" coords="531,103,619,128"/>
+<area shape="poly" id="edge5_Node000004_Node000005" title=" " alt="" coords="483,113,517,113,517,118,483,118"/>
+<area shape="poly" id="edge6_Node000005_Node000005" title=" " alt="" coords="547,104,541,94,544,85,556,78,575,76,597,79,607,88,604,92,595,84,575,81,557,83,548,88,546,94,551,101"/>
+<area shape="poly" id="edge9_Node000006_Node000006" title=" " alt="" coords="382,177,376,168,379,158,390,152,409,149,432,153,442,161,438,165,430,158,409,155,392,157,383,161,381,167,386,174"/>
+<area shape="poly" id="edge11_Node000007_Node000007" title=" " alt="" coords="382,251,376,241,379,231,390,225,409,223,432,226,442,235,438,239,430,231,409,228,392,230,383,235,381,240,386,248"/>
+</map>

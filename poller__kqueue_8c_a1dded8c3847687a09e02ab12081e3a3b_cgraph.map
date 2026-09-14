@@ -1,0 +1,7 @@
+<map id="poller_add" name="poller_add">
+<area shape="rect" id="Node000001" title="Registers a descriptor for the given events." alt="" coords="5,31,96,56"/>
+<area shape="rect" id="Node000002" href="$poller__common_8c.html#aad3f1490f17a7f20889e798febc4fbab" title=" " alt="" coords="158,5,281,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="96,34,144,27,144,32,96,39"/>
+<area shape="rect" id="Node000003" href="$poller__common_8c.html#a3fd3ee748ebeececb454a2a60949f82c" title=" " alt="" coords="144,55,295,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="96,47,131,52,130,57,96,52"/>
+</map>

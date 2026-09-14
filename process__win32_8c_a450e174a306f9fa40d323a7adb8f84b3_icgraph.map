@@ -1,0 +1,5 @@
+<map id="NANOSLEEP" name="NANOSLEEP">
+<area shape="rect" id="Node000001" title="Win32 backend of the cross&#45;platform sleep: converts to milliseconds for Sleep(), clamping negative in..." alt="" coords="152,5,252,31"/>
+<area shape="rect" id="Node000002" href="$chan__patterns_8c.html#aa337face452cd5f7dec009bd997dec4f" title="Waits until one of count channels holds a value, then receives it." alt="" coords="5,5,104,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="138,21,104,21,104,15,138,15"/>
+</map>

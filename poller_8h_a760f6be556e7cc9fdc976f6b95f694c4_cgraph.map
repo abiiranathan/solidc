@@ -1,0 +1,5 @@
+<map id="poller_wait" name="poller_wait">
+<area shape="rect" id="Node000001" title="Waits for readiness events." alt="" coords="5,5,100,31"/>
+<area shape="rect" id="Node000002" href="$poller__common_8c.html#a6c5d007b8777b22ae598d28af8abbc70" title=" " alt="" coords="148,5,271,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="100,15,134,15,134,21,100,21"/>
+</map>

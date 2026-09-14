@@ -1,0 +1,9 @@
+<map id="include/map.h" name="include/map.h">
+<area shape="rect" id="Node000001" title="Generic hash map implementation with customizable hashing and load balancing." alt="" coords="99,5,213,31"/>
+<area shape="rect" id="Node000002" href="$swiss__map_8h.html" title="Swiss table hash map (SIMD group probing) — experimental sibling of HashMap in map...." alt="" coords="5,79,163,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="136,43,98,80,94,77,132,39"/>
+<area shape="rect" id="Node000004" href="$map_8c.html" title="Robin Hood hash map — open addressing with linear probing." alt="" coords="187,79,272,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="180,38,219,77,216,80,176,42"/>
+<area shape="rect" id="Node000003" href="$map__swiss_8c.html" title="High&#45;performance Swiss table implementation of the swiss_map.h API." alt="" coords="20,152,148,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="87,118,87,152,81,152,81,118"/>
+</map>

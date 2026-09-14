@@ -1,0 +1,26 @@
+<map id="include/file.h" name="include/file.h">
+<area shape="rect" id="Node000001" title="Cross&#45;platform file handling API with synchronous and asynchronous I/O support." alt="" coords="437,5,543,31"/>
+<area shape="rect" id="Node000002" href="$filepath_8h.html" title="Cross&#45;platform file path manipulation and directory traversal utilities." alt="" coords="280,86,415,111"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="458,40,370,88,367,83,456,35"/>
+<area shape="rect" id="Node000003" href="$filepath__internal_8h.html" title="Internal contract between the portable filepath code and the per&#45;platform implementations (filepath_p..." alt="" coords="274,167,421,207"/>
+<area shape="poly" id="edge8_Node000001_Node000003" title=" " alt="" coords="479,45,457,82,428,120,402,147,375,169,371,165,398,143,424,117,453,79,475,42"/>
+<area shape="rect" id="Node000008" href="$file_8c_source.html" title=" " alt="" coords="491,86,567,111"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="504,42,525,85,521,87,499,44"/>
+<area shape="rect" id="Node000009" href="$process__internal_8h.html" title="Internal contract between the portable process code and the per&#45;platform implementations (process_pos..." alt="" coords="610,79,759,119"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="532,33,639,76,637,81,530,38"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="350,125,350,166,345,166,345,125"/>
+<area shape="rect" id="Node000004" href="$filepath_8c.html" title="Portable (platform&#45;neutral) filepath and directory operations." alt="" coords="5,262,164,287"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="277,214,120,265,119,259,276,208"/>
+<area shape="rect" id="Node000005" href="$filepath__posix_8c.html" title="POSIX (Linux/macOS/BSD) implementation of the filepath backends." alt="" coords="189,255,335,295"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="321,218,283,256,279,253,317,215"/>
+<area shape="rect" id="Node000006" href="$filepath__string_8c.html" title="Pure string manipulation for file paths: separators, basename, dirname, extension,..." alt="" coords="359,255,506,295"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="378,215,416,253,412,256,374,218"/>
+<area shape="rect" id="Node000007" href="$filepath__win32_8c.html" title="Win32 implementation of the filepath backends." alt="" coords="530,255,677,295"/>
+<area shape="poly" id="edge6_Node000003_Node000007" title=" " alt="" coords="417,209,548,252,546,257,416,214"/>
+<area shape="rect" id="Node000010" href="$process_8c.html" title="Portable (platform&#45;neutral) process management logic." alt="" coords="445,174,605,199"/>
+<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="639,128,547,176,545,172,636,123"/>
+<area shape="rect" id="Node000011" href="$process__posix_8c.html" title="POSIX (Linux/macOS/BSD) implementation of the process management backends: fork/exec process creation..." alt="" coords="629,167,778,207"/>
+<area shape="poly" id="edge11_Node000009_Node000011" title=" " alt="" coords="694,132,702,166,697,167,689,133"/>
+<area shape="rect" id="Node000012" href="$process__win32_8c.html" title="Win32 implementation of the process management backends: CreateProcess&#45;based spawning with MSDN&#45;safe ..." alt="" coords="802,167,951,207"/>
+<area shape="poly" id="edge12_Node000009_Node000012" title=" " alt="" coords="740,122,836,164,834,169,738,127"/>
+</map>

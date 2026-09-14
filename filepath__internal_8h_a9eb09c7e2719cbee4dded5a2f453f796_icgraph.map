@@ -1,0 +1,19 @@
+<map id="fp_strlcpy" name="fp_strlcpy">
+<area shape="rect" id="Node000001" title="Bounds&#45;safe string copy used across the filepath module: copies src into dst, always NUL&#45;terminates,..." alt="" coords="427,153,513,179"/>
+<area shape="rect" id="Node000002" href="$filepath__string_8c.html#ab1793010f360da08f1fbe516445f1b2a" title="Copies the basename of path (everything after the final &#39;/&#39; or &#39;\&#39;) into basename; empty string if pa..." alt="" coords="214,5,361,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="455,142,424,92,402,66,377,44,356,33,358,28,380,40,406,62,428,89,459,139"/>
+<area shape="rect" id="Node000004" href="$filepath__string_8c.html#a2f5a4e33713b19839f5b202a3d14f854" title="Copies the directory portion of path (everything before the final separator, without a trailing separ..." alt="" coords="221,55,353,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="445,145,415,118,377,94,350,82,352,78,380,89,418,114,449,141"/>
+<area shape="rect" id="Node000005" href="$filepath_8c.html#af93f98e689ba719837503222b98e19aa" title="Buffer variant of filepath_expanduser(): writes the expanded (or verbatim) path into expanded,..." alt="" coords="196,104,379,129"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="413,153,378,143,336,132,338,127,379,138,414,148"/>
+<area shape="rect" id="Node000006" href="$filepath__string_8c.html#a0c73ee27b8ead1343d62bc63305c4c3b" title="Copies the extension of the basename, including the dot, into ext (empty string if there is none)...." alt="" coords="216,153,359,179"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="413,169,359,169,359,163,413,163"/>
+<area shape="rect" id="Node000007" href="$filepath__string_8c.html#ad540bdb7e70253c52d292e93a466e920" title="Splits path at the last separator: dir gets the portion before it (no trailing separator) and name th..." alt="" coords="234,203,341,228"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="414,184,336,205,334,200,413,179"/>
+<area shape="rect" id="Node000008" href="$filepath_8c.html#a3511af86bb8f63da6e55c3e393349b12" title="Builds &quot;&lt;tempdir&gt;/&lt;random prefix&gt;XXXXXX&quot; and creates the directory via fp_create_tempdir()." alt="" coords="229,252,345,277"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="449,190,418,217,380,242,347,255,345,250,377,237,414,213,445,186"/>
+<area shape="rect" id="Node000009" href="$filepath_8c.html#a8a7e59889c6bd2c87851dc91e65434bb" title="Builds &quot;&lt;tempdir&gt;/&lt;random prefix&gt;XXXXXX&quot; and creates the file via fp_create_tempfile() (mode 0600 on ..." alt="" coords="228,301,347,327"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="459,193,428,243,406,269,380,291,348,306,346,301,377,286,402,265,424,239,454,190"/>
+<area shape="rect" id="Node000003" href="$filepath__string_8c.html#a49e737cfd4658050965ffce18868ce2a" title="Copies the basename of path with its extension removed into name (truncated to fit size if necessary)..." alt="" coords="5,5,148,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="200,21,148,21,148,15,200,15"/>
+</map>

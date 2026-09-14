@@ -1,0 +1,7 @@
+<map id="poller_regs_free" name="poller_regs_free">
+<area shape="rect" id="Node000001" title=" " alt="" coords="147,31,273,56"/>
+<area shape="rect" id="Node000002" href="$poller__win32_8c.html#add5df52e5eeb8b69d24dfdd0676559c7" title="Frees a poller. Registered descriptors are NOT closed." alt="" coords="6,5,98,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="133,34,98,28,99,23,134,28"/>
+<area shape="rect" id="Node000003" href="$poller__win32_8c.html#acaa5cb16d815a57933ebdf07a13e9c39" title="Creates a new poller instance." alt="" coords="5,55,99,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="133,58,99,63,98,58,132,52"/>
+</map>

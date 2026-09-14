@@ -1,0 +1,11 @@
+<map id="dir_remove" name="dir_remove">
+<area shape="rect" id="Node000001" title="Removes a directory. When recursive, contents are deleted depth&#45;first (post&#45;order,..." alt="" coords="5,55,101,80"/>
+<area shape="rect" id="Node000002" href="$filepath_8c.html#af54d8cbf030f00437fdef2047afdafb3" title="Recursively walks a directory tree depth&#45;first (post&#45;order): entries are processed after their childr..." alt="" coords="174,5,327,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="101,52,149,39,181,31,183,36,150,45,102,57"/>
+<area shape="rect" id="Node000004" href="$filepath__win32_8c.html#a42e1cb4fc907abe7cc15a7ba872b236f" title="Deletion callback for fp_dir_walk_depth_first_impl(): rmdir()s empty directories and unlink()s files ..." alt="" coords="172,55,329,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="102,65,158,65,158,70,102,70"/>
+<area shape="rect" id="Node000005" href="$filepath__win32_8c.html#a9e3a7f2a27c689b02d1bb831662e1393" title="Removes a single empty directory via rmdir(); contents are handled by callers." alt="" coords="149,104,352,129"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="102,77,187,98,185,103,101,82"/>
+<area shape="rect" id="Node000003" href="$filepath__win32_8c.html#a0518eb83aac40865259008e20cddfa73" title="Dispatcher for dir_walk_depth_first(): uses the post&#45;order getdents64 fast path on Linux when availab..." alt="" coords="400,5,609,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="327,15,386,15,386,21,327,21"/>
+</map>

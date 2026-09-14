@@ -1,0 +1,9 @@
+<map id="src/process/process_internal.h" name="src/process/process_internal.h">
+<area shape="rect" id="Node000001" title="Internal contract between the portable process code and the per&#45;platform implementations (process_pos..." alt="" coords="189,5,339,45"/>
+<area shape="rect" id="Node000002" href="$process_8c.html" title="Portable (platform&#45;neutral) process management logic." alt="" coords="5,101,165,126"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="214,54,110,103,108,98,212,49"/>
+<area shape="rect" id="Node000003" href="$process__posix_8c.html" title="POSIX (Linux/macOS/BSD) implementation of the process management backends: fork/exec process creation..." alt="" coords="189,93,339,133"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="267,59,267,93,261,93,261,59"/>
+<area shape="rect" id="Node000004" href="$process__win32_8c.html" title="Win32 implementation of the process management backends: CreateProcess&#45;based spawning with MSDN&#45;safe ..." alt="" coords="363,93,512,133"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="315,49,401,91,398,96,313,54"/>
+</map>

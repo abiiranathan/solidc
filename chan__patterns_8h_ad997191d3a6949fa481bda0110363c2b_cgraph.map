@@ -1,0 +1,22 @@
+<map id="chan_pubsub_subscribe" name="chan_pubsub_subscribe">
+<area shape="rect" id="Node000001" title="Registers a subscriber and returns its id." alt="" coords="5,188,181,213"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#a7dd2def9cdc33b742b31305b58f041a5" title="Creates a channel carrying values of value_size bytes each." alt="" coords="238,115,325,140"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="126,185,234,143,236,148,128,190"/>
+<area shape="rect" id="Node000007" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="229,188,333,213"/>
+<area shape="poly" id="edge9_Node000001_Node000007" title=" " alt="" coords="181,198,216,198,216,203,181,203"/>
+<area shape="rect" id="Node000008" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="229,261,333,287"/>
+<area shape="poly" id="edge11_Node000001_Node000008" title=" " alt="" coords="128,211,236,254,234,259,126,216"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#a4c04565c7345b6ebf6e5a76aaa6fe108" title=" " alt="" coords="381,5,468,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="294,112,332,78,380,40,386,36,389,40,383,44,335,82,298,116"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#a506e9e21e849521b8cac8db55d1461a2" title=" " alt="" coords="384,79,465,104"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="324,114,370,102,371,108,326,119"/>
+<area shape="rect" id="Node000005" href="$lock_8c.html#abe7ed51e69cbe867fd0bc31e20d26b11" title=" " alt="" coords="383,152,466,177"/>
+<area shape="poly" id="edge5_Node000002_Node000005" title=" " alt="" coords="326,136,370,148,369,153,324,141"/>
+<area shape="rect" id="Node000006" href="$lock_8c.html#a20db23f8993e4b5b39b9b977f8c6714f" title=" " alt="" coords="386,225,463,251"/>
+<area shape="poly" id="edge7_Node000002_Node000006" title=" " alt="" coords="315,138,335,149,374,181,405,213,401,217,370,185,332,154,312,142"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="401,80,396,70,398,61,408,54,425,52,444,56,453,64,449,68,442,60,425,57,410,59,403,64,401,70,405,77"/>
+<area shape="poly" id="edge6_Node000005_Node000005" title=" " alt="" coords="401,153,396,144,398,134,408,128,425,125,444,129,453,137,449,141,442,134,425,131,410,133,403,137,401,143,405,151"/>
+<area shape="poly" id="edge8_Node000006_Node000006" title=" " alt="" coords="401,226,396,217,398,207,408,201,425,199,444,202,453,211,449,214,442,207,425,204,410,206,403,211,401,216,405,224"/>
+<area shape="poly" id="edge10_Node000007_Node000007" title=" " alt="" coords="257,189,252,180,255,170,265,164,281,161,301,165,309,173,306,177,298,170,281,167,267,169,259,173,258,179,262,187"/>
+<area shape="poly" id="edge12_Node000008_Node000008" title=" " alt="" coords="257,262,252,253,255,243,265,237,281,235,301,238,309,247,306,250,298,243,281,240,267,242,259,247,258,252,262,260"/>
+</map>

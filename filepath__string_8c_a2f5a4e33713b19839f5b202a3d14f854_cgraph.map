@@ -1,0 +1,5 @@
+<map id="filepath_dirname" name="filepath_dirname">
+<area shape="rect" id="Node000001" title="Copies the directory portion of path (everything before the final separator, without a trailing separ..." alt="" coords="5,5,137,31"/>
+<area shape="rect" id="Node000002" href="$filepath__string_8c.html#a9eb09c7e2719cbee4dded5a2f453f796" title="Bounds&#45;safe string copy used across the filepath module: copies src into dst, always NUL&#45;terminates,..." alt="" coords="185,5,272,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="137,15,171,15,171,21,137,21"/>
+</map>

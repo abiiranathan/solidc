@@ -1,0 +1,5 @@
+<map id="filepath_basename" name="filepath_basename">
+<area shape="rect" id="Node000001" title="Copies the basename of path (everything after the final &#39;/&#39; or &#39;\&#39;) into basename; empty string if pa..." alt="" coords="196,5,343,31"/>
+<area shape="rect" id="Node000002" href="$filepath__string_8c.html#a49e737cfd4658050965ffce18868ce2a" title="Copies the basename of path with its extension removed into name (truncated to fit size if necessary)..." alt="" coords="5,5,148,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="182,21,148,21,148,15,182,15"/>
+</map>

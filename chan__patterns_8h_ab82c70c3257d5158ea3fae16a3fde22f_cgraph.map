@@ -1,0 +1,19 @@
+<map id="chan_workers_shutdown" name="chan_workers_shutdown">
+<area shape="rect" id="Node000001" title="Shuts down: closes the work channel, waits for workers to drain every queued item,..." alt="" coords="5,128,187,153"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#a578b7986be91d7c73980dd7bf1deee8d" title="Closes the channel. Idempotent." alt="" coords="235,103,329,128"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="186,126,221,121,222,126,187,131"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="387,29,491,55"/>
+<area shape="poly" id="edge8_Node000001_Node000004" title=" " alt="" coords="129,125,234,89,373,53,375,58,235,94,131,130"/>
+<area shape="rect" id="Node000005" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="387,176,491,201"/>
+<area shape="poly" id="edge9_Node000001_Node000005" title=" " alt="" coords="187,151,374,177,373,182,186,156"/>
+<area shape="rect" id="Node000006" href="$thread_8c.html#ac2ea321a5ad4280208f81ad332fe2d31" title=" " alt="" coords="235,228,329,253"/>
+<area shape="poly" id="edge10_Node000001_Node000006" title=" " alt="" coords="122,151,246,219,244,224,120,156"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#ab4a9b1664d0b27f364ad90d37f0bf18f" title=" " alt="" coords="377,103,501,128"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="330,113,364,113,364,118,330,118"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="306,100,376,65,393,58,395,62,378,70,308,105"/>
+<area shape="poly" id="edge6_Node000002_Node000005" title=" " alt="" coords="311,126,400,168,397,172,309,131"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="413,104,407,94,410,85,421,78,439,76,461,79,470,88,467,92,459,84,439,81,423,83,414,88,413,94,417,101"/>
+<area shape="poly" id="edge5_Node000004_Node000004" title=" " alt="" coords="413,31,407,21,410,11,421,5,439,3,461,6,470,15,467,19,459,11,439,8,423,10,414,15,413,20,417,28"/>
+<area shape="poly" id="edge7_Node000005_Node000005" title=" " alt="" coords="413,177,407,168,410,158,421,152,439,149,461,153,470,161,467,165,459,158,439,155,423,157,414,161,413,167,417,175"/>
+<area shape="poly" id="edge11_Node000006_Node000006" title=" " alt="" coords="255,229,250,220,253,210,264,204,282,201,304,205,313,213,309,217,301,210,282,207,266,209,257,213,255,219,260,227"/>
+</map>

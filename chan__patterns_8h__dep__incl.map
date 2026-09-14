@@ -1,0 +1,5 @@
+<map id="include/chan_patterns.h" name="include/chan_patterns.h">
+<area shape="rect" id="Node000001" title="High&#45;level concurrency patterns built on channels.h." alt="" coords="5,5,183,31"/>
+<area shape="rect" id="Node000002" href="$chan__patterns_8c.html" title="Implementations for the pub/sub, worker&#45;pool, and select abstractions declared in chan_patterns...." alt="" coords="20,79,168,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="97,44,97,79,91,79,91,44"/>
+</map>

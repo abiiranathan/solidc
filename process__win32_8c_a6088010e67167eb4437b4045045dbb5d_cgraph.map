@@ -1,0 +1,5 @@
+<map id="pipe_read" name="pipe_read">
+<area shape="rect" id="Node000001" title="Overlapped ReadFile() with a manual&#45;reset completion event: waits up to timeout_ms (&#45;1 = INFINITE) fo..." alt="" coords="5,5,92,31"/>
+<area shape="rect" id="Node000002" href="$process__posix_8c.html#afb3fcc72cac00f40bcddd7b344e48c85" title="Translates the current errno into the closest ProcessError: EINVAL, ENOMEM, EACCES/EPERM,..." alt="" coords="140,5,305,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="92,15,126,15,126,21,92,21"/>
+</map>

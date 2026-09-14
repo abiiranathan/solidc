@@ -1,0 +1,5 @@
+<map id="PCAResult" name="PCAResult">
+<area shape="rect" id="Node000001" title="Fitted PCA model: principal axes plus dataset statistics." alt="" coords="5,123,95,148"/>
+<area shape="rect" id="Node000002" href="$structFMat.html" title="Dynamically allocated dense float matrix in row&#45;major order." alt="" coords="23,5,77,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="53,44,53,123,47,123,47,44"/>
+</map>

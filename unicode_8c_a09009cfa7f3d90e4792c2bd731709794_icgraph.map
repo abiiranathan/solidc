@@ -1,0 +1,7 @@
+<map id="utf8_new_with_capacity" name="utf8_new_with_capacity">
+<area shape="rect" id="Node000001" title="Creates an empty utf8_string with preallocated capacity." alt="" coords="157,31,336,56"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a13e8dd40708ab2b37cde823ad9d7faf7" title="Concatenates two utf8_string objects into a new string." alt="" coords="8,5,107,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="143,32,107,27,107,22,144,27"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#acefe22dc4e8ecc7cdf5748382c0ee2be" title="Reverses a UTF&#45;8 string by codepoints." alt="" coords="5,55,109,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="144,59,110,63,109,58,143,54"/>
+</map>

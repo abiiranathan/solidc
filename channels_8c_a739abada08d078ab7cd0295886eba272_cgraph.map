@@ -1,0 +1,12 @@
+<map id="chan_try_send" name="chan_try_send">
+<area shape="rect" id="Node000001" title="Non&#45;blocking send." alt="" coords="5,103,121,128"/>
+<area shape="rect" id="Node000002" href="$lock_8c.html#a90c1124b43ee197ab3060448eb893395" title=" " alt="" coords="172,29,271,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="91,100,180,58,182,63,93,105"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="169,103,273,128"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="122,113,156,113,156,118,122,118"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="169,176,273,201"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="93,126,182,168,180,172,91,131"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="195,31,189,21,192,11,203,5,221,3,243,6,252,15,249,19,241,11,221,8,205,10,196,15,195,20,199,28"/>
+<area shape="poly" id="edge4_Node000003_Node000003" title=" " alt="" coords="195,104,189,94,192,85,203,78,221,76,243,79,252,88,249,92,241,84,221,81,205,83,196,88,195,94,199,101"/>
+<area shape="poly" id="edge6_Node000004_Node000004" title=" " alt="" coords="195,177,189,168,192,158,203,152,221,149,243,153,252,161,249,165,241,158,221,155,205,157,196,161,195,167,199,175"/>
+</map>

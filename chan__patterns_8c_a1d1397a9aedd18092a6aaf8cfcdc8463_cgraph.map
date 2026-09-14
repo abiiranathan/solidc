@@ -1,0 +1,9 @@
+<map id="chan_pubsub_subscriber_count" name="chan_pubsub_subscriber_count">
+<area shape="rect" id="Node000001" title="Number of currently active subscribers." alt="" coords="5,59,187,99"/>
+<area shape="rect" id="Node000002" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="235,29,339,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="186,59,221,52,222,57,187,64"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="235,103,339,128"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="187,94,222,100,221,106,186,99"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="255,31,249,21,252,11,265,5,287,3,313,6,324,15,320,19,311,11,287,8,267,10,256,15,254,20,260,28"/>
+<area shape="poly" id="edge4_Node000003_Node000003" title=" " alt="" coords="255,104,249,94,252,84,265,78,287,76,313,80,324,88,320,92,311,84,287,81,267,83,256,88,254,94,260,101"/>
+</map>

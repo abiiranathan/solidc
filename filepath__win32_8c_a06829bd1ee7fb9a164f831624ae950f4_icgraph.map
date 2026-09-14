@@ -1,0 +1,5 @@
+<map id="is_dir" name="is_dir">
+<area shape="rect" id="Node000001" title="GetFileAttributesA()&#45;based directory check." alt="" coords="144,5,201,31"/>
+<area shape="rect" id="Node000002" href="$filepath_8c.html#a2aca3a3aa9bb27cf76f7c791819affdb" title="Directory check for lazy walks: uses cached d_type when known (Linux), else one cached stat via lazy_..." alt="" coords="5,5,96,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="130,21,96,21,96,15,130,15"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="chan_len" name="chan_len">
+<area shape="rect" id="Node000001" title="Number of values currently buffered." alt="" coords="5,67,85,92"/>
+<area shape="rect" id="Node000002" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="133,29,237,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="85,66,123,56,125,61,86,71"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="133,103,237,128"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="86,87,123,97,122,102,85,92"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="162,30,157,21,159,11,169,5,185,3,205,6,213,15,209,18,202,11,185,8,171,10,164,15,162,20,166,28"/>
+<area shape="poly" id="edge4_Node000003_Node000003" title=" " alt="" coords="162,104,157,94,159,85,169,78,185,76,205,80,213,88,209,92,202,84,185,81,171,83,164,88,162,94,166,101"/>
+</map>

@@ -1,0 +1,29 @@
+<map id="lock_free" name="lock_free">
+<area shape="rect" id="Node000001" title=" " alt="" coords="441,156,524,181"/>
+<area shape="poly" id="edge12_Node000001_Node000001" title=" " alt="" coords="511,145,503,138,483,135,466,137,457,141,455,147,460,155,455,157,450,148,453,138,464,132,483,129,505,133,515,141"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#a5856b68b0604d54212ff73bdfb9d40eb" title="Frees the channel and its buffer." alt="" coords="276,55,363,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="455,149,392,102,353,83,356,78,395,97,459,145"/>
+<area shape="rect" id="Node000003" href="$chan__patterns_8c.html#ac7d571f3850e5b1007361287e694501d" title="Frees the hub and all subscriber queues." alt="" coords="31,5,171,31"/>
+<area shape="poly" id="edge9_Node000001_Node000003" title=" " alt="" coords="469,144,440,91,419,65,392,44,338,22,280,11,223,8,172,11,171,5,223,3,281,6,340,17,395,40,422,61,445,88,474,142"/>
+<area shape="rect" id="Node000005" href="$chan__patterns_8c.html#ae18cd566329be5e2abe13da79688a9e6" title="Frees the pool. shutdown() must have been called first." alt="" coords="29,105,173,131"/>
+<area shape="poly" id="edge10_Node000001_Node000005" title=" " alt="" coords="428,159,393,153,277,137,173,127,174,121,278,132,394,147,429,154"/>
+<area shape="rect" id="Node000006" href="$chan__patterns_8c.html#a9129053474a38b1a4c6268f0cbc218db" title="Starts a worker pool: worker_count threads consuming from one shared work channel." alt="" coords="29,156,174,181"/>
+<area shape="poly" id="edge11_Node000001_Node000006" title=" " alt="" coords="428,171,174,171,174,166,428,166"/>
+<area shape="rect" id="Node000007" href="$channels_8c.html#a7dd2def9cdc33b742b31305b58f041a5" title="Creates a channel carrying values of value_size bytes each." alt="" coords="276,207,363,232"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="429,188,362,209,360,204,427,183"/>
+<area shape="rect" id="Node000009" href="$threadpool_8c.html#a87dcbf4e1f2c693ff3252d0dc4608161" title="Create a new thread pool." alt="" coords="31,305,171,331"/>
+<area shape="poly" id="edge13_Node000001_Node000009" title=" " alt="" coords="477,196,466,226,450,261,426,294,395,320,364,334,331,343,264,349,200,344,146,333,147,328,200,339,264,344,330,338,362,329,392,316,422,291,445,258,462,224,472,194"/>
+<area shape="rect" id="Node000010" href="$threadpool_8c.html#a9d3ae515204c1f045e1572a7440f1479" title="Drain all pending tasks, stop all workers, and free the pool." alt="" coords="245,280,393,305"/>
+<area shape="poly" id="edge15_Node000001_Node000010" title=" " alt="" coords="458,193,395,246,342,282,339,278,392,241,455,189"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="262,57,157,33,159,28,263,52"/>
+<area shape="rect" id="Node000004" href="$chan__patterns_8c.html#a7a1ca0d4e1aee1a4e1c63ed6e88317b6" title="Removes a subscriber and destroys its queue (pending values are discarded)." alt="" coords="5,55,197,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="262,70,198,70,198,65,262,65"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="263,83,157,108,156,103,262,78"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="291,90,248,118,198,145,159,159,157,154,196,140,246,114,288,86"/>
+<area shape="poly" id="edge8_Node000007_Node000006" title=" " alt="" coords="262,209,156,184,157,179,263,204"/>
+<area shape="rect" id="Node000008" href="$chan__patterns_8c.html#ad997191d3a6949fa481bda0110363c2b" title="Registers a subscriber and returns its id." alt="" coords="13,207,189,232"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="262,222,190,222,190,217,262,217"/>
+<area shape="poly" id="edge14_Node000009_Node000009" title=" " alt="" coords="140,296,129,287,101,284,78,286,66,291,64,296,70,304,66,307,58,297,62,287,77,281,101,279,131,282,143,292"/>
+<area shape="poly" id="edge16_Node000010_Node000009" title=" " alt="" coords="232,306,172,313,171,307,231,300"/>
+<area shape="poly" id="edge17_Node000010_Node000010" title=" " alt="" coords="348,269,339,262,319,259,302,261,293,265,292,271,297,279,292,281,286,272,289,262,301,256,319,253,342,257,351,265"/>
+</map>

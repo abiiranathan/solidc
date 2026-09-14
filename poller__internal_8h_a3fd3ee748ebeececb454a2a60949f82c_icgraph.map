@@ -1,0 +1,7 @@
+<map id="poller_regs_remove" name="poller_regs_remove">
+<area shape="rect" id="Node000001" title=" " alt="" coords="144,31,295,56"/>
+<area shape="rect" id="Node000002" href="$poller__win32_8c.html#a1dded8c3847687a09e02ab12081e3a3b" title="Registers a descriptor for the given events." alt="" coords="5,5,96,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="130,33,96,27,97,22,131,27"/>
+<area shape="rect" id="Node000003" href="$poller__win32_8c.html#ab438a7b416cb4ed70f38a7181aeb4bc5" title="Removes a descriptor from the poller." alt="" coords="7,55,94,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="131,59,95,64,94,59,130,53"/>
+</map>

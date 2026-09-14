@@ -1,0 +1,26 @@
+<map id="include/socket.h" name="include/socket.h">
+<area shape="rect" id="Node000001" title="Cross&#45;platform socket programming utilities." alt="" coords="462,5,589,31"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,79,88,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="462,29,303,50,102,81,102,76,302,45,461,24"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="112,79,187,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="462,33,201,81,200,81,199,76,199,76,461,28"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="211,79,282,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="481,33,296,80,295,75,480,28"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="307,79,373,104"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="497,33,384,76,382,71,495,28"/>
+<area shape="rect" id="Node000006" href="$platform_8h.html" title="Cross&#45;platform compatibility definitions and canonical Windows header inclusion point." alt="" coords="397,79,488,104"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="514,33,468,72,465,67,510,29"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="436,152,532,177"/>
+<area shape="poly" id="edge11_Node000001_Node000007" title=" " alt="" coords="525,32,494,139,488,138,519,30"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="563,79,655,104"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="541,29,587,67,583,72,537,33"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="679,79,742,104"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="556,28,669,71,667,76,554,33"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="767,79,863,104"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="572,28,755,73,754,78,571,33"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="887,79,990,104"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="590,27,875,76,874,81,589,33"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="1015,79,1089,104"/>
+<area shape="poly" id="edge12_Node000001_Node000012" title=" " alt="" coords="589,23,770,42,1001,76,1000,81,770,48,589,28"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="452,103,473,139,468,141,447,106"/>
+</map>

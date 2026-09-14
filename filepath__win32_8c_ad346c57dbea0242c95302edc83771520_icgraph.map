@@ -1,0 +1,5 @@
+<map id="fp_create_tempdir" name="fp_create_tempdir">
+<area shape="rect" id="Node000001" title="Creates the unique temporary directory for candidate via _wmkdir(). Takes ownership of candidate." alt="" coords="169,5,311,31"/>
+<area shape="rect" id="Node000002" href="$filepath_8c.html#a3511af86bb8f63da6e55c3e393349b12" title="Builds &quot;&lt;tempdir&gt;/&lt;random prefix&gt;XXXXXX&quot; and creates the directory via fp_create_tempdir()." alt="" coords="5,5,121,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="156,21,122,21,122,15,156,15"/>
+</map>
