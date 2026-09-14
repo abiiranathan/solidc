@@ -107,7 +107,8 @@ void flag_add_completion_cmd(FlagParser* fp);
  * @param user_data User data pointer passed to both callbacks.
  * @return true if a subcommand was invoked, false if none was active.
  */
-bool flag_invoke_subcommand(FlagParser* parser, void (*pre_invoke)(void* user_data), void* user_data);
+bool flag_invoke_subcommand(FlagParser* parser, void (*pre_invoke)(void* user_data),
+                            void* user_data);
 
 /**
  * Set a pre-invocation callback that runs before any subcommand handler.
@@ -121,8 +122,42 @@ void flag_set_pre_invoke(FlagParser* parser, void (*pre_invoke)(void* user_data)
  * Core function to register a flag.
  * Use the macros (flag_int, flag_bool) instead of calling this directly.
  */
-Flag* flag_add(FlagParser* parser, FlagDataType type, const char* name, char short_name, const char* desc,
-               void* value_ptr, bool required);
+Flag* flag_add(FlagParser* parser, FlagDataType type, const char* name, char short_name,
+               const char* desc, void* value_ptr, bool required);
+
+/**
+ * @brief Register a persistent flag inherited by all subcommands.
+ * @param parser Parser that owns the flag (typically the root or an intermediate command).
+ * @param type Data type of the flag value.
+ * @param name Long name (used with --).
+ * @param short_name Short name (used with -), or 0 for none.
+ * @param desc Description for help text.
+ * @param value_ptr Pointer to variable that will receive the parsed value.
+ * @param required Whether this flag is required (enforced on the leaf command).
+ * @return Pointer to created Flag for further configuration, or NULL on error.
+ *
+ * Persistent flags avoid repetition: define `--verbose` once on the root and
+ * every subcommand accepts it, before or after the subcommand name:
+ * `myapp --verbose server start` and `myapp server start --verbose` both work.
+ * A subcommand may shadow an inherited flag by registering a local flag with
+ * the same long (or short) name; the closest definition wins.
+ */
+Flag* flag_add_persistent(FlagParser* parser, FlagDataType type, const char* name, char short_name,
+                          const char* desc, void* value_ptr, bool required);
+
+/**
+ * @brief Mark an existing flag as persistent (or revert it to local).
+ * @param flag Flag returned by flag_add()/flag_add_persistent().
+ * @param persistent True to inherit into subcommands, false for local-only.
+ */
+void flag_set_persistent(Flag* flag, bool persistent);
+
+/**
+ * @brief Check whether a flag is persistent.
+ * @param flag Flag to query.
+ * @return true if the flag is inherited by subcommands.
+ */
+bool flag_is_persistent(const Flag* flag);
 
 // --- Type Macros (Optional Flags) ---
 #define flag_bool(parser, name, short_name, desc, value) \
@@ -199,8 +234,75 @@ Flag* flag_add(FlagParser* parser, FlagDataType type, const char* name, char sho
 #define flag_req_double(parser, name, short_name, desc, value) \
     flag_add(parser, TYPE_DOUBLE, name, short_name, desc, value, true)
 
+// --- Persistent Flags (Optional, inherited by all subcommands) ---
+#define flag_persistent_bool(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_BOOL, name, short_name, desc, value, false)
+#define flag_persistent_char(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_CHAR, name, short_name, desc, value, false)
+#define flag_persistent_string(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_STRING, name, short_name, desc, value, false)
+#define flag_persistent_int(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_INT32, name, short_name, desc, value, false)
+#define flag_persistent_int8(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_INT8, name, short_name, desc, value, false)
+#define flag_persistent_int16(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_INT16, name, short_name, desc, value, false)
+#define flag_persistent_int32(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_INT32, name, short_name, desc, value, false)
+#define flag_persistent_int64(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_INT64, name, short_name, desc, value, false)
+#define flag_persistent_uint8(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_UINT8, name, short_name, desc, value, false)
+#define flag_persistent_uint16(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_UINT16, name, short_name, desc, value, false)
+#define flag_persistent_uint32(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_UINT32, name, short_name, desc, value, false)
+#define flag_persistent_uint64(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_UINT64, name, short_name, desc, value, false)
+#define flag_persistent_size_t(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_SIZE_T, name, short_name, desc, value, false)
+#define flag_persistent_float(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_FLOAT, name, short_name, desc, value, false)
+#define flag_persistent_double(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_DOUBLE, name, short_name, desc, value, false)
+
+// --- Persistent Flags (Required, inherited by all subcommands) ---
+#define flag_req_persistent_bool(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_BOOL, name, short_name, desc, value, true)
+#define flag_req_persistent_char(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_CHAR, name, short_name, desc, value, true)
+#define flag_req_persistent_string(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_STRING, name, short_name, desc, value, true)
+#define flag_req_persistent_int(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_INT32, name, short_name, desc, value, true)
+#define flag_req_persistent_uint(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_UINT32, name, short_name, desc, value, true)
+#define flag_req_persistent_int8(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_INT8, name, short_name, desc, value, true)
+#define flag_req_persistent_uint8(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_UINT8, name, short_name, desc, value, true)
+#define flag_req_persistent_int16(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_INT16, name, short_name, desc, value, true)
+#define flag_req_persistent_uint16(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_UINT16, name, short_name, desc, value, true)
+#define flag_req_persistent_int32(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_INT32, name, short_name, desc, value, true)
+#define flag_req_persistent_uint32(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_UINT32, name, short_name, desc, value, true)
+#define flag_req_persistent_int64(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_INT64, name, short_name, desc, value, true)
+#define flag_req_persistent_uint64(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_UINT64, name, short_name, desc, value, true)
+#define flag_req_persistent_size_t(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_SIZE_T, name, short_name, desc, value, true)
+#define flag_req_persistent_float(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_FLOAT, name, short_name, desc, value, true)
+#define flag_req_persistent_double(parser, name, short_name, desc, value) \
+    flag_add_persistent(parser, TYPE_DOUBLE, name, short_name, desc, value, true)
+
 /** Register a subcommand. Returns the child parser. */
-FlagParser* flag_add_subcommand(FlagParser* parser, const char* name, const char* desc, void (*handler)(void* data));
+FlagParser* flag_add_subcommand(FlagParser* parser, const char* name, const char* desc,
+                                void (*handler)(void* data));
 
 /** Attach a custom validator to a specific flag. */
 void flag_set_validator(Flag* flag, FlagValidator validator);
@@ -234,7 +336,13 @@ int flag_positional_count(FlagParser* parser);
 /** Get positional argument at index. */
 const char* flag_positional_at(FlagParser* parser, int index);
 
-/** Check if a flag was explicitly provided. */
+/**
+ * Check if a flag was explicitly provided.
+ * Searches the given parser and, for persistent flags, its ancestors, so
+ * `flag_is_present(leaf, "verbose")` works when `--verbose` was registered
+ * as persistent on the root. May also be called on the parser that owns
+ * the flag.
+ */
 bool flag_is_present(FlagParser* parser, const char* flag_name);
 
 /** Print auto-generated help message. */

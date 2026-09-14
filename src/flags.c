@@ -39,6 +39,7 @@ struct Flag {
     void* default_ptr;       /**< Pointer to a copy of the default value for display */
     bool required;           /**< Whether this flag must be provided */
     bool is_present;         /**< Whether this flag was found during parsing */
+    bool persistent;         /**< Whether this flag is inherited by subcommands */
     FlagValidator validator; /**< Optional custom validation function */
 };
 
@@ -50,10 +51,11 @@ struct Flag {
  * their own flags and handlers.
  */
 struct FlagParser {
-    Arena* arena;      /**< Memory arena for all allocations */
-    char* name;        /**< Name of this parser/command */
-    char* description; /**< Description shown in help */
-    char* footer;      /**< Optional footer text for help */
+    Arena* arena;       /**< Memory arena for all allocations */
+    FlagParser* parent; /**< Parent parser, NULL for the root */
+    char* name;         /**< Name of this parser/command */
+    char* description;  /**< Description shown in help */
+    char* footer;       /**< Optional footer text for help */
 
     Flag* flags;          /**< Dynamic array of registered flags */
     size_t flag_count;    /**< Number of registered flags */
@@ -313,8 +315,8 @@ void flag_set_pre_invoke(FlagParser* fp, void (*pre_invoke)(void* user_data)) {
  * flag_set_validator(f, my_port_validator);
  * ```
  */
-Flag* flag_add(FlagParser* fp, FlagDataType type, const char* name, char short_name, const char* desc, void* value_ptr,
-               bool required) {
+Flag* flag_add(FlagParser* fp, FlagDataType type, const char* name, char short_name,
+               const char* desc, void* value_ptr, bool required) {
     if (!fp || !name || !value_ptr) return NULL;
 
     if (fp->flag_count >= fp->flag_capacity) {
@@ -336,12 +338,50 @@ Flag* flag_add(FlagParser* fp, FlagDataType type, const char* name, char short_n
     f->value_ptr = value_ptr;
     f->required = required;
     f->is_present = false;
+    f->persistent = false;
     f->validator = NULL;
 
     // Copy the default value for display in help
     f->default_ptr = copy_default_value(fp->arena, type, value_ptr);
     return f;
 }
+
+/**
+ * @brief Register a persistent flag inherited by all subcommands
+ * @param fp Parser that owns the flag
+ * @param type Data type of the flag value
+ * @param name Long name (used with --)
+ * @param short_name Short name (used with -), or 0 for none
+ * @param desc Description for help text
+ * @param value_ptr Pointer to variable that will receive the parsed value
+ * @param required Whether this flag is required on the leaf command
+ * @return Pointer to created Flag, or NULL on error
+ *
+ * Thin wrapper over flag_add() that marks the new flag persistent so that
+ * every descendant parser accepts it. See flags.h for semantics.
+ */
+Flag* flag_add_persistent(FlagParser* fp, FlagDataType type, const char* name, char short_name,
+                          const char* desc, void* value_ptr, bool required) {
+    Flag* f = flag_add(fp, type, name, short_name, desc, value_ptr, required);
+    if (f) f->persistent = true;
+    return f;
+}
+
+/**
+ * @brief Mark an existing flag as persistent (or revert it to local)
+ * @param flag Flag to configure
+ * @param persistent True to inherit into subcommands, false for local-only
+ */
+void flag_set_persistent(Flag* flag, bool persistent) {
+    if (flag) flag->persistent = persistent;
+}
+
+/**
+ * @brief Check whether a flag is persistent
+ * @param flag Flag to query
+ * @return true if persistent, false if local or NULL
+ */
+bool flag_is_persistent(const Flag* flag) { return flag ? flag->persistent : false; }
 
 /**
  * @brief Add a subcommand to the parser
@@ -361,7 +401,8 @@ Flag* flag_add(FlagParser* fp, FlagDataType type, const char* name, char short_n
  * flag_add(commit, TYPE_STRING, "message", 'm', "Commit message", &msg, true);
  * ```
  */
-FlagParser* flag_add_subcommand(FlagParser* fp, const char* name, const char* desc, void (*handler)(void* data)) {
+FlagParser* flag_add_subcommand(FlagParser* fp, const char* name, const char* desc,
+                                void (*handler)(void* data)) {
     if (!fp || !name) return NULL;
     if (fp->cmd_count >= fp->cmd_capacity) {
         size_t new_cap = (fp->cmd_capacity == 0) ? INITIAL_CAPACITY : fp->cmd_capacity * 2;
@@ -379,6 +420,7 @@ FlagParser* flag_add_subcommand(FlagParser* fp, const char* name, const char* de
     if (!sub) return NULL;
 
     sub->arena = fp->arena;
+    sub->parent = fp;
     sub->name = arena_strdup(fp->arena, name);
     sub->description = arena_strdup(fp->arena, desc);
     sub->handler = handler;
@@ -461,31 +503,67 @@ static void set_error(FlagParser* fp, const char* fmt, ...) {
 }
 
 /**
- * @brief Find a flag by long name
+ * @brief Find a flag by long name, including inherited persistent flags
  * @param fp Parser to search
  * @param name Long name to find
  * @return Pointer to flag, or NULL if not found
+ *
+ * Searches the parser's own flags first, then walks up the parent chain
+ * considering only persistent flags. The closest definition wins, so a
+ * subcommand can shadow an inherited flag with a local one.
  */
 static Flag* find_flag_long(FlagParser* fp, const char* name) {
     if (!fp || !name) return NULL;
     for (size_t i = 0; i < fp->flag_count; i++) {
         if (strcmp(fp->flags[i].name, name) == 0) return &fp->flags[i];
     }
+    for (FlagParser* p = fp->parent; p; p = p->parent) {
+        for (size_t i = 0; i < p->flag_count; i++) {
+            if (p->flags[i].persistent && strcmp(p->flags[i].name, name) == 0) return &p->flags[i];
+        }
+    }
     return NULL;
 }
 
 /**
- * @brief Find a flag by short name
+ * @brief Find a flag by short name, including inherited persistent flags
  * @param fp Parser to search
  * @param c Short name character to find
  * @return Pointer to flag, or NULL if not found
+ *
+ * Same inheritance rules as find_flag_long(): own flags first, then only
+ * persistent flags from ancestors.
  */
 static Flag* find_flag_short(FlagParser* fp, char c) {
     if (!fp || !c) return NULL;
     for (size_t i = 0; i < fp->flag_count; i++) {
         if (fp->flags[i].short_name == c) return &fp->flags[i];
     }
+    for (FlagParser* p = fp->parent; p; p = p->parent) {
+        for (size_t i = 0; i < p->flag_count; i++) {
+            if (p->flags[i].persistent && p->flags[i].short_name == c) return &p->flags[i];
+        }
+    }
     return NULL;
+}
+
+/**
+ * @brief Check whether a long flag name is shadowed by a closer definition
+ * @param fp Parser where lookup starts (leaf side)
+ * @param ancestor Ancestor parser owning the candidate flag
+ * @param name Long name to check
+ * @return true if fp or an intermediate parser defines the name
+ *
+ * Used when collecting inherited flags for help/completion so shadowed
+ * ancestors are not listed twice.
+ */
+static bool is_shadowed_long(FlagParser* fp, FlagParser* ancestor, const char* name) {
+    for (FlagParser* p = fp; p && p != ancestor; p = p->parent) {
+        for (size_t i = 0; i < p->flag_count; i++) {
+            if (strcmp(p->flags[i].name, name) == 0) return true;
+        }
+    }
+    return false;
 }
 
 /**
@@ -538,7 +616,9 @@ static bool is_value_token(const char* s) {
  * @param max Maximum allowed value
  * @return true if in range
  */
-static bool check_range_int(long long val, long long min, long long max) { return (val >= min && val <= max); }
+static bool check_range_int(long long val, long long min, long long max) {
+    return (val >= min && val <= max);
+}
 
 /**
  * @brief Check if unsigned integer is within range
@@ -546,7 +626,9 @@ static bool check_range_int(long long val, long long min, long long max) { retur
  * @param max Maximum allowed value
  * @return true if in range
  */
-static bool check_range_uint(unsigned long long val, unsigned long long max) { return (val <= max); }
+static bool check_range_uint(unsigned long long val, unsigned long long max) {
+    return (val <= max);
+}
 
 /**
  * @brief Parse a string value into a flag's data type
@@ -586,9 +668,11 @@ static FlagStatus parse_value(FlagParser* fp, Flag* flag, const char* str) {
         case TYPE_INT32:
         case TYPE_INT64: {
             long long val = strtoll(str, &endptr, 10);
-            if (endptr == str || *endptr != '\0' || errno == ERANGE) return FLAG_ERROR_INVALID_NUMBER;
+            if (endptr == str || *endptr != '\0' || errno == ERANGE)
+                return FLAG_ERROR_INVALID_NUMBER;
 
-            if (flag->type == TYPE_INT8 && !check_range_int(val, INT8_MIN, INT8_MAX)) return FLAG_ERROR_INVALID_NUMBER;
+            if (flag->type == TYPE_INT8 && !check_range_int(val, INT8_MIN, INT8_MAX))
+                return FLAG_ERROR_INVALID_NUMBER;
             if (flag->type == TYPE_INT16 && !check_range_int(val, INT16_MIN, INT16_MAX))
                 return FLAG_ERROR_INVALID_NUMBER;
             if (flag->type == TYPE_INT32 && !check_range_int(val, INT32_MIN, INT32_MAX))
@@ -614,12 +698,17 @@ static FlagStatus parse_value(FlagParser* fp, Flag* flag, const char* str) {
         case TYPE_SIZE_T: {
             if (str[0] == '-') return FLAG_ERROR_INVALID_NUMBER;
             unsigned long long val = strtoull(str, &endptr, 10);
-            if (endptr == str || *endptr != '\0' || errno == ERANGE) return FLAG_ERROR_INVALID_NUMBER;
+            if (endptr == str || *endptr != '\0' || errno == ERANGE)
+                return FLAG_ERROR_INVALID_NUMBER;
 
-            if (flag->type == TYPE_UINT8 && !check_range_uint(val, UINT8_MAX)) return FLAG_ERROR_INVALID_NUMBER;
-            if (flag->type == TYPE_UINT16 && !check_range_uint(val, UINT16_MAX)) return FLAG_ERROR_INVALID_NUMBER;
-            if (flag->type == TYPE_UINT32 && !check_range_uint(val, UINT32_MAX)) return FLAG_ERROR_INVALID_NUMBER;
-            if (flag->type == TYPE_SIZE_T && !check_range_uint(val, SIZE_MAX)) return FLAG_ERROR_INVALID_NUMBER;
+            if (flag->type == TYPE_UINT8 && !check_range_uint(val, UINT8_MAX))
+                return FLAG_ERROR_INVALID_NUMBER;
+            if (flag->type == TYPE_UINT16 && !check_range_uint(val, UINT16_MAX))
+                return FLAG_ERROR_INVALID_NUMBER;
+            if (flag->type == TYPE_UINT32 && !check_range_uint(val, UINT32_MAX))
+                return FLAG_ERROR_INVALID_NUMBER;
+            if (flag->type == TYPE_SIZE_T && !check_range_uint(val, SIZE_MAX))
+                return FLAG_ERROR_INVALID_NUMBER;
 
             if (flag->type == TYPE_UINT8)
                 *(uint8_t*)flag->value_ptr = (uint8_t)val;
@@ -636,13 +725,15 @@ static FlagStatus parse_value(FlagParser* fp, Flag* flag, const char* str) {
 
         case TYPE_FLOAT: {
             float val = strtof(str, &endptr);
-            if (endptr == str || *endptr != '\0' || errno == ERANGE) return FLAG_ERROR_INVALID_NUMBER;
+            if (endptr == str || *endptr != '\0' || errno == ERANGE)
+                return FLAG_ERROR_INVALID_NUMBER;
             *(float*)flag->value_ptr = val;
             break;
         }
         case TYPE_DOUBLE: {
             double val = strtod(str, &endptr);
-            if (endptr == str || *endptr != '\0' || errno == ERANGE) return FLAG_ERROR_INVALID_NUMBER;
+            if (endptr == str || *endptr != '\0' || errno == ERANGE)
+                return FLAG_ERROR_INVALID_NUMBER;
             *(double*)flag->value_ptr = val;
             break;
         }
@@ -756,7 +847,8 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
             if (f->type == TYPE_BOOL) {
                 bool b = true;
                 if (val_str && !parse_bool_value(val_str, &b)) {
-                    set_error(fp, "Invalid value for --%s: '%s' (expected true/false)", f->name, val_str);
+                    set_error(fp, "Invalid value for --%s: '%s' (expected true/false)", f->name,
+                              val_str);
                     return FLAG_ERROR_INVALID_ARGUMENT;
                 }
                 *(bool*)f->value_ptr = b;
@@ -771,7 +863,8 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
                 }
                 FlagStatus s = parse_value(fp, f, val_str);
                 if (s != FLAG_OK) {
-                    set_error(fp, "Invalid value for --%s: '%s' (Type mismatch or overflow)", f->name, val_str);
+                    set_error(fp, "Invalid value for --%s: '%s' (Type mismatch or overflow)",
+                              f->name, val_str);
                     return s;
                 }
             }
@@ -809,7 +902,8 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
                             val_str = argv[++i];
                             FlagStatus s = parse_value(fp, f, val_str);
                             if (s != FLAG_OK) {
-                                set_error(fp, "Invalid value for -%c (Type mismatch or overflow)", c);
+                                set_error(fp, "Invalid value for -%c (Type mismatch or overflow)",
+                                          c);
                                 return s;
                             }
                         } else {
@@ -824,7 +918,10 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
         }
     }
 
-    // Validation
+    // Validation: own flags plus inherited persistent flags from ancestors.
+    // Ancestor persistent flags may have been set at this (leaf) level, and
+    // root-level validation is skipped when a subcommand is dispatched, so
+    // the leaf is responsible for enforcing them.
     for (size_t k = 0; k < fp->flag_count; k++) {
         Flag* f = &fp->flags[k];
         if (f->required && !f->is_present) {
@@ -842,6 +939,29 @@ FlagStatus flag_parse(FlagParser* fp, int argc, char** argv) {
             if (!f->validator(f->value_ptr, &err)) {
                 set_error(fp, "Validation failed for --%s: %s", f->name, err ? err : "invalid");
                 return FLAG_ERROR_VALIDATION;
+            }
+        }
+    }
+
+    for (FlagParser* p = fp->parent; p; p = p->parent) {
+        for (size_t k = 0; k < p->flag_count; k++) {
+            Flag* f = &p->flags[k];
+            if (!f->persistent) continue;
+            if (is_shadowed_long(fp, p, f->name)) continue;
+            if (f->required && !f->is_present) {
+                set_error(fp, "Missing required flag: --%s", f->name);
+                return FLAG_ERROR_REQUIRED_MISSING;
+            }
+            if (f->is_present && f->validator) {
+                if (f->value_ptr == NULL) {
+                    set_error(fp, "Validation failed for --%s: %s", f->name, "value is NULL");
+                    return FLAG_ERROR_VALIDATION;
+                }
+                const char* err = NULL;
+                if (!f->validator(f->value_ptr, &err)) {
+                    set_error(fp, "Validation failed for --%s: %s", f->name, err ? err : "invalid");
+                    return FLAG_ERROR_VALIDATION;
+                }
             }
         }
     }
@@ -954,20 +1074,45 @@ static const char* type_to_str(FlagDataType t) {
 }
 
 /**
+ * @brief Width of a single flag row for column alignment
+ * @param f Flag to measure
+ * @return Display width of the left column
+ */
+static size_t flag_row_width(const Flag* f) {
+    size_t w = 6;              // indent(2) + "-x, " (4)
+    w += strlen(f->name) + 2;  // "--" + name
+    if (f->type != TYPE_BOOL) {
+        w += 1 + strlen(type_to_str(f->type));  // "=" + TYPE
+    }
+    return w;
+}
+
+/**
  * @brief Calculate max width for flag column alignment
  */
 static size_t calculate_flag_width(FlagParser* fp) {
     size_t max_width = 0;
     for (size_t i = 0; i < fp->flag_count; i++) {
-        // Calculation: "  -s, --long-name=TYPE"
-        size_t w = 6;                        // indent(2) + "-x, " (4)
-        w += strlen(fp->flags[i].name) + 2;  // "--" + name
-
-        if (fp->flags[i].type != TYPE_BOOL) {
-            w += 1 + strlen(type_to_str(fp->flags[i].type));  // "=" + TYPE
-        }
-
+        size_t w = flag_row_width(&fp->flags[i]);
         if (w > max_width) max_width = w;
+    }
+    return max_width;
+}
+
+/**
+ * @brief Calculate max width across own and inherited persistent flags
+ * @param fp Parser to measure
+ * @return Display width covering every flag help will print
+ */
+static size_t calculate_display_width(FlagParser* fp) {
+    size_t max_width = calculate_flag_width(fp);
+    for (FlagParser* p = fp->parent; p; p = p->parent) {
+        for (size_t i = 0; i < p->flag_count; i++) {
+            if (!p->flags[i].persistent) continue;
+            if (is_shadowed_long(fp, p, p->flags[i].name)) continue;
+            size_t w = flag_row_width(&p->flags[i]);
+            if (w > max_width) max_width = w;
+        }
     }
     return max_width;
 }
@@ -1024,6 +1169,10 @@ static void print_flag_row(Flag* f, size_t max_width) {
 
 /**
  * @brief Internal function to print help for a specific parser node (non-recursive)
+ *
+ * Shows local flags, persistent flags defined here, and persistent flags
+ * inherited from ancestors so subcommand help reflects everything the
+ * subcommand actually accepts.
  */
 static void print_help_internal(FlagParser* fp) {
     if (!fp) return;
@@ -1031,31 +1180,68 @@ static void print_help_internal(FlagParser* fp) {
     // --- 1. Header & Description ---
     printf("\n%s\n", fp->description ? fp->description : fp->name);
 
+    bool has_inherited = false;
+    for (FlagParser* p = fp->parent; p && !has_inherited; p = p->parent) {
+        for (size_t i = 0; i < p->flag_count; i++) {
+            if (p->flags[i].persistent && !is_shadowed_long(fp, p, p->flags[i].name)) {
+                has_inherited = true;
+                break;
+            }
+        }
+    }
+
     printf("\nUsage:\n  %s", fp->name);
-    if (fp->flag_count > 0) printf(" [flags]");
+    if (fp->flag_count > 0 || has_inherited) printf(" [flags]");
     if (fp->cmd_count > 0) printf(" [command]");
     printf("\n");
 
-    // Flags (Current level only) ---
-    if (fp->flag_count > 0) {
-        printf("\nFlags:\n");
-        size_t width = calculate_flag_width(fp);
-        if (width < 20) width = 20;
+    size_t width = calculate_display_width(fp);
+    if (width < 20) width = 20;
 
-        for (size_t i = 0; i < fp->flag_count; i++) {
-            print_flag_row(&fp->flags[i], width);
+    // Local (non-persistent) flags defined on this node ---
+    bool printed_local_header = false;
+    for (size_t i = 0; i < fp->flag_count; i++) {
+        if (fp->flags[i].persistent) continue;
+        if (!printed_local_header) {
+            printf("\nFlags:\n");
+            printed_local_header = true;
+        }
+        print_flag_row(&fp->flags[i], width);
+    }
+
+    // Persistent flags defined on this node (inherited by children) ---
+    bool printed_persistent_header = false;
+    for (size_t i = 0; i < fp->flag_count; i++) {
+        if (!fp->flags[i].persistent) continue;
+        if (!printed_persistent_header) {
+            printf("\nPersistent Flags:\n");
+            printed_persistent_header = true;
+        }
+        print_flag_row(&fp->flags[i], width);
+    }
+
+    // Persistent flags inherited from ancestors ---
+    if (has_inherited) {
+        printf("\nInherited Flags:\n");
+        for (FlagParser* p = fp->parent; p; p = p->parent) {
+            for (size_t i = 0; i < p->flag_count; i++) {
+                if (!p->flags[i].persistent) continue;
+                if (is_shadowed_long(fp, p, p->flags[i].name)) continue;
+                print_flag_row(&p->flags[i], width);
+            }
         }
     }
 
     // Subcommands (Immediate children only) ---
     if (fp->cmd_count > 0) {
         printf("\nAvailable Commands:\n");
-        size_t width = calculate_cmd_width(fp);
-        if (width < 20) width = 20;  // Minimum width
+        size_t cmd_width = calculate_cmd_width(fp);
+        if (cmd_width < 20) cmd_width = 20;  // Minimum width
 
         for (size_t i = 0; i < fp->cmd_count; i++) {
             FlagParser* sub = fp->subcommands[i];
-            printf("  %-*s%s\n", (int)(width - 2), sub->name, sub->description ? sub->description : "");
+            printf("  %-*s%s\n", (int)(cmd_width - 2), sub->name,
+                   sub->description ? sub->description : "");
         }
     }
 
@@ -1143,11 +1329,12 @@ const char* flag_positional_at(FlagParser* fp, int i) {
 
 /**
  * @brief Check if a flag was present in the parsed arguments
- * @param fp Parser to query
+ * @param fp Parser to query (own flags plus inherited persistent flags)
  * @param name Long name of the flag
  * @return true if flag was present, false otherwise
  *
  * Useful for distinguishing between a flag not provided vs. provided with default value.
+ * Inherited persistent flags are found through the parent chain.
  *
  * @example
  * ```c
@@ -1360,10 +1547,84 @@ static void write_bash_dq(FILE* f, const char* str) {
 }
 
 /**
+ * @brief Write a Bash "$prev" case entry for one non-boolean flag
+ * @param f Output file
+ * @param flag Flag needing a value
+ */
+static void write_bash_prev_entry(FILE* f, const Flag* flag) {
+    if (!f || !flag || flag->type == TYPE_BOOL) return;
+    fprintf(f, "                --");
+    write_bash_pattern(f, flag->name);
+    if (flag->short_name && isprint(flag->short_name)) {
+        fprintf(f, "|-");
+        fputc(flag->short_name, f);
+    }
+    fprintf(f, ")\n");
+
+    if (flag->type == TYPE_STRING) {
+        fprintf(f, "                    # File/directory completion\n");
+        fprintf(f, "                    COMPREPLY=( $(compgen -f -- \"$cur\") )\n");
+    } else {
+        fprintf(f, "                    # Value expected\n");
+        fprintf(f, "                    return 0\n");
+    }
+
+    fprintf(f, "                    return 0\n");
+    fprintf(f, "                    ;;\n");
+}
+
+/**
+ * @brief Write "--name " entries for own plus inherited persistent flags
+ * @param f Output file
+ * @param p Parser whose applicable flags are listed
+ *
+ * Own flags come first so they win on name collisions; inherited flags
+ * shadowed by a closer definition are skipped.
+ */
+static void write_bash_flags_entries(FILE* f, FlagParser* p) {
+    if (!f || !p) return;
+    for (size_t i = 0; i < p->flag_count; i++) {
+        fprintf(f, "--");
+        write_bash_dq(f, p->flags[i].name);
+        fprintf(f, " ");
+    }
+    for (FlagParser* anc = p->parent; anc; anc = anc->parent) {
+        for (size_t i = 0; i < anc->flag_count; i++) {
+            if (!anc->flags[i].persistent) continue;
+            if (is_shadowed_long(p, anc, anc->flags[i].name)) continue;
+            fprintf(f, "--");
+            write_bash_dq(f, anc->flags[i].name);
+            fprintf(f, " ");
+        }
+    }
+}
+
+/**
+ * @brief Check whether a parser accepts any non-boolean applicable flag
+ * @param p Parser to check (own flags plus inherited persistent flags)
+ * @return true if at least one value-taking flag applies
+ */
+static bool has_value_flag(FlagParser* p) {
+    if (!p) return false;
+    for (size_t i = 0; i < p->flag_count; i++) {
+        if (p->flags[i].type != TYPE_BOOL) return true;
+    }
+    for (FlagParser* anc = p->parent; anc; anc = anc->parent) {
+        for (size_t i = 0; i < anc->flag_count; i++) {
+            if (!anc->flags[i].persistent) continue;
+            if (is_shadowed_long(p, anc, anc->flags[i].name)) continue;
+            if (anc->flags[i].type != TYPE_BOOL) return true;
+        }
+    }
+    return false;
+}
+
+/**
  * @brief Recursively flatten all nested subcommands for Bash case statement
  *
  * Bash completion is flatter than Zsh. We map the last active subcommand name
  * to its flags. Note: This handles name collisions by using full paths.
+ * Each subcommand case includes persistent flags inherited from ancestors.
  */
 static void write_bash_subcommand_cases(FILE* f, FlagParser* p, const char* prefix) {
     if (!p) return;
@@ -1382,36 +1643,17 @@ static void write_bash_subcommand_cases(FILE* f, FlagParser* p, const char* pref
         write_bash_pattern(f, p->name);
         fprintf(f, ")\n");
 
-        // Handle flags that need arguments
-        if (p->flag_count > 0) {
+        // Handle flags that need arguments (own + inherited persistent)
+        if (has_value_flag(p)) {
             fprintf(f, "            case \"$prev\" in\n");
             for (size_t i = 0; i < p->flag_count; i++) {
-                Flag* flag = &p->flags[i];
-                if (flag->type != TYPE_BOOL) {
-                    fprintf(f, "                --");
-                    write_bash_pattern(f, flag->name);
-                    if (flag->short_name && isprint(flag->short_name)) {
-                        fprintf(f, "|-");
-                        fputc(flag->short_name, f);
-                    }
-                    fprintf(f, ")\n");
-
-                    // Type-specific completion hints
-                    switch (flag->type) {
-                        case TYPE_STRING:
-                            fprintf(f, "                    # File/directory completion\n");
-                            fprintf(f,
-                                    "                    COMPREPLY=( $(compgen -f -- \"$cur\") "
-                                    ")\n");
-                            break;
-                        default:
-                            fprintf(f, "                    # Value expected\n");
-                            fprintf(f, "                    return 0\n");
-                            break;
-                    }
-
-                    fprintf(f, "                    return 0\n");
-                    fprintf(f, "                    ;;\n");
+                write_bash_prev_entry(f, &p->flags[i]);
+            }
+            for (FlagParser* anc = p->parent; anc; anc = anc->parent) {
+                for (size_t i = 0; i < anc->flag_count; i++) {
+                    if (!anc->flags[i].persistent) continue;
+                    if (is_shadowed_long(p, anc, anc->flags[i].name)) continue;
+                    write_bash_prev_entry(f, &anc->flags[i]);
                 }
             }
             fprintf(f, "            esac\n\n");
@@ -1419,11 +1661,7 @@ static void write_bash_subcommand_cases(FILE* f, FlagParser* p, const char* pref
 
         // Complete with this command's flags and immediate subcommands
         fprintf(f, "            local flags=\"");
-        for (size_t i = 0; i < p->flag_count; i++) {
-            fprintf(f, "--");
-            write_bash_dq(f, p->flags[i].name);
-            fprintf(f, " ");
-        }
+        write_bash_flags_entries(f, p);
         fprintf(f, "\"\n");
 
         if (p->cmd_count > 0) {
@@ -1580,67 +1818,88 @@ static void gen_bash_completion(FlagParser* fp, FILE* f) {
 // --- Zsh Generation ---
 
 /**
+ * @brief Write a single Zsh argument specification for one flag
+ * @param f Output file
+ * @param flag Flag to describe
+ * @param indent Indentation level (4 spaces each)
+ */
+static void write_zsh_flag_spec(FILE* f, const Flag* flag, int indent) {
+    if (!f || !flag) return;
+
+    for (int j = 0; j < indent; j++) fprintf(f, "    ");
+
+    if (flag->type == TYPE_BOOL) {
+        /*
+         * Boolean spec form: '--flag[description]'
+         * Single-quoted so we do not have to worry about shell expansions of $, `, etc.
+         */
+        fprintf(f, "'--");
+        write_zsh_description(f, flag->name);
+        fprintf(f, "[");
+        if (flag->description) write_zsh_description(f, flag->description);
+        fprintf(f, "]'");
+    } else {
+        const char* arg_type = "value";
+
+        switch (flag->type) {
+            case TYPE_STRING:
+                arg_type = "file";
+                break;
+            case TYPE_INT8:
+            case TYPE_INT16:
+            case TYPE_INT32:
+            case TYPE_INT64:
+            case TYPE_UINT8:
+            case TYPE_UINT16:
+            case TYPE_UINT32:
+            case TYPE_UINT64:
+            case TYPE_SIZE_T:
+                arg_type = "integer";
+                break;
+            case TYPE_FLOAT:
+            case TYPE_DOUBLE:
+                arg_type = "number";
+                break;
+            default:
+                break;
+        }
+
+        /*
+         * Value spec form: '--flag[description]:metavar:action'
+         * Single-quoted for robustness.
+         */
+        fprintf(f, "'--");
+        write_zsh_description(f, flag->name);
+        fprintf(f, "[");
+        if (flag->description) write_zsh_description(f, flag->description);
+        if (flag->type == TYPE_STRING)
+            fprintf(f, "]:file:_files'");
+        else
+            fprintf(f, "]:%s:'", arg_type);
+    }
+
+    fprintf(f, " \\\n");
+}
+
+/**
  * @brief Write Zsh argument specifications for a parser
+ *
+ * Includes the parser's own flags plus persistent flags inherited from
+ * ancestors (skipping shadowed names) so subcommand completion offers
+ * every flag the subcommand actually accepts.
  */
 static void write_zsh_args(FILE* f, FlagParser* p, int indent) {
     if (!p || !f) return;
 
     for (size_t i = 0; i < p->flag_count; i++) {
-        Flag* flag = &p->flags[i];
-
-        for (int j = 0; j < indent; j++) fprintf(f, "    ");
-
-        if (flag->type == TYPE_BOOL) {
-            /*
-             * Boolean spec form: '--flag[description]'
-             * Single-quoted so we do not have to worry about shell expansions of $, `, etc.
-             */
-            fprintf(f, "'--");
-            write_zsh_description(f, flag->name);
-            fprintf(f, "[");
-            if (flag->description) write_zsh_description(f, flag->description);
-            fprintf(f, "]'");
-        } else {
-            const char* arg_type = "value";
-
-            switch (flag->type) {
-                case TYPE_STRING:
-                    arg_type = "file";
-                    break;
-                case TYPE_INT8:
-                case TYPE_INT16:
-                case TYPE_INT32:
-                case TYPE_INT64:
-                case TYPE_UINT8:
-                case TYPE_UINT16:
-                case TYPE_UINT32:
-                case TYPE_UINT64:
-                case TYPE_SIZE_T:
-                    arg_type = "integer";
-                    break;
-                case TYPE_FLOAT:
-                case TYPE_DOUBLE:
-                    arg_type = "number";
-                    break;
-                default:
-                    break;
-            }
-
-            /*
-             * Value spec form: '--flag[description]:metavar:action'
-             * Single-quoted for robustness.
-             */
-            fprintf(f, "'--");
-            write_zsh_description(f, flag->name);
-            fprintf(f, "[");
-            if (flag->description) write_zsh_description(f, flag->description);
-            if (flag->type == TYPE_STRING)
-                fprintf(f, "]:file:_files'");
-            else
-                fprintf(f, "]:%s:'", arg_type);
+        write_zsh_flag_spec(f, &p->flags[i], indent);
+    }
+    for (FlagParser* anc = p->parent; anc; anc = anc->parent) {
+        for (size_t i = 0; i < anc->flag_count; i++) {
+            if (!anc->flags[i].persistent) continue;
+            if (is_shadowed_long(p, anc, anc->flags[i].name)) continue;
+            write_zsh_flag_spec(f, &anc->flags[i], indent);
         }
-
-        fprintf(f, " \\\n");
     }
 }
 
@@ -1798,7 +2057,8 @@ static void completion_handler(void* user_data) {
     if (_comp_ctx.output && *_comp_ctx.output) {
         out = fopen(_comp_ctx.output, "w");
         if (!out) {
-            fprintf(stderr, "Error: Cannot open output file '%s': %s\n", _comp_ctx.output, strerror(errno));
+            fprintf(stderr, "Error: Cannot open output file '%s': %s\n", _comp_ctx.output,
+                    strerror(errno));
             exit(1);
         }
     }
@@ -1848,7 +2108,8 @@ void flag_add_completion_cmd(FlagParser* fp) {
     _comp_ctx.shell = NULL;
     _comp_ctx.output = NULL;
 
-    FlagParser* cmd = flag_add_subcommand(fp, "completion", "Generate shell completion scripts", completion_handler);
+    FlagParser* cmd = flag_add_subcommand(fp, "completion", "Generate shell completion scripts",
+                                          completion_handler);
 
     if (!cmd) {
         fprintf(stderr, "Warning: Failed to add completion subcommand\n");
@@ -1857,5 +2118,6 @@ void flag_add_completion_cmd(FlagParser* fp) {
 
     // Add flags - use static context addresses
     flag_add(cmd, TYPE_STRING, "shell", 's', "Target shell (bash or zsh)", &_comp_ctx.shell, true);
-    flag_add(cmd, TYPE_STRING, "output", 'o', "Output file path (default: stdout)", &_comp_ctx.output, false);
+    flag_add(cmd, TYPE_STRING, "output", 'o', "Output file path (default: stdout)",
+             &_comp_ctx.output, false);
 }

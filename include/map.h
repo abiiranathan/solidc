@@ -22,11 +22,11 @@ extern "C" {
 
 // Allow user to customize initial map size and load factor threshold
 #ifndef INITIAL_MAP_SIZE
-    #define INITIAL_MAP_SIZE (size_t)16
+#define INITIAL_MAP_SIZE (size_t)16
 #endif
 
 #ifndef LOAD_FACTOR_THRESHOLD
-    #define LOAD_FACTOR_THRESHOLD (double)0.75
+#define LOAD_FACTOR_THRESHOLD (double)0.75
 #endif
 
 // Define alignment for cache line optimization
@@ -34,23 +34,23 @@ extern "C" {
 
 // Cross-platform prefetch macros
 #if defined(__GNUC__) || defined(__clang__)
-    #define PREFETCH_READ(addr)  __builtin_prefetch((addr), 0, 3)
-    #define PREFETCH_WRITE(addr) __builtin_prefetch((addr), 1, 3)
+#define PREFETCH_READ(addr)  __builtin_prefetch((addr), 0, 3)
+#define PREFETCH_WRITE(addr) __builtin_prefetch((addr), 1, 3)
 #elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
-    #include <intrin.h>
-    #define PREFETCH_READ(addr)  _mm_prefetch((char*)(addr), _MM_HINT_T0)
-    #define PREFETCH_WRITE(addr) _mm_prefetch((char*)(addr), _MM_HINT_T0)
+#include <intrin.h>
+#define PREFETCH_READ(addr)  _mm_prefetch((char*)(addr), _MM_HINT_T0)
+#define PREFETCH_WRITE(addr) _mm_prefetch((char*)(addr), _MM_HINT_T0)
 #elif defined(__has_builtin)
-    #if __has_builtin(__builtin_prefetch)
-        #define PREFETCH_READ(addr)  __builtin_prefetch((addr), 0, 3)
-        #define PREFETCH_WRITE(addr) __builtin_prefetch((addr), 1, 3)
-    #else
-        #define PREFETCH_READ(addr)  ((void)0)
-        #define PREFETCH_WRITE(addr) ((void)0)
-    #endif
+#if __has_builtin(__builtin_prefetch)
+#define PREFETCH_READ(addr)  __builtin_prefetch((addr), 0, 3)
+#define PREFETCH_WRITE(addr) __builtin_prefetch((addr), 1, 3)
 #else
-    #define PREFETCH_READ(addr)  ((void)0)
-    #define PREFETCH_WRITE(addr) ((void)0)
+#define PREFETCH_READ(addr)  ((void)0)
+#define PREFETCH_WRITE(addr) ((void)0)
+#endif
+#else
+#define PREFETCH_READ(addr)  ((void)0)
+#define PREFETCH_WRITE(addr) ((void)0)
 #endif
 
 typedef size_t (*HashFunction)(const void* key, size_t size);
@@ -140,18 +140,24 @@ size_t map_length(HashMap* m);
 // Get the capacity of the map
 size_t map_capacity(HashMap* m);
 
-static inline bool key_compare_int(const void* a, const void* b) { return a && b && *(const int*)a == *(const int*)b; }
+static inline bool key_compare_int(const void* a, const void* b) {
+    return a && b && *(const int*)a == *(const int*)b;
+}
 
 static inline bool key_compare_char_ptr(const void* a, const void* b) {
     return a && b && strcmp((const char*)a, (const char*)b) == 0;
 }
 
 static inline bool key_compare_float(const void* a, const void* b) {
-    return a && b && cmp_float(*(const float*)a, *(const float*)b, (cmp_config_t){.epsilon = FLT_EPSILON});
+    return a && b &&
+           cmp_float(*(const float*)a, *(const float*)b,
+                     (cmp_config_t){.mode = CMP_RELATIVE, .epsilon = FLT_EPSILON, .ulps = 4});
 }
 
 static inline bool key_compare_double(const void* a, const void* b) {
-    return a && b && cmp_double(*(const double*)a, *(const double*)b, (cmp_config_t){.epsilon = DBL_EPSILON});
+    return a && b &&
+           cmp_double(*(const double*)a, *(const double*)b,
+                      (cmp_config_t){.mode = CMP_RELATIVE, .epsilon = DBL_EPSILON, .ulps = 4});
 }
 
 #if defined(__cplusplus)

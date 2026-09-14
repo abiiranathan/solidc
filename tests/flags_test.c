@@ -6,6 +6,7 @@
 #include <string.h>
 #include <thread.h>
 
+#include "../include/cmp.h"
 #include "../include/flags.h"
 #include "../include/thread.h"
 
@@ -97,12 +98,13 @@ FlagParser* build_ops_parser(OpsConfig* config) {
 // =============================================================================
 
 // Assertion macro that doesn't kill the whole suite, just the thread
-#define TEST_ASSERT(cond, msg)                                                                              \
-    do {                                                                                                    \
-        if (!(cond)) {                                                                                      \
-            fprintf(stderr, "\033[1;31m[FAIL] Thread %lu: %s\033[0m\n", (unsigned long)thread_self(), msg); \
-            return (void*)1;                                                                                \
-        }                                                                                                   \
+#define TEST_ASSERT(cond, msg)                                          \
+    do {                                                                \
+        if (!(cond)) {                                                  \
+            fprintf(stderr, "\033[1;31m[FAIL] Thread %lu: %s\033[0m\n", \
+                    (unsigned long)thread_self(), msg);                 \
+            return (void*)1;                                            \
+        }                                                               \
     } while (0)
 
 typedef struct TestPayload {
@@ -149,7 +151,8 @@ void* test_db_migration(void* arg) {
     FlagParser* fp = build_ops_parser(&c);
 
     // Testing global flags (-v, -d) mixed with subcommand flags
-    char* argv[] = {"ops", "-v", "--dry-run", "database", "migrate", "--id", "999999999", "--timeout=0.5"};
+    char* argv[] = {"ops",     "-v",   "--dry-run", "database",
+                    "migrate", "--id", "999999999", "--timeout=0.5"};
     int argc = 8;
 
     FlagStatus status = flag_parse_and_invoke(fp, argc, argv, &c);
@@ -299,7 +302,7 @@ static void test_flag_regression_battery(void) {
         flag_add(fp, TYPE_DOUBLE, "amt", 'a', "", &amt, false);
         char* argv[] = {"t3", "-a", "-2.5"};
         FlagStatus st = flag_parse(fp, 3, argv);
-        assert(st == FLAG_OK && amt == -2.5);
+        assert(st == FLAG_OK && CMP(amt, -2.5));
         flag_parser_free(fp);
     }
 
@@ -321,7 +324,8 @@ int main(void) {
     test_flag_regression_battery();
     Thread threads[NUM_TESTS];
     void* (*tests[NUM_TESTS])(void*) = {
-        test_server_success, test_db_migration, test_types, test_missing_required, test_overflow, test_unknown_subcmd,
+        test_server_success,   test_db_migration, test_types,
+        test_missing_required, test_overflow,     test_unknown_subcmd,
     };
 
     printf("==========================================\n");
