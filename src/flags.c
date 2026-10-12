@@ -74,6 +74,7 @@ struct FlagParser {
 
     char last_error[ERR_BUF_SIZE]; /**< Last error message */
     FlagParser* active_subcommand; /**< Active subcommand after parsing */
+    int handler_invoked;           /**< Flag indicating if the handler was called */
 };
 
 // --- Memory Helpers ---
@@ -292,6 +293,11 @@ void flag_set_pre_invoke(FlagParser* fp, void (*pre_invoke)(void* user_data)) {
     }
 }
 
+bool flag_handler_was_invoked(const FlagParser* parser) {
+    if (!parser) return false;
+    return parser->handler_invoked;
+}
+
 // --- Registration ---
 
 /**
@@ -424,6 +430,7 @@ FlagParser* flag_add_subcommand(FlagParser* fp, const char* name, const char* de
     sub->name = arena_strdup(fp->arena, name);
     sub->description = arena_strdup(fp->arena, desc);
     sub->handler = handler;
+    sub->handler_invoked = 0;
     sub->pre_invoke = NULL;
     fp->subcommands[fp->cmd_count++] = sub;
     return sub;
@@ -456,6 +463,7 @@ bool flag_invoke_subcommand(FlagParser* fp, void (*pre_invoke)(void* user_data),
     // Invoke the subcommand handler if it exists
     if (sub->handler) {
         sub->handler(user_data);
+        sub->handler_invoked = 1;  // Mark that the handler was called
     }
 
     return true;
@@ -1026,6 +1034,7 @@ FlagStatus flag_parse_and_invoke(FlagParser* fp, int argc, char** argv, void* us
     // Run the handler for the target command
     if (target->handler) {
         target->handler(user_data);
+        target->handler_invoked = 1;  // Mark that the handler was called
     }
 
     return FLAG_OK;

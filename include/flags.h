@@ -119,6 +119,15 @@ bool flag_invoke_subcommand(FlagParser* parser, void (*pre_invoke)(void* user_da
 void flag_set_pre_invoke(FlagParser* parser, void (*pre_invoke)(void* user_data));
 
 /**
+ * Check if the handler for the parser was invoked during parsing.
+ * @param parser The parser to check.
+ * @return true if the handler was called, false otherwise.
+ *
+ * This is useful for testing or conditional logic after parsing or clean exit.
+ */
+bool flag_handler_was_invoked(const FlagParser* parser);
+
+/**
  * Core function to register a flag.
  * Use the macros (flag_int, flag_bool) instead of calling this directly.
  */
