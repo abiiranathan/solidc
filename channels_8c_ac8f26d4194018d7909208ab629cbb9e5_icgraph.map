@@ -1,0 +1,5 @@
+<map id="chan_recv_timeout" name="chan_recv_timeout">
+<area shape="rect" id="Node000001" title="Receives with a bounded wait." alt="" coords="141,5,288,31"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#a6790c78d4124404ff5d44dce46dd1f71" title="Receives the next value into out, blocking until one arrives." alt="" coords="5,5,93,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="128,21,93,21,93,15,128,15"/>
+</map>

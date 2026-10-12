@@ -1,0 +1,5 @@
+<map id="is_codepoint_punct" name="is_codepoint_punct">
+<area shape="rect" id="Node000001" title="Checks if a codepoint represents a punctuation character." alt="" coords="163,5,309,31"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a4b4875bd66dffc4433e6bbbb23542a85" title="Checks if a UTF&#45;8 character represents a punctuation character." alt="" coords="5,5,115,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="149,21,115,21,115,15,149,15"/>
+</map>

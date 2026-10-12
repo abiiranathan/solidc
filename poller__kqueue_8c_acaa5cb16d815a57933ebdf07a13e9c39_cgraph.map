@@ -1,0 +1,7 @@
+<map id="poller_new" name="poller_new">
+<area shape="rect" id="Node000001" title="Creates a new poller instance." alt="" coords="5,31,99,56"/>
+<area shape="rect" id="Node000002" href="$poller__common_8c.html#aa3058dfe4761083bbb5c3a2cd4cf3871" title=" " alt="" coords="147,5,273,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="98,33,133,28,133,33,99,39"/>
+<area shape="rect" id="Node000003" href="$poller__common_8c.html#ab4612c1a8f8de359d092d621cbcc3ad9" title=" " alt="" coords="149,55,271,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="99,48,136,53,135,59,98,53"/>
+</map>

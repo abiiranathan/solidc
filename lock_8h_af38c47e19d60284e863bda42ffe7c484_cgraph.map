@@ -1,0 +1,10 @@
+<map id="lock_wait" name="lock_wait">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,29,89,55"/>
+<area shape="poly" id="edge5_Node000001_Node000001" title=" " alt="" coords="20,31,14,21,17,11,29,5,47,3,70,6,79,15,76,19,67,11,47,8,30,10,21,15,20,20,25,28"/>
+<area shape="rect" id="Node000002" href="$lock_8c.html#a817db5657996111335ebc9d470d79aaf" title=" " alt="" coords="137,29,284,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="90,39,124,39,124,45,90,45"/>
+<area shape="poly" id="edge4_Node000002_Node000002" title=" " alt="" coords="183,31,178,21,181,11,192,5,211,3,233,6,243,15,239,19,231,11,211,8,194,10,185,15,183,20,188,28"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#a2460579b5ba8ad8079d42d449d9bcc80" title=" " alt="" coords="332,29,420,55"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="284,39,318,39,318,45,284,45"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="348,31,342,21,346,11,357,5,376,3,399,6,408,15,405,19,396,11,376,8,359,10,350,15,348,20,353,28"/>
+</map>

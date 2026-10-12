@@ -1,0 +1,7 @@
+<map id="dir_walk" name="dir_walk">
+<area shape="rect" id="Node000001" title="Recursively walks a directory tree breadth&#45;first, invoking callback for each entry before recursing i..." alt="" coords="280,5,357,31"/>
+<area shape="rect" id="Node000002" href="$filepath_8c.html#abdfec26581dba8143ff4e170ba4d7ba0" title="Computes the total size in bytes of all regular files in the tree rooted at path, via dir_walk()." alt="" coords="160,5,232,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="266,21,232,21,232,15,266,15"/>
+<area shape="rect" id="Node000003" href="$filepath__string_8c.html#ad540bdb7e70253c52d292e93a466e920" title="Splits path at the last separator: dir gets the portion before it (no trailing separator) and name th..." alt="" coords="5,5,112,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="146,21,112,21,112,15,146,15"/>
+</map>

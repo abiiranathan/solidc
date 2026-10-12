@@ -1,0 +1,23 @@
+<map id="chan_pubsub_unsubscribe" name="chan_pubsub_unsubscribe">
+<area shape="rect" id="Node000001" title="Removes a subscriber and destroys its queue (pending values are discarded)." alt="" coords="5,145,197,171"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#a578b7986be91d7c73980dd7bf1deee8d" title="Closes the channel. Idempotent." alt="" coords="245,109,340,135"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="169,143,231,131,232,136,170,148"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="398,29,502,55"/>
+<area shape="poly" id="edge12_Node000001_Node000004" title=" " alt="" coords="128,143,181,119,244,94,316,72,384,54,385,59,318,77,246,99,183,124,130,148"/>
+<area shape="rect" id="Node000005" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="398,176,502,201"/>
+<area shape="poly" id="edge13_Node000001_Node000005" title=" " alt="" coords="198,164,384,180,384,186,197,169"/>
+<area shape="rect" id="Node000006" href="$channels_8c.html#a5856b68b0604d54212ff73bdfb9d40eb" title="Frees the channel and its buffer." alt="" coords="249,249,336,275"/>
+<area shape="poly" id="edge8_Node000001_Node000006" title=" " alt="" coords="127,168,257,240,255,245,125,173"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#ab4a9b1664d0b27f364ad90d37f0bf18f" title=" " alt="" coords="388,103,512,128"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="340,117,374,116,375,121,341,123"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="312,107,387,64,400,58,402,62,389,68,315,112"/>
+<area shape="poly" id="edge6_Node000002_Node000005" title=" " alt="" coords="325,132,408,168,405,173,322,137"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="423,104,418,94,421,85,432,78,450,76,472,79,481,88,477,92,469,84,450,81,434,83,425,88,423,94,428,101"/>
+<area shape="poly" id="edge5_Node000004_Node000004" title=" " alt="" coords="423,31,418,21,421,11,432,5,450,3,472,6,481,15,477,19,469,11,450,8,434,10,425,15,423,20,428,28"/>
+<area shape="poly" id="edge7_Node000005_Node000005" title=" " alt="" coords="423,177,418,168,421,158,432,152,450,149,472,153,481,161,477,165,469,158,450,155,434,157,425,161,423,167,428,175"/>
+<area shape="rect" id="Node000007" href="$lock_8c.html#a4c04565c7345b6ebf6e5a76aaa6fe108" title=" " alt="" coords="407,299,493,324"/>
+<area shape="poly" id="edge9_Node000006_Node000007" title=" " alt="" coords="335,272,396,292,395,297,333,277"/>
+<area shape="rect" id="Node000008" href="$lock_8c.html#abe7ed51e69cbe867fd0bc31e20d26b11" title=" " alt="" coords="409,249,491,275"/>
+<area shape="poly" id="edge10_Node000006_Node000008" title=" " alt="" coords="336,259,395,259,395,265,336,265"/>
+<area shape="poly" id="edge11_Node000008_Node000008" title=" " alt="" coords="423,251,418,241,421,231,432,225,450,223,472,226,481,235,477,239,469,231,450,228,434,230,425,235,423,240,428,248"/>
+</map>

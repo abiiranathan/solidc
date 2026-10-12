@@ -1,0 +1,7 @@
+<map id="process_wait" name="process_wait">
+<area shape="rect" id="Node000001" title="WaitForSingleObject() on the child process handle (timeout_ms &lt; 0 = INFINITE), then GetExitCodeProces..." alt="" coords="5,31,112,56"/>
+<area shape="rect" id="Node000002" href="$process__posix_8c.html#a450e174a306f9fa40d323a7adb8f84b3" title="POSIX backend of the cross&#45;platform sleep: a direct nanosleep(2) call." alt="" coords="193,5,293,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="112,33,178,24,179,29,113,39"/>
+<area shape="rect" id="Node000003" href="$process__posix_8c.html#afb3fcc72cac00f40bcddd7b344e48c85" title="Translates the current errno into the closest ProcessError: EINVAL, ENOMEM, EACCES/EPERM,..." alt="" coords="160,55,325,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="113,48,147,52,146,57,112,53"/>
+</map>

@@ -1,0 +1,16 @@
+<map id="chan_pubsub_close" name="chan_pubsub_close">
+<area shape="rect" id="Node000001" title="Closes the hub: every subscriber queue is closed (after draining) and publishing is rejected...." alt="" coords="5,103,153,128"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#a578b7986be91d7c73980dd7bf1deee8d" title="Closes the channel. Idempotent." alt="" coords="201,103,296,128"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="154,113,188,113,188,118,154,118"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="354,29,458,55"/>
+<area shape="poly" id="edge8_Node000001_Node000004" title=" " alt="" coords="136,100,340,54,341,59,137,105"/>
+<area shape="rect" id="Node000005" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="354,176,458,201"/>
+<area shape="poly" id="edge9_Node000001_Node000005" title=" " alt="" coords="137,125,341,171,340,177,136,131"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#ab4a9b1664d0b27f364ad90d37f0bf18f" title=" " alt="" coords="344,103,468,128"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="296,113,330,113,330,118,296,118"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="272,100,343,64,357,57,359,62,345,68,274,105"/>
+<area shape="poly" id="edge6_Node000002_Node000005" title=" " alt="" coords="278,126,366,168,364,172,276,131"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="379,104,374,94,377,85,388,78,406,76,428,79,437,88,433,92,425,84,406,81,390,83,381,88,379,94,384,101"/>
+<area shape="poly" id="edge5_Node000004_Node000004" title=" " alt="" coords="379,31,374,21,377,11,388,5,406,3,428,6,437,15,433,19,425,11,406,8,390,10,381,15,379,20,384,28"/>
+<area shape="poly" id="edge7_Node000005_Node000005" title=" " alt="" coords="379,177,374,168,377,158,388,152,406,149,428,153,437,161,433,165,425,158,406,155,390,157,381,161,379,167,384,175"/>
+</map>

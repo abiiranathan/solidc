@@ -1,0 +1,5 @@
+<map id="pipe_set_nonblocking" name="pipe_set_nonblocking">
+<area shape="rect" id="Node000001" title="Switches both ends of the pipe between PIPE_NOWAIT and PIPE_WAIT via SetNamedPipeHandleState()." alt="" coords="5,5,168,31"/>
+<area shape="rect" id="Node000002" href="$process__posix_8c.html#afb3fcc72cac00f40bcddd7b344e48c85" title="Translates the current errno into the closest ProcessError: EINVAL, ENOMEM, EACCES/EPERM,..." alt="" coords="216,5,381,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="168,15,202,15,202,21,168,21"/>
+</map>

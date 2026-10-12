@@ -1,0 +1,16 @@
+<map id="chan_pubsub_publish" name="chan_pubsub_publish">
+<area shape="rect" id="Node000001" title="Publishes a value to every active subscriber (one copy each)." alt="" coords="5,103,167,128"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#a739abada08d078ab7cd0295886eba272" title="Non&#45;blocking send." alt="" coords="215,103,331,128"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="167,113,201,113,201,118,167,118"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="379,29,483,55"/>
+<area shape="poly" id="edge8_Node000001_Node000004" title=" " alt="" coords="146,100,364,53,365,58,147,105"/>
+<area shape="rect" id="Node000005" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="379,176,483,201"/>
+<area shape="poly" id="edge9_Node000001_Node000005" title=" " alt="" coords="147,125,365,172,364,177,146,131"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#a90c1124b43ee197ab3060448eb893395" title=" " alt="" coords="381,103,480,128"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="331,113,368,113,368,118,331,118"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="300,100,389,58,391,63,302,105"/>
+<area shape="poly" id="edge6_Node000002_Node000005" title=" " alt="" coords="302,126,391,168,389,172,300,131"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="404,104,399,94,402,85,413,78,431,76,452,79,462,88,458,92,450,84,431,81,414,83,406,88,404,94,409,101"/>
+<area shape="poly" id="edge5_Node000004_Node000004" title=" " alt="" coords="404,31,399,21,402,11,413,5,431,3,452,6,462,15,458,19,450,11,431,8,414,10,406,15,404,20,409,28"/>
+<area shape="poly" id="edge7_Node000005_Node000005" title=" " alt="" coords="404,177,399,168,402,158,413,152,431,149,452,153,462,161,458,165,450,158,431,155,414,157,406,161,404,167,409,175"/>
+</map>

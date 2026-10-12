@@ -1,0 +1,46 @@
+<map id="src/cstr.c" name="src/cstr.c">
+<area shape="rect" id="Node000001" title="Implementation of high&#45;performance C string with SSO." alt="" coords="581,5,659,31"/>
+<area shape="rect" id="Node000002" href="$cstr_8h.html" title="High&#45;performance C string with Small String Optimization (SSO)." alt="" coords="409,79,466,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="592,33,480,76,478,71,590,28"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="203,225,274,251"/>
+<area shape="poly" id="edge27_Node000001_Node000006" title=" " alt="" coords="581,26,476,44,414,60,354,81,292,107,269,124,248,153,239,182,238,212,232,211,233,181,243,151,265,121,289,103,352,76,413,54,475,38,580,21"/>
+<area shape="rect" id="Node000007" href="$macros_8h.html" title="Portable utility macros for assertions, memory, math, iteration, timing, and platform compatibility." alt="" coords="500,152,583,177"/>
+<area shape="poly" id="edge15_Node000001_Node000007" title=" " alt="" coords="616,32,556,141,552,139,611,30"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="784,225,851,251"/>
+<area shape="poly" id="edge25_Node000001_Node000010" title=" " alt="" coords="621,31,620,60,623,98,633,139,642,158,654,175,698,196,772,220,770,225,696,201,650,179,637,161,628,141,618,99,615,60,616,31"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="875,225,946,251"/>
+<area shape="poly" id="edge26_Node000001_Node000011" title=" " alt="" coords="631,29,659,63,698,102,744,137,792,169,877,216,874,221,789,173,741,141,694,106,655,67,626,32"/>
+<area shape="rect" id="Node000013" href="$simd_8h.html" title="Portable Single Instruction Multiple Data (SIMD) Intrinsics Wrapper." alt="" coords="257,152,324,177"/>
+<area shape="poly" id="edge16_Node000001_Node000013" title=" " alt="" coords="581,27,494,46,445,61,397,81,351,111,313,144,310,140,348,107,395,76,443,56,493,40,580,22"/>
+<area shape="rect" id="Node000015" title=" " alt="" coords="708,79,783,104"/>
+<area shape="poly" id="edge22_Node000001_Node000015" title=" " alt="" coords="641,28,714,69,712,74,639,33"/>
+<area shape="rect" id="Node000016" title=" " alt="" coords="807,79,878,104"/>
+<area shape="poly" id="edge23_Node000001_Node000016" title=" " alt="" coords="657,28,795,72,793,77,655,33"/>
+<area shape="rect" id="Node000017" title=" " alt="" coords="903,79,977,104"/>
+<area shape="poly" id="edge24_Node000001_Node000017" title=" " alt="" coords="660,25,890,76,889,81,659,30"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,225,88,251"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="409,103,335,125,246,155,159,189,85,222,83,217,157,184,244,149,333,120,408,98"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="485,225,560,251"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="447,103,511,212,507,215,442,106"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="298,225,369,251"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="432,106,382,179,353,216,349,213,378,176,428,103"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="426,106,388,140,338,180,273,221,270,216,334,175,384,136,423,102"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="456,102,514,142,511,146,453,106"/>
+<area shape="poly" id="edge9_Node000007_Node000004" title=" " alt="" coords="541,178,532,213,527,212,536,177"/>
+<area shape="poly" id="edge10_Node000007_Node000005" title=" " alt="" coords="509,180,381,223,379,218,507,175"/>
+<area shape="poly" id="edge13_Node000007_Node000006" title=" " alt="" coords="500,178,288,227,287,222,499,173"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="393,225,461,251"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="524,180,458,220,456,216,522,175"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="585,225,671,251"/>
+<area shape="poly" id="edge8_Node000007_Node000009" title=" " alt="" coords="557,175,605,214,602,219,554,179"/>
+<area shape="poly" id="edge11_Node000007_Node000010" title=" " alt="" coords="584,174,771,222,770,227,583,179"/>
+<area shape="poly" id="edge12_Node000007_Node000011" title=" " alt="" coords="584,170,862,223,861,228,583,176"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="696,225,760,251"/>
+<area shape="poly" id="edge14_Node000007_Node000012" title=" " alt="" coords="572,175,686,218,684,223,570,180"/>
+<area shape="poly" id="edge19_Node000013_Node000003" title=" " alt="" coords="258,178,100,224,98,219,257,173"/>
+<area shape="poly" id="edge20_Node000013_Node000005" title=" " alt="" coords="300,176,322,212,317,215,295,179"/>
+<area shape="poly" id="edge21_Node000013_Node000006" title=" " alt="" coords="284,179,257,216,253,213,280,176"/>
+<area shape="poly" id="edge18_Node000013_Node000008" title=" " alt="" coords="314,175,394,217,391,221,311,180"/>
+<area shape="rect" id="Node000014" href="$align_8h.html" title="Memory alignment utilities and macros for cross&#45;platform alignment." alt="" coords="112,225,179,251"/>
+<area shape="poly" id="edge17_Node000013_Node000014" title=" " alt="" coords="268,180,182,222,180,217,266,175"/>
+</map>

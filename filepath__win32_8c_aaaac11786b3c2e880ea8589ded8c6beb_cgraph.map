@@ -1,0 +1,12 @@
+<map id="fp_random_bytes" name="fp_random_bytes">
+<area shape="rect" id="Node000001" title="Fills buf with n cryptographically random bytes via CryptGenRandom using a verify&#45;context CSP handle ..." alt="" coords="5,103,140,128"/>
+<area shape="rect" id="Node000002" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="188,29,292,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="102,100,196,58,198,63,104,105"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#a20db23f8993e4b5b39b9b977f8c6714f" title=" " alt="" coords="201,103,279,128"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="140,113,187,113,187,118,140,118"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="188,176,292,201"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="104,126,198,168,196,173,102,131"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="212,31,206,21,210,11,221,5,240,3,263,6,272,15,269,19,260,11,240,8,223,10,214,15,212,20,217,28"/>
+<area shape="poly" id="edge4_Node000003_Node000003" title=" " alt="" coords="212,104,206,94,210,85,221,78,240,76,263,79,272,88,269,92,260,84,240,81,223,83,214,88,212,94,217,101"/>
+<area shape="poly" id="edge6_Node000004_Node000004" title=" " alt="" coords="212,177,206,168,210,158,221,152,240,149,263,153,272,161,269,165,260,158,240,155,223,157,214,161,212,167,217,174"/>
+</map>

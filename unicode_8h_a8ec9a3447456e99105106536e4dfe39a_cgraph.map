@@ -1,0 +1,17 @@
+<map id="utf8_trim" name="utf8_trim">
+<area shape="rect" id="Node000001" title="Removes leading and trailing whitespace from a UTF&#45;8 string in&#45;place." alt="" coords="5,55,88,80"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a358a6ddb4231f045fa1996354bb69b56" title="Removes leading whitespace from a UTF&#45;8 string in&#45;place." alt="" coords="136,29,223,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="88,57,122,50,123,55,89,62"/>
+<area shape="rect" id="Node000007" href="$unicode_8c.html#a673ecb04bcd3fc52c6222a67233a8ce1" title="Removes trailing whitespace from a UTF&#45;8 string in&#45;place." alt="" coords="136,79,223,104"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="89,72,123,78,122,84,88,77"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#ad7d24e5bc418ae563b5afc21c6898e10" title="Checks if a UTF&#45;8 character represents whitespace." alt="" coords="271,29,417,55"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="223,39,257,39,257,45,223,45"/>
+<area shape="rect" id="Node000006" href="$unicode_8c.html#aadba4a5c759cfb7674c3dfe42351e952" title="Determines the byte length of a UTF&#45;8 character from its first byte." alt="" coords="279,79,409,104"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="223,52,288,72,287,77,222,57"/>
+<area shape="rect" id="Node000004" href="$unicode_8c.html#a5ae688f76f23047d722b9884a106bf09" title="Checks if a codepoint represents whitespace." alt="" coords="465,5,651,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="417,31,451,27,452,33,418,36"/>
+<area shape="rect" id="Node000005" href="$unicode_8c.html#a0075f88c12df63dda852af0ff5c41f92" title="Decodes a UTF&#45;8 byte sequence to its Unicode codepoint." alt="" coords="489,55,627,80"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="418,48,475,55,475,60,417,53"/>
+<area shape="poly" id="edge7_Node000007_Node000003" title=" " alt="" coords="222,76,287,56,288,61,223,81"/>
+<area shape="poly" id="edge8_Node000007_Node000006" title=" " alt="" coords="223,89,264,89,264,94,223,94"/>
+</map>

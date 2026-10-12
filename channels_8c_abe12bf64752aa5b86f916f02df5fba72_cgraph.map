@@ -1,0 +1,12 @@
+<map id="chan_send" name="chan_send">
+<area shape="rect" id="Node000001" title="Sends a value by copying value_size bytes from value." alt="" coords="5,103,96,128"/>
+<area shape="rect" id="Node000002" href="$lock_8c.html#a90c1124b43ee197ab3060448eb893395" title=" " alt="" coords="147,29,245,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="74,100,143,64,154,58,156,63,145,68,76,105"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="144,103,248,128"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="96,113,131,113,131,118,96,118"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="144,176,248,201"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="78,126,159,167,156,172,76,130"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="171,30,166,21,169,11,179,5,196,3,216,6,225,15,221,18,213,11,196,8,181,10,173,15,172,20,176,28"/>
+<area shape="poly" id="edge4_Node000003_Node000003" title=" " alt="" coords="171,104,166,94,169,85,179,78,196,76,216,80,225,88,221,92,213,84,196,81,181,83,173,88,172,94,176,101"/>
+<area shape="poly" id="edge6_Node000004_Node000004" title=" " alt="" coords="171,177,166,168,169,158,179,152,196,149,216,153,225,161,221,165,213,158,196,155,181,157,173,161,172,167,176,175"/>
+</map>

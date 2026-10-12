@@ -1,0 +1,25 @@
+<map id="include/map.h" name="include/map.h">
+<area shape="rect" id="Node000001" title="Generic hash map implementation with customizable hashing and load balancing." alt="" coords="275,5,390,31"/>
+<area shape="rect" id="Node000002" href="$cmp_8h.html" title="Floating&#45;point comparison library for precise and robust comparisons." alt="" coords="199,79,269,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="318,33,263,73,260,68,315,29"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,152,68,177"/>
+<area shape="poly" id="edge7_Node000001_Node000003" title=" " alt="" coords="290,33,227,53,161,81,107,113,63,146,60,141,104,109,158,76,226,48,288,28"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="93,152,175,177"/>
+<area shape="poly" id="edge8_Node000001_Node000005" title=" " alt="" coords="285,33,235,52,210,65,188,81,163,110,146,140,141,138,159,106,184,77,207,60,233,47,283,28"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="292,152,363,177"/>
+<area shape="poly" id="edge10_Node000001_Node000006" title=" " alt="" coords="335,31,331,138,326,138,330,31"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="387,152,457,177"/>
+<area shape="poly" id="edge12_Node000001_Node000007" title=" " alt="" coords="342,30,386,103,409,139,405,142,381,105,337,32"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="395,79,470,104"/>
+<area shape="poly" id="edge9_Node000001_Node000008" title=" " alt="" coords="350,29,407,68,404,73,347,33"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="494,79,561,104"/>
+<area shape="poly" id="edge11_Node000001_Node000009" title=" " alt="" coords="365,28,484,71,482,76,363,33"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="585,79,656,104"/>
+<area shape="poly" id="edge13_Node000001_Node000010" title=" " alt="" coords="380,28,573,75,571,81,378,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="203,107,82,150,80,145,201,102"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="200,152,268,177"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="237,104,237,138,231,138,231,104"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="219,106,163,146,160,142,216,102"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="251,102,303,141,300,146,247,106"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="265,102,379,144,378,149,263,107"/>
+</map>

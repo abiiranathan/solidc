@@ -1,0 +1,5 @@
+<map id="dir_walk_depth_first" name="dir_walk_depth_first">
+<area shape="rect" id="Node000001" title="Recursively walks a directory tree depth&#45;first (post&#45;order): entries are processed after their childr..." alt="" coords="5,5,159,31"/>
+<area shape="rect" id="Node000002" href="$filepath__win32_8c.html#a0518eb83aac40865259008e20cddfa73" title="Dispatcher for dir_walk_depth_first(): uses the post&#45;order getdents64 fast path on Linux when availab..." alt="" coords="207,5,416,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,15,193,15,193,21,159,21"/>
+</map>

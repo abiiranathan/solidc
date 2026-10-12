@@ -1,0 +1,8 @@
+<map id="chan_free" name="chan_free">
+<area shape="rect" id="Node000001" title="Frees the channel and its buffer." alt="" coords="5,43,92,68"/>
+<area shape="rect" id="Node000002" href="$lock_8c.html#a4c04565c7345b6ebf6e5a76aaa6fe108" title=" " alt="" coords="140,5,227,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="91,41,126,31,128,36,93,46"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#abe7ed51e69cbe867fd0bc31e20d26b11" title=" " alt="" coords="142,79,225,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="93,64,129,74,128,79,91,69"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="160,80,156,70,158,61,168,54,183,52,202,55,210,64,206,67,199,60,183,57,170,59,163,64,161,70,165,77"/>
+</map>

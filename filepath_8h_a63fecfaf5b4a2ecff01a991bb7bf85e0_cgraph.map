@@ -1,0 +1,24 @@
+<map id="make_tempfile" name="make_tempfile">
+<area shape="rect" id="Node000001" title="Builds &quot;&lt;tempdir&gt;/&lt;random prefix&gt;XXXXXX&quot; and creates the file via fp_create_tempfile() (mode 0600 on ..." alt="" coords="5,104,124,129"/>
+<area shape="rect" id="Node000002" href="$filepath__string_8c.html#aa4116dff66d9dc8f7f34144d148416e1" title="Joins path1 and path2 with the platform separator (&#39;\&#39; when path1 already uses backslashes on Windows..." alt="" coords="193,5,295,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="80,102,120,71,171,40,185,33,187,38,173,44,123,76,83,106"/>
+<area shape="rect" id="Node000003" href="$filepath__win32_8c.html#ab97f4a566ebf7ea5d5332d09b3622f7f" title="Turns candidate (a path ending in &quot;XXXXXX&quot;) into a unique file via mkstemp() and closes the descripto..." alt="" coords="172,55,316,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="111,101,183,81,184,86,112,107"/>
+<area shape="rect" id="Node000004" href="$filepath_8c.html#a3e4f2430fd482580cca3924f2da249ea" title="Generates a random NUL&#45;terminated name of len characters drawn from [A&#45;Za&#45;z0&#45;9] via fp_random_bytes()..." alt="" coords="176,104,312,129"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="124,114,162,114,162,119,124,119"/>
+<area shape="rect" id="Node000009" href="$filepath__string_8c.html#a9eb09c7e2719cbee4dded5a2f453f796" title="Bounds&#45;safe string copy used across the filepath module: copies src into dst, always NUL&#45;terminates,..." alt="" coords="201,153,287,179"/>
+<area shape="poly" id="edge11_Node000001_Node000009" title=" " alt="" coords="112,127,188,148,187,153,111,132"/>
+<area shape="rect" id="Node000010" href="$filepath__win32_8c.html#ab64a9218e1836f5990df494592bdfed1" title="Resolves the temporary directory from $TMPDIR, falling back to /tmp when unset." alt="" coords="193,203,295,228"/>
+<area shape="poly" id="edge12_Node000001_Node000010" title=" " alt="" coords="83,127,123,157,173,188,190,195,188,200,171,192,120,161,80,132"/>
+<area shape="rect" id="Node000005" href="$filepath__win32_8c.html#aaaac11786b3c2e880ea8589ded8c6beb" title="Fills buf with n cryptographically random bytes. On Linux uses getrandom(2) (thread&#45;safe,..." alt="" coords="364,104,499,129"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="312,114,350,114,350,119,312,119"/>
+<area shape="rect" id="Node000006" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="547,31,651,56"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="460,101,555,59,557,64,462,106"/>
+<area shape="rect" id="Node000007" href="$lock_8c.html#a20db23f8993e4b5b39b9b977f8c6714f" title=" " alt="" coords="560,104,637,129"/>
+<area shape="poly" id="edge7_Node000005_Node000007" title=" " alt="" coords="499,114,546,114,546,119,499,119"/>
+<area shape="rect" id="Node000008" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="547,177,651,203"/>
+<area shape="poly" id="edge9_Node000005_Node000008" title=" " alt="" coords="462,127,557,169,555,174,460,132"/>
+<area shape="poly" id="edge6_Node000006_Node000006" title=" " alt="" coords="571,32,565,22,568,13,580,6,599,4,621,7,631,16,628,20,619,12,599,9,581,11,572,16,570,22,575,29"/>
+<area shape="poly" id="edge8_Node000007_Node000007" title=" " alt="" coords="571,105,565,96,568,86,580,80,599,77,621,81,631,89,628,93,619,86,599,83,581,85,572,89,570,95,575,102"/>
+<area shape="poly" id="edge10_Node000008_Node000008" title=" " alt="" coords="571,179,565,169,568,159,580,153,599,151,621,154,631,163,628,167,619,159,599,156,581,158,572,163,570,168,575,176"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="poller_regs_get" name="poller_regs_get">
+<area shape="rect" id="Node000001" title=" " alt="" coords="148,31,271,56"/>
+<area shape="rect" id="Node000002" href="$poller__win32_8c.html#a79b7ccde3db1f4feb1cd2f6db470844c" title="Updates the interest set / user data of a registered descriptor." alt="" coords="5,5,100,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="134,34,100,28,101,23,135,29"/>
+<area shape="rect" id="Node000003" href="$poller__win32_8c.html#a760f6be556e7cc9fdc976f6b95f694c4" title="Waits for readiness events." alt="" coords="5,55,100,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="135,57,101,63,100,57,134,52"/>
+</map>

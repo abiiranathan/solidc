@@ -1,0 +1,5 @@
+<map id="dir_size" name="dir_size">
+<area shape="rect" id="Node000001" title="Computes the total size in bytes of all regular files in the tree rooted at path, via dir_walk()." alt="" coords="160,5,232,31"/>
+<area shape="rect" id="Node000002" href="$filepath__string_8c.html#ad540bdb7e70253c52d292e93a466e920" title="Splits path at the last separator: dir gets the portion before it (no trailing separator) and name th..." alt="" coords="5,5,112,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="146,21,112,21,112,15,146,15"/>
+</map>

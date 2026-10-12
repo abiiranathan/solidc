@@ -1,0 +1,24 @@
+<map id="lock_init" name="lock_init">
+<area shape="rect" id="Node000001" title=" " alt="" coords="585,107,663,132"/>
+<area shape="poly" id="edge10_Node000001_Node000001" title=" " alt="" coords="651,96,643,88,624,85,608,87,599,92,597,98,602,105,597,108,592,98,595,89,606,82,624,80,646,83,655,92"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#a7dd2def9cdc33b742b31305b58f041a5" title="Creates a channel carrying values of value_size bytes each." alt="" coords="423,5,510,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="597,99,536,52,499,33,501,28,539,48,600,95"/>
+<area shape="rect" id="Node000004" href="$chan__patterns_8c.html#a9129053474a38b1a4c6268f0cbc218db" title="Starts a worker pool: worker_count threads consuming from one shared work channel." alt="" coords="187,56,333,81"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="572,105,537,97,430,82,333,74,333,69,431,76,538,91,573,100"/>
+<area shape="rect" id="Node000005" href="$chan__patterns_8c.html#ace1fdbc7812ca3c604de2ad478e39448" title="Creates a pub/sub hub." alt="" coords="396,107,537,132"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="572,122,538,122,538,117,572,117"/>
+<area shape="rect" id="Node000006" href="$filepath__win32_8c.html#aaaac11786b3c2e880ea8589ded8c6beb" title="Fills buf with n cryptographically random bytes. On Linux uses getrandom(2) (thread&#45;safe,..." alt="" coords="399,156,534,181"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="573,138,509,159,507,153,571,133"/>
+<area shape="rect" id="Node000010" href="$threadpool_8c.html#a87dcbf4e1f2c693ff3252d0dc4608161" title="Create a new thread pool." alt="" coords="397,229,537,255"/>
+<area shape="poly" id="edge11_Node000001_Node000010" title=" " alt="" coords="600,144,539,196,489,231,486,227,536,192,597,140"/>
+<area shape="rect" id="Node000003" href="$chan__patterns_8c.html#ad997191d3a6949fa481bda0110363c2b" title="Registers a subscriber and returns its id." alt="" coords="172,5,348,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="409,21,348,21,348,15,409,15"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="411,34,313,59,312,53,409,29"/>
+<area shape="rect" id="Node000007" href="$filepath_8c.html#a3e4f2430fd482580cca3924f2da249ea" title="Generates a random NUL&#45;terminated name of len characters drawn from [A&#45;Za&#45;z0&#45;9] via fp_random_bytes()..." alt="" coords="192,156,328,181"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="386,171,328,171,328,166,386,166"/>
+<area shape="rect" id="Node000008" href="$filepath_8c.html#a3511af86bb8f63da6e55c3e393349b12" title="Builds &quot;&lt;tempdir&gt;/&lt;random prefix&gt;XXXXXX&quot; and creates the directory via fp_create_tempdir()." alt="" coords="7,131,123,156"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="178,161,123,153,123,148,179,155"/>
+<area shape="rect" id="Node000009" href="$filepath_8c.html#a8a7e59889c6bd2c87851dc91e65434bb" title="Builds &quot;&lt;tempdir&gt;/&lt;random prefix&gt;XXXXXX&quot; and creates the file via fp_create_tempfile() (mode 0600 on ..." alt="" coords="5,180,124,205"/>
+<area shape="poly" id="edge9_Node000007_Node000009" title=" " alt="" coords="179,181,125,188,124,183,178,176"/>
+<area shape="poly" id="edge12_Node000010_Node000010" title=" " alt="" coords="494,219,486,211,467,208,450,210,442,215,440,220,445,228,440,231,435,221,438,211,449,205,467,203,488,206,498,215"/>
+</map>

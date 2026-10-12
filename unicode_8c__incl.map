@@ -1,0 +1,35 @@
+<map id="src/unicode.c" name="src/unicode.c">
+<area shape="rect" id="Node000001" title="Implementation of the solidc UTF&#45;8 / Unicode handling library." alt="" coords="599,5,705,31"/>
+<area shape="rect" id="Node000002" href="$unicode_8h.html" title="Unicode handling library for C with UTF&#45;8 encoding support." alt="" coords="179,79,327,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="599,31,331,79,330,74,598,26"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="113,152,183,177"/>
+<area shape="poly" id="edge14_Node000001_Node000005" title=" " alt="" coords="599,21,492,22,364,30,301,37,245,48,200,62,168,81,159,93,153,107,149,138,144,137,148,106,154,90,165,77,197,57,244,43,301,32,363,24,492,17,599,16"/>
+<area shape="rect" id="Node000006" href="$macros_8h.html" title="Portable utility macros for assertions, memory, math, iteration, timing, and platform compatibility." alt="" coords="501,79,584,104"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="636,33,574,73,571,69,633,28"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="599,152,665,177"/>
+<area shape="poly" id="edge15_Node000001_Node000009" title=" " alt="" coords="653,31,638,139,633,138,648,31"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="690,152,761,177"/>
+<area shape="poly" id="edge16_Node000001_Node000010" title=" " alt="" coords="660,30,716,138,711,141,656,32"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="785,152,855,177"/>
+<area shape="poly" id="edge17_Node000001_Node000011" title=" " alt="" coords="667,29,798,141,794,145,664,33"/>
+<area shape="rect" id="Node000013" title=" " alt="" coords="765,79,837,104"/>
+<area shape="poly" id="edge18_Node000001_Node000013" title=" " alt="" coords="677,28,766,70,763,75,675,33"/>
+<area shape="rect" id="Node000014" title=" " alt="" coords="862,79,943,104"/>
+<area shape="poly" id="edge19_Node000001_Node000014" title=" " alt="" coords="693,28,850,72,848,77,692,33"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,152,88,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="221,107,94,150,92,145,219,101"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="208,152,283,177"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="255,105,251,139,245,138,249,104"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="238,106,178,147,175,142,235,102"/>
+<area shape="poly" id="edge8_Node000006_Node000004" title=" " alt="" coords="502,105,297,154,296,149,501,100"/>
+<area shape="poly" id="edge9_Node000006_Node000005" title=" " alt="" coords="501,102,370,123,197,155,196,149,369,118,500,96"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="307,152,375,177"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="511,107,388,150,386,145,509,102"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="399,152,486,177"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="528,106,472,146,469,142,525,102"/>
+<area shape="poly" id="edge10_Node000006_Node000009" title=" " alt="" coords="559,102,608,141,605,145,555,106"/>
+<area shape="poly" id="edge11_Node000006_Node000010" title=" " alt="" coords="573,102,684,144,682,149,571,107"/>
+<area shape="poly" id="edge12_Node000006_Node000011" title=" " alt="" coords="585,101,772,148,771,153,584,106"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="511,152,575,177"/>
+<area shape="poly" id="edge13_Node000006_Node000012" title=" " alt="" coords="545,104,545,138,540,138,540,104"/>
+</map>

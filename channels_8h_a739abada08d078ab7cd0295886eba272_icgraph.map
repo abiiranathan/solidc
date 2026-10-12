@@ -1,0 +1,5 @@
+<map id="chan_try_send" name="chan_try_send">
+<area shape="rect" id="Node000001" title="Non&#45;blocking send." alt="" coords="215,5,331,31"/>
+<area shape="rect" id="Node000002" href="$chan__patterns_8c.html#a1b1db3d8bedd05f6166d2153c014ad96" title="Publishes a value to every active subscriber (one copy each)." alt="" coords="5,5,167,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="201,21,167,21,167,15,201,15"/>
+</map>

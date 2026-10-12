@@ -1,0 +1,5 @@
+<map id="utf8_split_free" name="utf8_split_free">
+<area shape="rect" id="Node000001" title="Frees an array of utf8_string objects returned by utf8_split()." alt="" coords="5,5,121,31"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a32318a6b53c2731556ae4cd967a4f643" title="Frees all resources associated with a utf8_string." alt="" coords="169,5,251,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="122,15,155,15,155,21,122,21"/>
+</map>

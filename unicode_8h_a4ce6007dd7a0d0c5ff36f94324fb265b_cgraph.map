@@ -1,0 +1,5 @@
+<map id="utf8_remove" name="utf8_remove">
+<area shape="rect" id="Node000001" title="Removes a specified number of codepoints starting at a byte index." alt="" coords="5,5,111,31"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#aadba4a5c759cfb7674c3dfe42351e952" title="Determines the byte length of a UTF&#45;8 character from its first byte." alt="" coords="159,5,289,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="111,15,145,15,145,21,111,21"/>
+</map>

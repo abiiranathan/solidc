@@ -1,0 +1,7 @@
+<map id="chan_new" name="chan_new">
+<area shape="rect" id="Node000001" title="Creates a channel carrying values of value_size bytes each." alt="" coords="229,31,316,56"/>
+<area shape="rect" id="Node000002" href="$chan__patterns_8c.html#ad997191d3a6949fa481bda0110363c2b" title="Registers a subscriber and returns its id." alt="" coords="5,5,181,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="215,38,181,33,182,28,216,33"/>
+<area shape="rect" id="Node000003" href="$chan__patterns_8c.html#a9129053474a38b1a4c6268f0cbc218db" title="Starts a worker pool: worker_count threads consuming from one shared work channel." alt="" coords="21,55,166,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="216,54,167,60,166,55,215,48"/>
+</map>

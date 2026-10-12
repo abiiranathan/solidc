@@ -1,0 +1,11 @@
+<map id="filepath_split" name="filepath_split">
+<area shape="rect" id="Node000001" title="Splits path at the last separator: dir gets the portion before it (no trailing separator) and name th..." alt="" coords="5,31,112,56"/>
+<area shape="rect" id="Node000002" href="$filepath_8c.html#abdfec26581dba8143ff4e170ba4d7ba0" title="Computes the total size in bytes of all regular files in the tree rooted at path, via dir_walk()." alt="" coords="167,5,239,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="112,31,153,24,154,29,113,37"/>
+<area shape="rect" id="Node000005" href="$filepath__string_8c.html#a9eb09c7e2719cbee4dded5a2f453f796" title="Bounds&#45;safe string copy used across the filepath module: copies src into dst, always NUL&#45;terminates,..." alt="" coords="160,55,247,80"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="113,50,147,55,146,61,112,55"/>
+<area shape="rect" id="Node000003" href="$filepath_8c.html#af247d0017f4fc538777d06c9f40443bd" title="Recursively walks a directory tree breadth&#45;first, invoking callback for each entry before recursing i..." alt="" coords="295,5,372,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="239,15,281,15,281,21,239,21"/>
+<area shape="rect" id="Node000004" href="$filepath__win32_8c.html#ad91dbce1365c7a0746796601384b3fac" title="Dispatcher for dir_walk(): on Linux uses the getdents64 fast path when the kernel supports it,..." alt="" coords="420,5,553,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="372,15,406,15,406,21,372,21"/>
+</map>
