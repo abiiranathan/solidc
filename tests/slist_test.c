@@ -27,9 +27,7 @@ void test_basic_push_get(void) {
 }
 
 /* slist_new must reject zero element sizes (unsafe degenerate lists). */
-void test_zero_elem_size_rejected(void) {
-    ASSERT(slist_new(0) == NULL);
-}
+void test_zero_elem_size_rejected(void) { ASSERT(slist_new(0) == NULL); }
 
 /* Out-of-bounds accessors must be no-ops / NULL, not crashes. */
 void test_bounds_checks(void) {
@@ -37,22 +35,22 @@ void test_bounds_checks(void) {
     ASSERT(l);
 
     int v = 42;
-    ASSERT(slist_get(l, 0) == NULL);   /* empty list */
+    ASSERT(slist_get(l, 0) == NULL); /* empty list */
     slist_push_back(l, &v);
     ASSERT(slist_get(l, 0) != NULL);
-    ASSERT(slist_get(l, 1) == NULL);   /* one past end */
+    ASSERT(slist_get(l, 1) == NULL); /* one past end */
     ASSERT(slist_get(NULL, 0) == NULL);
 
-    slist_remove(l, 1);                /* out of range: no-op */
+    slist_remove(l, 1); /* out of range: no-op */
     slist_remove(l, 0);
     ASSERT_EQ(slist_size(l), 0);
-    slist_remove(l, 0);                /* empty: no-op */
+    slist_remove(l, 0); /* empty: no-op */
 
-    slist_insert(l, 1, &v);            /* index > size: no-op */
+    slist_insert(l, 1, &v); /* index > size: no-op */
     ASSERT_EQ(slist_size(l), 0);
 
     slist_free(l);
-    slist_free(NULL);                  /* must be safe */
+    slist_free(NULL); /* must be safe */
 }
 
 /* index_of compares content (memcmp), and handles NULL safely. */
@@ -85,16 +83,16 @@ void test_mid_insert_remove(void) {
 
     for (char c = 'a'; c < 'e'; c++) slist_push_back(l, &c); /* a b c d */
     char x = 'X';
-    slist_insert(l, 2, &x);                                  /* a b X c d */
+    slist_insert(l, 2, &x); /* a b X c d */
     ASSERT_EQ(slist_size(l), 5);
     ASSERT_EQ(*(char*)slist_get(l, 2), 'X');
     ASSERT_EQ(*(char*)slist_get(l, 4), 'd');
-    ASSERT_EQ(*(char*)l->tail->data, 'd');                   /* tail intact */
+    ASSERT_EQ(*(char*)l->tail->data, 'd'); /* tail intact */
 
-    slist_remove(l, 2);                                      /* a b c d */
+    slist_remove(l, 2); /* a b c d */
     ASSERT_EQ(slist_size(l), 4);
     ASSERT_EQ(*(char*)slist_get(l, 2), 'c');
-    ASSERT_EQ(*(char*)l->tail->data, 'd');                   /* tail still 'd' */
+    ASSERT_EQ(*(char*)l->tail->data, 'd'); /* tail still 'd' */
 
     /* removing the last element via index must fix the tail pointer */
     slist_remove(l, 3);
@@ -182,7 +180,7 @@ void test_insert_relative(void) {
 }
 
 /* Large payload near page size exercises aligned_size overflow paths
- * and the max_align_t payload alignment. */
+ * and the portable max-alignment payload. */
 void test_large_payload_alignment(void) {
     enum { PAYLOAD = 4096 };
     slist* l = slist_new(PAYLOAD);
@@ -195,7 +193,7 @@ void test_large_payload_alignment(void) {
 
     unsigned char* p = (unsigned char*)slist_get(l, 0);
     ASSERT(p);
-    ASSERT(((uintptr_t)p % alignof(max_align_t)) == 0);
+    ASSERT(((uintptr_t)p % SOLIDC_MAX_ALIGN) == 0);
     ASSERT(memcmp(p, buf, PAYLOAD) == 0);
 
     slist_free(l);

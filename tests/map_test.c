@@ -27,8 +27,8 @@ void test_concurrent_map() {
     Threadpool* pool = threadpool_create(4);
     ASSERT(pool);
 
-    MapConfig* config  = MapConfigInt;
-    config->key_free   = free;
+    MapConfig* config = MapConfigInt;
+    config->key_free = free;
     config->value_free = free;
 
     HashMap* m = map_create(config);
@@ -40,9 +40,9 @@ void test_concurrent_map() {
         ASSERT(args[i].key);
         args[i].value = malloc(sizeof(int));
         ASSERT(args[i].value);
-        *args[i].key   = i;
+        *args[i].key = i;
         *args[i].value = i;
-        args[i].map    = m;
+        args[i].map = m;
         threadpool_submit(pool, concurrent_insert, &args[i]);
     }
 
@@ -59,20 +59,18 @@ void test_concurrent_map() {
 }
 
 int main(void) {
-
     int* arr = malloc(MAP_SIZE * sizeof(int));
     ASSERT(arr);
 
     // Explicit configuration.
     MapConfig cfg = {
         .initial_capacity = MAP_SIZE,
-        .key_compare      = key_compare_int,
-        .key_free         = NULL,
-        .value_free       = NULL,
+        .key_compare = key_compare_int,
+        .key_free = NULL,
+        .value_free = NULL,
     };
 
-    struct timespec start, end;
-    clock_gettime(CLOCK_MONOTONIC, &start);
+    uint64_t start = get_time_ns();
 
     HashMap* m = map_create(&cfg);
     ASSERT(m);
@@ -104,9 +102,8 @@ int main(void) {
 
     test_concurrent_map();
 
-    clock_gettime(CLOCK_MONOTONIC, &end);
+    uint64_t end = get_time_ns();
 
-    double took = (((double)(end.tv_sec - start.tv_sec) * 1000) +
-                   (double)(end.tv_nsec - start.tv_nsec) / 1e6);
+    double took = (double)(end - start) / 1e6;
     printf("Took: %.2f ms\n", took);
 }

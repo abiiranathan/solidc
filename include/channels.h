@@ -44,13 +44,12 @@
 #ifndef SOLIDC_CHANNELS_H
 #define SOLIDC_CHANNELS_H
 
-#include <macros.h>
-
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
 #include "lock.h"
+#include "macros.h"
 
 #ifdef __cplusplus
 extern "C" {

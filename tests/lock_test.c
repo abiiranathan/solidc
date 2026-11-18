@@ -107,8 +107,7 @@ static Condition g_timeout_cond;
 
 static void* timeout_signaller(void* arg) {
     (void)arg;
-    struct timespec ts = {0, 10 * 1000 * 1000}; /* 10ms */
-    nanosleep(&ts, NULL);
+    sleep_ms(10);
 
     lock_acquire(&lock);
     atomic_store(&g_signalled, 1);
@@ -117,10 +116,8 @@ static void* timeout_signaller(void* arg) {
     return NULL;
 }
 
-static long elapsed_ms(const struct timespec* start) {
-    struct timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    return (now.tv_sec - start->tv_sec) * 1000L + (now.tv_nsec - start->tv_nsec) / 1000000L;
+static long elapsed_ms(uint64_t start_ns) {
+    return (long)((get_time_ns() - start_ns) / UINT64_C(1000000));
 }
 
 void test_cond_wait_timeout(void) {
@@ -130,10 +127,9 @@ void test_cond_wait_timeout(void) {
     /* Timeout path: nobody signals; wait must exceed ~60ms but not hang,
      * even if the wall clock were stepped (monotonic guarantee). */
     ASSERT_EQ(lock_acquire(&lock), 0);
-    struct timespec start;
-    clock_gettime(CLOCK_MONOTONIC, &start);
+    uint64_t start = get_time_ns();
     int rc = cond_wait_timeout(&g_timeout_cond, &lock, 80);
-    long took = elapsed_ms(&start);
+    long took = elapsed_ms(start);
     ASSERT_EQ(rc, -1);
     ASSERT(took >= 60);
     ASSERT(took < 5000);
@@ -145,12 +141,12 @@ void test_cond_wait_timeout(void) {
     thread_create(&t, timeout_signaller, NULL);
 
     ASSERT_EQ(lock_acquire(&lock), 0);
-    clock_gettime(CLOCK_MONOTONIC, &start);
+    start = get_time_ns();
     while (!atomic_load(&g_signalled)) {
         rc = cond_wait_timeout(&g_timeout_cond, &lock, 5000);
         ASSERT_EQ(rc, 0); /* must be signalled, not timed out */
     }
-    took = elapsed_ms(&start);
+    took = elapsed_ms(start);
     ASSERT(took >= 5);
     ASSERT(took < 3000);
     ASSERT_EQ(lock_release(&lock), 0);
@@ -311,15 +307,14 @@ void bench_locks_summary(void) {
 
     Lock m;
     lock_init(&m);
-    struct timespec a, b;
-    clock_gettime(CLOCK_MONOTONIC, &a);
+    uint64_t a = get_time_ns();
     for (int i = 0; i < ITER; i++) {
         lock_acquire(&m);
         sink += i;
         lock_release(&m);
     }
-    clock_gettime(CLOCK_MONOTONIC, &b);
-    long mutex_ns = ((b.tv_sec - a.tv_sec) * 1000000000L + (b.tv_nsec - a.tv_nsec)) / ITER;
+    uint64_t b = get_time_ns();
+    long mutex_ns = (long)((b - a) / ITER);
     lock_free(&m);
     printf("uncontended mutex: %ld ns/op\n", mutex_ns);
     (void)sink;
@@ -334,7 +329,7 @@ int main(void) {
 
     for (int i = 0; i < NUM_THREADS; i++) {
         summers[i].sum = &sum;
-        summers[i].i   = i;
+        summers[i].i = i;
         thread_create(&threads[i], thread_func, &summers[i]);
     }
 

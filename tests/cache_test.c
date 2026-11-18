@@ -1,4 +1,5 @@
 #include "cache.h"
+#include "../include/macros.h"
 
 #include <assert.h>
 #include <pthread.h>
@@ -6,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
 #include <unistd.h>
 
 // Test statistics counters
@@ -149,7 +149,9 @@ static void test_capacity_and_overflow(void) {
     for (int i = 0; i < 500; i++) {
         char key[32];
         int len = snprintf(key, sizeof(key), "key%d", i);
-        if (cache_put(cache, key, (size_t)len, "data", 4, 0)) { items_inserted++; }
+        if (cache_put(cache, key, (size_t)len, "data", 4, 0)) {
+            items_inserted++;
+        }
     }
 
     printf("  Successfully inserted %d items across shards\n", items_inserted);
@@ -267,11 +269,7 @@ static void test_concurrent_access(void) {
 
 /* ============= Performance Benchmarks ============================ */
 
-static double get_current_time(void) {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
-}
+static double get_current_time(void) { return (double)get_time_ns() / 1.0e9; }
 
 static void run_benchmarks(void) {
     printf("\n=================================\n");
@@ -333,7 +331,9 @@ static void run_benchmarks(void) {
         size_t idx = seed % NUM_KEYS;
 
         size_t len;
-        if (cache_get(cache, keys[idx], key_lens[idx], val_out, sizeof(val_out), &len)) { hit_count++; }
+        if (cache_get(cache, keys[idx], key_lens[idx], val_out, sizeof(val_out), &len)) {
+            hit_count++;
+        }
     }
     end = get_current_time();
     double read_duration = end - start;
@@ -426,7 +426,8 @@ static void test_inline_slab_boundary(void) {
     bool got_inline_edge = cache_get(cache, "inline_edge", 11, val_buf, sizeof(val_buf), &out_len);
     TEST_ASSERT(got_inline_edge == true && out_len == CACHE_INLINE_VAL_LEN,
                 "Get at exact inline boundary returns correct length");
-    TEST_ASSERT(memcmp(val_buf, val, CACHE_INLINE_VAL_LEN) == 0, "Inline-boundary value content matches");
+    TEST_ASSERT(memcmp(val_buf, val, CACHE_INLINE_VAL_LEN) == 0,
+                "Inline-boundary value content matches");
 
     // One byte past inline limit: must spill to slab allocator.
     bool put_slab_edge = cache_put(cache, "slab_edge", 9, val, CACHE_INLINE_VAL_LEN + 1, 0);
@@ -434,7 +435,8 @@ static void test_inline_slab_boundary(void) {
     bool got_slab_edge = cache_get(cache, "slab_edge", 9, val_buf, sizeof(val_buf), &out_len);
     TEST_ASSERT(got_slab_edge == true && out_len == CACHE_INLINE_VAL_LEN + 1,
                 "Get one byte past inline boundary returns correct length");
-    TEST_ASSERT(memcmp(val_buf, val, CACHE_INLINE_VAL_LEN + 1) == 0, "Slab-boundary value content matches");
+    TEST_ASSERT(memcmp(val_buf, val, CACHE_INLINE_VAL_LEN + 1) == 0,
+                "Slab-boundary value content matches");
 
     // Exactly at CACHE_MAX_VALUE_LEN: largest legal payload.
     bool put_max = cache_put(cache, "max_val", 7, val, CACHE_MAX_VALUE_LEN, 0);
@@ -473,8 +475,10 @@ static void test_inline_to_slab_transition(void) {
     char val_buf[CACHE_MAX_VALUE_LEN];
     size_t out_len;
     bool found = cache_get(cache, key, keylen, val_buf, sizeof(val_buf), &out_len);
-    TEST_ASSERT(found == true && out_len == sizeof(large_val), "Slab-backed value retrieved with correct length");
-    TEST_ASSERT(memcmp(val_buf, large_val, sizeof(large_val)) == 0, "Slab-backed value content matches");
+    TEST_ASSERT(found == true && out_len == sizeof(large_val),
+                "Slab-backed value retrieved with correct length");
+    TEST_ASSERT(memcmp(val_buf, large_val, sizeof(large_val)) == 0,
+                "Slab-backed value content matches");
 
     // Update back down to inline; the slab block from the previous write must be reclaimed.
     bool updated_to_inline = cache_put(cache, key, keylen, small_val, sizeof(small_val), 0);
@@ -483,7 +487,8 @@ static void test_inline_to_slab_transition(void) {
     found = cache_get(cache, key, keylen, val_buf, sizeof(val_buf), &out_len);
     TEST_ASSERT(found == true && out_len == sizeof(small_val),
                 "Inline value retrieved with correct length after transition");
-    TEST_ASSERT(memcmp(val_buf, small_val, sizeof(small_val)) == 0, "Inline value content matches after transition");
+    TEST_ASSERT(memcmp(val_buf, small_val, sizeof(small_val)) == 0,
+                "Inline value content matches after transition");
 
     cache_destroy(cache);
 }
@@ -596,7 +601,8 @@ static void test_create_invalid_config(void) {
         char large_val[CACHE_INLINE_VAL_LEN + 1];
         memset(large_val, 'A', sizeof(large_val));
         bool slab_put = cache_put(cache_zero_slab, "k2", 2, large_val, sizeof(large_val), 0);
-        TEST_ASSERT(slab_put == false, "Slab-requiring put fails gracefully with zero slab blocks configured");
+        TEST_ASSERT(slab_put == false,
+                    "Slab-requiring put fails gracefully with zero slab blocks configured");
 
         cache_destroy(cache_zero_slab);
     }

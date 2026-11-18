@@ -88,8 +88,7 @@ void counter_task(void* arg) {
 
 void sleep_task(void* arg) {
     int ms = *(int*)arg;
-    struct timespec ts = {0, (long)ms * 1000000};
-    nanosleep(&ts, NULL);
+    sleep_ms(ms);
     atomic_fetch_add(&completed_tasks, 1);
 }
 
@@ -254,7 +253,8 @@ int test_queue_overflow_behavior() {
     threadpool_destroy(pool, -1);
 
     TEST_ASSERT(successful_submissions > 0, "Should submit some tasks even under pressure");
-    TEST_ASSERT(atomic_load(&completed_tasks) == successful_submissions, "All submitted tasks should complete");
+    TEST_ASSERT(atomic_load(&completed_tasks) == successful_submissions,
+                "All submitted tasks should complete");
     return 1;
 }
 
@@ -285,8 +285,7 @@ int test_stress_test() {
             submitted++;
         }
         if (submitted % 1000 == 0) {
-            struct timespec ts = {0, 1000000};
-            nanosleep(&ts, NULL);
+            sleep_ms(1);
         }
     }
 
@@ -294,8 +293,8 @@ int test_stress_test() {
     threadpool_destroy(pool, -1);
 
     int completed = atomic_load(&completed_tasks);
-    safe_printf("Stress test: submitted %d, completed %d tasks in %d seconds\n", submitted, completed,
-                STRESS_DURATION_SEC);
+    safe_printf("Stress test: submitted %d, completed %d tasks in %d seconds\n", submitted,
+                completed, STRESS_DURATION_SEC);
 
     TEST_ASSERT(completed > 0, "Should complete some tasks during stress test");
     return 1;
@@ -317,7 +316,8 @@ int test_thread_safety_validation() {
     threadpool_destroy(pool, -1);
 
     TEST_ASSERT(atomic_load(&test_counter) == num_tasks, "Atomic counter should be consistent");
-    TEST_ASSERT(atomic_load(&completed_tasks) == num_tasks, "All thread safety tasks should complete");
+    TEST_ASSERT(atomic_load(&completed_tasks) == num_tasks,
+                "All thread safety tasks should complete");
     return 1;
 }
 
@@ -418,10 +418,12 @@ int test_batch_null_entries() {
     }
 
     size_t submitted = threadpool_submit_batch(pool, fns, NULL, (size_t)TOTAL);
-    TEST_ASSERT((int)submitted == VALID, "Batch null entries: submitted count equals non-NULL entries");
+    TEST_ASSERT((int)submitted == VALID,
+                "Batch null entries: submitted count equals non-NULL entries");
 
     threadpool_destroy(pool, -1);
-    TEST_ASSERT(atomic_load(&completed_tasks) == VALID, "Batch null entries: only non-NULL tasks ran");
+    TEST_ASSERT(atomic_load(&completed_tasks) == VALID,
+                "Batch null entries: only non-NULL tasks ran");
     return 1;
 }
 
@@ -460,7 +462,8 @@ int test_batch_argument_delivery() {
 
     TEST_ASSERT(atomic_load(&completed_tasks) == N, "Batch arg delivery: all tasks ran");
     for (int i = 0; i < N; i++) {
-        TEST_ASSERT(atomic_load(&arg_results[i]) == i, "Batch arg delivery: each task got the correct argument");
+        TEST_ASSERT(atomic_load(&arg_results[i]) == i,
+                    "Batch arg delivery: each task got the correct argument");
     }
 
     free(fns);
@@ -592,7 +595,8 @@ int test_batch_multiple_batches() {
         threadpool_wait(pool);
 
         int done = atomic_load(&completed_tasks);
-        TEST_ASSERT(done == (b + 1) * BATCH_N, "Batch multi: correct count after each threadpool_wait");
+        TEST_ASSERT(done == (b + 1) * BATCH_N,
+                    "Batch multi: correct count after each threadpool_wait");
     }
 
     threadpool_destroy(pool, -1);
@@ -651,8 +655,10 @@ int test_batch_concurrent_submitters() {
     thread_join(ta, NULL);
     thread_join(tb, NULL);
 
-    TEST_ASSERT(atomic_load(&arg_a.submitted) == N, "Batch concurrent: thread A submitted all tasks");
-    TEST_ASSERT(atomic_load(&arg_b.submitted) == N, "Batch concurrent: thread B submitted all tasks");
+    TEST_ASSERT(atomic_load(&arg_a.submitted) == N,
+                "Batch concurrent: thread A submitted all tasks");
+    TEST_ASSERT(atomic_load(&arg_b.submitted) == N,
+                "Batch concurrent: thread B submitted all tasks");
 
     threadpool_destroy(pool, -1);
 

@@ -51,7 +51,8 @@ static void test_pubsub_basic(void) {
     int out = 0;
     check("sub0 got value", chan_recv(chan_pubsub_queue(ps, s0), &out) && out == 7);
     check("sub1 got value", chan_recv(chan_pubsub_queue(ps, s1), &out) && out == 7);
-    check("queues empty after drain", chan_try_recv(chan_pubsub_queue(ps, s0), &out) == (int)CHAN_EMPTY);
+    check("queues empty after drain",
+          chan_try_recv(chan_pubsub_queue(ps, s0), &out) == (int)CHAN_EMPTY);
 
     /* Unsubscribe: s1 no longer receives */
     check("unsubscribe", chan_pubsub_unsubscribe(ps, s1) == (int)CHAN_OK);
@@ -60,7 +61,8 @@ static void test_pubsub_basic(void) {
     check("sub0 got post-unsub value", chan_recv(chan_pubsub_queue(ps, s0), &out) && out == 8);
     check("subscriber count 1", chan_pubsub_subscriber_count(ps) == 1);
 
-    check("unsubscribe twice is CHAN_INVALID", chan_pubsub_unsubscribe(ps, s1) == (int)CHAN_INVALID);
+    check("unsubscribe twice is CHAN_INVALID",
+          chan_pubsub_unsubscribe(ps, s1) == (int)CHAN_INVALID);
     check("queue of unsubscribed is NULL", chan_pubsub_queue(ps, s1) == NULL);
 
     chan_pubsub_free(ps);
@@ -176,7 +178,7 @@ static void test_workers_large_items(void) {
 
     big_item bi;
     memset(&bi, 0, sizeof(bi));
-    strcpy(bi.buf, "payload");
+    memcpy(bi.buf, "payload", sizeof "payload");
     for (int i = 0; i < 100; i++) chan_workers_submit(w, &bi);
     chan_workers_shutdown(w);
 
@@ -198,7 +200,8 @@ static void test_select_basic(void) {
     int out = 0;
     Channel* chans[2] = {a, b};
     void* outs[2] = {&out, &out};
-    check("select timeout on idle channels", chan_select(chans, outs, 2, 30) == CHAN_SELECT_TIMEOUT);
+    check("select timeout on idle channels",
+          chan_select(chans, outs, 2, 30) == CHAN_SELECT_TIMEOUT);
 
     /* Value in b: select picks index 1 */
     int vb = 21;
@@ -223,7 +226,8 @@ static void test_select_basic(void) {
 
     /* Bad args */
     check("select count 0 is timeout", chan_select(chans, outs, 0, 10) == CHAN_SELECT_TIMEOUT);
-    check("select over max is timeout", chan_select(chans, outs, CHAN_SELECT_MAX + 1, 10) == CHAN_SELECT_TIMEOUT);
+    check("select over max is timeout",
+          chan_select(chans, outs, CHAN_SELECT_MAX + 1, 10) == CHAN_SELECT_TIMEOUT);
 
     chan_free(a);
     chan_free(b);
@@ -247,7 +251,8 @@ static void test_select_skips_closed(void) {
 
     /* All closed: timeout */
     chan_close(live);
-    check("select over all-closed is timeout", chan_select(chans, outs, 2, 30) == CHAN_SELECT_TIMEOUT);
+    check("select over all-closed is timeout",
+          chan_select(chans, outs, 2, 30) == CHAN_SELECT_TIMEOUT);
 
     chan_free(closed);
     chan_free(live);
@@ -285,9 +290,11 @@ static void test_merge(void) {
     check("dest closed after sources", chan_try_recv(dest, &v) == (int)CHAN_CLOSED);
 
     /* Bad args */
-    check("merge rejects NULL source", chan_merge(dest, (Channel*[]){NULL}, 1) == (int)CHAN_INVALID);
+    check("merge rejects NULL source",
+          chan_merge(dest, (Channel*[]){NULL}, 1) == (int)CHAN_INVALID);
     Channel* mismatched = chan_new(sizeof(double), 0);
-    check("merge rejects size mismatch", chan_merge(dest, (Channel*[]){mismatched}, 1) == (int)CHAN_INVALID);
+    check("merge rejects size mismatch",
+          chan_merge(dest, (Channel*[]){mismatched}, 1) == (int)CHAN_INVALID);
     chan_free(mismatched);
 
     chan_free(dest);
@@ -333,7 +340,8 @@ static void test_integration_merge_into_workers(void) {
 
     /* Feed both sources from their own threads */
     Thread t1, t2;
-    check("feeders created", thread_create(&t1, merge_feeder, s1) == 0 && thread_create(&t2, merge_feeder, s2) == 0);
+    check("feeders created",
+          thread_create(&t1, merge_feeder, s1) == 0 && thread_create(&t2, merge_feeder, s2) == 0);
 
     /* Forwarder threads move s1/s2 into dest; main thread relays dest into
      * the worker pool until the merge closes dest. */
