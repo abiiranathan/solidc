@@ -1,0 +1,9 @@
+<map id="include/cstr.h" name="include/cstr.h">
+<area shape="rect" id="Node000001" title="High&#45;performance C string with Small String Optimization (SSO)." alt="" coords="131,5,238,33"/>
+<area shape="rect" id="Node000002" href="$flags_8h.html" title="Command&#45;line flag parsing library." alt="" coords="5,81,121,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="152,42,86,83,83,78,147,41"/>
+<area shape="rect" id="Node000003" href="$cstr_8c.html" title="Implementation of high&#45;performance C string with SSO." alt="" coords="145,81,224,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="186,47,187,82,182,79,182,51"/>
+<area shape="rect" id="Node000004" href="$csvparser_8c_source.html" title=" " alt="" coords="247,81,364,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="220,39,287,80,281,81,218,44"/>
+</map>

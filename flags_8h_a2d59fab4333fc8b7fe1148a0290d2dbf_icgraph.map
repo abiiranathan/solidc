@@ -1,0 +1,7 @@
+<map id="flag_add" name="flag_add">
+<area shape="rect" id="Node000001" title=" " alt="" coords="245,32,321,60"/>
+<area shape="rect" id="Node000002" href="$flags_8c.html#a74e12e792ae6b148c3a78061d0ce9c55" title="Add completion generation subcommand to a parser." alt="" coords="5,5,197,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="227,38,197,36,197,31,232,38"/>
+<area shape="rect" id="Node000003" href="$flags_8c.html#a3422047a7887ca81abf86793bf948168" title="Register a persistent flag inherited by all subcommands." alt="" coords="27,57,175,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="227,54,176,63,175,58,232,53"/>
+</map>

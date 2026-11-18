@@ -1,0 +1,6 @@
+<map id="cond_wait" name="cond_wait">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,29,93,57"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="27,29,23,20,26,11,35,5,49,3,64,5,73,13,68,14,62,10,49,8,37,10,30,14,29,20,32,29"/>
+<area shape="rect" id="Node000002" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="141,29,202,57"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="93,41,128,43,122,43,93,46"/>
+</map>

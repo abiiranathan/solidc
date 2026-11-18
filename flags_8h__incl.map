@@ -1,0 +1,41 @@
+<map id="include/flags.h" name="include/flags.h">
+<area shape="rect" id="Node000001" title="Command&#45;line flag parsing library." alt="" coords="418,5,534,33"/>
+<area shape="rect" id="Node000002" href="$cstr_8h.html" title="High&#45;performance C string with Small String Optimization (SSO)." alt="" coords="183,81,239,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="427,35,255,84,253,79,431,32"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="22,157,103,184"/>
+<area shape="poly" id="edge19_Node000001_Node000003" title=" " alt="" coords="415,25,364,32,301,43,235,59,172,83,125,113,87,147,83,143,122,109,170,79,234,54,300,37,363,27,420,23"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="206,232,279,260"/>
+<area shape="poly" id="edge20_Node000001_Node000004" title=" " alt="" coords="462,32,399,88,322,159,264,223,261,218,318,155,396,84,458,35"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="17,232,87,260"/>
+<area shape="poly" id="edge21_Node000001_Node000005" title=" " alt="" coords="415,24,356,31,281,42,201,59,124,84,57,110,33,127,12,158,8,173,11,189,30,220,25,222,6,191,3,173,7,156,29,124,54,105,122,78,200,53,280,36,355,26,420,22"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="591,232,657,260"/>
+<area shape="poly" id="edge22_Node000001_Node000010" title=" " alt="" coords="474,31,469,63,465,102,469,145,475,165,485,183,499,195,521,207,580,231,574,230,519,212,496,199,481,186,470,167,464,146,460,102,464,62,471,35"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="681,232,751,260"/>
+<area shape="poly" id="edge23_Node000001_Node000011" title=" " alt="" coords="483,31,502,68,529,107,565,142,606,174,681,225,676,224,603,178,562,146,525,110,497,71,480,36"/>
+<area shape="rect" id="Node000013" title=" " alt="" coords="538,81,606,109"/>
+<area shape="poly" id="edge15_Node000001_Node000013" title=" " alt="" coords="494,31,546,71,540,71,493,36"/>
+<area shape="rect" id="Node000014" title=" " alt="" coords="630,81,717,109"/>
+<area shape="poly" id="edge16_Node000001_Node000014" title=" " alt="" coords="512,31,627,75,622,76,511,36"/>
+<area shape="rect" id="Node000015" title=" " alt="" coords="741,81,811,109"/>
+<area shape="poly" id="edge17_Node000001_Node000015" title=" " alt="" coords="532,31,728,80,723,81,532,36"/>
+<area shape="rect" id="Node000016" title=" " alt="" coords="835,81,909,109"/>
+<area shape="poly" id="edge18_Node000001_Node000016" title=" " alt="" coords="534,27,662,48,823,80,817,81,661,53,534,32"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="183,111,104,152,101,147,186,107"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="215,107,239,217,234,216,212,111"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="199,111,79,224,75,220,195,107"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="112,232,182,260"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="208,108,161,219,156,216,203,110"/>
+<area shape="rect" id="Node000007" href="$macros_8h.html" title="Portable utility macros for assertions, memory, math, iteration, timing, and platform compatibility." alt="" coords="331,157,413,184"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="240,106,332,149,327,151,239,112"/>
+<area shape="poly" id="edge9_Node000007_Node000004" title=" " alt="" coords="352,184,280,227,278,222,346,186"/>
+<area shape="poly" id="edge10_Node000007_Node000005" title=" " alt="" coords="332,183,103,234,102,229,330,178"/>
+<area shape="poly" id="edge13_Node000007_Node000006" title=" " alt="" coords="334,185,197,231,196,226,329,185"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="304,232,371,260"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="368,183,352,220,348,216,364,186"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="395,232,480,260"/>
+<area shape="poly" id="edge8_Node000007_Node000009" title=" " alt="" coords="385,182,419,222,413,220,383,187"/>
+<area shape="poly" id="edge11_Node000007_Node000010" title=" " alt="" coords="414,181,579,231,574,231,413,186"/>
+<area shape="poly" id="edge12_Node000007_Node000011" title=" " alt="" coords="413,177,669,231,664,232,413,182"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="504,232,568,260"/>
+<area shape="poly" id="edge14_Node000007_Node000012" title=" " alt="" coords="402,182,496,226,491,226,401,187"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="regex_retain" name="regex_retain">
+<area shape="rect" id="Node000001" title="Atomically increments the reference count of a compiled regex." alt="" coords="169,29,272,57"/>
+<area shape="poly" id="edge3_Node000001_Node000001" title=" " alt="" coords="245,14,237,10,220,8,204,10,196,14,194,20,197,30,193,28,188,20,192,11,203,5,220,3,239,5,251,14"/>
+<area shape="rect" id="Node000002" href="$regex_8c.html#af3d5adbda4d1889dbb1e80c0194af4da" title="Creates an iterator for successive non&#45;overlapping matches. It retains re and borrows ctx and subject..." alt="" coords="5,29,121,57"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="150,43,121,46,121,41,156,43"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="88,14,80,10,63,8,47,10,38,14,36,20,40,29,35,29,31,20,34,11,45,5,63,3,82,5,93,14"/>
+</map>

@@ -1,0 +1,70 @@
+<map id="lock_release" name="lock_release">
+<area shape="rect" id="Node000001" title=" " alt="" coords="639,601,743,629"/>
+<area shape="poly" id="edge31_Node000001_Node000001" title=" " alt="" coords="722,586,712,582,691,580,671,582,661,587,658,592,663,601,658,600,653,592,657,583,670,577,691,575,714,577,727,586"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#a578b7986be91d7c73980dd7bf1deee8d" title="Closes the channel. Idempotent." alt="" coords="454,161,548,189"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="684,585,672,500,651,387,624,279,607,238,589,209,570,194,549,185,547,180,573,190,593,205,612,235,629,278,657,386,677,499,689,587"/>
+<area shape="rect" id="Node000004" href="$chan__patterns_8c.html#aa8b578190b11ca08a2278f3e35e0e248" title="Closes the hub: every subscriber queue is closed (after draining) and publishing is rejected...." alt="" coords="194,5,341,33"/>
+<area shape="poly" id="edge10_Node000001_Node000004" title=" " alt="" coords="684,585,673,489,654,360,626,235,608,186,589,151,564,125,535,102,470,68,403,44,343,30,340,26,404,39,472,63,538,98,568,121,593,148,613,183,631,233,659,359,679,488,689,586"/>
+<area shape="rect" id="Node000006" href="$chan__patterns_8c.html#a7a1ca0d4e1aee1a4e1c63ed6e88317b6" title="Removes a subscriber and destroys its queue (pending values are discarded)." alt="" coords="172,213,363,241"/>
+<area shape="poly" id="edge15_Node000001_Node000006" title=" " alt="" coords="683,585,671,509,651,411,623,319,607,285,590,262,563,244,534,230,502,221,470,214,405,211,347,215,344,211,405,206,470,209,503,215,535,225,566,239,593,259,612,282,628,317,656,409,676,508,688,586"/>
+<area shape="rect" id="Node000008" href="$chan__patterns_8c.html#ab82c70c3257d5158ea3fae16a3fde22f" title="Shuts down: closes the work channel, waits for workers to drain every queued item,..." alt="" coords="177,265,358,293"/>
+<area shape="poly" id="edge25_Node000001_Node000008" title=" " alt="" coords="688,585,685,525,672,447,659,407,642,368,619,333,590,304,560,285,528,272,494,264,459,259,390,260,332,267,328,263,390,254,460,254,495,258,530,267,563,281,593,300,623,330,647,366,664,405,677,446,690,524,693,587"/>
+<area shape="rect" id="Node000009" href="$channels_8c.html#a7f91c61b4ba20706c7d7f2552aa50442" title="Whether the channel has been closed." alt="" coords="442,313,561,341"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="684,585,676,536,660,474,632,410,613,381,590,356,562,339,561,334,593,352,617,378,636,408,665,472,681,535,690,586"/>
+<area shape="rect" id="Node000010" href="$channels_8c.html#a75830d645ed5a1f0fba594d421ff71e3" title="Number of values currently buffered." alt="" coords="462,365,541,393"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="681,586,669,548,651,502,624,454,590,413,566,398,542,389,541,384,569,393,593,409,629,451,655,499,674,546,686,587"/>
+<area shape="rect" id="Node000011" href="$chan__patterns_8c.html#a1b1db3d8bedd05f6166d2153c014ad96" title="Publishes a value to every active subscriber (one copy each)." alt="" coords="187,441,348,469"/>
+<area shape="poly" id="edge11_Node000001_Node000011" title=" " alt="" coords="679,586,667,555,648,519,623,484,590,457,557,443,522,433,485,428,448,427,378,432,321,443,318,439,378,427,448,421,486,423,523,428,559,438,593,453,627,480,653,516,672,553,684,587"/>
+<area shape="rect" id="Node000012" href="$chan__patterns_8c.html#a96c754ae9c11fb0f3be3bac185e708b1" title="A subscriber&#39;s receive queue, usable as a plain Channel*." alt="" coords="424,519,578,546"/>
+<area shape="poly" id="edge12_Node000001_Node000012" title=" " alt="" coords="652,593,590,562,558,550,557,544,592,557,657,592"/>
+<area shape="rect" id="Node000013" href="$chan__patterns_8c.html#ad997191d3a6949fa481bda0110363c2b" title="Registers a subscriber and returns its id." alt="" coords="414,571,589,598"/>
+<area shape="poly" id="edge13_Node000001_Node000013" title=" " alt="" coords="622,605,590,601,589,596,627,604"/>
+<area shape="rect" id="Node000014" href="$chan__patterns_8c.html#a1d1397a9aedd18092a6aaf8cfcdc8463" title="Number of currently active subscribers." alt="" coords="411,622,591,667"/>
+<area shape="poly" id="edge14_Node000001_Node000014" title=" " alt="" coords="622,627,593,633,591,628,627,624"/>
+<area shape="rect" id="Node000015" href="$channels_8c.html#ac8f26d4194018d7909208ab629cbb9e5" title="Receives with a bounded wait." alt="" coords="428,691,574,718"/>
+<area shape="poly" id="edge16_Node000001_Node000015" title=" " alt="" coords="657,640,629,662,592,682,564,692,561,688,590,677,626,657,662,637"/>
+<area shape="rect" id="Node000017" href="$channels_8c.html#abe12bf64752aa5b86f916f02df5fba72" title="Sends a value by copying value_size bytes from value." alt="" coords="456,792,546,820"/>
+<area shape="poly" id="edge18_Node000001_Node000017" title=" " alt="" coords="681,641,648,710,623,745,593,776,571,790,548,799,545,794,569,785,590,772,619,742,644,707,677,645"/>
+<area shape="rect" id="Node000018" href="$chan__patterns_8c.html#a3e73429e707a73fa9f4ac65c23235380" title="Submits a work item (copied by value). Never blocks." alt="" coords="186,768,348,796"/>
+<area shape="poly" id="edge26_Node000001_Node000018" title=" " alt="" coords="676,641,642,690,619,713,593,732,532,758,468,775,405,783,350,786,348,781,405,778,467,769,531,753,590,728,616,709,638,687,672,645"/>
+<area shape="rect" id="Node000019" href="$channels_8c.html#a54f780fa486a1940b85512ed0525116d" title="Non&#45;blocking receive." alt="" coords="445,844,557,872"/>
+<area shape="poly" id="edge20_Node000001_Node000019" title=" " alt="" coords="686,642,676,687,658,737,631,789,613,812,593,833,577,844,559,851,557,847,574,839,590,829,609,809,627,786,653,735,671,685,683,646"/>
+<area shape="rect" id="Node000021" href="$channels_8c.html#a739abada08d078ab7cd0295886eba272" title="Non&#45;blocking send." alt="" coords="444,467,559,494"/>
+<area shape="poly" id="edge22_Node000001_Node000021" title=" " alt="" coords="669,589,636,548,614,527,590,509,560,495,559,490,593,505,617,523,640,545,675,589"/>
+<area shape="rect" id="Node000022" href="$chan__patterns_8c.html#a4e9947e25449bc14341ff107f78820b9" title="Number of items submitted but not yet completed." alt="" coords="416,896,586,924"/>
+<area shape="poly" id="edge24_Node000001_Node000022" title=" " alt="" coords="689,642,682,696,666,761,637,827,617,858,593,885,575,898,572,893,590,881,613,855,632,825,661,759,677,695,686,647"/>
+<area shape="rect" id="Node000023" href="$filepath__win32_8c.html#aaaac11786b3c2e880ea8589ded8c6beb" title="Fills buf with n cryptographically random bytes. On Linux uses getrandom(2) (thread&#45;safe,..." alt="" coords="434,948,568,976"/>
+<area shape="poly" id="edge27_Node000001_Node000023" title=" " alt="" coords="691,642,687,705,673,784,660,825,643,866,621,903,593,937,570,952,567,948,590,933,617,900,638,863,655,823,668,782,682,705,688,647"/>
+<area shape="rect" id="Node000027" href="$map__swiss_8c.html#ab7a2410d59f87bc15cdb3e9d4e797776" title=" " alt="" coords="442,1000,561,1028"/>
+<area shape="poly" id="edge32_Node000001_Node000027" title=" " alt="" coords="687,642,676,725,655,827,627,925,611,963,593,989,579,1000,562,1008,560,1003,576,996,589,985,606,960,622,923,650,826,670,724,684,647"/>
+<area shape="rect" id="Node000028" href="$threadpool_8c.html#a9d3ae515204c1f045e1572a7440f1479" title="Drain all pending tasks, stop all workers, and free the pool." alt="" coords="428,1076,575,1104"/>
+<area shape="poly" id="edge33_Node000001_Node000028" title=" " alt="" coords="692,642,691,720,678,824,666,880,648,937,624,991,593,1041,571,1062,544,1078,542,1073,568,1058,589,1037,620,988,643,935,661,879,673,823,686,720,689,647"/>
+<area shape="rect" id="Node000030" href="$threadpool_8c.html#abd1b1f200a182a6ee87054aa265585cf" title="Block until all currently submitted tasks have completed." alt="" coords="438,1152,564,1180"/>
+<area shape="poly" id="edge37_Node000001_Node000030" title=" " alt="" coords="689,642,679,747,659,887,631,1023,613,1078,593,1117,571,1139,544,1154,542,1149,568,1134,589,1114,609,1076,626,1022,654,886,674,747,686,646"/>
+<area shape="rect" id="Node000003" href="$chan__patterns_8c.html#a373a62d87fe6b40545bb85598cf5afa7" title="Merges count source channels into one destination channel." alt="" coords="217,57,318,85"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="463,154,417,127,362,100,320,85,317,80,364,95,419,122,468,152"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="472,151,362,48,336,36,334,31,364,44,477,150"/>
+<area shape="rect" id="Node000005" href="$chan__patterns_8c.html#ac7d571f3850e5b1007361287e694501d" title="Frees the hub and all subscriber queues." alt="" coords="198,109,337,137"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="437,163,334,140,332,135,442,160"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="437,191,335,215,331,211,441,187"/>
+<area shape="rect" id="Node000007" href="$chan__patterns_8c.html#a9129053474a38b1a4c6268f0cbc218db" title="Starts a worker pool: worker_count threads consuming from one shared work channel." alt="" coords="195,161,340,189"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="437,177,341,177,338,173,441,174"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="464,200,419,228,364,255,330,267,326,263,362,250,417,223,467,196"/>
+<area shape="rect" id="Node000016" href="$channels_8c.html#a6790c78d4124404ff5d44dce46dd1f71" title="Receives the next value into out, blocking until one arrives." alt="" coords="224,691,311,718"/>
+<area shape="poly" id="edge17_Node000015_Node000016" title=" " alt="" coords="411,706,313,707,311,702,415,703"/>
+<area shape="poly" id="edge19_Node000017_Node000018" title=" " alt="" coords="438,801,350,793,348,788,443,799"/>
+<area shape="rect" id="Node000020" href="$chan__patterns_8c.html#aa337face452cd5f7dec009bd997dec4f" title="Waits until one of count channels holds a value, then receives it." alt="" coords="218,844,316,872"/>
+<area shape="poly" id="edge21_Node000019_Node000020" title=" " alt="" coords="427,859,318,860,316,855,432,857"/>
+<area shape="poly" id="edge23_Node000021_Node000011" title=" " alt="" coords="426,474,349,466,347,461,431,471"/>
+<area shape="rect" id="Node000024" href="$filepath_8c.html#a3e4f2430fd482580cca3924f2da249ea" title="Generates a random NUL&#45;terminated name of len characters drawn from [A&#45;Za&#45;z0&#45;9] via fp_random_bytes()..." alt="" coords="200,948,335,976"/>
+<area shape="poly" id="edge28_Node000023_Node000024" title=" " alt="" coords="416,963,336,964,335,959,421,961"/>
+<area shape="rect" id="Node000025" href="$filepath_8c.html#a3511af86bb8f63da6e55c3e393349b12" title="Builds &quot;&lt;tempdir&gt;/&lt;random prefix&gt;XXXXXX&quot; and creates the directory via fp_create_tempdir()." alt="" coords="7,923,122,950"/>
+<area shape="poly" id="edge29_Node000024_Node000025" title=" " alt="" coords="182,953,124,946,122,941,187,950"/>
+<area shape="rect" id="Node000026" href="$filepath_8c.html#a8a7e59889c6bd2c87851dc91e65434bb" title="Builds &quot;&lt;tempdir&gt;/&lt;random prefix&gt;XXXXXX&quot; and creates the file via fp_create_tempfile() (mode 0600 on ..." alt="" coords="5,975,124,1002"/>
+<area shape="poly" id="edge30_Node000024_Node000026" title=" " alt="" coords="182,974,125,983,123,978,186,971"/>
+<area shape="poly" id="edge36_Node000028_Node000028" title=" " alt="" coords="532,1060,522,1057,501,1055,482,1057,471,1061,468,1067,473,1076,468,1074,463,1067,467,1058,480,1051,501,1049,524,1052,537,1061"/>
+<area shape="rect" id="Node000029" href="$threadpool_8c.html#a87dcbf4e1f2c693ff3252d0dc4608161" title="Create a new thread pool." alt="" coords="198,1076,337,1104"/>
+<area shape="poly" id="edge34_Node000028_Node000029" title=" " alt="" coords="410,1090,338,1092,337,1087,415,1089"/>
+<area shape="poly" id="edge35_Node000029_Node000029" title=" " alt="" coords="300,1061,290,1057,267,1055,246,1057,235,1061,232,1067,237,1076,232,1075,227,1067,231,1057,245,1051,267,1049,291,1052,306,1061"/>
+<area shape="poly" id="edge38_Node000030_Node000030" title=" " alt="" coords="532,1136,522,1133,501,1131,482,1133,471,1137,468,1143,473,1153,468,1150,463,1143,467,1134,480,1127,501,1125,524,1128,537,1137"/>
+</map>

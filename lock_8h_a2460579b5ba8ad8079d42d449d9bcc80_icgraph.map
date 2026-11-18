@@ -1,0 +1,24 @@
+<map id="cond_wait" name="cond_wait">
+<area shape="rect" id="Node000001" title=" " alt="" coords="581,151,669,178"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="651,135,643,132,625,129,608,131,599,136,597,141,601,151,596,149,592,142,595,132,607,126,625,124,645,127,657,136"/>
+<area shape="rect" id="Node000002" href="$lock_8c.html#a817db5657996111335ebc9d470d79aaf" title=" " alt="" coords="388,88,533,116"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="570,145,499,119,499,113,575,145"/>
+<area shape="rect" id="Node000006" href="$threadpool_8c.html#a9d3ae515204c1f045e1572a7440f1479" title="Drain all pending tasks, stop all workers, and free the pool." alt="" coords="193,157,340,185"/>
+<area shape="poly" id="edge12_Node000001_Node000006" title=" " alt="" coords="563,166,341,172,340,167,568,165"/>
+<area shape="rect" id="Node000008" href="$threadpool_8c.html#abd1b1f200a182a6ee87054aa265585cf" title="Block until all currently submitted tasks have completed." alt="" coords="398,225,524,253"/>
+<area shape="poly" id="edge13_Node000001_Node000008" title=" " alt="" coords="581,185,494,227,492,222,576,186"/>
+<area shape="poly" id="edge5_Node000002_Node000002" title=" " alt="" coords="487,72,479,69,461,67,444,69,435,73,433,79,437,88,432,87,427,79,431,70,442,63,461,61,480,64,492,73"/>
+<area shape="rect" id="Node000003" href="$channels_8c.html#ac8f26d4194018d7909208ab629cbb9e5" title="Receives with a bounded wait." alt="" coords="194,5,339,33"/>
+<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="415,82,339,48,309,36,309,31,341,43,420,81"/>
+<area shape="rect" id="Node000005" href="$lock_8c.html#af38c47e19d60284e863bda42ffe7c484" title=" " alt="" coords="225,81,308,109"/>
+<area shape="poly" id="edge6_Node000002_Node000005" title=" " alt="" coords="370,100,309,99,308,94,375,98"/>
+<area shape="poly" id="edge8_Node000002_Node000006" title=" " alt="" coords="408,120,308,159,306,154,403,122"/>
+<area shape="rect" id="Node000004" href="$channels_8c.html#a6790c78d4124404ff5d44dce46dd1f71" title="Receives the next value into out, blocking until one arrives." alt="" coords="31,5,119,33"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="176,21,120,22,118,17,180,18"/>
+<area shape="poly" id="edge7_Node000005_Node000005" title=" " alt="" coords="297,66,287,62,266,60,247,62,236,67,233,72,238,81,233,80,228,72,232,63,245,57,266,55,289,57,303,66"/>
+<area shape="poly" id="edge11_Node000006_Node000006" title=" " alt="" coords="297,142,287,138,266,136,247,138,236,143,233,148,238,158,233,156,228,148,232,139,245,133,266,131,289,133,303,142"/>
+<area shape="rect" id="Node000007" href="$threadpool_8c.html#a87dcbf4e1f2c693ff3252d0dc4608161" title="Create a new thread pool." alt="" coords="5,157,145,185"/>
+<area shape="poly" id="edge9_Node000006_Node000007" title=" " alt="" coords="174,172,145,174,144,169,179,170"/>
+<area shape="poly" id="edge10_Node000007_Node000007" title=" " alt="" coords="106,143,96,138,75,136,55,138,45,143,42,148,47,156,42,157,36,148,41,139,54,133,75,131,98,133,111,141"/>
+<area shape="poly" id="edge14_Node000008_Node000008" title=" " alt="" coords="487,209,479,206,461,204,444,206,435,211,433,216,437,226,432,224,427,216,431,207,442,201,461,199,480,201,492,211"/>
+</map>

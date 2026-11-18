@@ -1,0 +1,16 @@
+<map id="chan_try_recv" name="chan_try_recv">
+<area shape="rect" id="Node000001" title="Non&#45;blocking receive." alt="" coords="5,105,118,133"/>
+<area shape="rect" id="Node000002" href="$lock_8c.html#a90c1124b43ee197ab3060448eb893395" title=" " alt="" coords="168,29,266,57"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="91,102,175,62,172,67,93,107"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="166,105,269,133"/>
+<area shape="poly" id="edge4_Node000001_Node000004" title=" " alt="" coords="118,117,153,118,148,120,119,122"/>
+<area shape="rect" id="Node000005" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="166,181,269,209"/>
+<area shape="poly" id="edge7_Node000001_Node000005" title=" " alt="" coords="93,131,176,173,171,175,91,136"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="194,28,190,20,193,11,202,5,217,3,233,5,243,13,237,14,231,10,217,8,204,10,197,14,196,20,199,29"/>
+<area shape="rect" id="Node000003" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="317,105,378,133"/>
+<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="247,55,270,68,315,97,310,97,268,72,246,60"/>
+<area shape="poly" id="edge5_Node000004_Node000003" title=" " alt="" coords="269,117,304,119,299,120,270,122"/>
+<area shape="poly" id="edge6_Node000004_Node000004" title=" " alt="" coords="194,104,190,96,193,87,202,81,217,79,233,81,243,90,237,89,231,86,217,84,204,86,197,90,196,96,199,106"/>
+<area shape="poly" id="edge8_Node000005_Node000003" title=" " alt="" coords="242,178,307,142,312,141,244,183"/>
+<area shape="poly" id="edge9_Node000005_Node000005" title=" " alt="" coords="194,180,190,172,193,163,202,157,217,155,233,157,243,166,237,165,231,162,217,160,204,162,197,166,196,172,199,182"/>
+</map>

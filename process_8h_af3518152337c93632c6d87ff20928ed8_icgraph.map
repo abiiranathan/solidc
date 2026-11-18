@@ -1,0 +1,5 @@
+<map id="process_create_with_redirection" name="process_create_with_redirection">
+<area shape="rect" id="Node000001" title="Create a process with extended redirection options." alt="" coords="215,5,369,50"/>
+<area shape="rect" id="Node000002" href="$process__posix_8c.html#ad4abdfb43ea2dfe9e5a5193c3574af7a" title="Create a process that redirects its output from stdout and/or stderr to files." alt="" coords="5,5,167,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="197,28,167,30,167,25,202,27"/>
+</map>

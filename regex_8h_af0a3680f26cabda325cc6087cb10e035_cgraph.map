@@ -1,0 +1,6 @@
+<map id="regex_print_match" name="regex_print_match">
+<area shape="rect" id="Node000001" title="Prints the full match (group 0) and each participating capture group of match to stdout; groups with ..." alt="" coords="5,29,149,57"/>
+<area shape="poly" id="edge2_Node000001_Node000001" title=" " alt="" coords="50,28,46,20,50,11,60,5,77,3,95,5,106,14,100,14,93,10,77,8,62,10,54,14,52,20,55,29"/>
+<area shape="rect" id="Node000002" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="197,29,258,57"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="149,41,184,43,178,43,149,46"/>
+</map>

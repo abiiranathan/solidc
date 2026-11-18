@@ -1,0 +1,29 @@
+<map id="chan_merge" name="chan_merge">
+<area shape="rect" id="Node000001" title="Merges count source channels into one destination channel." alt="" coords="5,233,107,261"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#a578b7986be91d7c73980dd7bf1deee8d" title="Closes the channel. Idempotent." alt="" coords="172,105,266,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="66,231,102,189,153,144,165,138,162,142,156,148,106,193,70,234"/>
+<area shape="rect" id="Node000007" href="$channels_8c.html#afeb28f4133348d2a70e4f15c546e0bf3" title="Size in bytes of the values this channel carries." alt="" coords="155,157,283,185"/>
+<area shape="poly" id="edge11_Node000001_Node000007" title=" " alt="" coords="83,231,154,195,171,190,167,193,156,200,86,235"/>
+<area shape="rect" id="Node000008" href="$thread_8c.html#a2429c28f13bbe7bcec4bef63c7d7e26b" title=" " alt="" coords="163,233,274,261"/>
+<area shape="poly" id="edge12_Node000001_Node000008" title=" " alt="" coords="106,245,150,246,145,249,108,250"/>
+<area shape="rect" id="Node000009" href="$thread_8c.html#abebaaed6dd2a2595573d54d73712b006" title=" " alt="" coords="162,309,276,337"/>
+<area shape="poly" id="edge14_Node000001_Node000009" title=" " alt="" coords="88,259,176,301,171,304,88,264"/>
+<area shape="rect" id="Node000010" href="$thread_8c.html#ac2ea321a5ad4280208f81ad332fe2d31" title=" " alt="" coords="172,385,266,413"/>
+<area shape="poly" id="edge16_Node000001_Node000010" title=" " alt="" coords="71,259,156,347,189,375,184,375,153,350,69,264"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#ab4a9b1664d0b27f364ad90d37f0bf18f" title=" " alt="" coords="331,29,454,57"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="251,102,330,67,347,62,343,65,332,72,254,107"/>
+<area shape="rect" id="Node000005" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="341,105,444,133"/>
+<area shape="poly" id="edge5_Node000002_Node000005" title=" " alt="" coords="265,117,328,118,323,120,267,122"/>
+<area shape="rect" id="Node000006" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="341,181,444,209"/>
+<area shape="poly" id="edge8_Node000002_Node000006" title=" " alt="" coords="254,131,284,143,349,174,344,175,282,148,255,136"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="367,28,364,20,367,11,377,5,393,3,409,5,420,13,414,14,407,10,393,8,379,10,371,14,369,20,373,29"/>
+<area shape="rect" id="Node000004" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="502,105,564,133"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="429,55,456,67,501,96,496,97,453,72,429,60"/>
+<area shape="poly" id="edge6_Node000005_Node000004" title=" " alt="" coords="444,117,489,118,484,120,446,122"/>
+<area shape="poly" id="edge7_Node000005_Node000005" title=" " alt="" coords="367,104,364,96,367,87,377,81,393,79,409,81,420,89,414,90,407,86,393,84,379,86,371,90,369,96,373,105"/>
+<area shape="poly" id="edge9_Node000006_Node000004" title=" " alt="" coords="419,179,495,140,490,142,421,183"/>
+<area shape="poly" id="edge10_Node000006_Node000006" title=" " alt="" coords="367,180,364,172,367,163,377,157,393,155,409,157,420,166,414,166,407,162,393,160,379,162,371,166,369,172,373,182"/>
+<area shape="poly" id="edge13_Node000008_Node000008" title=" " alt="" coords="190,232,186,224,189,215,201,209,219,207,238,209,250,218,245,218,237,214,219,212,202,214,193,219,191,224,195,233"/>
+<area shape="poly" id="edge15_Node000009_Node000009" title=" " alt="" coords="190,308,186,300,189,291,201,285,219,283,238,285,250,294,245,294,237,290,219,288,202,290,193,295,191,300,195,309"/>
+<area shape="poly" id="edge17_Node000010_Node000010" title=" " alt="" coords="190,384,186,376,189,367,201,361,219,359,238,361,250,370,245,370,237,366,219,364,202,366,193,371,191,376,195,386"/>
+</map>

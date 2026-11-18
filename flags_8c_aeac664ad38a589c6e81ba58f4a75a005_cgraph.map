@@ -1,0 +1,8 @@
+<map id="flag_parse" name="flag_parse">
+<area shape="rect" id="Node000001" title="Parse command&#45;line arguments." alt="" coords="5,32,94,60"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="22,32,18,23,21,14,32,8,50,5,68,8,79,16,74,17,66,13,49,11,34,13,25,17,23,23,27,31"/>
+<area shape="rect" id="Node000002" href="$flags_8c.html#a52fdff87b9272922eadc56828880e346" title="Print usage/help information for the parser." alt="" coords="142,5,270,33"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="93,36,129,32,124,34,95,41"/>
+<area shape="rect" id="Node000003" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="175,57,236,85"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="94,50,162,63,157,65,94,56"/>
+</map>

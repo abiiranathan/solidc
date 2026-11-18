@@ -1,0 +1,23 @@
+<map id="chan_workers_shutdown" name="chan_workers_shutdown">
+<area shape="rect" id="Node000001" title="Shuts down: closes the work channel, waits for workers to drain every queued item,..." alt="" coords="5,131,186,158"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#a578b7986be91d7c73980dd7bf1deee8d" title="Closes the channel. Idempotent." alt="" coords="234,105,328,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="185,130,221,127,216,129,187,135"/>
+<area shape="rect" id="Node000005" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="386,29,489,57"/>
+<area shape="poly" id="edge11_Node000001_Node000005" title=" " alt="" coords="131,128,233,91,373,56,369,59,234,96,134,132"/>
+<area shape="rect" id="Node000006" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="386,181,489,209"/>
+<area shape="poly" id="edge12_Node000001_Node000006" title=" " alt="" coords="186,155,373,184,369,187,186,160"/>
+<area shape="rect" id="Node000007" href="$thread_8c.html#ac2ea321a5ad4280208f81ad332fe2d31" title=" " alt="" coords="234,231,328,258"/>
+<area shape="poly" id="edge13_Node000001_Node000007" title=" " alt="" coords="124,156,242,222,238,224,122,161"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#ab4a9b1664d0b27f364ad90d37f0bf18f" title=" " alt="" coords="376,105,499,133"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="328,117,363,119,358,120,328,122"/>
+<area shape="poly" id="edge5_Node000002_Node000005" title=" " alt="" coords="307,102,375,67,391,63,387,65,377,72,309,107"/>
+<area shape="poly" id="edge8_Node000002_Node000006" title=" " alt="" coords="312,131,396,174,391,174,311,136"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="413,104,409,96,412,87,422,81,438,79,454,81,465,90,459,89,452,86,438,84,424,86,416,90,414,96,418,106"/>
+<area shape="rect" id="Node000004" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="547,105,609,133"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="499,117,534,119,529,120,500,122"/>
+<area shape="poly" id="edge6_Node000005_Node000004" title=" " alt="" coords="474,55,501,67,546,97,541,96,498,72,474,60"/>
+<area shape="poly" id="edge7_Node000005_Node000005" title=" " alt="" coords="413,28,409,20,412,11,422,5,438,3,454,5,465,14,459,13,452,10,438,8,424,10,416,14,414,20,418,30"/>
+<area shape="poly" id="edge9_Node000006_Node000004" title=" " alt="" coords="464,178,535,142,540,140,466,183"/>
+<area shape="poly" id="edge10_Node000006_Node000006" title=" " alt="" coords="413,180,409,172,412,163,422,157,438,155,454,157,465,166,459,165,452,162,438,160,424,162,416,166,414,172,417,182"/>
+<area shape="poly" id="edge14_Node000007_Node000007" title=" " alt="" coords="253,229,249,222,252,212,263,206,281,204,299,206,311,215,305,214,298,211,281,209,265,211,256,216,254,221,258,231"/>
+</map>

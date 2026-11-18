@@ -1,0 +1,5 @@
+<map id="is_codepoint_alpha" name="is_codepoint_alpha">
+<area shape="rect" id="Node000001" title="Checks if a codepoint represents an alphabetic character." alt="" coords="162,5,308,33"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#af2018e35eb3e3d76cc29c597ed141943" title="Checks if a UTF&#45;8 character represents an alphabetic character." alt="" coords="5,5,114,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="144,19,114,22,114,17,149,19"/>
+</map>

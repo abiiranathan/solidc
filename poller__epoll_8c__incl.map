@@ -1,0 +1,38 @@
+<map id="src/poller/poller_epoll.c" name="src/poller/poller_epoll.c">
+<area shape="rect" id="Node000001" title="Linux epoll backend for poller.h." alt="" coords="658,5,831,33"/>
+<area shape="rect" id="Node000002" href="$poller__internal_8h.html" title="Shared state between the poller backends (epoll / kqueue / win32)." alt="" coords="545,81,672,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="723,32,647,76,645,71,718,35"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="667,308,737,336"/>
+<area shape="poly" id="edge17_Node000001_Node000010" title=" " alt="" coords="744,31,738,81,708,294,703,291,733,81,741,35"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="574,308,644,336"/>
+<area shape="poly" id="edge18_Node000001_Node000011" title=" " alt="" coords="659,35,584,56,554,68,535,83,522,108,517,137,521,166,530,195,559,251,590,297,585,295,554,254,525,198,515,167,512,136,516,107,531,79,551,64,583,51,664,33"/>
+<area shape="rect" id="Node000014" title=" " alt="" coords="747,81,814,109"/>
+<area shape="poly" id="edge16_Node000001_Node000014" title=" " alt="" coords="752,31,770,68,765,66,750,36"/>
+<area shape="rect" id="Node000015" title=" " alt="" coords="839,81,930,109"/>
+<area shape="poly" id="edge19_Node000001_Node000015" title=" " alt="" coords="770,31,849,74,844,73,769,36"/>
+<area shape="rect" id="Node000016" title=" " alt="" coords="955,81,1028,109"/>
+<area shape="poly" id="edge20_Node000001_Node000016" title=" " alt="" coords="789,31,942,78,937,79,789,36"/>
+<area shape="rect" id="Node000003" href="$poller_8h.html" title="Cross&#45;platform readiness polling for high&#45;performance servers." alt="" coords="286,157,430,184"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="561,110,418,154,417,149,566,108"/>
+<area shape="poly" id="edge14_Node000002_Node000010" title=" " alt="" coords="616,107,693,294,688,293,612,111"/>
+<area shape="poly" id="edge15_Node000002_Node000011" title=" " alt="" coords="611,107,611,294,606,291,607,111"/>
+<area shape="rect" id="Node000004" href="$macros_8h.html" title="Portable utility macros for assertions, memory, math, iteration, timing, and platform compatibility." alt="" coords="280,232,361,260"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="353,183,336,220,332,217,349,187"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="5,308,79,336"/>
+<area shape="poly" id="edge13_Node000003_Node000007" title=" " alt="" coords="332,187,85,303,82,299,329,182"/>
+<area shape="rect" id="Node000013" title=" " alt="" coords="385,232,467,260"/>
+<area shape="poly" id="edge12_Node000003_Node000013" title=" " alt="" coords="371,182,406,221,401,220,369,187"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="374,308,441,336"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="337,258,383,298,378,298,335,263"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="465,308,550,336"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="355,258,463,302,458,302,354,263"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="280,261,95,309,93,304,279,256"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="103,308,173,336"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="291,260,185,304,184,299,285,261"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="197,308,263,336"/>
+<area shape="poly" id="edge8_Node000004_Node000009" title=" " alt="" coords="307,260,259,300,257,296,302,261"/>
+<area shape="poly" id="edge9_Node000004_Node000010" title=" " alt="" coords="362,255,373,257,511,280,655,307,650,308,511,286,372,263,361,260"/>
+<area shape="poly" id="edge10_Node000004_Node000011" title=" " alt="" coords="362,255,561,306,556,308,361,260"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="286,308,350,336"/>
+<area shape="poly" id="edge11_Node000004_Node000012" title=" " alt="" coords="322,259,321,294,317,291,318,262"/>
+</map>

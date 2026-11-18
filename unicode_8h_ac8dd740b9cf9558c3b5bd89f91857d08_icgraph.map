@@ -1,0 +1,5 @@
+<map id="utf8_new" name="utf8_new">
+<area shape="rect" id="Node000001" title="Creates a new utf8_string object from a C string." alt="" coords="143,5,224,33"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#ac66faa2fc9866e1f93c5496603126620" title="Duplicates a utf8_string object." alt="" coords="5,5,95,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="124,19,95,22,95,17,130,19"/>
+</map>

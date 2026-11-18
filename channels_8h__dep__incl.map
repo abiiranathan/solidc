@@ -1,0 +1,9 @@
+<map id="include/channels.h" name="include/channels.h">
+<area shape="rect" id="Node000001" title="Go&#45;style typed channels for thread communication." alt="" coords="106,5,249,33"/>
+<area shape="rect" id="Node000002" href="$chan__patterns_8h.html" title="High&#45;level concurrency patterns built on channels.h." alt="" coords="5,81,182,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="149,45,110,83,107,79,153,42"/>
+<area shape="rect" id="Node000004" href="$channels_8c.html" title="Go&#45;style typed channels: dynamically&#45;grown ring buffer over the lock.h mutex/condvar primitives." alt="" coords="206,81,320,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="205,41,250,80,245,81,204,46"/>
+<area shape="rect" id="Node000003" href="$chan__patterns_8c.html" title="Implementations for the pub/sub, worker&#45;pool, and select abstractions declared in chan_patterns...." alt="" coords="20,157,167,184"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="95,123,96,157,91,155,92,126"/>
+</map>

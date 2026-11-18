@@ -1,0 +1,33 @@
+<map id="src/channels.c" name="src/channels.c">
+<area shape="rect" id="Node000001" title="Go&#45;style typed channels: dynamically&#45;grown ring buffer over the lock.h mutex/condvar primitives." alt="" coords="661,5,774,33"/>
+<area shape="rect" id="Node000002" href="$channels_8h.html" title="Go&#45;style typed channels for thread communication." alt="" coords="447,81,538,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="675,34,548,78,546,73,680,33"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="683,232,752,260"/>
+<area shape="poly" id="edge16_Node000001_Node000012" title=" " alt="" coords="720,32,720,218,715,215,716,35"/>
+<area shape="rect" id="Node000013" title=" " alt="" coords="776,232,846,260"/>
+<area shape="poly" id="edge17_Node000001_Node000013" title=" " alt="" coords="725,31,802,219,797,217,721,35"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="504,157,585,184"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="503,107,529,145,524,143,501,112"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="585,232,658,260"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="530,107,567,126,600,155,615,185,622,218,617,215,610,187,596,158,564,130,530,112"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="113,232,184,260"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="464,111,193,228,191,223,461,107"/>
+<area shape="rect" id="Node000006" href="$lock_8h.html" title="Cross&#45;platform mutex and condition variable wrapper." alt="" coords="140,157,200,184"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="445,109,216,161,214,156,447,104"/>
+<area shape="rect" id="Node000008" href="$macros_8h.html" title="Portable utility macros for assertions, memory, math, iteration, timing, and platform compatibility." alt="" coords="398,157,480,184"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="485,108,459,146,456,142,481,111"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="5,232,89,260"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="150,185,83,226,80,222,145,185"/>
+<area shape="poly" id="edge10_Node000008_Node000004" title=" " alt="" coords="472,182,578,226,573,226,471,187"/>
+<area shape="poly" id="edge11_Node000008_Node000005" title=" " alt="" coords="400,184,199,234,198,229,396,180"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="208,232,275,260"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="406,184,291,229,289,224,401,185"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="299,232,384,260"/>
+<area shape="poly" id="edge9_Node000008_Node000010" title=" " alt="" coords="424,184,372,225,370,221,419,186"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="409,232,474,260"/>
+<area shape="poly" id="edge12_Node000008_Node000011" title=" " alt="" coords="441,183,443,218,439,215,438,187"/>
+<area shape="poly" id="edge13_Node000008_Node000012" title=" " alt="" coords="480,180,670,231,665,232,480,185"/>
+<area shape="poly" id="edge14_Node000008_Node000013" title=" " alt="" coords="480,179,493,182,626,205,763,232,758,232,625,210,492,187,480,184"/>
+<area shape="rect" id="Node000014" title=" " alt="" coords="498,232,561,260"/>
+<area shape="poly" id="edge15_Node000008_Node000014" title=" " alt="" coords="456,182,504,223,499,222,454,187"/>
+</map>

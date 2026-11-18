@@ -1,0 +1,17 @@
+<map id="cond_wait_timeout" name="cond_wait_timeout">
+<area shape="rect" id="Node000001" title=" " alt="" coords="388,81,533,109"/>
+<area shape="poly" id="edge3_Node000001_Node000001" title=" " alt="" coords="492,66,482,62,461,60,441,62,430,67,427,72,432,82,427,80,422,72,426,63,439,57,461,55,484,57,498,66"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#ac8f26d4194018d7909208ab629cbb9e5" title="Receives with a bounded wait." alt="" coords="194,5,339,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="409,75,339,48,308,36,308,31,341,43,415,75"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#af38c47e19d60284e863bda42ffe7c484" title=" " alt="" coords="225,81,308,109"/>
+<area shape="poly" id="edge4_Node000001_Node000004" title=" " alt="" coords="370,96,309,98,308,93,375,95"/>
+<area shape="rect" id="Node000005" href="$threadpool_8c.html#a9d3ae515204c1f045e1572a7440f1479" title="Drain all pending tasks, stop all workers, and free the pool." alt="" coords="193,157,340,185"/>
+<area shape="poly" id="edge6_Node000001_Node000005" title=" " alt="" coords="412,115,305,159,303,154,406,116"/>
+<area shape="rect" id="Node000003" href="$channels_8c.html#a6790c78d4124404ff5d44dce46dd1f71" title="Receives the next value into out, blocking until one arrives." alt="" coords="31,5,119,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="176,21,120,22,118,17,180,18"/>
+<area shape="poly" id="edge5_Node000004_Node000004" title=" " alt="" coords="297,66,287,62,266,60,247,62,236,67,233,72,238,82,233,80,228,72,232,63,245,57,266,55,289,57,303,66"/>
+<area shape="poly" id="edge9_Node000005_Node000005" title=" " alt="" coords="297,142,287,138,266,136,247,138,236,143,233,148,238,158,233,156,228,148,232,139,245,133,266,131,289,133,303,142"/>
+<area shape="rect" id="Node000006" href="$threadpool_8c.html#a87dcbf4e1f2c693ff3252d0dc4608161" title="Create a new thread pool." alt="" coords="5,157,145,185"/>
+<area shape="poly" id="edge7_Node000005_Node000006" title=" " alt="" coords="174,171,145,174,145,169,180,171"/>
+<area shape="poly" id="edge8_Node000006_Node000006" title=" " alt="" coords="106,142,96,138,75,136,55,138,45,143,42,148,47,157,42,157,36,148,41,139,54,133,75,131,98,133,111,142"/>
+</map>

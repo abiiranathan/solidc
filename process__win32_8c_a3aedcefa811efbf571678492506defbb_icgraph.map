@@ -1,0 +1,7 @@
+<map id="win32_create_process" name="win32_create_process">
+<area shape="rect" id="Node000001" title="CreateProcessA() backend for process_create(): sizes a worst&#45;case command&#45;line buffer (each char may ..." alt="" coords="407,5,572,33"/>
+<area shape="rect" id="Node000002" href="$process_8c.html#a4ae7664bb48e61bb2211a010678fb860" title="Create a new process When custom environment is provided, command must be an absolute path or relativ..." alt="" coords="240,5,359,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="389,19,360,22,360,17,394,19"/>
+<area shape="rect" id="Node000003" href="$process_8c.html#a307d90f179ea36983056ddae376ad076" title="Run a command and capture its output." alt="" coords="5,5,192,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="221,19,192,22,192,17,226,19"/>
+</map>

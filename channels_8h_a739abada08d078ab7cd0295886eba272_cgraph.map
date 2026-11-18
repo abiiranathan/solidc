@@ -1,0 +1,16 @@
+<map id="chan_try_send" name="chan_try_send">
+<area shape="rect" id="Node000001" title="Non&#45;blocking send." alt="" coords="5,105,121,133"/>
+<area shape="rect" id="Node000002" href="$lock_8c.html#a90c1124b43ee197ab3060448eb893395" title=" " alt="" coords="171,29,270,57"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="92,102,177,62,174,67,95,107"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="169,105,272,133"/>
+<area shape="poly" id="edge4_Node000001_Node000004" title=" " alt="" coords="120,117,156,118,151,120,122,122"/>
+<area shape="rect" id="Node000005" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="169,181,272,209"/>
+<area shape="poly" id="edge7_Node000001_Node000005" title=" " alt="" coords="94,131,178,173,174,175,93,136"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="197,28,193,20,196,11,205,5,220,3,236,5,246,13,240,14,234,10,220,8,207,10,200,14,199,20,202,29"/>
+<area shape="rect" id="Node000003" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="320,105,381,133"/>
+<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="250,55,273,68,318,97,313,97,271,72,249,60"/>
+<area shape="poly" id="edge5_Node000004_Node000003" title=" " alt="" coords="272,117,307,119,302,120,273,122"/>
+<area shape="poly" id="edge6_Node000004_Node000004" title=" " alt="" coords="197,104,193,96,196,87,205,81,220,79,236,81,246,90,240,89,234,86,220,84,207,86,200,90,199,96,202,106"/>
+<area shape="poly" id="edge8_Node000005_Node000003" title=" " alt="" coords="245,178,310,142,315,141,247,183"/>
+<area shape="poly" id="edge9_Node000005_Node000005" title=" " alt="" coords="197,180,193,172,196,163,205,157,220,155,236,157,246,166,240,165,234,162,220,160,207,162,200,166,199,172,202,182"/>
+</map>

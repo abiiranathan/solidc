@@ -1,0 +1,9 @@
+<map id="NANOSLEEP" name="NANOSLEEP">
+<area shape="rect" id="Node000001" title="Cross&#45;platform sleep." alt="" coords="394,32,493,60"/>
+<area shape="rect" id="Node000002" href="$chan__patterns_8c.html#aa337face452cd5f7dec009bd997dec4f" title="Waits until one of count channels holds a value, then receives it." alt="" coords="244,5,342,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="376,34,342,31,343,25,381,34"/>
+<area shape="rect" id="Node000003" href="$process__win32_8c.html#aab27c2b93b61c29afa2279842d1c3642" title="Wait for a process to complete." alt="" coords="240,57,346,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="381,56,347,65,346,60,376,57"/>
+<area shape="rect" id="Node000004" href="$process_8c.html#a307d90f179ea36983056ddae376ad076" title="Run a command and capture its output." alt="" coords="5,57,192,85"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="221,71,192,74,192,69,227,71"/>
+</map>

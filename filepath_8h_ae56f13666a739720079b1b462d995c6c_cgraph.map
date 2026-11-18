@@ -1,0 +1,5 @@
+<map id="filepath_expanduser" name="filepath_expanduser">
+<area shape="rect" id="Node000001" title="Expands a leading &#39;~&#39; to the user&#39;s home directory: bare &quot;~&quot; or &quot;~/&quot;/&quot;~\&quot; collapse to home itself,..." alt="" coords="5,5,159,33"/>
+<area shape="rect" id="Node000002" href="$filepath__win32_8c.html#a971699c9d184e986bb626cd592dfa126" title="Returns $HOME as the user&#39;s home directory." alt="" coords="207,5,324,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,17,194,19,188,19,159,22"/>
+</map>

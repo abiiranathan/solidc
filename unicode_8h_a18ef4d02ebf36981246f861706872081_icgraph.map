@@ -1,0 +1,5 @@
+<map id="is_codepoint_alnum" name="is_codepoint_alnum">
+<area shape="rect" id="Node000001" title="Checks if a codepoint represents an alphanumeric character." alt="" coords="167,5,318,33"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a650f29191e8178a5a2124648f76c9d6f" title="Checks if a UTF&#45;8 character represents an alphanumeric character." alt="" coords="5,5,119,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="148,19,119,22,119,17,154,19"/>
+</map>

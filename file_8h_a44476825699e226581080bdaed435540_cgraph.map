@@ -1,0 +1,7 @@
+<map id="file_readall" name="file_readall">
+<area shape="rect" id="Node000001" title="Reads the whole file into a malloc&#39;d buffer, reading from offset 0 and restoring the original positio..." alt="" coords="5,32,99,60"/>
+<area shape="rect" id="Node000002" href="$file_8c.html#a335f0dbdf02ed9e484f39db8d10a1be0" title="Buffered fread wrapper; returns 0 for NULL buffer or zero size/count instead of touching the stream." alt="" coords="147,5,224,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="98,34,134,29,129,31,100,39"/>
+<area shape="rect" id="Node000003" href="$file_8c.html#acab5e1a4fcb3f306832dea97c0c92f70" title="Returns the current byte offset of the native handle, bypassing stdio buffering." alt="" coords="151,57,220,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="99,52,138,61,132,62,99,57"/>
+</map>

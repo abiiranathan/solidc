@@ -1,0 +1,8 @@
+<map id="thread_create" name="thread_create">
+<area shape="rect" id="Node000001" title=" " alt="" coords="198,32,309,60"/>
+<area shape="poly" id="edge3_Node000001_Node000001" title=" " alt="" coords="282,16,273,13,253,11,235,13,226,17,223,23,227,32,223,30,218,23,222,14,234,7,253,5,274,8,287,17"/>
+<area shape="rect" id="Node000002" href="$chan__patterns_8c.html#a373a62d87fe6b40545bb85598cf5afa7" title="Merges count source channels into one destination channel." alt="" coords="27,5,128,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="180,36,129,29,129,24,185,34"/>
+<area shape="rect" id="Node000003" href="$chan__patterns_8c.html#a9129053474a38b1a4c6268f0cbc218db" title="Starts a worker pool: worker_count threads consuming from one shared work channel." alt="" coords="5,57,150,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="180,56,150,63,149,58,185,56"/>
+</map>

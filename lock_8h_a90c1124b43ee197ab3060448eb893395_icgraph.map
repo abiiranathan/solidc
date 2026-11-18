@@ -1,0 +1,20 @@
+<map id="cond_signal" name="cond_signal">
+<area shape="rect" id="Node000001" title=" " alt="" coords="409,84,507,112"/>
+<area shape="poly" id="edge9_Node000001_Node000001" title=" " alt="" coords="485,68,477,65,458,63,441,65,431,69,429,75,433,85,428,82,424,75,427,66,439,59,458,57,478,60,491,69"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#ac8f26d4194018d7909208ab629cbb9e5" title="Receives with a bounded wait." alt="" coords="216,5,361,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="417,76,360,48,331,36,331,31,362,43,422,76"/>
+<area shape="rect" id="Node000004" href="$channels_8c.html#abe12bf64752aa5b86f916f02df5fba72" title="Sends a value by copying value_size bytes from value." alt="" coords="243,57,334,85"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="391,88,334,81,334,76,396,87"/>
+<area shape="rect" id="Node000006" href="$channels_8c.html#a54f780fa486a1940b85512ed0525116d" title="Non&#45;blocking receive." alt="" coords="232,109,344,137"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="391,108,345,117,345,112,396,107"/>
+<area shape="rect" id="Node000008" href="$channels_8c.html#a739abada08d078ab7cd0295886eba272" title="Non&#45;blocking send." alt="" coords="231,161,346,189"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="421,119,362,151,332,163,330,158,360,146,416,120"/>
+<area shape="rect" id="Node000003" href="$channels_8c.html#a6790c78d4124404ff5d44dce46dd1f71" title="Receives the next value into out, blocking until one arrives." alt="" coords="43,5,130,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="198,21,131,22,130,17,202,18"/>
+<area shape="rect" id="Node000005" href="$chan__patterns_8c.html#a3e73429e707a73fa9f4ac65c23235380" title="Submits a work item (copied by value). Never blocks." alt="" coords="5,57,168,85"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="225,72,169,74,167,69,230,70"/>
+<area shape="rect" id="Node000007" href="$chan__patterns_8c.html#aa337face452cd5f7dec009bd997dec4f" title="Waits until one of count channels holds a value, then receives it." alt="" coords="37,109,136,137"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="214,124,137,126,136,121,219,122"/>
+<area shape="rect" id="Node000009" href="$chan__patterns_8c.html#a1b1db3d8bedd05f6166d2153c014ad96" title="Publishes a value to every active subscriber (one copy each)." alt="" coords="6,161,167,189"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="213,175,167,178,167,173,218,175"/>
+</map>

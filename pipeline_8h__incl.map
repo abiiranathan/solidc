@@ -1,0 +1,9 @@
+<map id="include/pipeline.h" name="include/pipeline.h">
+<area shape="rect" id="Node000001" title="Data pipeline utilities for processing streams." alt="" coords="67,5,203,33"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,81,68,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="120,33,67,74,64,70,115,34"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="92,81,179,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="137,32,138,66,133,64,133,36"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="202,81,276,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="155,31,211,72,206,72,153,36"/>
+</map>

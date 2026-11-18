@@ -1,0 +1,16 @@
+<map id="thread_join" name="thread_join">
+<area shape="rect" id="Node000001" title=" " alt="" coords="421,84,515,112"/>
+<area shape="poly" id="edge4_Node000001_Node000001" title=" " alt="" coords="498,68,489,65,468,63,449,65,439,69,436,75,441,84,436,83,431,75,435,66,448,59,468,57,490,60,503,69"/>
+<area shape="rect" id="Node000002" href="$chan__patterns_8c.html#a373a62d87fe6b40545bb85598cf5afa7" title="Merges count source channels into one destination channel." alt="" coords="232,5,334,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="429,76,372,48,334,35,334,29,374,43,434,76"/>
+<area shape="rect" id="Node000003" href="$chan__patterns_8c.html#a9129053474a38b1a4c6268f0cbc218db" title="Starts a worker pool: worker_count threads consuming from one shared work channel." alt="" coords="211,57,355,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="403,89,356,84,355,79,408,89"/>
+<area shape="rect" id="Node000004" href="$chan__patterns_8c.html#ab82c70c3257d5158ea3fae16a3fde22f" title="Shuts down: closes the work channel, waits for workers to drain every queued item,..." alt="" coords="193,109,373,137"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="403,107,374,113,373,108,408,106"/>
+<area shape="rect" id="Node000005" href="$threadpool_8c.html#a9d3ae515204c1f045e1572a7440f1479" title="Drain all pending tasks, stop all workers, and free the pool." alt="" coords="209,185,356,213"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="430,119,311,187,309,182,425,120"/>
+<area shape="poly" id="edge8_Node000005_Node000005" title=" " alt="" coords="313,170,303,166,283,164,264,166,253,171,251,176,255,186,251,184,245,176,250,167,262,161,283,159,305,161,318,170"/>
+<area shape="rect" id="Node000006" href="$threadpool_8c.html#a87dcbf4e1f2c693ff3252d0dc4608161" title="Create a new thread pool." alt="" coords="5,185,145,213"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="191,199,145,202,145,197,196,199"/>
+<area shape="poly" id="edge7_Node000006_Node000006" title=" " alt="" coords="109,170,98,166,75,164,53,166,42,171,39,176,44,185,39,185,33,176,38,167,52,161,75,159,100,161,114,170"/>
+</map>

@@ -1,0 +1,11 @@
+<map id="chan_free" name="chan_free">
+<area shape="rect" id="Node000001" title="Frees the channel and its buffer." alt="" coords="5,44,91,72"/>
+<area shape="rect" id="Node000002" href="$lock_8c.html#a4c04565c7345b6ebf6e5a76aaa6fe108" title=" " alt="" coords="139,5,224,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="90,43,126,34,121,37,92,48"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#abe7ed51e69cbe867fd0bc31e20d26b11" title=" " alt="" coords="141,81,222,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="91,67,128,79,123,80,91,72"/>
+<area shape="rect" id="Node000003" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="272,44,333,72"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="225,30,260,43,254,44,224,35"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="222,80,254,72,260,71,223,85"/>
+<area shape="poly" id="edge5_Node000004_Node000004" title=" " alt="" coords="159,80,156,72,159,63,167,57,181,55,196,57,205,66,200,65,194,62,181,60,169,62,163,66,161,72,164,82"/>
+</map>

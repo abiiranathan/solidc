@@ -1,0 +1,28 @@
+var flags_8h =
+[
+    [ "FlagValidator", "flags_8h.html#aa561f4020983c63fe593e8f80ffe7af3", null ],
+    [ "FlagDataType", "flags_8h.html#a4a3ee2c598cb675f614d333b0e6b7b6d", null ],
+    [ "FlagStatus", "flags_8h.html#a89136caac2e14c55151f527ac02daaff", null ],
+    [ "flag_active_subcommand", "flags_8h.html#a9bf9011aa29d50fcf8ff7b0806b13eff", null ],
+    [ "flag_add", "flags_8h.html#a2d59fab4333fc8b7fe1148a0290d2dbf", null ],
+    [ "flag_add_completion_cmd", "flags_8h.html#a74e12e792ae6b148c3a78061d0ce9c55", null ],
+    [ "flag_add_persistent", "flags_8h.html#a48ef966c29db3e39b04f869fca3dcd4a", null ],
+    [ "flag_add_subcommand", "flags_8h.html#a64fba1de14a773c15e98baadb2dd0d1d", null ],
+    [ "flag_get_error", "flags_8h.html#a9afc5a417b2cce7aa05005d2a5427de1", null ],
+    [ "flag_handler_was_invoked", "flags_8h.html#ac87b15805d322f70ddc6ee9508ea4c06", null ],
+    [ "flag_invoke_subcommand", "flags_8h.html#a0ef901e8f1f80e2d84575c03f645cf4f", null ],
+    [ "flag_is_persistent", "flags_8h.html#ab2b3778fa2d1e17cf14d780f2856e92e", null ],
+    [ "flag_is_present", "flags_8h.html#a4a2c4c04525555da10a79cfc6af73925", null ],
+    [ "flag_parse", "flags_8h.html#a17a733a73bc484cfddc633e5e9e6ab5c", null ],
+    [ "flag_parse_and_invoke", "flags_8h.html#a726e1dfe3c93dc7ed8ba0ba2785fe45b", null ],
+    [ "flag_parser_free", "flags_8h.html#a1e0fe1d74e28cf3e009cdce16dd90072", null ],
+    [ "flag_parser_new", "flags_8h.html#ac68b5ccdebfad7b95d6430f2372ab2aa", null ],
+    [ "flag_parser_set_footer", "flags_8h.html#a17b0d07be44076f79982909bca26a13e", null ],
+    [ "flag_positional_at", "flags_8h.html#a6b25dc4c4e60c788f802ec5b378895d6", null ],
+    [ "flag_positional_count", "flags_8h.html#aef58831f1094f279b66833502c54cfe5", null ],
+    [ "flag_print_usage", "flags_8h.html#af48b6c739c633454ca622ef70510d890", null ],
+    [ "flag_set_persistent", "flags_8h.html#a84777b714e9f8a9a5e1b0ddf3e7e2dce", null ],
+    [ "flag_set_pre_invoke", "flags_8h.html#afb8e6f95322ff0659c957b55b3db532d", null ],
+    [ "flag_set_validator", "flags_8h.html#aecc898700246f36c7f86f42f6ffe7c1d", null ],
+    [ "flag_status_str", "flags_8h.html#a7c6d29dd5c8acd6d27ebe34645f2a8f4", null ]
+];

@@ -1,0 +1,7 @@
+<map id="is_utf8_alnum" name="is_utf8_alnum">
+<area shape="rect" id="Node000001" title="Checks if a UTF&#45;8 character represents an alphanumeric character." alt="" coords="5,32,119,60"/>
+<area shape="rect" id="Node000002" href="$unicode_8c.html#a18ef4d02ebf36981246f861706872081" title="Checks if a codepoint represents an alphanumeric character." alt="" coords="167,5,318,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="118,35,154,32,149,33,120,40"/>
+<area shape="rect" id="Node000003" href="$unicode_8c.html#a0075f88c12df63dda852af0ff5c41f92" title="Decodes a UTF&#45;8 byte sequence to its Unicode codepoint." alt="" coords="173,57,312,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="119,51,161,59,156,60,119,56"/>
+</map>

@@ -1,0 +1,12 @@
+<map id="include/cmp.h" name="include/cmp.h">
+<area shape="rect" id="Node000001" title="Floating&#45;point comparison library for precise and robust comparisons." alt="" coords="123,5,236,33"/>
+<area shape="rect" id="Node000002" href="$map_8h.html" title="Generic hash map implementation with customizable hashing and load balancing." alt="" coords="76,81,190,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="165,44,143,82,139,79,162,48"/>
+<area shape="rect" id="Node000005" href="$map_8c.html" title="Robin Hood hash map — open addressing with linear probing." alt="" coords="185,157,270,184"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="191,45,205,80,227,157,222,156,200,82,189,50"/>
+<area shape="rect" id="Node000003" href="$swiss__map_8h.html" title="Swiss table hash map (SIMD group probing) — experimental sibling of HashMap in map...." alt="" coords="5,157,162,184"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="117,120,94,158,90,155,114,124"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="162,116,213,156,208,157,161,121"/>
+<area shape="rect" id="Node000004" href="$map__swiss_8c.html" title="High&#45;performance Swiss table implementation of the swiss_map.h API." alt="" coords="20,232,147,260"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="85,198,86,233,81,231,82,202"/>
+</map>

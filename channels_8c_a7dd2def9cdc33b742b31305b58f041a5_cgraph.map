@@ -1,0 +1,19 @@
+<map id="chan_new" name="chan_new">
+<area shape="rect" id="Node000001" title="Creates a channel carrying values of value_size bytes each." alt="" coords="5,120,92,148"/>
+<area shape="rect" id="Node000002" href="$lock_8c.html#a4c04565c7345b6ebf6e5a76aaa6fe108" title=" " alt="" coords="140,5,225,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="60,118,94,83,138,44,146,40,143,44,141,48,98,87,65,121"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#a506e9e21e849521b8cac8db55d1461a2" title=" " alt="" coords="142,81,222,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="91,119,129,109,125,113,93,124"/>
+<area shape="rect" id="Node000005" href="$lock_8c.html#abe7ed51e69cbe867fd0bc31e20d26b11" title=" " alt="" coords="142,157,223,185"/>
+<area shape="poly" id="edge6_Node000001_Node000005" title=" " alt="" coords="92,143,129,154,124,157,92,148"/>
+<area shape="rect" id="Node000006" href="$lock_8c.html#a20db23f8993e4b5b39b9b977f8c6714f" title=" " alt="" coords="144,233,220,261"/>
+<area shape="poly" id="edge9_Node000001_Node000006" title=" " alt="" coords="68,146,155,222,151,224,65,151"/>
+<area shape="rect" id="Node000003" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="273,120,334,148"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="208,31,227,44,259,75,285,108,280,108,255,79,223,48,209,36"/>
+<area shape="poly" id="edge5_Node000004_Node000003" title=" " alt="" coords="222,105,261,119,256,120,223,110"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="160,80,157,72,160,63,168,57,182,55,197,57,206,65,201,66,195,62,182,60,170,62,164,66,162,72,165,81"/>
+<area shape="poly" id="edge7_Node000005_Node000003" title=" " alt="" coords="222,156,260,147,256,149,224,161"/>
+<area shape="poly" id="edge8_Node000005_Node000005" title=" " alt="" coords="160,156,157,148,160,139,168,133,182,131,197,133,206,142,201,142,195,138,182,136,170,138,164,142,162,148,165,158"/>
+<area shape="poly" id="edge10_Node000006_Node000003" title=" " alt="" coords="197,231,274,159,279,158,200,235"/>
+<area shape="poly" id="edge11_Node000006_Node000006" title=" " alt="" coords="160,232,157,224,160,215,168,209,182,207,197,209,206,218,201,217,195,214,182,212,170,214,164,218,162,224,165,234"/>
+</map>

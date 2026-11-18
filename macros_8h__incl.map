@@ -1,0 +1,19 @@
+<map id="include/macros.h" name="include/macros.h">
+<area shape="rect" id="Node000001" title="Portable utility macros for assertions, memory, math, iteration, timing, and platform compatibility." alt="" coords="318,5,450,33"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,81,73,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="318,35,88,83,87,78,317,30"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="96,81,182,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="343,33,197,79,196,74,338,34"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="206,81,280,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="362,33,283,76,281,71,356,34"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="304,81,374,109"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="379,32,357,70,353,65,374,35"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="398,81,464,109"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="394,31,417,69,412,67,391,36"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="488,81,558,109"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="410,31,488,74,482,73,408,36"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="581,81,652,109"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="426,31,569,78,563,78,425,36"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="675,81,739,109"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="451,31,663,80,657,81,450,36"/>
+</map>

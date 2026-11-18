@@ -1,0 +1,21 @@
+<map id="include/lock.h" name="include/lock.h">
+<area shape="rect" id="Node000001" title="Cross&#45;platform mutex and condition variable wrapper." alt="" coords="482,5,593,33"/>
+<area shape="rect" id="Node000002" href="$channels_8h.html" title="Go&#45;style typed channels for thread communication." alt="" coords="106,90,249,117"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="465,37,261,84,229,91,227,86,260,78,469,33"/>
+<area shape="rect" id="Node000006" href="$filepath__posix_8c.html" title="POSIX (Linux/macOS/BSD) implementation of the filepath backends." alt="" coords="272,81,419,126"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="490,41,398,83,395,78,495,38"/>
+<area shape="rect" id="Node000007" href="$lock_8c_source.html" title=" " alt="" coords="443,90,525,117"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="523,45,494,91,491,87,519,48"/>
+<area shape="rect" id="Node000008" href="$map_8c.html" title="Robin Hood hash map — open addressing with linear probing." alt="" coords="550,90,634,117"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="556,44,586,90,581,89,554,49"/>
+<area shape="rect" id="Node000009" href="$map__swiss_8c.html" title="High&#45;performance Swiss table implementation of the swiss_map.h API." alt="" coords="658,90,785,117"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="581,37,695,89,689,89,581,42"/>
+<area shape="rect" id="Node000010" href="$threadpool_8c_source.html" title=" " alt="" coords="810,90,935,117"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="608,33,798,78,830,89,824,89,797,84,608,39"/>
+<area shape="rect" id="Node000003" href="$chan__patterns_8h.html" title="High&#45;level concurrency patterns built on channels.h." alt="" coords="5,174,182,201"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="151,130,109,175,105,171,155,126"/>
+<area shape="rect" id="Node000005" href="$channels_8c.html" title="Go&#45;style typed channels: dynamically&#45;grown ring buffer over the lock.h mutex/condvar primitives." alt="" coords="206,174,320,201"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="203,126,252,173,247,174,201,131"/>
+<area shape="rect" id="Node000004" href="$chan__patterns_8c.html" title="Implementations for the pub/sub, worker&#45;pool, and select abstractions declared in chan_patterns...." alt="" coords="20,249,167,277"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="95,215,96,250,91,248,92,219"/>
+</map>

@@ -1,0 +1,29 @@
+<map id="chan_pubsub_unsubscribe" name="chan_pubsub_unsubscribe">
+<area shape="rect" id="Node000001" title="Removes a subscriber and destroys its queue (pending values are discarded)." alt="" coords="5,149,197,177"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#a578b7986be91d7c73980dd7bf1deee8d" title="Closes the channel. Idempotent." alt="" coords="245,112,338,140"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="174,146,232,136,227,139,176,151"/>
+<area shape="rect" id="Node000005" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="396,29,499,57"/>
+<area shape="poly" id="edge17_Node000001_Node000005" title=" " alt="" coords="130,146,244,98,383,58,379,61,246,103,133,151"/>
+<area shape="rect" id="Node000006" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="396,181,499,209"/>
+<area shape="poly" id="edge18_Node000001_Node000006" title=" " alt="" coords="197,169,382,187,378,191,197,175"/>
+<area shape="rect" id="Node000007" href="$channels_8c.html#a5856b68b0604d54212ff73bdfb9d40eb" title="Frees the channel and its buffer." alt="" coords="249,257,334,285"/>
+<area shape="poly" id="edge11_Node000001_Node000007" title=" " alt="" coords="128,175,254,248,249,250,127,180"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#ab4a9b1664d0b27f364ad90d37f0bf18f" title=" " alt="" coords="386,105,509,133"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="338,121,373,122,368,123,339,126"/>
+<area shape="poly" id="edge5_Node000002_Node000005" title=" " alt="" coords="313,109,385,67,401,62,396,65,387,72,316,114"/>
+<area shape="poly" id="edge8_Node000002_Node000006" title=" " alt="" coords="325,138,403,174,398,175,324,143"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="423,104,419,96,422,87,432,81,448,79,464,81,475,90,469,89,462,86,448,84,434,86,426,90,424,96,428,106"/>
+<area shape="rect" id="Node000004" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="557,181,619,209"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="484,131,511,143,556,173,551,172,508,148,484,136"/>
+<area shape="poly" id="edge6_Node000005_Node000004" title=" " alt="" coords="491,55,511,68,533,91,551,117,578,168,573,166,547,119,529,94,508,72,490,60"/>
+<area shape="poly" id="edge7_Node000005_Node000005" title=" " alt="" coords="422,28,419,20,422,11,432,5,448,3,464,5,475,14,469,14,462,10,448,8,434,10,426,14,424,20,428,29"/>
+<area shape="poly" id="edge9_Node000006_Node000004" title=" " alt="" coords="500,193,544,195,539,196,500,198"/>
+<area shape="poly" id="edge10_Node000006_Node000006" title=" " alt="" coords="423,180,419,172,422,163,432,157,448,155,464,157,475,166,469,165,462,162,448,160,434,162,426,166,424,172,428,182"/>
+<area shape="rect" id="Node000008" href="$lock_8c.html#a4c04565c7345b6ebf6e5a76aaa6fe108" title=" " alt="" coords="405,309,490,337"/>
+<area shape="poly" id="edge12_Node000007_Node000008" title=" " alt="" coords="335,283,393,304,387,304,334,288"/>
+<area shape="rect" id="Node000009" href="$lock_8c.html#abe7ed51e69cbe867fd0bc31e20d26b11" title=" " alt="" coords="407,257,488,285"/>
+<area shape="poly" id="edge14_Node000007_Node000009" title=" " alt="" coords="334,269,394,271,389,271,335,274"/>
+<area shape="poly" id="edge13_Node000008_Node000004" title=" " alt="" coords="488,306,508,294,543,258,569,223,574,221,547,262,511,299,490,311"/>
+<area shape="poly" id="edge15_Node000009_Node000004" title=" " alt="" coords="474,254,545,218,550,216,476,259"/>
+<area shape="poly" id="edge16_Node000009_Node000009" title=" " alt="" coords="423,256,419,248,422,239,432,233,448,231,464,233,475,242,469,241,462,238,448,236,434,238,426,242,424,248,427,258"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="pipe_write" name="pipe_write">
+<area shape="rect" id="Node000001" title="Write data to a pipe." alt="" coords="5,5,95,33"/>
+<area shape="rect" id="Node000002" href="$process__posix_8c.html#afb3fcc72cac00f40bcddd7b344e48c85" title="Translates the current errno into the closest ProcessError: EINVAL, ENOMEM, EACCES/EPERM,..." alt="" coords="143,5,307,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="95,17,130,19,124,19,95,22"/>
+</map>

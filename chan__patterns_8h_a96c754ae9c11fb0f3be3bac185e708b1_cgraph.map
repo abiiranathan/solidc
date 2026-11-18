@@ -1,0 +1,12 @@
+<map id="chan_pubsub_queue" name="chan_pubsub_queue">
+<area shape="rect" id="Node000001" title="A subscriber&#39;s receive queue, usable as a plain Channel*." alt="" coords="5,68,159,96"/>
+<area shape="rect" id="Node000002" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="207,29,310,57"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="147,65,194,57,189,59,149,70"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="207,105,310,133"/>
+<area shape="poly" id="edge4_Node000001_Node000004" title=" " alt="" coords="151,94,194,105,189,105,150,99"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="235,28,231,20,234,11,243,5,258,3,274,5,284,14,278,13,272,10,258,8,245,10,238,14,237,20,240,30"/>
+<area shape="rect" id="Node000003" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="358,68,419,96"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="307,55,346,68,340,68,307,60"/>
+<area shape="poly" id="edge5_Node000004_Node000003" title=" " alt="" coords="308,102,341,95,346,94,310,107"/>
+<area shape="poly" id="edge6_Node000004_Node000004" title=" " alt="" coords="235,104,231,96,234,87,243,81,258,79,274,81,284,90,278,89,272,86,258,84,245,86,238,90,237,96,240,106"/>
+</map>

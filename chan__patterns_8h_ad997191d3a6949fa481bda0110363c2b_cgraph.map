@@ -1,0 +1,29 @@
+<map id="chan_pubsub_subscribe" name="chan_pubsub_subscribe">
+<area shape="rect" id="Node000001" title="Registers a subscriber and returns its id." alt="" coords="5,259,181,286"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#a7dd2def9cdc33b742b31305b58f041a5" title="Creates a channel carrying values of value_size bytes each." alt="" coords="237,157,324,185"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="119,256,241,190,238,195,122,260"/>
+<area shape="rect" id="Node000008" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="229,259,332,286"/>
+<area shape="poly" id="edge13_Node000001_Node000008" title=" " alt="" coords="181,270,216,272,210,273,182,275"/>
+<area shape="rect" id="Node000009" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="229,335,332,362"/>
+<area shape="poly" id="edge16_Node000001_Node000009" title=" " alt="" coords="130,284,232,327,228,330,129,290"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#a4c04565c7345b6ebf6e5a76aaa6fe108" title=" " alt="" coords="380,5,465,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="289,155,325,104,378,44,382,44,386,40,382,48,329,107,293,159"/>
+<area shape="rect" id="Node000005" href="$lock_8c.html#a506e9e21e849521b8cac8db55d1461a2" title=" " alt="" coords="382,81,463,109"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="307,155,384,115,379,118,309,159"/>
+<area shape="rect" id="Node000006" href="$lock_8c.html#abe7ed51e69cbe867fd0bc31e20d26b11" title=" " alt="" coords="382,157,463,185"/>
+<area shape="poly" id="edge7_Node000002_Node000006" title=" " alt="" coords="323,169,369,170,364,172,325,174"/>
+<area shape="rect" id="Node000007" href="$lock_8c.html#a20db23f8993e4b5b39b9b977f8c6714f" title=" " alt="" coords="384,233,461,261"/>
+<area shape="poly" id="edge10_Node000002_Node000007" title=" " alt="" coords="308,183,384,225,379,226,308,188"/>
+<area shape="rect" id="Node000004" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="513,196,575,224"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="451,31,467,44,492,78,511,114,537,182,532,180,507,117,487,81,463,48,451,36"/>
+<area shape="poly" id="edge6_Node000005_Node000004" title=" " alt="" coords="449,107,467,120,499,151,526,185,521,183,495,155,464,124,449,112"/>
+<area shape="poly" id="edge5_Node000005_Node000005" title=" " alt="" coords="401,80,397,72,400,63,409,57,423,55,437,57,446,66,441,66,435,62,423,60,411,62,404,66,403,72,406,82"/>
+<area shape="poly" id="edge8_Node000006_Node000004" title=" " alt="" coords="464,181,501,195,496,196,463,187"/>
+<area shape="poly" id="edge9_Node000006_Node000006" title=" " alt="" coords="401,156,397,148,400,139,409,133,423,131,437,133,446,142,441,141,435,138,423,136,411,138,404,142,403,148,406,158"/>
+<area shape="poly" id="edge11_Node000007_Node000004" title=" " alt="" coords="460,233,496,224,501,223,462,238"/>
+<area shape="poly" id="edge12_Node000007_Node000007" title=" " alt="" coords="401,232,397,224,400,215,409,209,423,207,437,209,446,218,441,217,435,214,423,212,411,214,404,218,403,224,406,234"/>
+<area shape="poly" id="edge14_Node000008_Node000004" title=" " alt="" coords="332,279,397,282,431,278,464,270,494,254,518,236,523,234,497,258,466,275,432,284,397,287,332,284"/>
+<area shape="poly" id="edge15_Node000008_Node000008" title=" " alt="" coords="255,257,251,250,254,240,264,234,280,232,297,234,308,243,302,243,295,239,280,237,266,239,258,244,256,249,260,259"/>
+<area shape="poly" id="edge17_Node000009_Node000004" title=" " alt="" coords="332,337,397,318,432,305,464,288,496,262,521,237,526,234,500,266,467,292,434,310,399,323,333,342"/>
+<area shape="poly" id="edge18_Node000009_Node000009" title=" " alt="" coords="255,333,251,326,254,316,264,310,280,308,297,310,308,319,302,318,295,315,280,313,266,315,258,320,256,325,260,335"/>
+</map>

@@ -1,0 +1,21 @@
+<map id="process_run_and_capture" name="process_run_and_capture">
+<area shape="rect" id="Node000001" title="Convenience wrapper: creates the process, waits indefinitely, frees the handle and reports the exit c..." alt="" coords="5,96,192,124"/>
+<area shape="rect" id="Node000002" href="$process_8c.html#a4ae7664bb48e61bb2211a010678fb860" title="Public entry point for process creation: validates arguments, applies DEFAULT_OPTIONS when options is..." alt="" coords="240,44,359,72"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="154,93,230,75,226,78,156,98"/>
+<area shape="rect" id="Node000007" href="$process_8c.html#a878c2f499845f3b3948c33d013bd16cf" title="Frees the memory backing a process handle. Does not wait for or terminate the process." alt="" coords="247,96,352,124"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="191,107,234,109,229,111,192,112"/>
+<area shape="rect" id="Node000008" href="$process__win32_8c.html#aab27c2b93b61c29afa2279842d1c3642" title="Wait for a process to complete." alt="" coords="246,148,352,176"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="155,122,234,143,229,145,155,127"/>
+<area shape="rect" id="Node000003" href="$process__posix_8c.html#a8fecfdde215cae0f34aaad5a9eb7f9c6" title="fork()/exec() backend for process_create(). In the child: chdir()s to working_directory,..." alt="" coords="412,5,567,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="359,43,406,36,401,38,360,48"/>
+<area shape="rect" id="Node000005" href="$process__win32_8c.html#a3aedcefa811efbf571678492506defbb" title="CreateProcessA() backend for process_create(): sizes a worst&#45;case command&#45;line buffer (each char may ..." alt="" coords="407,57,572,85"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="359,59,394,64,389,65,360,65"/>
+<area shape="rect" id="Node000004" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="672,5,733,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="567,17,659,19,654,20,568,22"/>
+<area shape="rect" id="Node000006" href="$process__win32_8c.html#afb3fcc72cac00f40bcddd7b344e48c85" title="Maps GetLastError() onto ProcessError codes: invalid parameter, out of memory, access denied,..." alt="" coords="620,57,785,85"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="573,69,608,71,602,72,573,74"/>
+<area shape="rect" id="Node000009" href="$process__posix_8c.html#a450e174a306f9fa40d323a7adb8f84b3" title="POSIX backend of the cross&#45;platform sleep: a direct nanosleep(2) call." alt="" coords="440,135,539,162"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="353,155,427,153,422,153,353,161"/>
+<area shape="rect" id="Node000010" href="$process__posix_8c.html#afb3fcc72cac00f40bcddd7b344e48c85" title="Translates the current errno into the closest ProcessError: EINVAL, ENOMEM, EACCES/EPERM,..." alt="" coords="408,187,572,214"/>
+<area shape="poly" id="edge9_Node000008_Node000010" title=" " alt="" coords="353,170,406,183,401,183,353,175"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="string_stream_write" name="string_stream_write">
+<area shape="rect" id="Node000001" title="Appends a NUL&#45;terminated string to a stream." alt="" coords="5,5,157,33"/>
+<area shape="rect" id="Node000002" href="$stdstreams_8c.html#aad1d81bb01f3416c67f8dc99af7e7aa8" title="Appends exactly n bytes from str to a stream." alt="" coords="205,5,383,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="157,17,192,19,186,19,157,22"/>
+</map>

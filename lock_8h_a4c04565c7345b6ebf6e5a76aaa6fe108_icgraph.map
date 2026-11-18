@@ -1,0 +1,25 @@
+<map id="cond_free" name="cond_free">
+<area shape="rect" id="Node000001" title=" " alt="" coords="440,189,525,217"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#a5856b68b0604d54212ff73bdfb9d40eb" title="Frees the channel and its buffer." alt="" coords="276,109,361,137"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="442,181,391,155,358,140,358,135,393,150,447,181"/>
+<area shape="rect" id="Node000007" href="$channels_8c.html#a7dd2def9cdc33b742b31305b58f041a5" title="Creates a channel carrying values of value_size bytes each." alt="" coords="275,164,362,192"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="422,195,362,187,362,182,428,194"/>
+<area shape="rect" id="Node000009" href="$threadpool_8c.html#a87dcbf4e1f2c693ff3252d0dc4608161" title="Create a new thread pool." alt="" coords="31,289,171,317"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="422,214,340,233,245,256,141,291,139,286,244,251,339,228,427,213"/>
+<area shape="rect" id="Node000010" href="$threadpool_8c.html#a9d3ae515204c1f045e1572a7440f1479" title="Drain all pending tasks, stop all workers, and free the pool." alt="" coords="245,289,392,317"/>
+<area shape="poly" id="edge11_Node000001_Node000010" title=" " alt="" coords="448,225,344,291,342,286,443,226"/>
+<area shape="rect" id="Node000003" href="$chan__patterns_8c.html#ac7d571f3850e5b1007361287e694501d" title="Frees the hub and all subscriber queues." alt="" coords="31,5,171,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="284,100,244,74,196,48,164,36,163,31,198,43,246,70,289,99"/>
+<area shape="rect" id="Node000004" href="$chan__patterns_8c.html#a7a1ca0d4e1aee1a4e1c63ed6e88317b6" title="Removes a subscriber and destroys its queue (pending values are discarded)." alt="" coords="5,57,197,85"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="258,111,162,88,162,83,263,108"/>
+<area shape="rect" id="Node000005" href="$chan__patterns_8c.html#ae18cd566329be5e2abe13da79688a9e6" title="Frees the pool. shutdown() must have been called first." alt="" coords="29,109,173,137"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="258,125,174,126,173,121,262,122"/>
+<area shape="rect" id="Node000006" href="$chan__patterns_8c.html#a9129053474a38b1a4c6268f0cbc218db" title="Starts a worker pool: worker_count threads consuming from one shared work channel." alt="" coords="29,161,173,189"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="258,139,163,163,161,158,262,135"/>
+<area shape="poly" id="edge8_Node000007_Node000006" title=" " alt="" coords="257,178,174,179,173,173,262,176"/>
+<area shape="rect" id="Node000008" href="$chan__patterns_8c.html#ad997191d3a6949fa481bda0110363c2b" title="Registers a subscriber and returns its id." alt="" coords="13,213,189,241"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="258,192,166,215,165,210,262,190"/>
+<area shape="poly" id="edge10_Node000009_Node000009" title=" " alt="" coords="137,274,125,270,101,268,78,270,66,275,63,280,69,289,63,288,58,280,62,271,77,265,101,263,127,265,142,274"/>
+<area shape="poly" id="edge12_Node000010_Node000009" title=" " alt="" coords="226,303,171,306,171,301,232,303"/>
+<area shape="poly" id="edge13_Node000010_Node000010" title=" " alt="" coords="345,274,336,270,318,268,302,270,293,275,290,280,294,290,289,288,285,280,289,271,300,265,318,263,338,265,350,275"/>
+</map>

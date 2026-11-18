@@ -1,0 +1,7 @@
+<map id="regex_exec" name="regex_exec">
+<area shape="rect" id="Node000001" title="Runs the compiled pattern against subject starting at offset using the context&#39;s pre&#45;allocated match ..." alt="" coords="160,29,255,57"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="231,13,223,10,207,8,192,10,184,14,182,20,186,30,181,28,177,20,180,11,191,5,207,3,225,5,236,14"/>
+<area shape="rect" id="Node000002" href="$regex_8c.html#aaf88b7f23eb21a8a1f0436ea1f00e3c9" title="Convenience wrapper: regex_exec() over strlen(subject) starting at offset 0." alt="" coords="5,29,112,57"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="141,43,112,46,112,41,147,43"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="82,14,74,10,58,8,43,10,35,14,33,20,37,29,32,29,28,20,31,11,42,5,59,3,76,5,87,13"/>
+</map>

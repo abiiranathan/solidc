@@ -1,0 +1,9 @@
+<map id="dir_list_with_callback" name="dir_list_with_callback">
+<area shape="rect" id="Node000001" title="Invokes callback for each entry of path except &quot;.&quot; and &quot;..&quot;; silently returns if arguments are invali..." alt="" coords="5,57,167,85"/>
+<area shape="rect" id="Node000002" href="$filepath__win32_8c.html#ac8e3c6d41770ce40cf0669d2b99b037a" title="closedir() backend: closes the stream and frees the handle. Safe to pass NULL." alt="" coords="215,5,294,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="133,54,202,34,198,37,134,59"/>
+<area shape="rect" id="Node000003" href="$filepath__win32_8c.html#a21d34a2b1af79607edb3e2afe8f7c3be" title="readdir() backend: advances the stream." alt="" coords="217,57,292,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="167,69,204,71,199,72,168,74"/>
+<area shape="rect" id="Node000004" href="$filepath__win32_8c.html#aed2439100a9cc53757707f5753afb9a8" title="opendir() backend: allocates a Directory handle wrapping the DIR stream plus a copy of path." alt="" coords="216,109,293,137"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="134,83,204,106,199,108,133,88"/>
+</map>

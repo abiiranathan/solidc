@@ -1,0 +1,64 @@
+<map id="src/process/process_win32.c" name="src/process/process_win32.c">
+<area shape="rect" id="Node000001" title="Win32 implementation of the process management backends: CreateProcess&#45;based spawning with MSDN&#45;safe ..." alt="" coords="496,5,645,50"/>
+<area shape="rect" id="Node000002" href="$macros_8h.html" title="Portable utility macros for assertions, memory, math, iteration, timing, and platform compatibility." alt="" coords="349,174,430,201"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="548,49,417,166,414,161,543,52"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="536,249,606,277"/>
+<area shape="poly" id="edge37_Node000001_Node000009" title=" " alt="" coords="573,49,573,235,568,233,569,52"/>
+<area shape="rect" id="Node000011" href="$process__internal_8h.html" title="Internal contract between the portable process code and the per&#45;platform implementations (process_pos..." alt="" coords="804,98,945,126"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="645,46,814,93,809,94,645,52"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="114,249,182,277"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="346,203,197,250,195,245,351,200"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="5,249,91,277"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="348,200,106,251,105,246,349,195"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="257,249,330,277"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="375,201,324,242,321,237,370,203"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="354,249,424,277"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="391,200,392,235,387,232,388,204"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="743,249,809,277"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="430,192,560,213,731,248,726,249,559,218,430,197"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="1387,325,1456,353"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="346,198,305,213,263,230,248,240,240,251,238,263,246,275,289,283,397,291,732,309,1374,335,1368,337,731,314,397,297,289,288,242,279,233,264,235,249,245,236,261,225,303,208,351,196"/>
+<area shape="poly" id="edge8_Node000002_Node000009" title=" " alt="" coords="422,199,527,243,522,243,421,205"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="448,249,512,277"/>
+<area shape="poly" id="edge9_Node000002_Node000010" title=" " alt="" coords="406,199,455,240,449,239,405,204"/>
+<area shape="rect" id="Node000012" href="$file_8h.html" title="Cross&#45;platform file handling API with synchronous and asynchronous I/O support." alt="" coords="810,174,939,201"/>
+<area shape="poly" id="edge11_Node000011_Node000012" title=" " alt="" coords="876,124,877,160,873,156,873,128"/>
+<area shape="rect" id="Node000020" href="$process_8h.html" title="A modern, cross&#45;platform API for process management and IPC." alt="" coords="1254,174,1412,201"/>
+<area shape="poly" id="edge22_Node000011_Node000020" title=" " alt="" coords="945,122,1242,171,1236,171,945,127"/>
+<area shape="poly" id="edge15_Node000012_Node000005" title=" " alt="" coords="807,194,607,215,478,231,346,252,345,247,478,226,606,210,813,193"/>
+<area shape="poly" id="edge16_Node000012_Node000006" title=" " alt="" coords="807,196,646,218,440,251,439,246,645,212,813,195"/>
+<area shape="poly" id="edge17_Node000012_Node000007" title=" " alt="" coords="860,201,807,242,804,238,855,203"/>
+<area shape="rect" id="Node000013" href="$platform_8h.html" title="Cross&#45;platform compatibility definitions and canonical Windows header inclusion point." alt="" coords="630,249,719,277"/>
+<area shape="poly" id="edge12_Node000012_Node000013" title=" " alt="" coords="842,201,725,246,724,241,836,202"/>
+<area shape="rect" id="Node000015" title=" " alt="" coords="1067,249,1149,277"/>
+<area shape="poly" id="edge14_Node000012_Node000015" title=" " alt="" coords="917,199,1056,245,1050,245,916,205"/>
+<area shape="rect" id="Node000016" title=" " alt="" coords="1173,249,1235,277"/>
+<area shape="poly" id="edge18_Node000012_Node000016" title=" " alt="" coords="940,198,1160,249,1155,249,939,204"/>
+<area shape="rect" id="Node000017" title=" " alt="" coords="941,249,1043,277"/>
+<area shape="poly" id="edge19_Node000012_Node000017" title=" " alt="" coords="896,199,961,242,956,241,895,204"/>
+<area shape="rect" id="Node000018" title=" " alt="" coords="832,249,917,277"/>
+<area shape="poly" id="edge20_Node000012_Node000018" title=" " alt="" coords="876,200,877,235,873,232,873,204"/>
+<area shape="rect" id="Node000019" title=" " alt="" coords="1259,249,1333,277"/>
+<area shape="poly" id="edge21_Node000012_Node000019" title=" " alt="" coords="940,195,1076,216,1247,249,1242,249,1075,221,939,200"/>
+<area shape="rect" id="Node000014" title=" " alt="" coords="947,325,1042,353"/>
+<area shape="poly" id="edge13_Node000013_Node000014" title=" " alt="" coords="720,272,935,323,929,323,720,277"/>
+<area shape="poly" id="edge27_Node000020_Node000007" title=" " alt="" coords="1251,195,1062,215,945,231,824,252,823,246,944,226,1061,210,1256,194"/>
+<area shape="poly" id="edge28_Node000020_Node000008" title=" " alt="" coords="1349,199,1371,221,1392,248,1407,279,1417,312,1412,309,1402,281,1387,251,1367,225,1348,204"/>
+<area shape="poly" id="edge29_Node000020_Node000009" title=" " alt="" coords="1251,191,977,209,802,226,621,252,621,246,801,221,977,204,1256,191"/>
+<area shape="poly" id="edge30_Node000020_Node000010" title=" " alt="" coords="1251,190,1119,196,939,205,736,223,527,252,527,247,735,218,939,200,1118,190,1257,189"/>
+<area shape="poly" id="edge34_Node000020_Node000014" title=" " alt="" coords="1342,200,1356,238,1356,259,1347,279,1328,294,1299,306,1223,324,1136,334,1058,339,1058,333,1136,329,1222,319,1297,301,1325,289,1343,275,1351,258,1351,239,1339,204"/>
+<area shape="poly" id="edge26_Node000020_Node000015" title=" " alt="" coords="1296,201,1163,247,1162,242,1290,202"/>
+<area shape="poly" id="edge31_Node000020_Node000016" title=" " alt="" coords="1313,201,1241,244,1239,239,1308,203"/>
+<area shape="poly" id="edge36_Node000020_Node000019" title=" " alt="" coords="1329,200,1311,238,1308,233,1324,203"/>
+<area shape="rect" id="Node000021" href="$env_8h.html" title="Environment variable utilities and safe access functions." alt="" coords="1458,249,1515,277"/>
+<area shape="poly" id="edge23_Node000020_Node000021" title=" " alt="" coords="1361,199,1448,243,1443,242,1360,204"/>
+<area shape="rect" id="Node000022" title=" " alt="" coords="1539,249,1613,277"/>
+<area shape="poly" id="edge25_Node000020_Node000022" title=" " alt="" coords="1377,199,1527,247,1522,246,1376,205"/>
+<area shape="rect" id="Node000023" title=" " alt="" coords="1637,249,1710,277"/>
+<area shape="poly" id="edge32_Node000020_Node000023" title=" " alt="" coords="1402,199,1624,249,1619,249,1401,205"/>
+<area shape="rect" id="Node000024" title=" " alt="" coords="1734,249,1832,277"/>
+<area shape="poly" id="edge33_Node000020_Node000024" title=" " alt="" coords="1413,197,1721,249,1716,249,1413,203"/>
+<area shape="rect" id="Node000025" title=" " alt="" coords="1856,249,1944,277"/>
+<area shape="poly" id="edge35_Node000020_Node000025" title=" " alt="" coords="1413,193,1604,213,1844,249,1838,249,1604,218,1413,198"/>
+<area shape="poly" id="edge24_Node000021_Node000008" title=" " alt="" coords="1477,276,1444,316,1442,311,1473,279"/>
+</map>

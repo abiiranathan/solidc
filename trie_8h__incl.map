@@ -1,0 +1,22 @@
+<map id="include/trie.h" name="include/trie.h">
+<area shape="rect" id="Node000001" title="Trie data structure implementation for efficient string storage and retrieval." alt="" coords="317,5,423,33"/>
+<area shape="rect" id="Node000002" href="$arena_8h_source.html" title=" " alt="" coords="223,81,293,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="352,32,292,75,289,70,348,35"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="5,157,87,184"/>
+<area shape="poly" id="edge7_Node000001_Node000004" title=" " alt="" coords="329,35,212,83,142,118,82,151,80,146,140,113,210,79,334,32"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="318,157,388,184"/>
+<area shape="poly" id="edge8_Node000001_Node000006" title=" " alt="" coords="371,32,358,143,354,140,366,35"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="412,157,482,184"/>
+<area shape="poly" id="edge11_Node000001_Node000007" title=" " alt="" coords="378,31,436,143,431,142,375,35"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="433,81,499,109"/>
+<area shape="poly" id="edge9_Node000001_Node000008" title=" " alt="" coords="388,31,440,72,434,71,387,36"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="523,81,593,109"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="404,31,513,75,508,75,403,36"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="209,157,294,184"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="259,107,256,143,252,139,255,111"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="223,111,99,154,97,149,222,106"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="111,157,184,184"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="241,108,180,150,178,146,236,110"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="276,107,327,147,321,147,274,112"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="292,107,402,150,397,151,291,112"/>
+</map>

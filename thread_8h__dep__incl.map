@@ -1,0 +1,9 @@
+<map id="include/thread.h" name="include/thread.h">
+<area shape="rect" id="Node000001" title="Cross&#45;platform thread management and system information utilities." alt="" coords="162,5,289,33"/>
+<area shape="rect" id="Node000002" href="$chan__patterns_8c.html" title="Implementations for the pub/sub, worker&#45;pool, and select abstractions declared in chan_patterns...." alt="" coords="5,81,153,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="189,40,106,83,104,78,183,40"/>
+<area shape="rect" id="Node000003" href="$thread_8c_source.html" title=" " alt="" coords="177,81,274,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="228,47,228,82,223,79,224,51"/>
+<area shape="rect" id="Node000004" href="$threadpool_8c_source.html" title=" " alt="" coords="299,81,424,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="264,38,340,81,335,81,263,43"/>
+</map>

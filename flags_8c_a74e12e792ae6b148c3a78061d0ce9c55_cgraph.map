@@ -1,0 +1,9 @@
+<map id="flag_add_completion_cmd" name="flag_add_completion_cmd">
+<area shape="rect" id="Node000001" title="Add completion generation subcommand to a parser." alt="" coords="5,57,197,85"/>
+<area shape="rect" id="Node000002" href="$flags_8c.html#a7e946fbb5dac798b4abb2934ba3698ad" title=" " alt="" coords="292,5,368,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="165,54,279,30,274,33,166,59"/>
+<area shape="rect" id="Node000003" href="$flags_8c.html#a7e5dff600610ca7b51c1f340bdac67ee" title=" " alt="" coords="245,57,416,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="197,69,232,71,226,72,197,74"/>
+<area shape="rect" id="Node000004" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="300,109,361,137"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="166,83,287,112,282,114,165,88"/>
+</map>

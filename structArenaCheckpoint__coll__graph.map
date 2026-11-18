@@ -1,0 +1,6 @@
+<map id="ArenaCheckpoint" name="ArenaCheckpoint">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,106,138,134"/>
+<area shape="rect" id="Node000002" href="$structArenaBlock.html" title=" " alt="" coords="24,5,119,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="74,47,74,106,69,105,69,50"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="135,9,146,19,138,28,121,31,119,26,135,23,141,19,135,15"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="PollerBase" name="PollerBase">
+<area shape="rect" id="Node000001" title=" " alt="" coords="19,207,109,234"/>
+<area shape="rect" id="Node000002" href="$structPollerRegTable.html" title=" " alt="" coords="5,106,123,134"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="66,148,67,207,61,206,62,151"/>
+<area shape="rect" id="Node000003" href="$structPollerReg.html" title=" " alt="" coords="22,5,106,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="65,46,67,106,61,105,63,51"/>
+</map>

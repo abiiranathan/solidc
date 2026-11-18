@@ -1,0 +1,48 @@
+var file_8h =
+[
+    [ "FileAttributes", "structFileAttributes.html", "structFileAttributes" ],
+    [ "file_t", "structfile__t.html", "structfile__t" ],
+    [ "FileAttrFlags", "file_8h.html#a29bf197ac5b928845e85534b7e384c69", null ],
+    [ "FileAttributes", "file_8h.html#a20141e86d39ec6f398bf6aeeb4ced074", null ],
+    [ "file_result_t", "file_8h.html#a438616f502a7a9ce6d13406b2620157d", [
+      [ "FILE_SUCCESS", "file_8h.html#a438616f502a7a9ce6d13406b2620157da72bd77b523cfa4452c18282bcbb849dd", null ],
+      [ "FILE_ERROR_INVALID_ARGS", "file_8h.html#a438616f502a7a9ce6d13406b2620157da098a929b1f3626ae3ecd6205414d0185", null ],
+      [ "FILE_ERROR_OPEN_FAILED", "file_8h.html#a438616f502a7a9ce6d13406b2620157da1c83500f5205bf5912ab778755f4e90a", null ],
+      [ "FILE_ERROR_IO_FAILED", "file_8h.html#a438616f502a7a9ce6d13406b2620157dabe27a92cac26d05da0c1a97346ce749d", null ],
+      [ "FILE_ERROR_LOCK_FAILED", "file_8h.html#a438616f502a7a9ce6d13406b2620157da17cb2eb2a5ff8fc2bcf5805042a50e6f", null ],
+      [ "FILE_ERROR_MEMORY_FAILED", "file_8h.html#a438616f502a7a9ce6d13406b2620157da62cf2ff5eefd6be191319124164d0ef9", null ],
+      [ "FILE_ERROR_SYSTEM_ERROR", "file_8h.html#a438616f502a7a9ce6d13406b2620157da0cf10b94f9276e21ddb092e9b147c184", null ]
+    ] ],
+    [ "FileAttrFlags", "file_8h.html#ace3a200d1de6ae210acf0d21c97b028c", [
+      [ "FATTR_NONE", "file_8h.html#ace3a200d1de6ae210acf0d21c97b028ca4c18802115e24e410af9eaea8b96bee7", null ],
+      [ "FATTR_FILE", "file_8h.html#ace3a200d1de6ae210acf0d21c97b028ca64b65289c962359fc6394d87383ef8cc", null ],
+      [ "FATTR_DIR", "file_8h.html#ace3a200d1de6ae210acf0d21c97b028ca108dc6731b72bc15e91b099082c00f72", null ],
+      [ "FATTR_SYMLINK", "file_8h.html#ace3a200d1de6ae210acf0d21c97b028ca9f98658f4fcbe0a7ac5a918def8dea05", null ],
+      [ "FATTR_CHARDEV", "file_8h.html#ace3a200d1de6ae210acf0d21c97b028caf8781aa6a9cc48fab21624c2049677a4", null ],
+      [ "FATTR_BLOCKDEV", "file_8h.html#ace3a200d1de6ae210acf0d21c97b028ca8748dd18000553d4db17f849ce3e28de", null ],
+      [ "FATTR_FIFO", "file_8h.html#ace3a200d1de6ae210acf0d21c97b028cabb30e900e3a86cd630f802dcf1bd3fe8", null ],
+      [ "FATTR_SOCKET", "file_8h.html#ace3a200d1de6ae210acf0d21c97b028cae7ccf8d6393c3e8a2a8dfd656b0e1df5", null ],
+      [ "FATTR_HIDDEN", "file_8h.html#ace3a200d1de6ae210acf0d21c97b028ca335ce98b160eeb0ba564ea34865191d9", null ],
+      [ "FATTR_EXECUTABLE", "file_8h.html#ace3a200d1de6ae210acf0d21c97b028caeb078b27421aa5331f68adb5df2fe3f5", null ]
+    ] ],
+    [ "file_close", "file_8h.html#a1d7164f3484f4c26ae3f38952df38323", null ],
+    [ "file_copy", "file_8h.html#ad5afb2d14c372feb2c91c2b10091bbea", null ],
+    [ "file_flush", "file_8h.html#aafa1c0bfaad0345748a0d1a8fbf8fb26", null ],
+    [ "file_lock", "file_8h.html#ad93dd5fb06f72ca01b5be6b01e5e8e0f", null ],
+    [ "file_mmap", "file_8h.html#ab7de9385525b207f8237e0c6e361216e", null ],
+    [ "file_munmap", "file_8h.html#aec034637957e9b903b94c53214d747ea", null ],
+    [ "file_open", "file_8h.html#a81d0134870ca46f804e9fc14d2c15952", null ],
+    [ "file_pread", "file_8h.html#a6cc5d31b3e9493913b27de66d46b58d1", null ],
+    [ "file_pwrite", "file_8h.html#a06d1fae5752b8b9f0a58ab2e08a68b37", null ],
+    [ "file_read", "file_8h.html#a335f0dbdf02ed9e484f39db8d10a1be0", null ],
+    [ "file_readall", "file_8h.html#a44476825699e226581080bdaed435540", null ],
+    [ "file_seek", "file_8h.html#a83235df7efb8426b00b2f49415953820", null ],
+    [ "file_sendfile", "file_8h.html#a7611be987f4250bc60428f28ac2826ea", null ],
+    [ "file_tell", "file_8h.html#acab5e1a4fcb3f306832dea97c0c92f70", null ],
+    [ "file_truncate", "file_8h.html#a33005c849563fdb281a6b512036fc7e2", null ],
+    [ "file_unlock", "file_8h.html#afdd350819a3759c9a5a374d4c704e577", null ],
+    [ "file_write", "file_8h.html#ae717d08b8429474f8af4df156cf6d103", null ],
+    [ "file_write_string", "file_8h.html#ac084e2fbe6d8df5cae810f65d9290e19", null ],
+    [ "filesize_tostring", "file_8h.html#a3230910f72fdbfbf914543d223cd05d8", null ],
+    [ "populate_file_attrs", "file_8h.html#ae876faa1a30905108f9ad397ae52d7ac", null ]
+];

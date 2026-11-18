@@ -1,0 +1,7 @@
+<map id="readline" name="readline">
+<area shape="rect" id="Node000001" title="Read a line from stdin, optionally printing a prompt first." alt="" coords="158,29,232,57"/>
+<area shape="poly" id="edge3_Node000001_Node000001" title=" " alt="" coords="216,13,209,10,195,8,181,10,174,14,172,20,175,30,170,28,166,20,170,11,179,5,195,3,211,5,221,14"/>
+<area shape="rect" id="Node000002" href="$stdstreams_8c.html#aa46e60ab26f59e576df9a49f82ef2323" title="Read a password from the terminal with echo disabled." alt="" coords="5,29,110,57"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="139,43,110,46,110,41,144,43"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="79,14,72,10,57,8,44,10,36,14,34,20,38,29,33,29,29,20,32,11,42,5,58,3,74,5,84,13"/>
+</map>

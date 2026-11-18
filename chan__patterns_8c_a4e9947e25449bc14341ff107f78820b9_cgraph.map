@@ -1,0 +1,12 @@
+<map id="chan_workers_pending" name="chan_workers_pending">
+<area shape="rect" id="Node000001" title="Number of items submitted but not yet completed." alt="" coords="5,68,175,96"/>
+<area shape="rect" id="Node000002" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="223,29,326,57"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="158,65,210,56,205,58,160,70"/>
+<area shape="rect" id="Node000004" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="223,105,326,133"/>
+<area shape="poly" id="edge4_Node000001_Node000004" title=" " alt="" coords="162,94,210,105,204,106,161,99"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="251,28,247,20,250,11,259,5,274,3,290,5,300,14,294,13,288,10,274,8,261,10,254,14,253,20,256,30"/>
+<area shape="rect" id="Node000003" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="374,68,435,96"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="323,55,362,68,356,68,323,60"/>
+<area shape="poly" id="edge5_Node000004_Node000003" title=" " alt="" coords="324,102,357,95,362,94,326,107"/>
+<area shape="poly" id="edge6_Node000004_Node000004" title=" " alt="" coords="251,104,247,96,250,87,259,81,274,79,290,81,300,90,294,89,288,86,274,84,261,86,254,90,253,96,256,106"/>
+</map>

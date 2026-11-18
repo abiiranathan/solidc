@@ -1,0 +1,20 @@
+<map id="chan_workers_submit" name="chan_workers_submit">
+<area shape="rect" id="Node000001" title="Submits a work item (copied by value). Never blocks." alt="" coords="5,105,168,133"/>
+<area shape="rect" id="Node000002" href="$channels_8c.html#abe12bf64752aa5b86f916f02df5fba72" title="Sends a value by copying value_size bytes from value." alt="" coords="216,105,306,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="168,117,203,118,198,120,169,122"/>
+<area shape="rect" id="Node000005" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="354,29,457,57"/>
+<area shape="poly" id="edge11_Node000001_Node000005" title=" " alt="" coords="147,102,340,56,338,61,149,107"/>
+<area shape="rect" id="Node000006" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="354,181,457,209"/>
+<area shape="poly" id="edge12_Node000001_Node000006" title=" " alt="" coords="148,131,341,177,337,181,148,136"/>
+<area shape="rect" id="Node000003" href="$lock_8c.html#a90c1124b43ee197ab3060448eb893395" title=" " alt="" coords="356,105,455,133"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="306,117,344,119,338,120,307,122"/>
+<area shape="poly" id="edge5_Node000002_Node000005" title=" " alt="" coords="288,102,353,67,361,66,366,64,355,72,290,107"/>
+<area shape="poly" id="edge8_Node000002_Node000006" title=" " alt="" coords="290,131,367,174,361,174,288,136"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="382,104,379,96,381,87,391,81,406,79,421,81,431,90,426,89,419,86,406,84,393,86,386,90,384,96,387,106"/>
+<area shape="rect" id="Node000004" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="505,105,567,133"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="455,117,492,119,487,119,455,122"/>
+<area shape="poly" id="edge6_Node000005_Node000004" title=" " alt="" coords="435,55,459,68,503,97,498,96,456,72,435,60"/>
+<area shape="poly" id="edge7_Node000005_Node000005" title=" " alt="" coords="382,28,379,20,381,11,391,5,406,3,421,5,431,14,426,13,419,10,406,8,393,10,386,14,384,20,387,30"/>
+<area shape="poly" id="edge9_Node000006_Node000004" title=" " alt="" coords="430,178,495,142,500,141,432,183"/>
+<area shape="poly" id="edge10_Node000006_Node000006" title=" " alt="" coords="382,179,379,172,381,163,391,157,406,155,421,157,431,166,426,165,419,162,406,160,393,162,386,166,384,172,387,182"/>
+</map>

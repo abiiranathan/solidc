@@ -1,0 +1,7 @@
+<map id="file_read" name="file_read">
+<area shape="rect" id="Node000001" title="Buffered fread wrapper; returns 0 for NULL buffer or zero size/count instead of touching the stream." alt="" coords="147,32,224,60"/>
+<area shape="rect" id="Node000002" href="$file_8c.html#ad5afb2d14c372feb2c91c2b10091bbea" title="Copies from src&#39;s current position to EOF, appending at dst&#39;s current position, then flushes dst...." alt="" coords="12,5,92,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="129,36,92,30,92,24,134,34"/>
+<area shape="rect" id="Node000003" href="$file_8c.html#a44476825699e226581080bdaed435540" title="Reads the whole file into a malloc&#39;d buffer, reading from offset 0 and restoring the original positio..." alt="" coords="5,57,99,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="129,57,99,65,98,60,134,55"/>
+</map>

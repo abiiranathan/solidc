@@ -1,0 +1,9 @@
+<map id="fp_dir_walk_impl" name="fp_dir_walk_impl">
+<area shape="rect" id="Node000001" title="Dispatcher for dir_walk(): on Linux uses the getdents64 fast path when the kernel supports it,..." alt="" coords="402,5,535,33"/>
+<area shape="rect" id="Node000002" href="$filepath_8c.html#af247d0017f4fc538777d06c9f40443bd" title="Recursively walks a directory tree breadth&#45;first, invoking callback for each entry before recursing i..." alt="" coords="278,5,354,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="384,19,355,22,355,17,389,19"/>
+<area shape="rect" id="Node000003" href="$filepath_8c.html#abdfec26581dba8143ff4e170ba4d7ba0" title="Computes the total size in bytes of all regular files in the tree rooted at path, via dir_walk()." alt="" coords="159,5,230,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="260,19,231,22,231,17,265,19"/>
+<area shape="rect" id="Node000004" href="$filepath__string_8c.html#ad540bdb7e70253c52d292e93a466e920" title="Splits path at the last separator: dir gets the portion before it (no trailing separator) and name th..." alt="" coords="5,5,111,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="140,19,111,22,111,17,146,19"/>
+</map>

@@ -1,0 +1,8 @@
+<map id="chan_pubsub_new" name="chan_pubsub_new">
+<area shape="rect" id="Node000001" title="Creates a pub/sub hub." alt="" coords="5,29,146,57"/>
+<area shape="rect" id="Node000002" href="$lock_8c.html#a20db23f8993e4b5b39b9b977f8c6714f" title=" " alt="" coords="194,29,270,57"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="146,41,181,43,175,43,146,46"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="211,28,207,20,210,11,218,5,232,3,246,5,255,14,250,13,244,10,232,8,220,10,214,14,213,20,215,30"/>
+<area shape="rect" id="Node000003" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="318,29,379,57"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="270,41,305,43,300,43,271,46"/>
+</map>

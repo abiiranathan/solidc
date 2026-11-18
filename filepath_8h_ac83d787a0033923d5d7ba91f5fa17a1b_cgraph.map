@@ -1,0 +1,28 @@
+<map id="make_tempdir" name="make_tempdir">
+<area shape="rect" id="Node000001" title="Builds &quot;&lt;tempdir&gt;/&lt;random prefix&gt;XXXXXX&quot; and creates the directory via fp_create_tempdir()." alt="" coords="5,109,121,137"/>
+<area shape="rect" id="Node000002" href="$filepath__string_8c.html#aa4116dff66d9dc8f7f34144d148416e1" title="Joins path1 and path2 with the platform separator (&#39;\&#39; when path1 already uses backslashes on Windows..." alt="" coords="188,5,290,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="79,107,118,76,167,44,183,38,179,41,170,48,121,80,83,111"/>
+<area shape="rect" id="Node000003" href="$filepath__win32_8c.html#ad346c57dbea0242c95302edc83771520" title="Turns candidate (a path ending in &quot;XXXXXX&quot;) into a unique directory via mkdtemp()...." alt="" coords="169,57,309,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="111,106,177,88,173,92,114,111"/>
+<area shape="rect" id="Node000004" href="$filepath_8c.html#a3e4f2430fd482580cca3924f2da249ea" title="Generates a random NUL&#45;terminated name of len characters drawn from [A&#45;Za&#45;z0&#45;9] via fp_random_bytes()..." alt="" coords="171,109,306,137"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="120,121,158,122,153,124,122,126"/>
+<area shape="rect" id="Node000010" href="$filepath__string_8c.html#a9eb09c7e2719cbee4dded5a2f453f796" title="Bounds&#45;safe string copy used across the filepath module: copies src into dst, always NUL&#45;terminates,..." alt="" coords="196,161,282,189"/>
+<area shape="poly" id="edge14_Node000001_Node000010" title=" " alt="" coords="113,135,184,157,180,160,113,140"/>
+<area shape="rect" id="Node000011" href="$filepath__win32_8c.html#ab64a9218e1836f5990df494592bdfed1" title="Resolves the temporary directory from $TMPDIR, falling back to /tmp when unset." alt="" coords="189,213,289,241"/>
+<area shape="poly" id="edge15_Node000001_Node000011" title=" " alt="" coords="81,135,121,166,170,198,184,207,178,207,167,203,118,171,80,140"/>
+<area shape="rect" id="Node000005" href="$filepath__win32_8c.html#aaaac11786b3c2e880ea8589ded8c6beb" title="Fills buf with n cryptographically random bytes. On Linux uses getrandom(2) (thread&#45;safe,..." alt="" coords="357,109,491,137"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="307,121,344,123,339,124,308,126"/>
+<area shape="rect" id="Node000006" href="$lock_8c.html#a6e0f8abbfb3beb4a990282bb7ca66176" title=" " alt="" coords="539,33,643,61"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="456,106,542,69,547,67,458,111"/>
+<area shape="rect" id="Node000008" href="$lock_8c.html#a20db23f8993e4b5b39b9b977f8c6714f" title=" " alt="" coords="553,109,629,137"/>
+<area shape="poly" id="edge8_Node000005_Node000008" title=" " alt="" coords="492,121,540,123,535,124,492,126"/>
+<area shape="rect" id="Node000009" href="$lock_8c.html#a8e1134b81439b407581566ef62e4e099" title=" " alt="" coords="539,185,643,213"/>
+<area shape="poly" id="edge11_Node000005_Node000009" title=" " alt="" coords="457,135,547,178,542,178,456,140"/>
+<area shape="poly" id="edge7_Node000006_Node000006" title=" " alt="" coords="568,32,564,24,567,15,576,9,591,7,607,9,616,18,611,17,605,14,591,12,578,14,571,18,569,24,572,34"/>
+<area shape="rect" id="Node000007" href="$flags_8c.html#ad718190515dbedaeb705010c349ef2f6" title="Write a name for use inside a Bash double&#45;quoted string, e.g. local flags=&quot;&#45;&#45;name &#45;&#45;name2&quot;." alt="" coords="691,109,752,137"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="621,59,644,72,689,101,683,100,641,76,620,64"/>
+<area shape="poly" id="edge9_Node000008_Node000007" title=" " alt="" coords="629,121,678,123,672,123,630,126"/>
+<area shape="poly" id="edge10_Node000008_Node000008" title=" " alt="" coords="568,108,564,100,567,91,576,85,591,83,607,85,616,94,611,93,605,90,591,88,578,90,571,94,569,100,572,110"/>
+<area shape="poly" id="edge12_Node000009_Node000007" title=" " alt="" coords="615,182,680,146,686,144,617,187"/>
+<area shape="poly" id="edge13_Node000009_Node000009" title=" " alt="" coords="568,183,564,176,567,167,576,161,591,159,607,161,616,170,611,169,605,166,591,164,578,166,571,170,569,176,572,186"/>
+</map>

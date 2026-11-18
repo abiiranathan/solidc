@@ -1,0 +1,26 @@
+var flags_8c =
+[
+    [ "flag_active_subcommand", "flags_8c.html#a9bf9011aa29d50fcf8ff7b0806b13eff", null ],
+    [ "flag_add", "flags_8c.html#a7e946fbb5dac798b4abb2934ba3698ad", null ],
+    [ "flag_add_completion_cmd", "flags_8c.html#a74e12e792ae6b148c3a78061d0ce9c55", null ],
+    [ "flag_add_persistent", "flags_8c.html#a3422047a7887ca81abf86793bf948168", null ],
+    [ "flag_add_subcommand", "flags_8c.html#a7e5dff600610ca7b51c1f340bdac67ee", null ],
+    [ "flag_get_error", "flags_8c.html#a7e1f81fbd48791a0fdd57ecf1a7a3935", null ],
+    [ "flag_handler_was_invoked", "flags_8c.html#ac87b15805d322f70ddc6ee9508ea4c06", null ],
+    [ "flag_invoke_subcommand", "flags_8c.html#a8eb39a066e31475f01f7137cb5c7b509", null ],
+    [ "flag_is_persistent", "flags_8c.html#ab2b3778fa2d1e17cf14d780f2856e92e", null ],
+    [ "flag_is_present", "flags_8c.html#a0ca4e257e282b3d989febabfeca6e145", null ],
+    [ "flag_parse", "flags_8c.html#aeac664ad38a589c6e81ba58f4a75a005", null ],
+    [ "flag_parse_and_invoke", "flags_8c.html#a469f6058916e0ebe18871e235732377b", null ],
+    [ "flag_parser_free", "flags_8c.html#a242e044fc1429bf3a3d66064d71e1804", null ],
+    [ "flag_parser_new", "flags_8c.html#ac68b5ccdebfad7b95d6430f2372ab2aa", null ],
+    [ "flag_parser_set_footer", "flags_8c.html#a17b0d07be44076f79982909bca26a13e", null ],
+    [ "flag_positional_at", "flags_8c.html#a85d8e76ff8e3bc0da9b01042243baf95", null ],
+    [ "flag_positional_count", "flags_8c.html#a59e3aa7bf4b0ac4ca60051af1a16c97c", null ],
+    [ "flag_print_usage", "flags_8c.html#a52fdff87b9272922eadc56828880e346", null ],
+    [ "flag_set_persistent", "flags_8c.html#a84777b714e9f8a9a5e1b0ddf3e7e2dce", null ],
+    [ "flag_set_pre_invoke", "flags_8c.html#a118666b363422aea14c6ccad196b2e68", null ],
+    [ "flag_set_validator", "flags_8c.html#aecc898700246f36c7f86f42f6ffe7c1d", null ],
+    [ "flag_status_str", "flags_8c.html#a9a9bf944919d3de095c7b8ccc863121b", null ],
+    [ "fprintf", "flags_8c.html#ad718190515dbedaeb705010c349ef2f6", null ]
+];
