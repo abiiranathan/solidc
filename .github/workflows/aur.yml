@@ -1,0 +1,65 @@
+name: Publish to AUR
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "aur/solidc/**"
+      - ".github/workflows/aur.yml"
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aur-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'abiiranathan/solidc'
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - name: Install packaging tools
+        run: pacman -Syu --noconfirm --needed git openssh cmake ca-certificates
+
+      - name: Fail early when the AUR key is missing
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          if [ -z "$AUR_SSH_PRIVATE_KEY" ]; then
+            echo "::error::AUR_SSH_PRIVATE_KEY is not set. Add the AUR private key under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Create unprivileged build user
+        run: useradd -m builder
+
+      - uses: actions/checkout@v4
+
+      - name: Hand the checkout and SSH key to the build user
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+
+          install -d -m 700 -o builder -g builder /home/builder/.ssh
+          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" >/home/builder/.ssh/aur
+          ssh-keyscan -t ed25519 aur.archlinux.org >/home/builder/.ssh/known_hosts
+          printf 'Host aur.archlinux.org\n  IdentityFile ~/.ssh/aur\n  IdentitiesOnly yes\n' \
+            >/home/builder/.ssh/config
+          chown builder:builder /home/builder/.ssh/aur \
+            /home/builder/.ssh/known_hosts /home/builder/.ssh/config
+          chmod 600 /home/builder/.ssh/aur /home/builder/.ssh/known_hosts \
+            /home/builder/.ssh/config
+
+      - name: Publish packaging files to AUR master
+        run: |
+          su builder -c "
+            git config --global user.name 'Dr. Abiira Nathan' &&
+            git config --global user.email 'nabiira2by2@gmail.com' &&
+            cd '$GITHUB_WORKSPACE/aur/solidc' &&
+            GIT_TERMINAL_PROMPT=0 ./deploy.sh
+          "
