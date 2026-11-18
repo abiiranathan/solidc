@@ -127,6 +127,7 @@ set(HEADERS
     include/str_slice.h
     include/regex.h
     include/strsim.h
+    include/sort.h
 )
 
 # Source files
